@@ -62,6 +62,8 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+const router = useRouter()
 
 const email = ref('')
 const password = ref('')
@@ -69,7 +71,11 @@ const password = ref('')
 const handleLogin = () => {
   console.log('Correo:', email.value)
   console.log('Contraseña:', password.value)
+
+  console.log(email.value, password.value)
+  if(email.value && password.value) router.push('/dashboard')
 }
+
 </script>
 
 <style scoped>
