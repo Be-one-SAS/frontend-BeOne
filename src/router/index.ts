@@ -1,24 +1,40 @@
-import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
-import LoginPage from '@/views/authentication/LoginPage.vue'
-import DashboardPage from '@/views/dashboad/DashboardPage.vue'
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
+import MainLayout from '@/components/layout/MainLayout.vue';
 
-
-const routes: Array<RouteRecordRaw> = [
+const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    name: 'Login',
-    component: LoginPage,
+    component: MainLayout,
+    children: [
+      {
+        path: 'dashboard/home',
+        component: () => import('@/views/dashboard/DashboardPage.vue'),
+      },
+      {
+        path: 'admin/precios',
+        component: () => import('@/views/admin/ListaPrecios.vue'),
+      },
+      {
+        path: 'admin/cotizar',
+        component: () => import('@/views/admin/Cotizar.vue'),
+      },
+      {
+        path: 'operativa/reporte',
+        component: () => import('@/views/operativa/Reporte.vue'),
+      },
+      {
+        path: 'users/list',
+        component: () => import('@/views/users/List.vue'),
+      },
+    ],
   },
   {
-    path: '/dashboard',
-    name: 'Dashboard',
-    component: DashboardPage,
+    path: '/login',
+    component: () => import('@/views/authentication/LoginPage.vue'),
   },
-]
+];
 
-const router = createRouter({
+export default createRouter({
   history: createWebHistory(),
   routes,
-})
-
-export default router
+});
