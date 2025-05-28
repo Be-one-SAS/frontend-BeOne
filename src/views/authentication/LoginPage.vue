@@ -73,7 +73,7 @@ const handleLogin = () => {
   console.log('Contraseña:', password.value)
 
   console.log(email.value, password.value)
-  if(email.value && password.value) router.push('/dashboard/home')
+  if(email.value && password.value) router.push('/')
 }
 
 </script>

@@ -6,10 +6,11 @@
           <span class="ml-3 font-bold text-xl text-blue-900">BeOne</span>
         </div>
   
-        <nav class="flex flex-col gap-3 space-y-6 text-gray-700 font-medium">
+        <nav class="flex flex-col  space-y-6 text-gray-700 font-medium">
             <MenuItem
             icon="Administrative"
             label="Home"
+            route="/" 
           />
           <MenuItem
             icon="Administrative"
