@@ -2,8 +2,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import MainLayout from "@/components/layout/MainLayout.vue";
 import LoginPage from "@/views/authentication/LoginPage.vue";
-import { useAuthStore } from "../stores/auth";
-
+import { useAuth } from "@/composables/useAuth";
 
 const routes = [
   {
@@ -12,7 +11,7 @@ const routes = [
     meta: { requiresAuth: true },
     children: [
       {
-        path: "",
+        path: "/",
         name: "Dashboard",
         component: () => import("@/views/dashboard/DashboardPage.vue"),
       },
@@ -41,8 +40,7 @@ const routes = [
   {
     path: "/login",
     name: "Login",
-    component: LoginPage,
-    meta: { guestOnly: true },
+    component: LoginPage
   },
 ];
 
@@ -51,15 +49,16 @@ const router = createRouter({
   routes,
 });
 
-// ✅ Usa el store directamente aquí
+// Validación global de acceso
 router.beforeEach((to, from, next) => {
-  const auth = useAuthStore();
+  const { isAuthenticated } = useAuth();
 
-  if (to.meta.requiresAuth && !auth.isAuthenticated) {
+  console.log('AUTH',to.meta.requiresAuth, isAuthenticated.value)
+  if (to.meta.requiresAuth && !isAuthenticated.value) {
     return next("/login");
   }
 
-  if (to.meta.guestOnly && auth.isAuthenticated) {
+  if (to.meta.guestOnly && isAuthenticated.value) {
     return next("/");
   }
 

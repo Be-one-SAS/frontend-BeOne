@@ -39,10 +39,34 @@
           <div class="text-right text-sm mb-4 mt-4">
             <a href="#" class="text-blue-500 hover:underline">Forgot password?</a>
           </div>
-          <button type="submit"
-            class="w-full bg-cyan-500 text-white py-2 rounded-lg hover:bg-cyan-600 transition font-medium">
-            Iniciar sesión
-          </button>
+          <button
+  type="submit"
+  :disabled="isLoading"
+  class="w-full bg-cyan-500 text-white py-2 rounded-lg hover:bg-cyan-600 transition font-medium flex items-center justify-center gap-2"
+>
+  <svg
+    v-if="isLoading"
+    class="animate-spin h-5 w-5 text-white"
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+  >
+    <circle
+      class="opacity-25"
+      cx="12"
+      cy="12"
+      r="10"
+      stroke="currentColor"
+      stroke-width="4"
+    ></circle>
+    <path
+      class="opacity-75"
+      fill="currentColor"
+      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+    ></path>
+  </svg>
+  <span>{{ isLoading ? 'Iniciando...' : 'Iniciar sesión' }}</span>
+</button>
         </form>
 
         <p class="text-xs text-gray-400 mt-8 text-center">
@@ -63,17 +87,42 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-const router = useRouter()
+import { auth } from '../../services/user.service'
+import { useAuth } from '../../composables/useAuth'
 
+
+const router = useRouter()
 const email = ref('')
 const password = ref('')
+const isLoading = ref(false)
+const errorMessage = ref('')
+const authStore = useAuth()
 
 const handleLogin = () => {
-  console.log('Correo:', email.value)
-  console.log('Contraseña:', password.value)
+  if (email.value && password.value) login()
+}
 
-  console.log(email.value, password.value)
-  if(email.value && password.value) router.push('/')
+/**
+ * Inicia la sesion
+ */
+const login = async () => {
+  try {
+    isLoading.value = true
+    const response = await auth({ email: email.value, password: password.value })
+    if (response.status === 201) {
+      const { access_token, user } = response.data
+      authStore.login(user, access_token);
+      router.push("/")
+
+    } else {
+      throw new Error('Respuesta vacía de login')
+    }
+  } catch (error) {
+    errorMessage.value = 'Error al iniciar sesión. Verifica el código.'
+    console.log('Fallo el servicio auth en LoginView', error)
+  } finally {
+    isLoading.value = false
+  }
 }
 
 </script>
