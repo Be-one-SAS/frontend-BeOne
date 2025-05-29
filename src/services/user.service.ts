@@ -2,16 +2,16 @@
 import axios from "axios"
 
 interface AuthData {
-    email: string;
-    password: string;
-  }
-  
-  interface CreateUser {
-    email: string;
-    password: string;
-    fullName: string,
-    role: string
-  }
+  email: string;
+  password: string;
+}
+
+interface CreateUser {
+  email: string;
+  password: string;
+  fullName: string,
+  role: string
+}
 //@ts-ignore
 //const baseAPI = import.meta.env.VITE_BASE_URL_API
 //@ts-ignore
@@ -23,33 +23,33 @@ interface AuthData {
  * @returns 
  */
 export const auth = async ({ email, password }: AuthData) => {
-    try {
-      const response = await axios.post(
-        "https://backend-beone-production.up.railway.app/auth/login",
-        {
-          email,
-          password,
+  try {
+    const response = await axios.post(
+      "https://backend-beone-production.up.railway.app/auth/login",
+      {
+        email,
+        password,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
         },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-  
-      return response;
-    } catch (error) {
-      console.error("Fallo el servicio para iniciar sesión:", error);
-      throw error; // ✅ Lanza el error para manejarlo donde se use
-    }
-  };
+      }
+    );
 
-  /**
- * Servicio para autenticarme
- * @param data 
- * @returns 
- */
-export const createUser = async ({ email, password, fullName, role }:CreateUser) => {
+    return response;
+  } catch (error) {
+    console.error("Fallo el servicio para iniciar sesión:", error);
+    throw error; // ✅ Lanza el error para manejarlo donde se use
+  }
+};
+
+/**
+* Servicio para crear
+* @param data 
+* @returns 
+*/
+export const createUser = async ({ email, password, fullName, role }: CreateUser) => {
   try {
     const response = await axios.post(
       "https://backend-beone-production.up.railway.app/auth/register",
@@ -69,6 +69,30 @@ export const createUser = async ({ email, password, fullName, role }:CreateUser)
     return response;
   } catch (error) {
     console.error("Fallo el servicio para crear el usuario:", error);
+    throw error; // ✅ Lanza el error para manejarlo donde se use
+  }
+};
+
+
+/**
+* Servicio para crear
+* @param data 
+* @returns 
+*/
+export const getUsers = async () => {
+  try {
+    const response = await axios.get(
+      "https://backend-beone-production.up.railway.app/users",
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response;
+  } catch (error) {
+    console.error("Fallo el servicio para ver los usuarios:", error);
     throw error; // ✅ Lanza el error para manejarlo donde se use
   }
 };

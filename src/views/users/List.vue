@@ -6,7 +6,8 @@
     </div>
 
     <!-- Mensajes -->
-    <div v-if="mensaje" :class="`p-3 rounded-lg text-sm ${mensajeTipo === 'error' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`">
+    <div v-if="mensaje"
+      :class="`p-3 rounded-lg text-sm ${mensajeTipo === 'error' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`">
       {{ mensaje }}
     </div>
 
@@ -30,26 +31,47 @@
     <div class="pt-4">
       <button
         class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg shadow flex items-center justify-center gap-2"
-        @click="crearUsuario"
-        :disabled="isLoading"
-      >
+        @click="crearUsuario" :disabled="isLoading">
         <svg v-if="isLoading" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
           viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-            stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor"
-            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
         </svg>
         <span>{{ isLoading ? 'Creando...' : 'Crear Usuario' }}</span>
       </button>
     </div>
+
+   
   </div>
+
+ <!-- Tabla de usuarios -->
+ <div v-if="listaUsuarios.length > 0" class="overflow-x-auto mt-6 bg-white shadow-md rounded-xl p-6">
+      <table class="min-w-full bg-white shadow rounded-lg ">
+        <thead>
+          <tr class="bg-blue-100 text-left text-gray-700">
+            <th class="py-3 px-4">Nombre</th>
+            <th class="py-3 px-4">Correo</th>
+            <th class="py-3 px-4">Rol</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="usuario in listaUsuarios" :key="usuario.id" class="border-b hover:bg-gray-50">
+            <td class="py-2 px-4">{{ usuario.fullName }}</td>
+            <td class="py-2 px-4">{{ usuario.email }}</td>
+            <td class="py-2 px-4">{{ usuario.roles?.[0]?.role?.name || 'Sin rol' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 </template>
 
 <script setup>
 import InputLabel from '@/components/input/InputLabel.vue'
 import { reactive, ref } from 'vue'
-import { createUser } from '../../services/user.service'
+import { createUser, getUsers } from '../../services/user.service'
+import { onMounted } from 'vue'
+
+const listaUsuarios = ref([])
 
 const roles = [
   'Administrador',
@@ -103,4 +125,28 @@ const crearUsuario = async () => {
     isLoading.value = false
   }
 }
+
+
+
+const viewUsers = async () => {
+  mensaje.value = ''
+  isLoading.value = true
+
+  try {
+    const response = await getUsers()
+    listaUsuarios.value = response.data // Guarda los usuarios
+    console.log(response)
+    mensaje.value = 'Usuarios cargados exitosamente.'
+    mensajeTipo.value = 'success'
+  } catch (error) {
+    mensaje.value = error?.message || 'Error al obtener los usuarios.'
+    mensajeTipo.value = 'error'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(() => {
+  viewUsers()
+})
 </script>
