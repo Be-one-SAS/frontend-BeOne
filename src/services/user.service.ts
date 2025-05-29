@@ -6,7 +6,12 @@ interface AuthData {
     password: string;
   }
   
-
+  interface CreateUser {
+    email: string;
+    password: string;
+    fullName: string,
+    role: string
+  }
 //@ts-ignore
 //const baseAPI = import.meta.env.VITE_BASE_URL_API
 //@ts-ignore
@@ -38,3 +43,32 @@ export const auth = async ({ email, password }: AuthData) => {
       throw error; // ✅ Lanza el error para manejarlo donde se use
     }
   };
+
+  /**
+ * Servicio para autenticarme
+ * @param data 
+ * @returns 
+ */
+export const createUser = async ({ email, password, fullName, role }:CreateUser) => {
+  try {
+    const response = await axios.post(
+      "https://backend-beone-production.up.railway.app/auth/register",
+      {
+        email: email,
+        password: password,
+        fullName: fullName,
+        role: role
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response;
+  } catch (error) {
+    console.error("Fallo el servicio para crear el usuario:", error);
+    throw error; // ✅ Lanza el error para manejarlo donde se use
+  }
+};
