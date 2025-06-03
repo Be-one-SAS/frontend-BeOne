@@ -10,8 +10,33 @@
       <InputLabel label="Fecha de Cotización" v-model="cotizacion.fechaCotizacion" type="date" />
       <InputLabel label="Agente Comercial" v-model="cotizacion.agenteComercial" />
 
-      <InputLabel label="Cliente" v-model="cotizacion.cliente" />
-      <InputLabel label="Empresa" v-model="cotizacion.empresa" />
+
+      <div>
+        <label class="block text-gray-800 font-medium mb-1">Cliente</label>
+        <select v-model="cotizacion.unidadEjecucion"
+          class="w-full border border-gray-300 rounded px-3 py-2 text-gray-800">
+          <option>Cliente directo</option>
+          <option>Compensar</option>
+          <option>Colsubsidio</option>
+          <option>Cafam</option>
+          <option>Comfama</option>
+          <option>Comfenalco</option>
+          <option>Comfachocó</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-gray-800 font-medium mb-1">Cliente final</label>
+        <select v-model="cotizacion.unidadEjecucion"
+          class="w-full border border-gray-300 rounded px-3 py-2 text-gray-800">
+          <option>Cliente directo</option>
+          <option>Compensar</option>
+          <option>Colsubsidio</option>
+          <option>Cafam</option>
+          <option>Comfama</option>
+          <option>Comfenalco</option>
+          <option>Comfachocó</option>
+        </select>
+      </div>
 
       <InputLabel label="Contacto" v-model="cotizacion.contacto" />
       <InputLabel label="Correo" v-model="cotizacion.correo" type="email" />
@@ -37,7 +62,8 @@
 
         <div>
           <label class="block text-gray-800 font-medium mb-1">Unidad de Ejecución</label>
-          <select v-model="cotizacion.unidadEjecucion" class="w-full border border-gray-300 rounded px-3 py-2 text-gray-800">
+          <select v-model="cotizacion.unidadEjecucion"
+            class="w-full border border-gray-300 rounded px-3 py-2 text-gray-800">
             <option>Nivel Nacional</option>
             <option>Nivel Regional</option>
             <option>Local</option>
@@ -58,13 +84,44 @@
         <li>Se enviará una respuesta de confirmación, cancelación o fechas disponibles.</li>
       </ol>
     </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <InputLabel label="Buscar" v-model="cotizacion.asistentes" />
+
+      <div>
+        <label class="block text-gray-800 font-medium mb-1">Cliente</label>
+        <select v-model="cotizacion.unidadEjecucion"
+          class="w-full border border-gray-300 rounded px-3 py-2 text-gray-800">
+          <option>Cliente directo</option>
+          <option>Compensar</option>
+          <option>Colsubsidio</option>
+          <option>Cafam</option>
+          <option>Comfama</option>
+          <option>Comfenalco</option>
+          <option>Comfachocó</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-gray-800 font-medium mb-1">Cliente final</label>
+        <select v-model="cotizacion.unidadEjecucion"
+          class="w-full border border-gray-300 rounded px-3 py-2 text-gray-800">
+          <option>Cliente directo</option>
+          <option>Compensar</option>
+          <option>Colsubsidio</option>
+          <option>Cafam</option>
+          <option>Comfama</option>
+          <option>Comfenalco</option>
+          <option>Comfachocó</option>
+        </select>
+      </div>
+    </div>
   </div>
+
 </template>
 
 <script setup>
 import InputLabel from '@/components/input/InputLabel.vue';
 import { reactive } from 'vue'
-
 
 const cotizacion = reactive({
   numero: 115,

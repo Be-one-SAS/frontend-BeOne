@@ -35,6 +35,11 @@ const routes = [
         name: "UsersList",
         component: () => import("@/views/users/List.vue"),
       },
+      {
+        path: "customer/customer",
+        name: "Customer",
+        component: () => import("@/views/customer/Customer.vue"),
+      },
     ],
   },
   {
@@ -52,8 +57,6 @@ const router = createRouter({
 // Validación global de acceso
 router.beforeEach((to, from, next) => {
   const { isAuthenticated } = useAuth();
-
-  console.log('AUTH',to.meta.requiresAuth, isAuthenticated.value)
   if (to.meta.requiresAuth && !isAuthenticated.value) {
     return next("/login");
   }

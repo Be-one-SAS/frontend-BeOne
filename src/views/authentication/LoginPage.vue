@@ -71,7 +71,6 @@ import { useRouter } from 'vue-router'
 import { auth } from '../../services/user.service'
 import { useAuth } from '../../composables/useAuth'
 
-
 const router = useRouter()
 const email = ref('')
 const password = ref('')

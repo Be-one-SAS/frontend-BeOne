@@ -17,7 +17,7 @@
             <td
               v-for="(header, colIndex) in headers"
               :key="colIndex"
-              class="px-4 py-2 text-sm text-gray-700 whitespace-nowrap"
+              class="px-4 py-2 text-sm text-gray-700 whitespace-nowrap w-auto max-w-[150px] overflow-auto"
             >
               {{ row[header] }}
             </td>

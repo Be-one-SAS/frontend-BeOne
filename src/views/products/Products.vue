@@ -10,7 +10,7 @@ onMounted(async () => {
   try {
     const productos = await getProducts()
     data.value = productos.data
-console.log(productos.data)
+
     columns.value = [
       { label: 'Nombre', field: 'nombre' },
       { label: 'Categoría', field: 'categoria' },
@@ -34,7 +34,17 @@ console.log(productos.data)
 
 <template>
   <div class="p-4">
-    <h1 class="text-2xl text-blue-700 font-semibold mb-4">Listado de Productos</h1>
-    <TableDinamic :headers="['id','nombre', 'dispositivo', 'categoria', 'total'] " :rows="data" />
+    <h1 class="text-2xl font-semibold mb-4">Listado de Productos</h1>
+    <TableDinamic :data="data" :columns="columns">
+      <template #foto="{ value }">
+        <img
+          v-if="value"
+          :src="value"
+          alt="Foto del dispositivo"
+          class="w-12 h-12 object-cover rounded border"
+        />
+        <span v-else class="text-gray-400">N/A</span>
+      </template>
+    </TableDinamic>
   </div>
 </template>

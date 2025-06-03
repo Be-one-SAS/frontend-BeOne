@@ -16,7 +16,8 @@
       <InputLabel label="Nombre Completo" v-model="nuevoUsuario.nombre" />
       <InputLabel label="Correo Electrónico" v-model="nuevoUsuario.correo" type="email" />
       <InputLabel label="Contraseña" v-model="nuevoUsuario.contrasena" type="password" />
-
+      <InputLabel label="Sede" v-model="nuevoUsuario.contrasena" type="text" />
+      <InputLabel label="Departamento" v-model="nuevoUsuario.contrasena" type="text" />
       <div>
         <label class="block text-gray-800 font-medium mb-1">Rol</label>
         <select v-model="nuevoUsuario.rol"

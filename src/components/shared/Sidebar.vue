@@ -6,21 +6,52 @@
         <span class="ml-3 font-bold text-xl text-blue-900">BeOne</span>
       </div>
 
-      <nav class="flex flex-col  space-y-6 text-gray-700 font-medium">
+      <nav class="flex flex-col space-y-6 text-gray-700 font-medium">
         <MenuItem icon="Administrative" label="Home" route="/" />
-        <MenuItem icon="Administrative" label="Administrativo" :items="[
-          { name: 'Cotizar', route: '/admin/cotizar' },
-          { name: 'Lista de precios', route: '/admin/precios' },
-          { name: 'Proveedores', route: '/admin/proveedores' },
-        ]" />
-        <MenuItem icon="Operational" label="Operativa" :items="[
-          { name: 'Reporte diario', route: '/operativa/reporte' },
-          { name: 'Check-ins', route: '/operativa/checkins' },
-        ]" />
-        <MenuItem icon="User" label="Usuarios" :items="[
-          { name: 'Listado', route: '/users/list' },
-          { name: 'Roles', route: '/users/roles' },
-        ]" />
+        <MenuItem
+          icon="Administrative"
+          label="Dpto Comercial"
+          :items="[
+            { name: 'Cotizar', route: '/admin/cotizar' },
+            { name: 'Consultar', route: '/admin/precios' },
+            { name: 'Lista de precios', route: '/admin/precios' },
+            { name: 'Proveedores', route: '/admin/proveedores' },
+            { name: 'Customer', route: '/customer/customer' },
+            { name: 'Reportes', route: '/admin/proveedores' },
+          ]"
+          :is-open="openMenu === 'Dpto Comercial'"
+          @toggle="toggleMenu('Dpto Comercial')"
+        />
+        <MenuItem
+          icon="Operational"
+          label="Dpto Operativ0"
+          :items="[
+            { name: 'Reporte diario', route: '/operativa/reporte' },
+            { name: 'Check-ins', route: '/operativa/checkins' },
+          ]"
+          :is-open="openMenu === 'Dpto Operativ0'"
+          @toggle="toggleMenu('Dpto Operativ0')"
+        />
+        <MenuItem
+          icon="User"
+          label="Departamento de personal"
+          :items="[
+            { name: 'Listado', route: '/users/list' },
+            { name: 'Roles', route: '/users/roles' },
+          ]"
+          :is-open="openMenu === 'Departamento de personal'"
+          @toggle="toggleMenu('Departamento de personal')"
+        />
+        <MenuItem
+          icon="User"
+          label="Usuarios"
+          :items="[
+            { name: 'Listado', route: '/users/list' },
+            { name: 'Roles', route: '/users/roles' },
+          ]"
+          :is-open="openMenu === 'Usuarios'"
+          @toggle="toggleMenu('Usuarios')"
+        />
       </nav>
     </div>
 
@@ -36,16 +67,22 @@
 </template>
 
 <script setup>
-
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { useAuth } from '../../composables/useAuth';
 import MenuItem from './MenuItem.vue';
-import { useRouter } from 'vue-router';
-const { setLogout } = useAuth()
+
+const openMenu = ref(null); // mantiene el label del menú abierto
+
+const toggleMenu = (label) => {
+  openMenu.value = openMenu.value === label ? null : label;
+};
+
+const { setLogout } = useAuth();
 const router = useRouter();
 
-//Elimina la sesion
 const logoutClearStorange = () => {
-  setLogout()
-  router.push('/login')
-}
+  setLogout();
+  router.push('/login');
+};
 </script>
