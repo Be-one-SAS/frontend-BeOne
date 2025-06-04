@@ -15,6 +15,7 @@
             { name: 'Cotizar', route: '/admin/cotizar' },
             { name: 'Consultar', route: '/admin/precios' },
             { name: 'Lista de precios', route: '/admin/precios' },
+            { name: 'Lista de precios de terceros', route: '/admin/precios' },
             { name: 'Proveedores', route: '/admin/proveedores' },
             { name: 'Customer', route: '/customer/customer' },
             { name: 'Reportes', route: '/admin/proveedores' },

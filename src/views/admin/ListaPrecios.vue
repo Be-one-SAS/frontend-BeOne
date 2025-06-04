@@ -10,7 +10,7 @@ onMounted(async () => {
   try {
     const productos = await getProducts()
     data.value = productos.data
-console.log(productos.data)
+   console.log(productos.data)
     columns.value = [
       { label: 'Nombre', field: 'nombre' },
       { label: 'Categoría', field: 'categoria' },
