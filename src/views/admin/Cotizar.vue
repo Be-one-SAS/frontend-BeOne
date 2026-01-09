@@ -129,10 +129,11 @@
             class="w-full border border-gray-300 rounded px-3 py-2 text-gray-800" />
         </div>
 
-        <div class="flex flex-col w-full justify-center mt-4">
+        <div class="flex flex-row w-full justify-center items-center">
           <p class="text-black text-md">SubTotal: {{ productosTotal }}</p>
-          <p class="text-black text-2xl">Total: {{ productosTotal }}</p>
+          <p class="text-black text-md">Total: {{ productosTotal }}</p>
         </div>
+
         <div>
           <button @click="abrirModal"
             class="bg-[#dbeafe] w-full min-w-[220px] hover:bg-blue-200 text-blue-600 font-semibold py-2 px-6 rounded-lg shadow flex items-center justify-center gap-2 mt-3">
