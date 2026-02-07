@@ -7,7 +7,7 @@ interface User {
   createdAt: string
   email: string
   id: number
-  roleId: number
+  role: string[]
   statusId: number
   updatedAt: string
   username: string
