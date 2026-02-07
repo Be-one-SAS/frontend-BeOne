@@ -1,113 +1,85 @@
 <template>
-  <div class="min-h-screen flex justify-center items-center bg-[#f4f6f8] overflow-hidden">
+  <div class="relative w-screen h-screen overflow-hidden bg-[#f4f6f8]">
 
-    <!-- CARD LOGIN -->
-    <div class="w-full md:w-[600px] flex items-center justify-center p-10 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg relative z-20">
-      <div class="w-full max-w-sm">
-
-        <h2 class="text-3xl font-bold text-gray-900 mb-2">
-          Iniciar sesión
-        </h2>
-        <p class="text-sm text-gray-500 mb-6">
-          ¡Introduce tu email y contraseña para iniciar sesión!
-        </p>
-
-  
-        <div class="flex items-center mb-6">
-          <hr class="flex-grow border-gray-200" />
-          <span class="mx-3 text-sm text-gray-400">o</span>
-          <hr class="flex-grow border-gray-200" />
+    <!-- ================= MOSAICO FULLSCREEN ================= -->
+    <div class="absolute inset-0 z-0">
+      <div class="grid w-full h-full" :style="gridStyle">
+        <div v-for="(item, index) in gridImages" :key="index" class="relative w-full h-full overflow-hidden">
+          <img :src="item.current"
+            class="absolute inset-0 w-full h-full object-cover transition-opacity duration-[3000ms] ease-in-out"
+            :class="item.active ? 'opacity-40' : 'opacity-[0.05]'" />
         </div>
-
-        <form @submit.prevent="handleLogin" class="space-y-4">
-
-          <div>
-            <label class="text-sm text-gray-600">Email*</label>
-            <input
-              v-model="email"
-              type="email"
-              required
-              class="w-full mt-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-cyan-500 outline-none"
-              placeholder="mail@ejemplo.com"
-            />
-          </div>
-
-          <div>
-            <label class="text-sm text-gray-600">Password*</label>
-            <div class="relative mt-1">
-              <input
-                v-model="password"
-                :type="showPassword ? 'text' : 'password'"
-                required
-                class="w-full px-4 py-2 border rounded-lg pr-10 focus:ring-2 focus:ring-cyan-500 outline-none"
-                placeholder="Min. 8 characters"
-              />
-              <button
-                type="button"
-                class="absolute inset-y-0 right-3 flex items-center text-gray-500"
-                @mousedown="showPassword = true"
-                @mouseup="showPassword = false"
-                @mouseleave="showPassword = false"
-              >
-                <IconEyes />
-              </button>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            :disabled="isLoading"
-            class="w-full bg-cyan-500 text-white py-2 rounded-lg hover:bg-cyan-600 transition"
-          >
-            {{ isLoading ? "Iniciando..." : "Iniciar sesión" }}
-          </button>
-        </form>
-
-        <p class="text-xs text-gray-400 mt-10 text-center">
-          © 2026 BeOne. Todos los derechos reservados.
-        </p>
       </div>
     </div>
 
-    <!-- MOSAICO FONDO -->
-    <div 
-    class="hidden md:flex items-center absolute right-0 w-1/2 h-full overflow-hidden p-0 z-0"
-    
-    >
-      <div class="grid grid-cols-4 2xl:grid-cols-6 gap-2 w-full">
 
-        <div
-          v-for="(item, index) in gridImages"
-          :key="index"
-          class="relative h-45 w-45 2xl:h-50 2xl:w-50"
-        >
-          <!-- Imagen actual -->
-          <img
-            :src="item.current"
-            class="absolute inset-0 w-full h-full object-cover transition-opacity duration-[3000ms] ease-in-out"
-            :class="{ 'opacity-5': item.fade }"
-          />
+    <!-- ================= CARD LOGIN ================= -->
+    <div class="absolute inset-0 flex justify-center items-center z-20">
+      <div class="w-full max-w-[600px] mx-6 py-10 px-10 bg-white/50 backdrop-blur-md rounded-4xl shadow-xl">
+        <div class="w-full max-w-sm mx-auto flex flex-col min-h-[480px]">
 
-          <!-- Imagen siguiente -->
-          <img
-            :src="item.next"
-            class="absolute inset-0 w-full h-full object-cover transition-opacity duration-[3000ms] ease-in-out"
-            :class="{ 'opacity-0': item.fade, 'opacity-5': !item.fade }"
-          />
+          <!-- LOGO -->
+          <div class="flex justify-center mb-6">
+            <img src="/assets/logo.png" alt="BeOne Logo" class="h-12 object-contain" />
+          </div>
+
+          <!-- CONTENIDO -->
+          <div class="flex-1">
+
+            <h2 class="text-3xl font-bold text-gray-900 mb-2 text-center">
+              Iniciar sesión
+            </h2>
+
+            <p class="text-sm text-gray-500 mb-6 text-center">
+              ¡Introduce tu email y contraseña para iniciar sesión!
+            </p>
+
+            <form @submit.prevent="handleLogin" class="space-y-4">
+
+              <InputLabel v-model="email" label="Email*" type="email" placeholder="mail@ejemplo.com" required />
+
+              <div class="relative w-full">
+                <InputLabel v-model="password" label="Password*" :type="showPassword ? 'text' : 'password'" required />
+
+                <button type="button" class="absolute right-3 top-[34px] text-gray-500" @mousedown="showPassword = true"
+                  @mouseup="showPassword = false" @mouseleave="showPassword = false">
+                  <IconEyes />
+                </button>
+              </div>
+
+             <div class="w-full mt-10">
+               <BaseButton type="submit" variant="primary" :loading="isLoading">
+                {{ isLoading ? "Iniciando..." : "Iniciar sesión" }}
+              </BaseButton>
+             </div>
+
+            </form>
+
+          </div>
+
+          <!-- DERECHOS -->
+          <div class="pt-3">
+            <p class="text-xs text-gray-500 text-center">
+              © 2026 BeOne. Todos los derechos reservados.
+            </p>
+          </div>
+
         </div>
-
       </div>
     </div>
-
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from "vue"
+import { ref, computed, onMounted, onUnmounted } from "vue"
 import { useRouter } from "vue-router"
 import { auth } from "../../services/user.service"
 import { useAuth } from "../../composables/useAuth"
 import IconEyes from "../../Icons/IconEyes.vue"
+import InputLabel from "../../components/input/InputLabel.vue"
+import BaseButton from "../../components/ui/BaseButton.vue"
+
+/* ================= LOGIN ================= */
 
 const router = useRouter()
 const email = ref("")
@@ -115,8 +87,6 @@ const password = ref("")
 const isLoading = ref(false)
 const showPassword = ref(false)
 const authStore = useAuth()
-
-/* ================= LOGIN ================= */
 
 const handleLogin = () => {
   if (email.value && password.value) login()
@@ -142,7 +112,7 @@ const login = async () => {
   }
 }
 
-/* ================= MOSAICO DINÁMICO ================= */
+/* ================= MOSAICO PERFECTO FULLSCREEN ================= */
 
 const imagesPool = [
   "/assets/gallery/1.webp",
@@ -153,56 +123,69 @@ const imagesPool = [
   "/assets/gallery/6.webp",
 ]
 
-const gridSize = 36
-
 const getRandomImage = () =>
   imagesPool[Math.floor(Math.random() * imagesPool.length)]
 
-const gridImages = ref(
-  Array.from({ length: gridSize }).map(() => ({
+const columns = ref(10)
+const rows = ref(6)
+
+const calculateGrid = () => {
+  const width = window.innerWidth
+
+  if (width < 640) columns.value = 4
+  else if (width < 1024) columns.value = 6
+  else if (width < 1536) columns.value = 8
+  else columns.value = 10
+
+  rows.value = Math.ceil(window.innerHeight / (window.innerWidth / columns.value))
+}
+
+const totalItems = computed(() => columns.value * rows.value)
+
+const gridImages = ref([])
+
+const generateGrid = () => {
+  gridImages.value = Array.from({ length: totalItems.value }).map(() => ({
     current: getRandomImage(),
-    next: getRandomImage(),
-    fade: false,
+    active: false,
   }))
-)
+}
+
+const gridStyle = computed(() => ({
+  gridTemplateColumns: `repeat(${columns.value}, 1fr)`,
+  gridTemplateRows: `repeat(${rows.value}, 1fr)`
+}))
 
 let interval = null
 
-const triggerMultipleFades = () => {
-  const changesCount = Math.floor(Math.random() * 4) + 3 // 3 a 6 imágenes
-
-  const usedIndexes = new Set()
+const triggerFade = () => {
+  const changesCount = Math.floor(Math.random() * 6) + 4
 
   for (let i = 0; i < changesCount; i++) {
-    let randomIndex
-
-    do {
-      randomIndex = Math.floor(Math.random() * gridImages.value.length)
-    } while (usedIndexes.has(randomIndex))
-
-    usedIndexes.add(randomIndex)
-
+    const randomIndex = Math.floor(Math.random() * gridImages.value.length)
     const item = gridImages.value[randomIndex]
 
-    const randomDelay = Math.random() * 3000
+    item.current = getRandomImage()
+    item.active = true
 
     setTimeout(() => {
-      item.fade = true
-
-      setTimeout(() => {
-        item.current = item.next
-        item.next = getRandomImage()
-        item.fade = false
-      }, 3000)
-    }, randomDelay)
+      item.active = false
+    }, 3000)
   }
 }
 
 onMounted(() => {
-  interval = setInterval(triggerMultipleFades, 3000)
+  calculateGrid()
+  generateGrid()
+  window.addEventListener("resize", () => {
+    calculateGrid()
+    generateGrid()
+  })
+  interval = setInterval(triggerFade, 2500)
 })
 
 onUnmounted(() => {
   clearInterval(interval)
+  window.removeEventListener("resize", calculateGrid)
 })
 </script>
