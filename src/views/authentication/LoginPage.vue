@@ -15,7 +15,7 @@
 
     <!-- ================= CARD LOGIN ================= -->
     <div class="absolute inset-0 flex justify-center items-center z-20">
-      <div class="w-full max-w-[600px] mx-6 py-10 px-10 bg-white/50 backdrop-blur-md rounded-4xl shadow-xl">
+      <div class="w-full max-w-[600px] mx-3 py-10 px-10 bg-white/50 backdrop-blur-md rounded-4xl shadow-xl">
         <div class="w-full max-w-sm mx-auto flex flex-col min-h-[480px]">
 
           <!-- LOGO -->
@@ -47,11 +47,11 @@
                 </button>
               </div>
 
-             <div class="w-full mt-10">
-               <BaseButton type="submit" variant="primary" :loading="isLoading">
-                {{ isLoading ? "Iniciando..." : "Iniciar sesión" }}
-              </BaseButton>
-             </div>
+              <div class="w-full mt-10">
+                <BaseButton type="submit" variant="primary" :loading="isLoading">
+                  {{ isLoading ? "Iniciando..." : "Iniciar sesión" }}
+                </BaseButton>
+              </div>
 
             </form>
 
@@ -100,11 +100,11 @@ const login = async () => {
       password: password.value,
     })
 
-    if (response.status === 201) {
-      const { access_token, user } = response.data
-      authStore.login(user, access_token)
-      router.push("/")
-    }
+    const { access_token, user } = response.data
+    authStore.login(user, access_token)
+    router.push("/")
+
+    
   } catch (error) {
     console.error(error)
   } finally {
