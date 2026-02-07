@@ -15,16 +15,19 @@ import Products from "../views/products/Products.vue";
 import ProductsNoPropios from "../views/products/ProductsNoPropios.vue";
 
 const routes = [
+
+  { path: "/", name: "Auth", component: LoginPage, meta: { guestOnly: true } },
+
   {
     path: "/",
     component: MainLayout,
     meta: { requiresAuth: true },
     children: [
       {
-        path: "/",
+        path: "/dashboard",
         name: "Dashboard",
         component: DashboardPage,
-        meta: { roles: ["ADMIN", "COMERCIAL", "SUPERVISOR", "LOGISTICA"] }
+        meta: { requiresAuth: true, roles: ["ADMIN", "COMERCIAL", "SUPERVISOR", "LOGISTICA"] }
       },
       {
         path: "admin/cotizar/:id?",
@@ -112,14 +115,14 @@ router.beforeEach((to, from, next) => {
 
   // 3️ Validación de roles
   if (to.meta.roles) {
-   const allowedRoles = to.meta.roles as string[];
-  const userRole = user.value?.role;
+    const allowedRoles = to.meta.roles as string[];
+    const userRole = user.value?.roles[0]
 
-  console.log("Allowed Roles:", allowedRoles);
-  console.log("User Role:", userRole);
-  // if (!userRole || !allowedRoles.includes(userRole)) {
-  //   return next("/");
-  // }
+      if (!userRole || !allowedRoles.includes(userRole)) {
+
+        console.warn(`Acceso denegado. Se requieren roles: ${allowedRoles.join(", ")}`);
+        return next("/");
+      }
   }
 
   return next();
