@@ -9,7 +9,8 @@
       "allowSyntheticDefaultImports": true,
       "skipLibCheck": true,
       "forceConsistentCasingInFileNames": true,
-      "types": ["vite/client"]
+      "types": ["vite/client"],
+      "allowJs": true
   },
   "include": ["src"],
   "exclude": ["node_modules"]

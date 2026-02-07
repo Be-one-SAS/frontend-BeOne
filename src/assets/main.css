@@ -1,3 +1,5 @@
+
+
 @import "tailwindcss";
 
 
@@ -5,6 +7,7 @@
   padding: 0rem;
   font-weight: normal;
   background: white;
+  overflow: hidden;
 }
 
 

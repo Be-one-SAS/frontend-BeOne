@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white shadow-md rounded-xl p-6 mx-auto space-y-8">
+  <div class="bg-white p-6 mx-auto space-y-8">
     <!-- Título -->
     <div>
       <h2 class="text-2xl font-bold text-blue-700">Crear Usuario</h2>
@@ -46,7 +46,7 @@
   </div>
 
  <!-- Tabla de usuarios -->
- <div v-if="listaUsuarios.length > 0" class="overflow-x-auto mt-6 bg-white shadow-md rounded-xl p-6">
+ <div v-if="listaUsuarios.length > 0" class="overflow-x-auto mt-6 bg-white p-6">
       <table class="min-w-full bg-white shadow rounded-lg ">
         <thead>
           <tr class="bg-blue-100 text-left text-gray-700">

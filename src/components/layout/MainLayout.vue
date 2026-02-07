@@ -1,17 +1,22 @@
 <template>
-    <div class="flex">
-      <!-- Sidebar fijo -->
-      <div class="fixed top-0 left-0 h-screen w-64 z-50 shadow-md bg-white">
-        <Sidebar />
-      </div>
-  
+  <div class="flex bg-gray-100 h-screen">
+    <!-- Sidebar fijo -->
+
+    <Sidebar />
+    <div class="flex-1 flex flex-col">
+      <Topbar />
+
+
       <!-- Contenido principal con margen izquierdo -->
-      <div class="ml-64 w-full min-h-screen p-6">
+      <main class="flex-1 overflow-auto p-6 bg-white rounded-3xl mb-6 mr-6">
         <router-view />
-      </div>
+      </main>
     </div>
-  </template>
-  
-  <script setup>
-  import Sidebar from '../shared/Sidebar.vue';
-  </script>
+  </div>
+</template>
+
+<script setup>
+import Sidebar from '../shared/Sidebar.vue';
+import Topbar from './Topbar.vue';
+
+</script>

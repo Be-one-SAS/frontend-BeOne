@@ -1,40 +1,54 @@
-<!-- components/layout/Sidebar.vue -->
 <template>
-  <aside class="w-64 min-h-screen bg-white shadow-md flex flex-col justify-between p-4 border-r border-blue-300">
+  <aside
+    class="bg-white/80 backdrop-blur-xl border-r border-gray-200
+           py-6 m-6 rounded-4xl min-w-50 w-full max-w-70 overflow-hidden p-5"
+  >
     <div class="flex flex-col gap-10">
-      <div class="flex items-center mb-10">
-        <span class="ml-3 font-bold text-xl text-blue-900">BeOne</span>
+      <!-- Logo -->
+      <div class="flex items-center mb-6">
+        <span class="font-bold text-xl text-blue-900">
+          BeOne
+        </span>
       </div>
 
-      <nav class="flex flex-col space-y-6 text-gray-700 font-medium">
-        <MenuItem icon="Administrative" label="Home" route="/" />
+      <!-- Navegación -->
+      <nav class="flex flex-col space-y-3 text-gray-700 font-medium">
+
         <MenuItem
-          icon="Administrative"
+          icon="Home"
+          label="Home"
+          route="/"
+        />
+
+        <MenuItem
+          icon="Comercial"
           label="Dpto Comercial"
           :items="[
             { name: 'Cotizar', route: '/admin/cotizar' },
-            { name: 'Consultar', route: '/admin/precios' },
-            { name: 'Lista de precios', route: '/admin/precios' },
-            { name: 'Lista de precios de terceros', route: '/admin/precios' },
-            { name: 'Proveedores', route: '/admin/proveedores' },
-            { name: 'Customer', route: '/customer/customer' },
-            { name: 'Reportes', route: '/admin/proveedores' },
+            { name: 'Ver cotizaciones', route: '/admin/ver-cotizaciones' },
+            { name: 'Proveedores', route: '/suppliers/suppliers' },
+            { name: 'Clientes', route: '/customer/customer' },
+            { name: 'Clientes directos', route: '/customer/price' },
+            { name: 'Productos propios', route: '/products' },
+            { name: 'Productos no propios', route: '/products/no-propios' },
           ]"
           :is-open="openMenu === 'Dpto Comercial'"
           @toggle="toggleMenu('Dpto Comercial')"
         />
+
         <MenuItem
-          icon="Operational"
-          label="Dpto Operativ0"
+          icon="Operativo"
+          label="Dpto Operativo"
           :items="[
             { name: 'Reporte diario', route: '/operativa/reporte' },
             { name: 'Check-ins', route: '/operativa/checkins' },
           ]"
-          :is-open="openMenu === 'Dpto Operativ0'"
-          @toggle="toggleMenu('Dpto Operativ0')"
+          :is-open="openMenu === 'Dpto Operativo'"
+          @toggle="toggleMenu('Dpto Operativo')"
         />
+
         <MenuItem
-          icon="User"
+          icon="Personal"
           label="Departamento de personal"
           :items="[
             { name: 'Listado', route: '/users/list' },
@@ -43,8 +57,9 @@
           :is-open="openMenu === 'Departamento de personal'"
           @toggle="toggleMenu('Departamento de personal')"
         />
+
         <MenuItem
-          icon="User"
+          icon="Usuario"
           label="Usuarios"
           :items="[
             { name: 'Listado', route: '/users/list' },
@@ -53,37 +68,39 @@
           :is-open="openMenu === 'Usuarios'"
           @toggle="toggleMenu('Usuarios')"
         />
+
       </nav>
     </div>
 
-    <div class="mt-10 space-y-4">
-      <button @click="logoutClearStorange" class="flex items-center gap-2 text-red-500 font-medium hover:underline">
+    <!-- Logout -->
+    <div class="mt-10">
+      <button
+        @click="logoutClearStorange"
+        class="flex items-center gap-2 text-red-500 font-medium hover:underline"
+      >
         Logout
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7" />
-        </svg>
       </button>
     </div>
   </aside>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { useAuth } from '../../composables/useAuth';
-import MenuItem from './MenuItem.vue';
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuth } from '../../composables/useAuth'
+import MenuItem from './MenuItem.vue'
 
-const openMenu = ref(null); // mantiene el label del menú abierto
+const openMenu = ref(null)
 
 const toggleMenu = (label) => {
-  openMenu.value = openMenu.value === label ? null : label;
-};
+  openMenu.value = openMenu.value === label ? null : label
+}
 
-const { setLogout } = useAuth();
-const router = useRouter();
+const { setLogout } = useAuth()
+const router = useRouter()
 
 const logoutClearStorange = () => {
-  setLogout();
-  router.push('/login');
-};
+  setLogout()
+  router.push('/login')
+}
 </script>

@@ -16,12 +16,7 @@ const routes = [
         component: () => import("@/views/dashboard/DashboardPage.vue"),
       },
       {
-        path: "admin/precios",
-        name: "ListaPrecios",
-        component: () => import("@/views/admin/ListaPrecios.vue"),
-      },
-      {
-        path: "admin/cotizar",
+        path: "admin/cotizar/:id?",
         name: "Cotizar",
         component: () => import("@/views/admin/Cotizar.vue"),
       },
@@ -35,11 +30,37 @@ const routes = [
         name: "UsersList",
         component: () => import("@/views/users/List.vue"),
       },
+          {
+        path: "/admin/ver-cotizaciones",
+        name: "VerCotizaciones",
+        component: () => import("@/views/admin/VerCotizaciones.vue"),
+      },
       {
         path: "customer/customer",
-        name: "Customer",
+        name: "Clientes",
         component: () => import("@/views/customer/Customer.vue"),
       },
+       {
+        path: "suppliers/suppliers",
+        name: "Suppliers",
+        component: () => import("@/views/suppliers/Suppliers.vue"),
+      },
+           {
+        path: "customer/price",
+        name: "List price",
+        component: () => import("@/views/customer/PriceList.vue"),
+      },
+                 {
+        path: "products",
+        name: "Productos",
+        component: () => import("@/views/products/Products.vue"),
+      },
+                             {
+        path: "products/no-propios",
+        name: "no-propios",
+        component: () => import("@/views/products/ProductsNoPropios.vue"),
+      },
+                
     ],
   },
   {

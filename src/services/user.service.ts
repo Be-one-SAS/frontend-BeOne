@@ -1,5 +1,5 @@
+import api from "./api";
 
-import axios from "axios"
 
 interface AuthData {
   email: string;
@@ -24,8 +24,8 @@ interface CreateUser {
  */
 export const auth = async ({ email, password }: AuthData) => {
   try {
-    const response = await axios.post(
-      "https://backend-beone-production.up.railway.app/auth/login",
+    const response = await api.post(
+      "/auth/login",
       {
         email,
         password,
@@ -34,13 +34,14 @@ export const auth = async ({ email, password }: AuthData) => {
         headers: {
           "Content-Type": "application/json",
         },
+         withCredentials: true
       }
     );
 
     return response;
   } catch (error) {
     console.error("Fallo el servicio para iniciar sesión:", error);
-    throw error; // ✅ Lanza el error para manejarlo donde se use
+    throw error; // Lanza el error para manejarlo donde se use
   }
 };
 
@@ -51,8 +52,8 @@ export const auth = async ({ email, password }: AuthData) => {
 */
 export const createUser = async ({ email, password, fullName, role }: CreateUser) => {
   try {
-    const response = await axios.post(
-      "https://backend-beone-production.up.railway.app/auth/register",
+    const response = await api.post(
+      "/auth/register",
       {
         email: email,
         password: password,
@@ -69,7 +70,7 @@ export const createUser = async ({ email, password, fullName, role }: CreateUser
     return response;
   } catch (error) {
     console.error("Fallo el servicio para crear el usuario:", error);
-    throw error; // ✅ Lanza el error para manejarlo donde se use
+    throw error; // Lanza el error para manejarlo donde se use
   }
 };
 
@@ -81,8 +82,8 @@ export const createUser = async ({ email, password, fullName, role }: CreateUser
 */
 export const getUsers = async () => {
   try {
-    const response = await axios.get(
-      "https://backend-beone-production.up.railway.app/users",
+    const response = await api.get(
+      "/users",
       {
         headers: {
           "Content-Type": "application/json",
@@ -93,6 +94,6 @@ export const getUsers = async () => {
     return response;
   } catch (error) {
     console.error("Fallo el servicio para ver los usuarios:", error);
-    throw error; // ✅ Lanza el error para manejarlo donde se use
+    throw error; // Lanza el error para manejarlo donde se use
   }
 };

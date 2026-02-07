@@ -1,9 +1,9 @@
-import axios from "axios";
+import api from "./api";
 
 export const getCustomer = async () => {
     try {
-        const response = await axios.get(
-            "https://backend-beone-production.up.railway.app/customer",
+        const response = await api.get(
+            "/client",
 
             {
                 headers: {
@@ -14,7 +14,6 @@ export const getCustomer = async () => {
 
         return response;
     } catch (error) {
-        console.error("Fallo el servicio para obtener los clientes", error);
-        throw error; // ✅ Lanza el error para manejarlo donde se use
+        throw error; //  Lanza el error para manejarlo donde se use
     }
 };

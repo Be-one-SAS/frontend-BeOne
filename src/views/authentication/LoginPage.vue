@@ -29,16 +29,22 @@
               class="w-full px-4 py-2 border rounded-lg text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="mail@ejemplo.com" />
           </div>
-          <div class="mb-4">
+
+          <div class="mb-4 relative">
             <label class="block text-gray-700 mb-1" for="password">Password*</label>
-            <input v-model="password" id="password" type="password" required
-              class="w-full px-4 py-2 border rounded-lg text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Min. 8 characters" />
+            <div class="relative">
+              <input v-model="password" :type="showPassword ? 'text' : 'password'" id="password" required
+                class="w-full px-4 py-2 border rounded-lg text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+                placeholder="Min. 8 characters" />
+              <button type="button"
+                class="absolute inset-y-0 right-2 flex items-center justify-center text-gray-500 cursor-pointer"
+                @mousedown="showPassword = true" @mouseup="showPassword = false" @mouseleave="showPassword = false">
+                <IconEyes />
+              </button>
+            </div>
           </div>
 
-          <div class="text-right text-sm mb-4 mt-4">
-            <a href="#" class="text-blue-500 hover:underline">Forgot password?</a>
-          </div>
+  
           <button type="submit" :disabled="isLoading"
             class="w-full bg-cyan-500 text-white py-2 rounded-lg hover:bg-cyan-600 transition font-medium flex items-center justify-center gap-2">
             <svg v-if="isLoading" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
@@ -70,6 +76,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth } from '../../services/user.service'
 import { useAuth } from '../../composables/useAuth'
+import IconEyes from '../../Icons/IconEyes.vue'
 
 const router = useRouter()
 const email = ref('')
@@ -77,6 +84,7 @@ const password = ref('')
 const isLoading = ref(false)
 const errorMessage = ref('')
 const authStore = useAuth()
+const showPassword = ref(false)
 
 const handleLogin = () => {
   if (email.value && password.value) login()

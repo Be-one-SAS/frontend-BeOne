@@ -1,7 +1,7 @@
 <template>
-  <div class="flex">
+  <div class="flex w-full">
     <!-- Contenido principal -->
-    <div class="flex-1 flex flex-col p-8 space-y-10 gap-3 overflow-y-auto h-screen pr-[22rem]">
+    <div class="flex-1 flex flex-col  space-y-10 gap-3 overflow-y-auto h-screen">
       <!-- Resumen general -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card title="Cotizaciones en Curso" :value="stats.cotizaciones" icon="🧾" />
@@ -62,10 +62,16 @@
           </table>
         </div>
       </div>
+<Calendar   />
+
+
+
     </div>
 
+
+
     <!-- Barra lateral de mensajes -->
-    <aside class="fixed top-0 right-0 w-[20rem] h-screen bg-white border-l shadow-lg p-4 flex flex-col">
+    <!-- <aside class="fixed top-0 right-0 w-[20rem] h-screen bg-white border-l shadow-lg p-4 flex flex-col">
       <h2 class="text-xl font-bold text-gray-800 mb-4">Mensajes</h2>
       <div class="flex flex-1 overflow-y-auto space-y-4 pr-2  flex-col gap-3">
         <div
@@ -85,13 +91,14 @@
           </div>
         </div>
       </div>
-    </aside>
+    </aside> -->
   </div>
 </template>
 
 <script setup>
 import Card from '@/components/dashboard/Card.vue'
 import CotizacionesChart from '@/components/dashboard/CotizacionesChart.vue'
+import Calendar from '../../components/calendar/Calendar.vue'
 
 const stats = {
   cotizaciones: 5,
@@ -110,6 +117,8 @@ const chartData = {
     }
   ]
 }
+
+
 
 const mensajes = [
   { id: 1, usuario: 'Laura', texto: 'Actualicé la cotización 114.', fecha: '2025-05-28' },
