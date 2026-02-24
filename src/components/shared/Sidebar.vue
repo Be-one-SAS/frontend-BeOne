@@ -5,10 +5,8 @@
   >
     <div class="flex flex-col gap-10">
       <!-- Logo -->
-      <div class="flex items-center mb-6">
-        <span class="font-bold text-xl text-blue-900">
-          BeOne
-        </span>
+      <div class="flex items-center justify-center mb-6 ">
+        <img src="/assets/logo.png" alt="Logo de BeOne" class="max-w-[100px]" />
       </div>
 
       <!-- Navegación -->

@@ -102,9 +102,9 @@ const login = async () => {
 
     const { access_token, user } = response.data
     authStore.login(user, access_token)
-    router.push("/")
+    router.push("/dashboard")
 
-    
+
   } catch (error) {
     console.error(error)
   } finally {
