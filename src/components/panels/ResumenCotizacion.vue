@@ -1,11 +1,11 @@
 <template>
-  <div class="p-5 rounded-2xl shadow-md bg-gray-100">
+  <div class="bg-card rounded-[var(--r-xl)] shadow-[var(--shadow-card)] p-6">
 
-    <div class="grid grid-cols-3 gap-6 text-sm text-gray-800">
+    <div class="grid grid-cols-3 gap-6 text-sm text-text-1">
 
       <!-- COLUMNA 1 · SUBTOTAL -->
       <div class="space-y-3">
-        <div class="text-center font-semibold text-white bg-cyan-500 py-1 rounded">
+        <div class="text-center text-[13px] font-semibold text-white bg-primary py-1 rounded-[var(--r-md)]">
           SUBTOTAL
         </div>
 
@@ -17,7 +17,7 @@
 
       <!-- COLUMNA 2 · DESCUENTO -->
       <div class="space-y-3">
-        <div class="text-center font-semibold text-white bg-cyan-500 py-1 rounded">
+        <div class="text-center text-[13px] font-semibold text-white bg-primary py-1 rounded-[var(--r-md)]">
           DESCUENTO
         </div>
 
@@ -30,7 +30,7 @@
               type="number"
               min="0"
               max="100"
-              class="w-20  rounded-full border px-2 py-1 text-right focus:outline-none focus:ring-2 focus:ring-cyan-400"
+              class="w-20 bg-[#F8FAFC] border border-border rounded-full px-2 py-1 text-right text-[13px] focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
             />
             <span class="text-gray-500">%</span>
           </div>
@@ -53,7 +53,7 @@
 
       <!-- COLUMNA 3 · TOTAL -->
       <div class="space-y-3">
-        <div class="text-center font-semibold text-white bg-cyan-600 py-1 rounded">
+        <div class="text-center text-[13px] font-semibold text-white bg-primary-dark py-1 rounded-[var(--r-md)]">
           TOTAL
         </div>
 
@@ -64,7 +64,7 @@
 
         <div class="flex justify-between border-t pt-2 text-base font-bold">
           <span>Total con IVA</span>
-          <span class="text-cyan-600">
+          <span class="text-primary font-bold">
             {{ formato(totalFinal) }}
           </span>
         </div>

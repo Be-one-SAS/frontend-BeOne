@@ -1,16 +1,15 @@
 <template>
   <aside
-    class="bg-white/80 backdrop-blur-xl border-r border-gray-200
-           py-6 m-6 rounded-4xl min-w-50 w-full max-w-70 overflow-hidden p-5"
+    class="bg-card rounded-[0_24px_24px_0] py-6 px-3 w-[200px] shrink-0 flex flex-col gap-8 shadow-[var(--shadow-card)] overflow-hidden"
   >
-    <div class="flex flex-col gap-10">
+    <div class="flex flex-col gap-6">
       <!-- Logo -->
-      <div class="flex items-center justify-center mb-6 ">
+      <div class="flex items-center justify-center">
         <img src="/assets/logo.png" alt="Logo de BeOne" class="max-w-[100px]" />
       </div>
 
       <!-- Navegación -->
-      <nav class="flex flex-col space-y-3 text-gray-700 font-medium">
+      <nav class="flex flex-col space-y-1">
 
         <MenuItem
           icon="Home"
@@ -71,10 +70,10 @@
     </div>
 
     <!-- Logout -->
-    <div class="mt-10">
+    <div class="mt-auto">
       <button
         @click="logoutClearStorange"
-        class="flex items-center gap-2 text-red-500 font-medium hover:underline"
+        class="text-sm text-red-500 font-medium flex items-center gap-2 hover:opacity-80 transition"
       >
         Logout
       </button>

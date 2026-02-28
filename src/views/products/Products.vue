@@ -1,13 +1,13 @@
 <template>
     <div class="p-4">
-        <h1 class="text-xl font-semibold mb-4">Productos</h1>
+        <h1 class="text-[22px] font-bold text-text-1 mb-4 font-['Plus_Jakarta_Sans',sans-serif]">Productos</h1>
 
         <!-- FILTROS -->
         <div class="flex gap-4 mb-4">
             <input v-model="search" type="text" placeholder="Buscar producto..."
-                class="border px-3 py-2 rounded w-64" />
+                class="bg-[#F8FAFC] border border-border rounded-full px-4 py-2 text-[13px] text-text-1 w-64 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
 
-            <select v-model="selectedBox" class="border px-3 py-2 rounded" @change="handleBoxFilter">
+            <select v-model="selectedBox" class="bg-[#F8FAFC] border border-border rounded-full px-4 py-2 text-[13px] text-text-1 focus:outline-none focus:ring-2 focus:ring-primary" @change="handleBoxFilter">
                 <option value="">Filtrar por Box</option>
                 <option v-for="box in boxOptions" :key="box.id" :value="box.name">
                     {{ box.name }}
@@ -16,12 +16,12 @@
 
             <div class="flex gap-3">
                 <button @click="resetTables"
-                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+                    class="px-[18px] py-[9px] text-[13px] font-semibold bg-primary-light text-primary border border-[#BFDBFE] rounded-[8px] hover:bg-[#DBEAFE] transition">
                     Recargar
                 </button>
 
                 <button v-if="isFiltering" @click="saveFilteredPrices"
-                    class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                    class="px-[18px] py-[9px] text-[13px] font-semibold bg-primary text-white rounded-[8px] shadow-[var(--shadow-btn)] hover:bg-primary-dark transition">
                     Guardar cambios
                 </button>
             </div>
@@ -30,9 +30,9 @@
         <!-- ======================================================== -->
         <!--                    TABLA PRINCIPAL                       -->
         <!-- ======================================================== -->
-        <div v-if="!isFiltering" class="overflow-x-auto border border-gray-200 rounded-lg">
+        <div v-if="!isFiltering" class="overflow-x-auto border border-border rounded-[var(--r-xl)] shadow-[var(--shadow-card)]">
             <table class="min-w-max table-auto text-sm">
-                <thead class="bg-gray-100 text-gray-700">
+                <thead class="bg-[#F8FAFC] text-text-3 text-[11px] font-medium uppercase tracking-wider">
                     <tr>
                         <th v-for="header in headers" :key="header" class="px-4 py-2 border">
                             {{ header }}
@@ -41,7 +41,7 @@
                 </thead>
 
                 <tbody>
-                    <tr v-for="item in filteredProducts" :key="item.id" class="border-b hover:bg-gray-50">
+                    <tr v-for="item in filteredProducts" :key="item.id" class="border-b border-border-light hover:bg-[#F8FAFC]">
 
                         <td class="px-3 py-2 border max-w-[400px]">{{ item.dispositivo }}</td>
 
@@ -99,9 +99,9 @@
         <!-- ======================================================== -->
         <!--                    TABLA FILTRADA                        -->
         <!-- ======================================================== -->
-        <div v-if="isFiltering" class="overflow-x-auto border border-blue-300 rounded-lg mt-6">
+        <div v-if="isFiltering" class="overflow-x-auto border border-border rounded-[var(--r-xl)] shadow-[var(--shadow-card)] mt-6">
             <table class="min-w-max table-auto text-sm">
-                <thead class="bg-blue-100 text-blue-800">
+                <thead class="bg-[#F8FAFC] text-text-3 text-[11px] font-medium uppercase tracking-wider">
                     <tr>
                         <th v-for="header in filterHeaders" :key="header" class="px-4 py-2 border">
                             {{ header }}
@@ -110,7 +110,7 @@
                 </thead>
 
                 <tbody>
-                    <tr v-for="item in filteredByName" :key="item.id" class="border-b hover:bg-blue-50">
+                    <tr v-for="item in filteredByName" :key="item.id" class="border-b border-border-light hover:bg-[#F8FAFC]">
                         <td class="px-3 py-2 border">{{ item.id }}</td>
                         <td class="px-3 py-2 border">{{ item.boxName }}</td>
 
@@ -127,27 +127,27 @@
         <!-- ======================================================== -->
         <!--                       MODAL PRECIOS                      -->
         <!-- ======================================================== -->
-        <div v-if="isModalOpen" class="fixed inset-0 bg-white/80 bg-opacity-40 flex justify-center items-center z-50">
+        <div v-if="isModalOpen" class="fixed inset-0 bg-[rgba(15,26,46,0.5)] flex justify-center items-center z-50">
 
-            <div class="bg-white w-[700px] rounded-lg shadow-lg p-6">
+            <div class="bg-card w-[700px] rounded-[var(--r-2xl)] shadow-[var(--shadow-modal)] p-6">
 
-                <h2 class="text-xl font-semibold mb-4">
+                <h2 class="text-[16px] font-semibold text-text-1 mb-4 font-['Plus_Jakarta_Sans',sans-serif]">
                     Precios para: {{ selectedProduct?.dispositivo }}
                 </h2>
 
-                <table class="w-full text-sm border">
-                    <thead class="bg-gray-100">
+                <table class="w-full text-sm border border-border rounded-[var(--r-lg)] overflow-hidden">
+                    <thead class="bg-[#F8FAFC]">
                         <tr>
-                            <th class="border px-2 py-2">Caja</th>
-                            <th class="border px-2 py-2">Precio</th>
+                            <th class="border border-border px-3 py-2 text-[11px] font-medium text-text-3 uppercase">Caja</th>
+                            <th class="border border-border px-3 py-2 text-[11px] font-medium text-text-3 uppercase">Precio</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="box in modalPrices" :key="box.id" class="border-b">
-                            <td class="border px-2 py-2">{{ box.boxName }}</td>
-                            <td class="border px-2 py-2">
+                        <tr v-for="box in modalPrices" :key="box.id" class="border-b border-border-light hover:bg-[#F8FAFC]">
+                            <td class="border border-border-light px-3 py-2 text-[13px] text-text-2">{{ box.boxName }}</td>
+                            <td class="border border-border-light px-3 py-2">
                                 <input type="number" v-model.number="box.price"
-                                    class="border px-2 py-1 rounded w-full" />
+                                    class="bg-[#F8FAFC] border border-border rounded-full px-3 py-1 text-[13px] text-text-1 w-full focus:outline-none focus:ring-2 focus:ring-primary" />
                             </td>
                         </tr>
                     </tbody>
@@ -155,12 +155,12 @@
 
                 <div class="flex justify-end gap-3 mt-6">
                     <button @click="isModalOpen = false"
-                        class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+                        class="px-[18px] py-[9px] text-[13px] font-semibold bg-primary-light text-primary border border-[#BFDBFE] rounded-[8px] hover:bg-[#DBEAFE] transition">
                         Cerrar
                     </button>
 
                     <button @click="saveModalPrices"
-                        class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                        class="px-[18px] py-[9px] text-[13px] font-semibold bg-primary text-white rounded-[8px] shadow-[var(--shadow-btn)] hover:bg-primary-dark transition">
                         Guardar cambios
                     </button>
                 </div>

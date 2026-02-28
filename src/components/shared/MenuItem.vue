@@ -5,10 +5,10 @@
       v-if="route"
       :to="route"
       :class="[
-        'flex items-center gap-3 cursor-pointer select-none mt-1 px-2 py-2 rounded-lg transition',
+        'flex items-center gap-3 cursor-pointer select-none px-[14px] py-[9px] rounded-[10px] text-[13px] font-medium transition',
         isActive
-          ? 'bg-blue-100 text-blue-700 font-semibold'
-          : 'hover:bg-blue-50 hover:text-blue-700'
+          ? 'bg-primary-light text-primary font-semibold'
+          : 'text-text-2 hover:bg-primary-light hover:text-primary'
       ]"
     >
       <component
@@ -22,10 +22,10 @@
     <div v-else>
       <div
         :class="[
-          'flex items-center gap-3 cursor-pointer select-none mt-1 px-2 py-2 rounded-lg transition',
+          'flex items-center gap-3 cursor-pointer select-none px-[14px] py-[9px] rounded-[10px] text-[13px] font-medium transition',
           isParentActive
-            ? 'bg-blue-100 text-blue-700 font-semibold'
-            : 'hover:bg-blue-50'
+            ? 'bg-primary-light text-primary font-semibold'
+            : 'text-text-2 hover:bg-primary-light hover:text-primary'
         ]"
         @click="$emit('toggle')"
       >
@@ -45,17 +45,17 @@
       <transition name="fade">
         <div
           v-show="isOpen"
-          class="ml-8 mt-2 space-y-2 text-sm text-gray-600"
+          class="ml-6 mt-1 space-y-1"
         >
           <router-link
             v-for="item in items"
             :key="item.route"
             :to="item.route"
             :class="[
-              'block px-2 py-1 rounded-md transition',
+              'block px-[14px] py-[7px] rounded-[10px] text-[12px] font-medium transition',
               routeIsActive(item.route)
-                ? 'bg-blue-100 text-blue-700 font-medium'
-                : 'hover:text-blue-700'
+                ? 'bg-primary-light text-primary font-semibold'
+                : 'text-text-2 hover:bg-primary-light hover:text-primary'
             ]"
           >
             {{ item.name }}

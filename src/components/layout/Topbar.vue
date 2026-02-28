@@ -1,14 +1,15 @@
 <template>
-  <header class="h-20 px-8 flex items-center justify-between mt-6">
+  <!-- El padding/gap los gestiona el main-wrapper en MainLayout; el topbar no necesita márgenes propios -->
+  <header class="h-16 shrink-0 bg-card rounded-[var(--r-xl)] px-6 flex items-center justify-between shadow-[var(--shadow-card)]">
     <div class="flex items-center gap-2">
       <button
         v-for="item in items"
         :key="item.label"
         @click="go(item)"
-        class="text-sm font-medium rounded-full py-2 px-4 transition cursor-pointer"
+        class="rounded-full px-4 py-1.5 text-[13px] transition cursor-pointer"
         :class="isActive(item)
-          ? 'bg-black text-white'
-          : 'bg-white text-gray-400 hover:text-gray-600'"
+          ? 'bg-primary text-white font-semibold'
+          : 'bg-transparent text-text-2 font-medium hover:text-primary'"
       >
         {{ item.label }}
       </button>

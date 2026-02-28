@@ -1,9 +1,9 @@
 <template>
   <div @click="disponible && handleSelect()" :class="[
-    'relative rounded-xl border shadow-sm transition',
+    'relative rounded-[var(--r-xl)] overflow-hidden border transition',
     disponible
-      ? 'bg-white cursor-pointer hover:shadow-lg'
-      : 'bg-gray-100 opacity-40 cursor-not-allowed pointer-events-none'
+      ? 'bg-card border-border shadow-[0_2px_10px_rgba(5,78,175,.08)] cursor-pointer hover:shadow-[var(--shadow-card)]'
+      : 'bg-[#F8FAFC] border-border opacity-40 cursor-not-allowed pointer-events-none'
   ]">
     <!-- Overlay no disponible -->
     <div v-if="!disponible"
@@ -12,17 +12,17 @@
     </div>
 
     <!-- Imagen -->
-    <div class="w-full bg-gray-100 rounded-t-xl">
-      <img :src="placeholder" class="h-36 w-full object-cover rounded-t-xl" alt="producto" />
+    <div class="w-full aspect-[4/3]">
+      <img :src="placeholder" class="w-full h-full object-cover" alt="producto" />
     </div>
 
     <!-- Contenido -->
-    <div class="p-3 space-y-2">
-      <h3 class="font-semibold text-gray-800 text-sm truncate">
+    <div class="p-[10px_14px] space-y-2">
+      <h3 class="text-[13px] font-semibold text-text-1 truncate">
         {{ producto.dispositivo }}
       </h3>
 
-      <p class="text-xs text-gray-500 line-clamp-2">
+      <p class="text-[12px] text-text-2 line-clamp-2">
         {{ producto.descripcion }}
       </p>
 

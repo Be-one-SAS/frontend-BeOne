@@ -1,6 +1,6 @@
 <template>
-    <div class="bg-white rounded-xl shadow p-4">
-      <h3 class="text-lg font-semibold mb-4">Cotizaciones por Mes</h3>
+    <div class="bg-card rounded-[var(--r-xl)] shadow-[var(--shadow-card)] p-5">
+      <h3 class="text-[16px] font-semibold text-text-1 mb-4 font-['Plus_Jakarta_Sans',sans-serif]">Cotizaciones por Mes</h3>
       <canvas ref="chartRef"></canvas>
     </div>
   </template>
@@ -21,13 +21,23 @@
         datasets: [{
           label: 'Cotizaciones',
           data: [5, 8, 6, 10, 7, 12],
-          backgroundColor: 'rgba(59, 130, 246, 0.6)'
+          backgroundColor: '#6EE7A0'
         }]
       },
       options: {
         responsive: true,
         plugins: {
           legend: { display: false }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#94A3B8', font: { size: 11 } },
+            grid: { color: '#F1F5FA' }
+          },
+          y: {
+            ticks: { color: '#94A3B8', font: { size: 11 } },
+            grid: { color: '#F1F5FA' }
+          }
         }
       }
     })

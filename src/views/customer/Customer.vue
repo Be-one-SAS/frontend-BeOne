@@ -139,19 +139,22 @@ async function actualizarCliente() {
 <template>
   <div class="p-6">
     <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-semibold">Listado de Clientes</h1>
+      <h1 class="text-[22px] font-bold text-text-1 font-['Plus_Jakarta_Sans',sans-serif]">Listado de Clientes</h1>
 
       <div class="flex items-center gap-3">
-        <!--  Buscador -->
+        <!-- Buscador -->
         <div class="relative w-80">
+          <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-2.5 h-4 w-4 text-text-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1116.65 16.65z" />
+          </svg>
           <input v-model="searchQuery" type="text" placeholder="Buscar cliente..."
-            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" />
+            class="w-full pl-10 pr-4 py-2 bg-[#F8FAFC] border border-border rounded-full text-[13px] text-text-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition" />
         </div>
       </div>
     </div>
 
     <!-- Si no hay resultados -->
-    <div v-if="!loading && filteredData.length === 0" class="p-6 text-center border rounded-lg bg-gray-50 mb-3">
+    <div v-if="!loading && filteredData.length === 0" class="p-6 text-center border border-border rounded-[var(--r-md)] bg-[#F8FAFC] mb-3">
       <p class="text-lg text-gray-600 mb-3">No se encontraron resultados para "{{ searchQuery }}".</p>
 
       <div class="flex justify-between items-center mb-6">
@@ -160,33 +163,32 @@ async function actualizarCliente() {
 
           <!-- Formulario nuevo cliente -->
           <div class="space-y-2 mb-4">
-            <input v-model="nuevoCliente.name" placeholder="Nombre" class="w-full border px-3 py-2 rounded" />
+            <input v-model="nuevoCliente.name" placeholder="Nombre" class="w-full bg-[#F8FAFC] border border-border rounded-full px-4 py-2 text-[13px] text-text-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
             <input type="number" v-model="nuevoCliente.nit" placeholder="Número de identificación tributaria"
-              class="w-full border px-3 py-2 rounded" />
+              class="w-full bg-[#F8FAFC] border border-border rounded-full px-4 py-2 text-[13px] text-text-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
             <input type="email" v-model="nuevoCliente.email" placeholder="Correo electrónico"
-              class="w-full border px-3 py-2 rounded" />
-            <input v-model="nuevoCliente.phone" placeholder="Contacto" class="w-full border px-3 py-2 rounded" />
+              class="w-full bg-[#F8FAFC] border border-border rounded-full px-4 py-2 text-[13px] text-text-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
+            <input v-model="nuevoCliente.phone" placeholder="Contacto" class="w-full bg-[#F8FAFC] border border-border rounded-full px-4 py-2 text-[13px] text-text-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
             <input v-model="nuevoCliente.contactName" placeholder="Teléfono de referencia"
-              class="w-full border px-3 py-2 rounded" />
-            <input v-model="nuevoCliente.document" placeholder="Documento" class="w-full border px-3 py-2 rounded" />
+              class="w-full bg-[#F8FAFC] border border-border rounded-full px-4 py-2 text-[13px] text-text-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
+            <input v-model="nuevoCliente.document" placeholder="Documento" class="w-full bg-[#F8FAFC] border border-border rounded-full px-4 py-2 text-[13px] text-text-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
             <input type="text" v-model="nuevoCliente.reference" placeholder="Nota"
-              class="w-full border px-3 py-2 rounded" />
+              class="w-full bg-[#F8FAFC] border border-border rounded-full px-4 py-2 text-[13px] text-text-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
 
-
-            <input v-model="nuevoCliente.phone" placeholder="País" class="w-full border px-3 py-2 rounded" />
-            <input v-model="nuevoCliente.contactName" placeholder="Ciudad" class="w-full border px-3 py-2 rounded" />
-            <input v-model="nuevoCliente.document" placeholder="Dirección" class="w-full border px-3 py-2 rounded" />
+            <input v-model="nuevoCliente.phone" placeholder="País" class="w-full bg-[#F8FAFC] border border-border rounded-full px-4 py-2 text-[13px] text-text-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
+            <input v-model="nuevoCliente.contactName" placeholder="Ciudad" class="w-full bg-[#F8FAFC] border border-border rounded-full px-4 py-2 text-[13px] text-text-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
+            <input v-model="nuevoCliente.document" placeholder="Dirección" class="w-full bg-[#F8FAFC] border border-border rounded-full px-4 py-2 text-[13px] text-text-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
           </div>
 
 
           <div class="flex w-full items-center gap-3">
             <button @click="openNewCustomerModal"
-              class="px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition">
+              class="px-[18px] py-[9px] text-[13px] font-semibold bg-primary text-white rounded-[8px] shadow-[var(--shadow-btn)] hover:bg-primary-dark transition">
               Crear nuevo cliente
             </button>
 
             <!-- SELECT DIRECTO / INDIRECTO -->
-            <select v-model="nuevoCliente.type" class="border px-3 py-2 rounded-lg">
+            <select v-model="nuevoCliente.type" class="bg-[#F8FAFC] border border-border rounded-full px-4 py-2 text-[13px] text-text-1 focus:outline-none focus:ring-2 focus:ring-primary">
               <option disabled value="">Seleccione tipo</option>
               <option value="DIRECTO">DIRECTO</option>
               <option value="INDIRECTO">INDIRECTO</option>
@@ -199,16 +201,16 @@ async function actualizarCliente() {
 
     </div>
 
-    <!--  Skeleton Loader -->
+    <!-- Skeleton Loader -->
     <div v-if="loading" class="space-y-2 animate-pulse">
-      <div v-for="i in 8" :key="i" class="flex justify-between items-center p-3 border rounded-lg bg-gray-50">
-        <div class="h-4 bg-gray-200 rounded w-10"></div>
-        <div class="h-4 bg-gray-200 rounded w-32"></div>
-        <div class="h-4 bg-gray-200 rounded w-24"></div>
-        <div class="h-4 bg-gray-200 rounded w-40"></div>
-        <div class="h-4 bg-gray-200 rounded w-28"></div>
-        <div class="h-4 bg-gray-200 rounded w-20"></div>
-        <div class="h-4 bg-gray-200 rounded w-16"></div>
+      <div v-for="i in 8" :key="i" class="flex justify-between items-center p-3 border border-border rounded-[var(--r-md)] bg-[#F8FAFC]">
+        <div class="h-4 bg-[#F1F5FA] rounded-[var(--r-md)] w-10"></div>
+        <div class="h-4 bg-[#F1F5FA] rounded-[var(--r-md)] w-32"></div>
+        <div class="h-4 bg-[#F1F5FA] rounded-[var(--r-md)] w-24"></div>
+        <div class="h-4 bg-[#F1F5FA] rounded-[var(--r-md)] w-40"></div>
+        <div class="h-4 bg-[#F1F5FA] rounded-[var(--r-md)] w-28"></div>
+        <div class="h-4 bg-[#F1F5FA] rounded-[var(--r-md)] w-20"></div>
+        <div class="h-4 bg-[#F1F5FA] rounded-[var(--r-md)] w-16"></div>
       </div>
     </div>
 
@@ -221,18 +223,18 @@ async function actualizarCliente() {
     <ModalReutilizable :show="showModal" @close="closeModal">
 
       <div>
-        <h2 class="text-lg font-semibold text-gray-800 mb-4">Editar Cliente</h2>
+        <h2 class="text-[16px] font-semibold text-text-1 mb-4 font-['Plus_Jakarta_Sans',sans-serif]">Editar Cliente</h2>
 
         <div class="space-y-2 mb-3">
-          <input v-model="nuevoCliente.name" placeholder="Nombre" class="w-full border px-3 py-2 rounded" />
-          <input v-model="nuevoCliente.nit" placeholder="NIT" class="w-full border px-3 py-2 rounded" />
+          <input v-model="nuevoCliente.name" placeholder="Nombre" class="w-full bg-[#F8FAFC] border border-border rounded-full px-4 py-2 text-[13px] text-text-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
+          <input v-model="nuevoCliente.nit" placeholder="NIT" class="w-full bg-[#F8FAFC] border border-border rounded-full px-4 py-2 text-[13px] text-text-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
           <input v-model="nuevoCliente.email" placeholder="Correo electrónico"
-            class="w-full border px-3 py-2 rounded" />
-          <input v-model="nuevoCliente.phone" placeholder="Contacto" class="w-full border px-3 py-2 rounded" />
-          <input v-model="nuevoCliente.document" placeholder="Documento" class="w-full border px-3 py-2 rounded" />
+            class="w-full bg-[#F8FAFC] border border-border rounded-full px-4 py-2 text-[13px] text-text-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
+          <input v-model="nuevoCliente.phone" placeholder="Contacto" class="w-full bg-[#F8FAFC] border border-border rounded-full px-4 py-2 text-[13px] text-text-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
+          <input v-model="nuevoCliente.document" placeholder="Documento" class="w-full bg-[#F8FAFC] border border-border rounded-full px-4 py-2 text-[13px] text-text-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
           <input v-model="nuevoCliente.contactName" placeholder="Contacto de referencia"
-            class="w-full border px-3 py-2 rounded" />
-          <input v-model="nuevoCliente.reference" placeholder="Referencia" class="w-full border px-3 py-2 rounded" />
+            class="w-full bg-[#F8FAFC] border border-border rounded-full px-4 py-2 text-[13px] text-text-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
+          <input v-model="nuevoCliente.reference" placeholder="Referencia" class="w-full bg-[#F8FAFC] border border-border rounded-full px-4 py-2 text-[13px] text-text-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
         </div>
 
         <spam>{{ nuevoCliente.type }}
@@ -242,7 +244,7 @@ async function actualizarCliente() {
 
 
         <div class="mt-4 text-right">
-          <button class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" @click="actualizarCliente"
+          <button class="px-[18px] py-[9px] text-[13px] font-semibold bg-primary text-white rounded-[8px] shadow-[var(--shadow-btn)] hover:bg-primary-dark disabled:opacity-60 disabled:cursor-not-allowed transition" @click="actualizarCliente"
             :disabled="!nuevoCliente.name">
             Guardar cambios
           </button>

@@ -1,6 +1,6 @@
 <template>
   <span :class="[
-    'px-3 py-1 text-xs font-medium rounded-full max-h-[24px]',
+    'rounded-full px-[10px] py-[3px] text-[11px] font-medium',
     colorClass
   ]">
     {{ label }}
@@ -29,29 +29,29 @@ const colorClass = computed(() => {
     case 'EN_RESERVA':
     case 'PENDIENTE':
     case 'EN_PROCESO':
-      return 'bg-yellow-100 text-yellow-800'
+      return 'bg-[#DBEAFE] text-[#1D4ED8]'
 
     case 'DISPONIBLE':
     case 'APROBADA':
     case 'COTIZADO':
-      return 'bg-green-100 text-green-800'
+      return 'bg-[#DCFCE7] text-[#16A34A]'
 
     case 'NO_DISPONIBLE':
     case 'RECHAZADA':
     case 'CANCELADO':
-      return 'bg-red-100 text-red-800'
+      return 'bg-[#FEE2E2] text-[#B91C1C]'
 
     case 'PRODUCTO PROPIO':
-      return 'bg-cyan-300 text-cyan-800'
+      return 'bg-primary-light text-primary'
 
     case 'PRODUCTO NO PROPIO':
-      return 'bg-gray-300 text-gray-800'
+      return 'bg-[#F1F5F9] text-[#475569]'
 
     case 'VENCIDO':
-      return 'bg-gray-200 text-gray-700'
+      return 'bg-[#FEF3C7] text-[#B45309]'
 
     default:
-      return 'bg-gray-100 text-gray-800'
+      return 'bg-[#F1F5F9] text-[#475569]'
   }
 })
 

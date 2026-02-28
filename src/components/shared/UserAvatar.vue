@@ -2,8 +2,7 @@
   <div class="flex items-center gap-3 cursor-pointer">
     <!-- Avatar -->
     <div
-      class="h-9 w-9 rounded-full bg-gray-200 overflow-hidden
-             flex items-center justify-center"
+      class="w-9 h-9 rounded-full bg-primary-light flex items-center justify-center overflow-hidden"
     >
       <img
         v-if="src"
@@ -13,7 +12,7 @@
       />
       <span
         v-else
-        class="text-xs font-medium text-gray-500"
+        class="text-[11px] font-medium text-primary"
       >
         {{ initials }}
       </span>
@@ -22,7 +21,7 @@
     <!-- Name -->
     <span
       v-if="showName"
-      class="text-sm font-medium text-gray-700 hidden md:block"
+      class="text-[13px] font-medium text-text-1 hidden md:block"
     >
       {{ name }}
     </span>
