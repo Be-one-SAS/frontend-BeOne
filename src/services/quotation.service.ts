@@ -85,6 +85,25 @@ export const updateQuotation = async (id: number, cotizacion: any) => {
     }
 };
 
+// ✅ CHANGED — agrega items a una cotización ya creada via endpoint dedicado
+export const addQuotationItems = async (id: number, items: any[]) => {
+    try {
+        const response = await api.post(
+            `/quotations/${id}/items`,
+            { items },
+            {
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            }
+        );
+
+        return response;
+    } catch (error) {
+        throw error;
+    }
+};
+
 //Elimina una cotización
 export const deleteQuotation = async (id: number) => {
     try {

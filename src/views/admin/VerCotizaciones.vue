@@ -40,10 +40,11 @@ const filteredQuotations = computed(() => {
   return quotations.value.filter((q) => {
     const texto = search.value.toLowerCase();
 
+    // q.numero es INTEGER en la BD — se convierte a string antes de comparar
     const coincideTexto =
-      q.numero?.toLowerCase().includes(texto) ||
-      q.empresa?.toLowerCase().includes(texto) ||
-      q?.cliente?.name?.toLowerCase().includes(texto);
+      String(q.numero ?? '').toLowerCase().includes(texto) ||
+      (q.empresa ?? '').toLowerCase().includes(texto) ||
+      (q?.cliente?.name ?? '').toLowerCase().includes(texto);
 
     const coincideEstado =
       !estadoFiltro.value || q.quotationStatus?.name === estadoFiltro.value;
@@ -163,6 +164,15 @@ const downloadPDF = async () => {
 };
 
 // ----------------------
+// DATE HELPERS
+// ----------------------
+const formatDate = (iso) =>
+  iso ? new Date(iso).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+
+const formatTime = (iso) =>
+  iso ? new Date(iso).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }) : '—'
+
+// ----------------------
 // ACCORDION
 // ----------------------
 const expandedRow = ref(null);
@@ -272,7 +282,7 @@ const toggleRow = (id) => {
                   <div class="vc-event-cell">
                     <span class="vc-ubicacion">{{ q.ubicacion }}</span>
                     <span class="vc-fecha-ev">
-                      {{ q.fechaInicioEvento ? new Date(q.fechaInicioEvento).toLocaleDateString('es-CO') : '—' }}
+                      {{ formatDate(q.operationWindow?.eventStartAt) }}
                     </span>
                   </div>
                 </td>
@@ -340,15 +350,35 @@ const toggleRow = (id) => {
                         </div>
 
                         <div class="vc-exp-field">
-                          <span class="vc-exp-label">Fecha fin evento</span>
+                          <span class="vc-exp-label">Inicio evento</span>
                           <span class="vc-exp-val">
-                            {{ q.fechaFinEvento ? new Date(q.fechaFinEvento).toLocaleDateString('es-CO') : '—' }}
+                            {{ formatDate(q.operationWindow?.eventStartAt) }}
+                            {{ formatTime(q.operationWindow?.eventStartAt) }}
                           </span>
                         </div>
 
                         <div class="vc-exp-field">
-                          <span class="vc-exp-label">Horario</span>
-                          <span class="vc-exp-val">{{ q.horarioInicio }} – {{ q.horarioFin }}</span>
+                          <span class="vc-exp-label">Fin evento</span>
+                          <span class="vc-exp-val">
+                            {{ formatDate(q.operationWindow?.eventEndAt) }}
+                            {{ formatTime(q.operationWindow?.eventEndAt) }}
+                          </span>
+                        </div>
+
+                        <div class="vc-exp-field">
+                          <span class="vc-exp-label">Inicio montaje</span>
+                          <span class="vc-exp-val">
+                            {{ formatDate(q.operationWindow?.setupStartAt) }}
+                            {{ formatTime(q.operationWindow?.setupStartAt) }}
+                          </span>
+                        </div>
+
+                        <div class="vc-exp-field">
+                          <span class="vc-exp-label">Fin desmontaje</span>
+                          <span class="vc-exp-val">
+                            {{ formatDate(q.operationWindow?.teardownEndAt) }}
+                            {{ formatTime(q.operationWindow?.teardownEndAt) }}
+                          </span>
                         </div>
 
                         <div class="vc-exp-field">

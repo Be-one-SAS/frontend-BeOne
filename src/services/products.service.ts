@@ -40,7 +40,7 @@ export const getByName = async (name: string) => {
 };
 
 // TERCEROS 
-export const getThirdPartyCatalog = async (name: string) => {
+export const getThirdPartyCatalog = async () => {
     try {
         const response = await api.get(
             `/third-party-catalog`,

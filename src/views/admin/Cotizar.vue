@@ -32,7 +32,38 @@
           </button>
         </div>
       </div>
+
+      <!-- Botón limpiar formulario — solo en modo nuevo -->
+      <div v-else class="header-actions">
+        <button class="btn-clear-draft" @click="showConfirmClear = true">
+          <Trash2 :size="14" />
+          Limpiar formulario
+        </button>
+      </div>
     </div>
+
+    <!-- ════════════════════════════════════════════════════════
+         BANNER — Draft guardado
+    ════════════════════════════════════════════════════════ -->
+    <Transition name="banner-slide">
+      <div v-if="hasDraft && !id" class="draft-banner" role="alert">
+        <div class="draft-banner-icon">
+          <Clock :size="16" />
+        </div>
+        <div class="draft-banner-text">
+          <strong>Tienes una cotización en progreso</strong>
+          <span>Tus datos del formulario fueron recuperados automáticamente.</span>
+        </div>
+        <div class="draft-banner-actions">
+          <button class="draft-btn-discard" @click="showConfirmClear = true">
+            Descartar
+          </button>
+          <button class="draft-btn-continue" @click="dismissBanner">
+            Continuar
+          </button>
+        </div>
+      </div>
+    </Transition>
 
     <!-- ════════════════════════════════════════════════════════
          STEPPER HORIZONTAL
@@ -188,6 +219,19 @@
              ╚══════════════════════════════════════════════╝ -->
         <template v-else-if="pasoActual === 3">
 
+          <!-- Encabezado del paso 3 -->
+          <div class="form-card step3-intro-card">
+            <div class="step3-intro">
+              <div class="step3-num-badge">
+                <span>3</span>
+              </div>
+              <div class="step3-intro-text">
+                <h2 class="step3-title">Selección de Equipos</h2>
+                <p class="step3-desc">Busca y agrega los equipos que formarán parte de esta cotización. Configura cantidades y jornadas por cada ítem antes de continuar.</p>
+              </div>
+            </div>
+          </div>
+
           <div class="equip-layout">
 
             <!-- Panel izquierdo (60%) — Buscador -->
@@ -201,21 +245,19 @@
                 <!-- Inputs de búsqueda -->
                 <div class="g2 mb16">
 
-                  <!-- Buscar producto (lógica original intacta) -->
-                  <div @click="cargarProductos">
-                    <label class="field-lbl">Buscar Producto</label>
-                    <div class="search-wrap">
+                  <!-- Seleccionar producto — abre el modal con buscador integrado -->
+                  <div>
+                    <label class="field-lbl">Seleccionar Producto</label>
+                    <button
+                      type="button"
+                      class="picker-btn"
+                      @click="cargarProductos(); mostrarLista = true"
+                    >
                       <Search :size="14" class="s-ico" />
-                      <input
-                        type="text"
-                        v-model="searchProducto"
-                        @focus="mostrarLista = true"
-                        @blur="ocultarListas"
-                        @input="filtrarProductos"
-                        placeholder="Buscar por nombre..."
-                        class="s-input"
-                      />
-                    </div>
+                      <span class="picker-btn-text">
+                        {{ selectedProduct?.dispositivo || selectedProduct?.nombre || 'Buscar y seleccionar producto…' }}
+                      </span>
+                    </button>
                     <ProductPickerModal
                       :show="mostrarLista"
                       :productos="productosFiltrados"
@@ -543,6 +585,39 @@
       @save="guardarProducto"
     />
 
+    <!-- Modal: confirmar limpiar formulario -->
+    <ModalReutilizable :show="showConfirmClear" @close="showConfirmClear = false">
+      <div class="text-center p-4">
+        <div class="flex justify-center mb-4">
+          <div class="w-12 h-12 rounded-full bg-[#FEE2E2] flex items-center justify-center">
+            <Trash2 :size="22" class="text-[#B91C1C]" />
+          </div>
+        </div>
+        <h2 class="text-[16px] font-bold text-[#0F1A2E] mb-2 font-['Plus_Jakarta_Sans',sans-serif]">
+          Limpiar formulario
+        </h2>
+        <p class="text-[13px] text-text-2 mb-6 leading-relaxed">
+          ¿Estás seguro? Se borrarán <strong>todos los datos ingresados</strong>
+          y el borrador guardado. Esta acción no se puede deshacer.
+        </p>
+        <div class="flex justify-center gap-3">
+          <button
+            class="px-[18px] py-[9px] text-[13px] font-semibold bg-[#F1F5F9] text-[#64748B] border border-[#E5EAF0] rounded-[8px] hover:bg-[#E5EAF0] transition"
+            @click="showConfirmClear = false"
+          >
+            Cancelar
+          </button>
+          <button
+            class="px-[18px] py-[9px] text-[13px] font-semibold bg-[#B91C1C] text-white rounded-[8px] hover:bg-[#991B1B] transition flex items-center gap-2"
+            @click="handleClearDraft"
+          >
+            <Trash2 :size="14" />
+            Sí, limpiar todo
+          </button>
+        </div>
+      </div>
+    </ModalReutilizable>
+
     <!-- Modal: validación calendario incompleto -->
     <ModalReutilizable :show="modalCalendarioIncompleto" @close="modalCalendarioIncompleto = false">
       <div class="text-center p-4">
@@ -617,6 +692,7 @@ import EditProductModal          from '../../components/quotation/EditProductMod
 import { useThirdPartyProduct }  from '../../composables/useThirdPartyProduct';
 import ThirdPartyProductModal    from '../../components/quotation/ThirdPartyProductModal.vue';
 import { useQuotation }          from '../../composables/quotation/useQuotation';
+import { useQuotationDraft }     from '../../composables/useQuotationDraft';
 import QuotationNextNumber       from '../../components/quotation/QuotationNextNumber.vue';
 import QuotationProductsCardList from '../../components/products/QuotationProductsCardList.vue';
 
@@ -635,6 +711,8 @@ import {
   Package,
   ShoppingCart,
   FileText,
+  Trash2,
+  Clock,
 } from 'lucide-vue-next'
 
 // ── Lógica original — NO modificar ─────────────────────────────────────────
@@ -730,10 +808,12 @@ const buildThirdPartyPayload = () => ({
   notas:                      productoTercero.notas,
 })
 
-// Auto completa el campo Agente comercial
+// Auto completa el campo Agente comercial y restaura el draft si existe
 onMounted(async () => {
   cotizacion.fechaCotizacion = formatDateTime(getCurrentISODate())
   cotizacion.agenteComercial = user.value.fullName
+  // Restore draft only for new quotations (not edit mode)
+  if (!id) restoreDraft()
 })
 
 /**
@@ -744,6 +824,11 @@ watch(clienteSeleccionado, (nuevoCliente) => {
   cotizacion.contacto = nuevoCliente.phone
   cotizacion.correo   = nuevoCliente.email
   cotizacion.celular  = nuevoCliente.reference
+})
+
+// ✅ CHANGED — sincroniza clienteId (FK numérica) cuando se selecciona un cliente de pricing
+watch(myClienteSeleccionado, (nuevoCliente) => {
+  cotizacion.clienteId = nuevoCliente.id ?? null
 })
 
 // Obtiene el precio según el cliente seleccionado
@@ -794,12 +879,17 @@ const getCotizacion = async () => {
     cotizacion.cliente             = data.cliente ? data?.cliente.name : '';
     cotizacion.contacto            = data.contacto;
     cotizacion.correo              = data.correo;
-    cotizacion.fechaInicioEvento   = data.fechaInicioEvento;
-    cotizacion.fechaFinEvento      = data.fechaFinEvento;
+    // Map operationWindow → flat date/time fields used by the form inputs
+    cotizacion.fechaInicioEvento   = data.operationWindow?.eventStartAt?.split('T')[0]        ?? ''
+    cotizacion.horarioInicio       = data.operationWindow?.eventStartAt?.split('T')[1]?.slice(0, 5) ?? '00:00'
+    cotizacion.fechaFinEvento      = data.operationWindow?.eventEndAt?.split('T')[0]          ?? ''
+    cotizacion.horarioFin          = data.operationWindow?.eventEndAt?.split('T')[1]?.slice(0, 5)   ?? '00:00'
+    cotizacion.fechaInicioMontaje  = data.operationWindow?.setupStartAt?.split('T')[0]        ?? ''
+    cotizacion.horarioInicioMontaje= data.operationWindow?.setupStartAt?.split('T')[1]?.slice(0, 5) ?? '00:00'
+    cotizacion.fechaFinMontaje     = data.operationWindow?.teardownEndAt?.split('T')[0]       ?? ''
+    cotizacion.horarioFinMontaje   = data.operationWindow?.teardownEndAt?.split('T')[1]?.slice(0, 5) ?? '00:00'
     cotizacion.ubicacion           = data.ubicacion;
     cotizacion.linkMaps            = data.linkMaps;
-    cotizacion.horarioInicio       = data.horarioInicio;
-    cotizacion.horarioFin          = data.horarioFin;
     cotizacion.asistentes          = data.asistentes;
     cotizacion.vigencia            = data.vigencia;
     cotizacion.unidadEjecucion     = data.unidadEjecucion;
@@ -815,8 +905,8 @@ const getCotizacion = async () => {
       medidas:           it.product.medidas,
       unitPrice:         it.unitPrice,
       linkFoto:          it.product.linkFotoDispositivo,
-      cantidadJornada:   it.cantidadJornada,
-      cantidadProducto:  it.cantidadProducto,
+      cantidadJornada:   it.cantidadJornada  ?? it.quantity ?? 1,
+      cantidadProducto:  it.cantidadProducto ?? 1,
     }))
 
     console.log("Cotización cargada para edición:", data);
@@ -838,6 +928,22 @@ const eliminarItem = (item) => {
 
 // ── Wizard — adiciones mínimas ──────────────────────────────────────────────
 const pasoActual = ref(1)
+
+// ── Persistencia del formulario (debe ir después de pasoActual) ──────────────
+const {
+  hasDraft,
+  showConfirmClear,
+  restoreDraft,
+  clearDraft,
+  dismissBanner,
+} = useQuotationDraft({ cotizacion, items, pasoActual, modalCotizacionExitosa })
+
+/** Limpia el draft y re-aplica los valores de sesión (nombre del agente y fecha de hoy) */
+const handleClearDraft = () => {
+  clearDraft()
+  cotizacion.fechaCotizacion = formatDateTime(getCurrentISODate())
+  cotizacion.agenteComercial = user.value.fullName
+}
 
 const pasos = [
   { num: 1, label: 'Cliente'  },
@@ -1369,6 +1475,208 @@ const duracionMontaje = computed(() => {
 /* Sección de detalle de productos */
 .mt20 { margin-top: 4px; }
 .mb12 { margin-bottom: 12px; }
+
+/* ═══════════════════════════════════════════════════════════
+   DRAFT BANNER
+═══════════════════════════════════════════════════════════ */
+.draft-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #EEF4FF;
+  border: 1px solid #BFDBFE;
+  border-radius: var(--r-xl);
+  padding: 14px 20px;
+  flex-wrap: wrap;
+}
+
+.draft-banner-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #DBEAFE;
+  color: #1D4ED8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.draft-banner-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 180px;
+}
+.draft-banner-text strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1D4ED8;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.draft-banner-text span {
+  font-size: 12px;
+  color: #3B82F6;
+  font-family: 'Inter', sans-serif;
+}
+
+.draft-banner-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.draft-btn-discard {
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  background: transparent;
+  color: #64748B;
+  border: 1px solid #CBD5E1;
+  border-radius: 99px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: background 0.15s, color 0.15s;
+}
+.draft-btn-discard:hover {
+  background: #FEE2E2;
+  color: #B91C1C;
+  border-color: #FECACA;
+}
+
+.draft-btn-continue {
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #054EAF;
+  color: white;
+  border: none;
+  border-radius: 99px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  box-shadow: 0 2px 8px rgba(5,78,175,.18);
+  transition: background 0.15s;
+}
+.draft-btn-continue:hover { background: #03368A; }
+
+/* Transition for the banner */
+.banner-slide-enter-active,
+.banner-slide-leave-active {
+  transition: all 0.25s ease;
+}
+.banner-slide-enter-from,
+.banner-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+/* Botón limpiar en el header */
+.btn-clear-draft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #FEF2F2;
+  color: #B91C1C;
+  border: 1px solid #FECACA;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-clear-draft:hover {
+  background: #FEE2E2;
+  border-color: #FCA5A5;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PASO 3: INTRO CARD
+═══════════════════════════════════════════════════════════ */
+.step3-intro-card {
+  padding: 18px 24px;
+}
+
+.step3-intro {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.step3-num-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #054EAF 0%, #1a72e8 100%);
+  box-shadow: 0 0 0 6px rgba(5,78,175,.10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.step3-intro-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.step3-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #0F1A2E;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.step3-desc {
+  font-size: 13px;
+  color: #64748B;
+  font-family: 'Inter', sans-serif;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 600px;
+}
+
+/* Botón picker de productos */
+.picker-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: #F8FAFC;
+  border: 1px solid #E5EAF0;
+  border-radius: 99px;
+  padding: 9px 16px;
+  margin-top: 4px;
+  font-size: 13px;
+  color: #0F1A2E;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  text-align: left;
+}
+.picker-btn:hover {
+  border-color: #054EAF;
+  background: #EEF4FF;
+  box-shadow: 0 0 0 2px rgba(5,78,175,.10);
+}
+.picker-btn .s-ico { color: #94A3B8; flex-shrink: 0; }
+.picker-btn-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #94A3B8;
+}
 
 /* ═══════════════════════════════════════════════════════════
    PASO 4: RESUMEN — layout 60 / 40
