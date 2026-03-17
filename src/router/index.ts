@@ -17,8 +17,18 @@ import Suppliers        from '../views/suppliers/Suppliers.vue'
 import PriceList        from '../views/customer/PriceList.vue'
 import Products         from '../views/products/Products.vue'
 import ProductsNoPropios from '../views/products/ProductsNoPropios.vue'
+import Usuarios         from '../views/admin/Usuarios.vue'
+import Tareas           from '../views/admin/Tareas.vue'
+import Unauthorized     from '../views/Unauthorized.vue'
 
 const routes = [
+
+  // ── Sin autorización ──────────────────────────────────
+  {
+    path: '/unauthorized',
+    name: 'Unauthorized',
+    component: Unauthorized,
+  },
 
   // ── Auth (solo invitados) ─────────────────────────────
   {
@@ -98,6 +108,14 @@ const routes = [
         meta: { roles: ['ADMIN', 'LOGISTICA'] },
       },
 
+      // ── Control Operativo ──────────────────────────────
+      {
+        path: 'admin/control',
+        name: 'Control',
+        component: () => import('../views/admin/Control.vue'),
+        meta: { roles: ['ADMIN', 'COMERCIAL', 'SUPERVISOR'] },
+      },
+
       // ── Operativo ──────────────────────────────────────
       {
         path: 'operativa/reporte',
@@ -157,6 +175,24 @@ const routes = [
         component: List,
         meta: { roles: ['ADMIN'] },
       },
+      {
+        path: 'admin/usuarios',
+        name: 'Usuarios',
+        component: Usuarios,
+        meta: { roles: ['ADMIN', 'COMERCIAL'] },
+      },
+      {
+        path: 'admin/tareas',
+        name: 'Tareas',
+        component: Tareas,
+        meta: { roles: ['ADMIN', 'COMERCIAL'] },
+      },
+      {
+        path: 'admin/quotation-params',
+        name: 'QuotationParams',
+        component: () => import('../views/admin/QuotationParams.vue'),
+        meta: { roles: ['ADMIN'] },
+      },
       // NOTA: /users/roles eliminado — módulo consolidado en /users/list
 
       // ── Configuración ──────────────────────────────────
@@ -177,10 +213,12 @@ const router = createRouter({
 
 // ─────────────────────────────────────────────────────────
 // 🔐 Guard global — Auth + Roles
+// useAuth() debe llamarse FUERA del beforeEach para evitar
+// que lifecycle hooks internos se registren sin instancia activa
 // ─────────────────────────────────────────────────────────
-router.beforeEach((to, _from, next) => {
-  const { isAuthenticated, user } = useAuth()
+const { isAuthenticated, user } = useAuth()
 
+router.beforeEach((to, _from, next) => {
   // 1. Ruta protegida sin sesión → redirige al login
   if (to.meta.requiresAuth && !isAuthenticated.value) {
     return next('/login')

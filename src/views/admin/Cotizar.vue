@@ -385,6 +385,63 @@
             />
           </div>
 
+          <!-- Productos de Terceros -->
+          <div class="mt20">
+            <div class="section-header-standalone mb12">
+              <Truck :size="18" class="icon-primary" />
+              <span>Productos de Terceros</span>
+              <span v-if="itemsTerceros.length" class="item-count-badge">{{ itemsTerceros.length }}</span>
+              <button
+                type="button"
+                class="btn-add-tercero"
+                @click="abrirModalTerceroQuotation"
+              >
+                <Plus :size="13" />
+                Agregar producto tercero
+              </button>
+            </div>
+
+            <!-- Tabla vacía -->
+            <div v-if="!itemsTerceros.length" class="tercero-empty">
+              <Truck :size="32" class="tercero-empty-ico" />
+              <p>Sin productos de terceros agregados</p>
+            </div>
+
+            <!-- Tabla de terceros -->
+            <div v-else class="table-wrap">
+              <table class="eq-table">
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Costo</th>
+                    <th>Margen %</th>
+                    <th>Precio unit.</th>
+                    <th>Total factura</th>
+                    <th>Utilidad final</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(it, i) in itemsTerceros" :key="i">
+                    <td class="td-name">{{ it.nombre }}</td>
+                    <td>{{ it.cantidad }}</td>
+                    <td>{{ formatCOP(it.costo) }}</td>
+                    <td>{{ it.margen }}%</td>
+                    <td>{{ formatCOP(it.precioUnitario ?? it.precioUnitarioConIva ?? null) }}</td>
+                    <td class="td-total">{{ formatCOP(it.totalFactura ?? null) }}</td>
+                    <td>{{ formatCOP(it.utilidadFinal ?? it.utilidadNeta ?? null) }}</td>
+                    <td>
+                      <button class="btn-del-tercero" @click="eliminarItemTercero(i)" title="Eliminar">
+                        <Trash2 :size="13" />
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
         </template>
 
         <!-- ╔══════════════════════════════════════════════╗
@@ -445,27 +502,69 @@
                         <td class="td-name">{{ it.dispositivo || it.descripcion }}</td>
                         <td>{{ it.cantidadJornada }}</td>
                         <td>{{ it.cantidadProducto }}</td>
-                        <td>${{ (it.unitPrice || 0).toLocaleString('es-CO') }}</td>
+                        <td>{{ formatCOP(it.unitPrice) }}</td>
                         <td class="td-total">
-                          ${{ ((it.unitPrice || 0) * (it.cantidadJornada || 0) * (it.cantidadProducto || 0)).toLocaleString('es-CO') }}
+                          {{ formatCOP((it.unitPrice || 0) * (it.cantidadJornada || 0) * (it.cantidadProducto || 0)) }}
                         </td>
                       </tr>
                     </tbody>
+                    <tfoot>
+                      <tr class="eq-subtotal-row">
+                        <td colspan="4" class="eq-subtotal-label">Subtotal equipos propios</td>
+                        <td class="eq-subtotal-val">{{ formatCOP(subtotalPropios) }}</td>
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
               </div>
 
-              <!-- ResumenCotizacion — mantener exactamente igual -->
+              <!-- Tabla compacta de productos de terceros -->
+              <div class="form-card" v-if="itemsTerceros.length">
+                <div class="section-header">
+                  <Truck :size="18" class="icon-primary" />
+                  <span>Productos de Terceros</span>
+                  <span class="item-count-badge">{{ itemsTerceros.length }}</span>
+                </div>
+                <div class="table-wrap">
+                  <table class="eq-table">
+                    <thead>
+                      <tr>
+                        <th>Producto</th>
+                        <th>Cant.</th>
+                        <th>Precio unit.</th>
+                        <th>Total factura</th>
+                        <th>Utilidad final</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(it, i) in itemsTerceros" :key="i">
+                        <td class="td-name">{{ it.nombre }}</td>
+                        <td>{{ it.cantidad }}</td>
+                        <td>{{ formatCOP(it.precioUnitario ?? it.precioUnitarioConIva ?? null) }}</td>
+                        <td class="td-total">{{ formatCOP(it.totalFactura ?? null) }}</td>
+                        <td>{{ formatCOP(it.utilidadFinal ?? it.utilidadNeta ?? null) }}</td>
+                      </tr>
+                    </tbody>
+                    <tfoot>
+                      <tr class="eq-subtotal-row">
+                        <td colspan="3" class="eq-subtotal-label">Subtotal productos terceros</td>
+                        <td class="eq-subtotal-val">{{ formatCOP(subtotalTerceros) }}</td>
+                        <td></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Resumen financiero -->
               <ResumenCotizacion
-                :subtotal="totalSummary.valorTotal"
-                :iva="19000"
-                :valorTotal="totalSummary.valorTotal"
-                :subtotalDescuento="90000"
-                :ivaDescuento="17100"
-                :valorTotalDescuento="107100"
-                :subtotalFinal="95000"
-                :ivaFinal="18050"
-                :valorTotalFinal="totalSummary.valorTotal"
+                :subtotalPropios="subtotalPropios"
+                :subtotalTerceros="subtotalTerceros"
+                :subtotalGeneral="subtotalGeneral"
+                :descuentoPct="cotizacion.descuentoPct"
+                :descuentoValor="descuentoValor"
+                :totalGeneral="totalGeneral"
+                @update:descuentoPct="cotizacion.descuentoPct = $event"
               />
 
             </div>
@@ -585,6 +684,13 @@
       @save="guardarProducto"
     />
 
+    <ThirdPartyQuotationModal
+      :show="showModalTerceroQuotation"
+      :catalog="catalogTerceros"
+      @close="showModalTerceroQuotation = false"
+      @add="agregarItemTercero"
+    />
+
     <!-- Modal: confirmar limpiar formulario -->
     <ModalReutilizable :show="showConfirmClear" @close="showConfirmClear = false">
       <div class="text-center p-4">
@@ -689,12 +795,14 @@ import { useQuotationProducts }  from '@/composables/useQuotationProducts'
 import { useQuotationCalendar }  from '@/composables/useQuotationCalendar'
 import { useEditQuotationItem }  from '@/composables/useEditQuotationItem';
 import EditProductModal          from '../../components/quotation/EditProductModal.vue';
-import { useThirdPartyProduct }  from '../../composables/useThirdPartyProduct';
-import ThirdPartyProductModal    from '../../components/quotation/ThirdPartyProductModal.vue';
-import { useQuotation }          from '../../composables/quotation/useQuotation';
-import { useQuotationDraft }     from '../../composables/useQuotationDraft';
-import QuotationNextNumber       from '../../components/quotation/QuotationNextNumber.vue';
-import QuotationProductsCardList from '../../components/products/QuotationProductsCardList.vue';
+import { useThirdPartyProduct }       from '../../composables/useThirdPartyProduct';
+import ThirdPartyProductModal         from '../../components/quotation/ThirdPartyProductModal.vue';
+import ThirdPartyQuotationModal       from '../../components/quotation/ThirdPartyQuotationModal.vue';
+import { useQuotation }               from '../../composables/quotation/useQuotation';
+import { useQuotationDraft }          from '../../composables/useQuotationDraft';
+import QuotationNextNumber            from '../../components/quotation/QuotationNextNumber.vue';
+import QuotationProductsCardList      from '../../components/products/QuotationProductsCardList.vue';
+import { getThirdPartyCatalog }       from '../../services/products.service';
 
 import {
   User,
@@ -703,7 +811,6 @@ import {
   CalendarDays,
   Settings,
   MapPin,
-  // Iconos añadidos para el wizard
   Search,
   ChevronLeft,
   ChevronRight,
@@ -713,6 +820,8 @@ import {
   FileText,
   Trash2,
   Clock,
+  Truck,
+  Plus,
 } from 'lucide-vue-next'
 
 // ── Lógica original — NO modificar ─────────────────────────────────────────
@@ -730,8 +839,14 @@ const modalCalendarioIncompleto = ref(false);
 const {
   cotizacion,
   items,
+  itemsTerceros,
   subtotal,
   total,
+  subtotalPropios,
+  subtotalTerceros,
+  subtotalGeneral,
+  descuentoValor,
+  totalGeneral,
   loading,
   modalCotizacionExitosa,
   saveQuotation
@@ -781,6 +896,35 @@ const {
   cerrarModal,
   guardarProducto
 } = useThirdPartyProduct(items, cotizacion)
+
+// ── Terceros en cotización (nuevo flujo) ────────────────────────────────────
+const showModalTerceroQuotation = ref(false)
+const catalogTerceros = ref([])
+let catalogLoaded = false
+
+const abrirModalTerceroQuotation = async () => {
+  if (!catalogLoaded) {
+    try {
+      const { data } = await getThirdPartyCatalog()
+      catalogTerceros.value = data ?? []
+      catalogLoaded = true
+    } catch (e) {
+      console.error('[Cotizar] Error cargando catálogo de terceros:', e)
+    }
+  }
+  showModalTerceroQuotation.value = true
+}
+
+const agregarItemTercero = (item) => {
+  itemsTerceros.value.push(item)
+}
+
+const eliminarItemTercero = (index) => {
+  itemsTerceros.value.splice(index, 1)
+}
+
+const formatCOP = (val) =>
+  val == null ? '—' : new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(val)
 
 const buildThirdPartyPayload = () => ({
   dispositivo:                productoTercero.dispositivo,
@@ -936,7 +1080,7 @@ const {
   restoreDraft,
   clearDraft,
   dismissBanner,
-} = useQuotationDraft({ cotizacion, items, pasoActual, modalCotizacionExitosa })
+} = useQuotationDraft({ cotizacion, items, itemsTerceros, pasoActual, modalCotizacionExitosa })
 
 /** Limpia el draft y re-aplica los valores de sesión (nombre del agente y fecha de hoy) */
 const handleClearDraft = () => {
@@ -1764,6 +1908,25 @@ const duracionMontaje = computed(() => {
 .td-name  { font-weight: 500; max-width: 200px; }
 .td-total { font-weight: 600; color: #054EAF; }
 
+.eq-subtotal-row {
+  background: #F0F6FF;
+  border-top: 2px solid #D1DAE6;
+}
+.eq-subtotal-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+  padding: 9px 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.eq-subtotal-val {
+  font-size: 13px;
+  font-weight: 800;
+  color: #054EAF;
+  padding: 9px 8px;
+}
+
 /* Panel lateral versión */
 .ver-text {
   font-size: 13px;
@@ -1944,5 +2107,59 @@ const duracionMontaje = computed(() => {
   .btn-next,
   .btn-primary-nav,
   .btn-ghost-nav { flex: 1; justify-content: center; text-align: center; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TERCEROS EN COTIZACIÓN
+═══════════════════════════════════════════════════════════ */
+.btn-add-tercero {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #EFF6FF;
+  color: #1D4ED8;
+  border: 1px solid #BFDBFE;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.btn-add-tercero:hover {
+  background: #DBEAFE;
+  border-color: #93C5FD;
+}
+
+.tercero-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 28px 0;
+  color: #94A3B8;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+}
+.tercero-empty-ico { color: #CBD5E1; }
+
+.btn-del-tercero {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #94A3B8;
+  padding: 4px;
+  border-radius: 5px;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-del-tercero:hover {
+  background: #FEE2E2;
+  color: #B91C1C;
 }
 </style>

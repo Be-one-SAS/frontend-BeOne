@@ -4,7 +4,8 @@ import {
   createQuotation,
   getQuotationById,
   updateQuotation,
-  addQuotationItems, // ✅ CHANGED — nuevo import para envío separado de items
+  addQuotationItems,
+  addThirdPartyQuotationItems,
 } from '../../services/quotation.service'
 
 import { useAuth } from '../../composables/useAuth' // ✅ CHANGED — para obtener createdById
@@ -48,10 +49,12 @@ export function useQuotation() {
     tipoSuelo: '',
     cantidadJornada: 1,
     cantidadProducto: 1,
-    quotationStatusId: 1
+    quotationStatusId: 1,
+    descuentoPct: 0,
   })
 
   const items = ref<any[]>([])
+  const itemsTerceros = ref<any[]>([])
 
   /* =========================
    * COMPUTEDS
@@ -60,7 +63,7 @@ export function useQuotation() {
   const subtotal = computed(() =>
     items.value.reduce(
       (sum, item) =>
-        sum + item.unitPrice * item.cantidadProducto * item.cantidadJornada,
+        sum + (item.unitPrice || 0) * (item.cantidadProducto || 0) * (item.cantidadJornada || 0),
       0
     )
   )
@@ -71,6 +74,21 @@ export function useQuotation() {
 
   const total = computed(() => subtotal.value - totalDescuentos.value)
 
+  // ── Resumen financiero ────────────────────────────────────────
+  const subtotalPropios = computed(() => subtotal.value)
+
+  const subtotalTerceros = computed(() =>
+    itemsTerceros.value.reduce((sum, item) => sum + (item.totalFactura || 0), 0)
+  )
+
+  const subtotalGeneral = computed(() => subtotalPropios.value + subtotalTerceros.value)
+
+  const descuentoValor = computed(() =>
+    subtotalGeneral.value * ((cotizacion.descuentoPct || 0) / 100)
+  )
+
+  const totalGeneral = computed(() => subtotalGeneral.value - descuentoValor.value)
+
   /* =========================
    * ACTIONS
    ========================= */
@@ -78,6 +96,7 @@ export function useQuotation() {
   const startQuote = () => {
     quotationId.value = null
     items.value = []
+    itemsTerceros.value = []
   }
 
   const loadQuotation = async (id: number) => {
@@ -152,7 +171,10 @@ export function useQuotation() {
         cantidadProducto: cotizacion.cantidadProducto || undefined,
 
         // ── Totales ───────────────────────────────────────────────
-        total: total.value || undefined,
+        subtotal:     subtotalGeneral.value  || undefined,
+        descuentoPct: cotizacion.descuentoPct || undefined,
+        descuento:    descuentoValor.value   || undefined,
+        total:        totalGeneral.value     || undefined,
 
         // ── Ventana operativa ─────────────────────────────────────
         // Construida como objeto anidado combinando fecha + hora
@@ -170,17 +192,21 @@ export function useQuotation() {
       if (quotationId.value) {
         await updateQuotation(quotationId.value, payload)
 
-        // ✅ CHANGED — enviar items por separado después de actualizar
         if (items.value.length > 0) {
           await addQuotationItems(quotationId.value, items.value)
+        }
+        if (itemsTerceros.value.length > 0) {
+          await addThirdPartyQuotationItems(quotationId.value, itemsTerceros.value)
         }
       } else {
         const { data } = await createQuotation(payload)
         quotationId.value = data.id
 
-        // ✅ CHANGED — enviar items separados después de crear la cotización
         if (items.value.length > 0) {
           await addQuotationItems(data.id, items.value)
+        }
+        if (itemsTerceros.value.length > 0) {
+          await addThirdPartyQuotationItems(data.id, itemsTerceros.value)
         }
 
         modalCotizacionExitosa.value = true
@@ -203,6 +229,7 @@ export function useQuotation() {
     // state
     cotizacion,
     items,
+    itemsTerceros,
     quotationId,
     loading,
     modalCotizacionExitosa,
@@ -211,6 +238,11 @@ export function useQuotation() {
     subtotal,
     totalDescuentos,
     total,
+    subtotalPropios,
+    subtotalTerceros,
+    subtotalGeneral,
+    descuentoValor,
+    totalGeneral,
 
     // actions
     startQuote,

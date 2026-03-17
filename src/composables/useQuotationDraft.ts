@@ -30,16 +30,19 @@ const COTIZACION_DEFAULTS = {
   cantidadJornada: 1,
   cantidadProducto: 1,
   quotationStatusId: 1,
+  descuentoPct: 0,
 }
 
 export function useQuotationDraft({
   cotizacion,
   items,
+  itemsTerceros,
   pasoActual,
   modalCotizacionExitosa,
 }: {
   cotizacion: Record<string, any>
   items: { value: any[] }
+  itemsTerceros: { value: any[] }
   pasoActual: { value: number }
   modalCotizacionExitosa: { value: boolean }
 }) {
@@ -53,6 +56,7 @@ export function useQuotationDraft({
       const payload = {
         cotizacion: { ...cotizacion },
         items: JSON.parse(JSON.stringify(items.value)),
+        itemsTerceros: JSON.parse(JSON.stringify(itemsTerceros.value)),
         paso: pasoActual.value,
       }
       localStorage.setItem(DRAFT_KEY, JSON.stringify(payload))
@@ -92,6 +96,10 @@ export function useQuotationDraft({
       items.value = draft.items
     }
 
+    if (Array.isArray(draft.itemsTerceros)) {
+      itemsTerceros.value = draft.itemsTerceros
+    }
+
     if (typeof draft.paso === 'number' && draft.paso >= 1 && draft.paso <= 4) {
       pasoActual.value = draft.paso
     }
@@ -107,8 +115,9 @@ export function useQuotationDraft({
     showConfirmClear.value = false
 
     Object.assign(cotizacion, { ...COTIZACION_DEFAULTS })
-    items.value      = []
-    pasoActual.value = 1
+    items.value         = []
+    itemsTerceros.value = []
+    pasoActual.value    = 1
   }
 
   const dismissBanner = () => {
@@ -118,7 +127,7 @@ export function useQuotationDraft({
   // ── Watch (debounced 500ms) ────────────────────────────────────
   // Watching both the spread of cotizacion and items with deep:true covers all mutations
   watch(
-    [() => ({ ...cotizacion }), items],
+    [() => ({ ...cotizacion }), items, itemsTerceros],
     scheduleSave,
     { deep: true },
   )

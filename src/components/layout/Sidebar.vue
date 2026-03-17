@@ -114,7 +114,7 @@ import {
   PackageSearch, Truck, ClipboardList, MapPin,
   Archive, Wrench, Users, BarChart2, PieChart,
   DollarSign, Activity, UserCog, Settings,
-  LogOut,
+  LogOut, CheckSquare, ClipboardCheck, SlidersHorizontal,
 } from 'lucide-vue-next'
 import { useAuth }               from '@/composables/useAuth'
 import { useSidebarPermissions, useMobileSidebar } from '@/composables/useSidebarPermissions'
@@ -195,13 +195,14 @@ const ALL_MENU_ITEMS = [
     separator: true,
     icon:  Truck,
     label: 'Dpto Operativo',
-    roles: ['ADMIN', 'SUPERVISOR', 'LOGISTICA', 'COORDINADOR'],
+    roles: ['ADMIN', 'COMERCIAL', 'SUPERVISOR', 'LOGISTICA', 'COORDINADOR'],
     children: [
-      { label: 'Reporte diario',      route: '/operativa/reporte',    icon: ClipboardList, roles: ['ADMIN', 'SUPERVISOR', 'LOGISTICA'] },
-      { label: 'Check-ins',           route: '/operativa/checkins',   icon: MapPin,        roles: ['ADMIN', 'LOGISTICA', 'COORDINADOR'] },
-      { label: 'Inventario',          route: '/operativa/inventario', icon: Archive,       roles: ['ADMIN', 'LOGISTICA'] },
-      { label: 'Montajes',            route: '/operativa/montajes',   icon: Wrench,        roles: ['ADMIN', 'LOGISTICA', 'COORDINADOR'] },
-      { label: 'Asignación equipos',  route: '/operativa/equipos',    icon: Users,         roles: ['ADMIN', 'SUPERVISOR', 'COORDINADOR'] },
+      { label: 'Control',             route: '/admin/control',        icon: ClipboardCheck, roles: ['ADMIN', 'COMERCIAL', 'SUPERVISOR'] },
+      { label: 'Reporte diario',      route: '/operativa/reporte',    icon: ClipboardList,  roles: ['ADMIN', 'SUPERVISOR', 'LOGISTICA'] },
+      { label: 'Check-ins',           route: '/operativa/checkins',   icon: MapPin,         roles: ['ADMIN', 'LOGISTICA', 'COORDINADOR'] },
+      { label: 'Inventario',          route: '/operativa/inventario', icon: Archive,        roles: ['ADMIN', 'LOGISTICA'] },
+      { label: 'Montajes',            route: '/operativa/montajes',   icon: Wrench,         roles: ['ADMIN', 'LOGISTICA', 'COORDINADOR'] },
+      { label: 'Asignación equipos',  route: '/operativa/equipos',    icon: Users,          roles: ['ADMIN', 'SUPERVISOR', 'COORDINADOR'] },
     ],
   },
   {
@@ -221,9 +222,12 @@ const ALL_MENU_ITEMS = [
     separator: true,
     icon:  UserCog,
     label: 'Usuarios',
-    roles: ['ADMIN'],
+    roles: ['ADMIN', 'COMERCIAL'],
     children: [
-      { label: 'Gestión de usuarios', route: '/users/list', icon: Users, roles: ['ADMIN'] },
+      { label: 'Gestión de usuarios',     route: '/users/list',              icon: Users,              roles: ['ADMIN'] },
+      { label: 'Usuarios',               route: '/admin/usuarios',          icon: UserCog,            roles: ['ADMIN', 'COMERCIAL'] },
+      { label: 'Tareas',                 route: '/admin/tareas',            icon: CheckSquare,        roles: ['ADMIN', 'COMERCIAL'] },
+      { label: 'Parámetros cotización',  route: '/admin/quotation-params',  icon: SlidersHorizontal,  roles: ['ADMIN'] },
     ],
   },
   {

@@ -104,6 +104,42 @@ export const addQuotationItems = async (id: number, items: any[]) => {
     }
 };
 
+// Agrega productos de terceros a una cotización ya creada
+export const addThirdPartyQuotationItems = async (id: number, items: any[]) => {
+    try {
+        const response = await api.post(
+            `/quotations/${id}/third-party-items`,
+            { items },
+            {
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            }
+        );
+        return response;
+    } catch (error) {
+        throw error;
+    }
+};
+
+// Calcula el desglose de un producto de tercero (backend-only logic)
+export const calculateThirdPartyItem = async (data: { catalogItemId: number; cantidad: number; costo: number; margen: number }) => {
+    try {
+        const response = await api.post(
+            `/third-party-quotation-item/calculate`,
+            data,
+            {
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            }
+        );
+        return response;
+    } catch (error) {
+        throw error;
+    }
+};
+
 //Elimina una cotización
 export const deleteQuotation = async (id: number) => {
     try {
