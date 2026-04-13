@@ -136,6 +136,8 @@ export function useQuotationProducts({
             incluyeTransporte: selectedProduct.value.incluyeTransporteBogMde,
             medidas: selectedProduct.value.medidas,
             linkFoto: selectedProduct.value.linkFotoDispositivo,
+            qMotores: selectedProduct.value.qMotores,
+            qOperarios: selectedProduct.value.qOperarios,
             estado: 'PRODUCTO PROPIO',
             cantidadJornada: cotizacion.cantidadJornada,
             cantidadProducto: cotizacion.cantidadProducto,

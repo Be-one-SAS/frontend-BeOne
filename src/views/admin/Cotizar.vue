@@ -1049,6 +1049,8 @@ const getCotizacion = async () => {
       medidas:           it.product.medidas,
       unitPrice:         it.unitPrice,
       linkFoto:          it.product.linkFotoDispositivo,
+      qMotores:          it.product.qMotores,
+      qOperarios:        it.product.qOperarios,
       cantidadJornada:   it.cantidadJornada  ?? it.quantity ?? 1,
       cantidadProducto:  it.cantidadProducto ?? 1,
     }))

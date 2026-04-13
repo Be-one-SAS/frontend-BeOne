@@ -200,7 +200,7 @@ const ALL_MENU_ITEMS = [
       { label: 'Control',             route: '/admin/control',        icon: ClipboardCheck, roles: ['ADMIN', 'COMERCIAL', 'SUPERVISOR'] },
       { label: 'Reporte diario',      route: '/operativa/reporte',    icon: ClipboardList,  roles: ['ADMIN', 'SUPERVISOR', 'LOGISTICA'] },
       { label: 'Check-ins',           route: '/operativa/checkins',   icon: MapPin,         roles: ['ADMIN', 'LOGISTICA', 'COORDINADOR'] },
-      { label: 'Inventario',          route: '/operativa/inventario', icon: Archive,        roles: ['ADMIN', 'LOGISTICA'] },
+      { label: 'Inventario',          route: '/inventory',            icon: Archive,        roles: ['ADMIN', 'SUPERVISOR', 'LOGISTICA'] },
       { label: 'Montajes',            route: '/operativa/montajes',   icon: Wrench,         roles: ['ADMIN', 'LOGISTICA', 'COORDINADOR'] },
       { label: 'Asignación equipos',  route: '/operativa/equipos',    icon: Users,          roles: ['ADMIN', 'SUPERVISOR', 'COORDINADOR'] },
     ],
@@ -212,7 +212,7 @@ const ALL_MENU_ITEMS = [
     roles: ['ADMIN', 'SUPERVISOR', 'FINANCIERO'],
     children: [
       { label: 'Resumen general', route: '/reportes/general',     icon: PieChart,    roles: ['ADMIN', 'SUPERVISOR', 'FINANCIERO'] },
-      { label: 'Financiero',      route: '/reportes/financiero',  icon: DollarSign,  roles: ['ADMIN', 'FINANCIERO'] },
+      { label: 'Financiero',      route: '/reportes/financiero',  icon: DollarSign,  roles: ['ADMIN', 'SUPERVISOR', 'FINANCIERO'] },
       { label: 'Operacional',     route: '/reportes/operacional', icon: Activity,    roles: ['ADMIN', 'SUPERVISOR'] },
     ],
   },

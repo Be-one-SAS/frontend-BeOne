@@ -183,8 +183,13 @@ const login = async () => {
     router.push("/dashboard")
 
   } catch (error) {
-    loginError.value = "Credenciales incorrectas. Inténtalo de nuevo."
-    console.error(error)
+    const status = error?.response?.status
+    const serverMsg = (error?.response?.data?.message ?? '').toLowerCase()
+    if (status === 404 || serverMsg.includes('not found') || serverMsg.includes('no encontrado')) {
+      loginError.value = 'El usuario no fue encontrado.'
+    } else {
+      loginError.value = 'Credenciales incorrectas. Inténtalo de nuevo.'
+    }
   } finally {
     isLoading.value = false
   }

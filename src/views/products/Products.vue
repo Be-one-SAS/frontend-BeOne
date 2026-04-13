@@ -1,39 +1,45 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { getProducts, getByName } from '@/services/products.service'
 import { getBox }                  from '@/services/suppliers.service'
-import BaseTable                   from '@/components/ui/BaseTable.vue'
 import ModalReutilizable           from '@/components/modal/ModalReutilizable.vue'
 import {
-  Search, RefreshCw, ChevronUp, ChevronDown, Inbox,
-  Eye, Pencil, Trash2, X,
+  RefreshCw, ChevronUp, ChevronDown, Inbox,
+  Eye, Pencil, Trash2,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
 } from 'lucide-vue-next'
 
 /* ─── state ─────────────────────────────────────────────── */
-const products      = ref([])
-const boxOptions    = ref([])
-const loading       = ref(false)
+const products       = ref([])
+const boxOptions     = ref([])
+const loading        = ref(false)
 
-const search        = ref('')
-const categFilter   = ref('')
-const condFilter    = ref('')
-const selectedBox   = ref('')
-const pageSize      = ref(25)
+const search         = ref('')
+const categFilter    = ref('')
+const condFilter     = ref('')
+const selectedBox    = ref('')
+const pageSize       = ref(25)
 
-const isFiltering   = ref(false)
+const isFiltering    = ref(false)
 const filteredByName = ref([])
 
 // sort
 const sortKey = ref('dispositivo')
 const sortDir = ref('asc')
 
+// accordion
+const expandedRow = ref(null)
+const toggleRow = (id) => {
+  expandedRow.value = expandedRow.value === id ? null : id
+}
+
 // modal precios
-const isModalOpen    = ref(false)
+const isModalOpen     = ref(false)
 const selectedProduct = ref(null)
-const modalPrices    = ref([])
+const modalPrices     = ref([])
 
 // modal delete
-const deleteModal   = ref(false)
+const deleteModal     = ref(false)
 const productToDelete = ref(null)
 
 /* ─── options lists ─────────────────────────────────────── */
@@ -49,18 +55,6 @@ const conditionOptions = [
   { value: 'EN_MANTENIMIENTO',  label: 'En mantenimiento'  },
   { value: 'DEFECTUOSO',        label: 'Defectuoso'        },
   { value: 'NO_ACTIVO',         label: 'No activo'         },
-]
-
-/* ─── columns for BaseTable ─────────────────────────────── */
-const columns = [
-  { key: '_idx',            label: '#',             width: '44px'  },
-  { key: 'dispositivo',     label: 'Dispositivo'                   },
-  { key: 'categoria',       label: 'Categoría'                     },
-  { key: 'bodega',          label: 'Bodega'                        },
-  { key: 'conditionStatus', label: 'Condición'                     },
-  { key: 'availabilityStatus', label: 'Disponibilidad'             },
-  { key: '_precios',        label: 'Precios',       width: '80px'  },
-  { key: '_actions',        label: 'Acciones',      width: '100px' },
 ]
 
 /* ─── filter + sort ─────────────────────────────────────── */
@@ -85,7 +79,33 @@ const filteredSorted = computed(() => {
     })
   }
 
-  return list.map((p, i) => ({ ...p, _idx: i + 1 }))
+  return list
+})
+
+/* ─── pagination ────────────────────────────────────────── */
+const currentPage = ref(1)
+watch(filteredSorted, () => { currentPage.value = 1 })
+
+const pagedRows = computed(() => {
+  const start = (currentPage.value - 1) * Number(pageSize.value)
+  return filteredSorted.value.slice(start, start + Number(pageSize.value))
+})
+
+const totalPages = computed(() => Math.ceil(filteredSorted.value.length / Number(pageSize.value)))
+
+const visiblePages = computed(() => {
+  const total = totalPages.value
+  const cur   = currentPage.value
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages = []
+  if (cur <= 4) {
+    pages.push(1, 2, 3, 4, 5, '...', total)
+  } else if (cur >= total - 3) {
+    pages.push(1, '...', total - 4, total - 3, total - 2, total - 1, total)
+  } else {
+    pages.push(1, '...', cur - 1, cur, cur + 1, '...', total)
+  }
+  return pages
 })
 
 /* ─── sort toggle ───────────────────────────────────────── */
@@ -133,10 +153,10 @@ const availLabel = (val) => ({
 async function fetchProducts() {
   loading.value = true
   try {
-    const res     = await getProducts()
+    const res      = await getProducts()
     products.value = res.data || []
 
-    const resBoxes = await getBox()
+    const resBoxes   = await getBox()
     boxOptions.value = (resBoxes.data?.[1] || []).map(b => ({ id: b.id, name: b.boxName }))
   } catch (e) {
     console.error(e)
@@ -155,9 +175,9 @@ async function handleBoxFilter() {
 function resetTables() {
   selectedBox.value = ''
   isFiltering.value = false
-  search.value = ''
+  search.value      = ''
   categFilter.value = ''
-  condFilter.value = ''
+  condFilter.value  = ''
   fetchProducts()
 }
 
@@ -185,9 +205,8 @@ function confirmDelete(product) {
   deleteModal.value = true
 }
 function executeDelete() {
-  // Wire to DELETE /producto/:id when ready
   products.value = products.value.filter(p => p.id !== productToDelete.value.id)
-  deleteModal.value = false
+  deleteModal.value     = false
   productToDelete.value = null
 }
 
@@ -197,8 +216,10 @@ onMounted(fetchProducts)
 <template>
   <div class="pp-page">
 
-    <!-- ── Header ──────────────────────────────────────────────── -->
-    <div class="pp-head">
+    <!-- ══════════════════════════════════════════ -->
+    <!-- HEADER                                     -->
+    <!-- ══════════════════════════════════════════ -->
+    <div class="flex items-center justify-between mb-6">
       <div>
         <h2 class="pp-title">Productos Propios</h2>
         <p class="pp-subtitle">
@@ -206,6 +227,14 @@ onMounted(fetchProducts)
         </p>
       </div>
       <div class="pp-head-actions">
+        <div class="per-page-wrap">
+          <span class="per-page-lbl">Por página</span>
+          <select v-model="pageSize" class="pp-input pp-input--sm">
+            <option :value="10">10</option>
+            <option :value="25">25</option>
+            <option :value="50">50</option>
+          </select>
+        </div>
         <button class="btn-reload" @click="resetTables">
           <RefreshCw :size="13" /> Recargar
         </button>
@@ -215,17 +244,17 @@ onMounted(fetchProducts)
       </div>
     </div>
 
-    <!-- ── Filters ─────────────────────────────────────────────── -->
-    <div class="filter-bar">
-      <div class="search-field">
-        <Search :size="14" class="s-ico" />
-        <input
-          v-model="search"
-          type="text"
-          placeholder="Buscar dispositivo, categoría…"
-          class="pp-input"
-        />
-      </div>
+    <!-- ══════════════════════════════════════════ -->
+    <!-- FILTROS                                    -->
+    <!-- ══════════════════════════════════════════ -->
+    <div class="bg-white rounded-[14px] p-4 mb-5 shadow-[0_1px_4px_rgba(5,78,175,.06)] grid grid-cols-2 md:grid-cols-4 gap-4">
+
+      <input
+        v-model="search"
+        type="text"
+        placeholder="Buscar dispositivo, categoría…"
+        class="pp-input"
+      />
 
       <select v-model="categFilter" class="pp-input">
         <option value="">Todas las categorías</option>
@@ -242,25 +271,20 @@ onMounted(fetchProducts)
         <option v-for="box in boxOptions" :key="box.id" :value="box.name">{{ box.name }}</option>
       </select>
 
-      <div class="per-page-wrap">
-        <span class="per-page-lbl">Por página</span>
-        <select v-model="pageSize" class="pp-input pp-input--sm">
-          <option :value="10">10</option>
-          <option :value="25">25</option>
-          <option :value="50">50</option>
-        </select>
-      </div>
     </div>
 
-    <!-- ── TABLA PRINCIPAL ─────────────────────────────────────── -->
-    <div v-if="!isFiltering" class="pp-table-wrap">
+    <!-- ══════════════════════════════════════════ -->
+    <!-- TABLA PRINCIPAL                            -->
+    <!-- ══════════════════════════════════════════ -->
+    <div v-if="!isFiltering" class="bg-white rounded-[18px] shadow-[0_1px_4px_rgba(5,78,175,.06),_0_4px_16px_rgba(5,78,175,.08)] overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="pp-table">
 
-      <!-- Sort header row (rendered above BaseTable) -->
-      <div class="pp-sort-header">
-        <table class="pp-sort-table">
+          <!-- HEAD -->
           <thead>
             <tr class="pp-head-row">
-              <th class="pp-th" style="width:44px">#</th>
+              <th class="pp-th" style="width:36px"></th>
+              <th class="pp-th pp-th-center" style="width:44px">#</th>
               <th class="pp-th pp-th-sort" @click="sortBy('dispositivo')">
                 Dispositivo
                 <span class="sort-icons">
@@ -291,146 +315,229 @@ onMounted(fetchProducts)
               </th>
               <th class="pp-th">Disponibilidad</th>
               <th class="pp-th" style="width:80px">Precios</th>
-              <th class="pp-th" style="width:100px">Acciones</th>
+              <th class="pp-th" style="width:120px">Acciones</th>
             </tr>
           </thead>
+
+          <!-- BODY -->
+          <tbody>
+
+            <!-- Skeleton -->
+            <template v-if="loading">
+              <tr v-for="n in 5" :key="`sk-${n}`" class="pp-row">
+                <td class="pp-td"></td>
+                <td class="pp-td"><div class="sk-box" style="width:30px"></div></td>
+                <td class="pp-td"><div class="sk-box" style="width:140px"></div></td>
+                <td class="pp-td"><div class="sk-box" style="width:90px"></div></td>
+                <td class="pp-td"><div class="sk-box" style="width:80px"></div></td>
+                <td class="pp-td"><div class="sk-box" style="width:100px"></div></td>
+                <td class="pp-td"><div class="sk-box" style="width:90px"></div></td>
+                <td class="pp-td"><div class="sk-box" style="width:40px"></div></td>
+                <td class="pp-td"><div class="sk-box" style="width:60px"></div></td>
+              </tr>
+            </template>
+
+            <!-- Filas reales -->
+            <template v-else>
+              <template v-for="(row, index) in pagedRows" :key="row.id">
+
+                <!-- ── Fila principal ── -->
+                <tr class="pp-row" @click="toggleRow(row.id)">
+
+                  <!-- Chevron -->
+                  <td class="pp-td pp-td-center">
+                    <ChevronDown
+                      :size="14"
+                      class="pp-chevron"
+                      :class="{ 'pp-chevron-open': expandedRow === row.id }"
+                    />
+                  </td>
+
+                  <!-- # -->
+                  <td class="pp-td pp-td-center pp-idx">
+                    {{ index + 1 + (currentPage - 1) * Number(pageSize) }}
+                  </td>
+
+                  <!-- Dispositivo -->
+                  <td class="pp-td">
+                    <div class="pp-disp-cell">
+                      <span class="pp-disp-name">{{ row.dispositivo || '—' }}</span>
+                      <span v-if="row.nombre" class="pp-disp-sub">{{ row.nombre }}</span>
+                    </div>
+                  </td>
+
+                  <!-- Categoría -->
+                  <td class="pp-td">
+                    <span class="pp-categ">{{ row.categoria || '—' }}</span>
+                  </td>
+
+                  <!-- Bodega -->
+                  <td class="pp-td">
+                    <span class="pp-bodega">{{ row.bodega || '—' }}</span>
+                  </td>
+
+                  <!-- Condición -->
+                  <td class="pp-td">
+                    <span :class="condClass(row.conditionStatus)">{{ condLabel(row.conditionStatus) }}</span>
+                  </td>
+
+                  <!-- Disponibilidad -->
+                  <td class="pp-td">
+                    <span :class="availClass(row.availabilityStatus)">{{ availLabel(row.availabilityStatus) }}</span>
+                  </td>
+
+                  <!-- Precios — @click.stop evita el toggle -->
+                  <td class="pp-td" @click.stop>
+                    <button class="act-btn act-view" @click.stop="openModal(row)">
+                      <Eye :size="12" /> Ver
+                    </button>
+                  </td>
+
+                  <!-- Acciones — @click.stop evita el toggle -->
+                  <td class="pp-td" @click.stop>
+                    <div class="pp-actions">
+                      <button class="act-btn act-edit" title="Editar">
+                        <Pencil :size="12" />
+                      </button>
+                      <button class="act-btn act-del" title="Eliminar" @click.stop="confirmDelete(row)">
+                        <Trash2 :size="12" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- ── Fila expandida (siempre en DOM, transición max-height) ── -->
+                <tr class="pp-exp-tr">
+                  <td colspan="9" class="pp-exp-td">
+                    <div
+                      class="pp-exp-panel"
+                      :class="{ 'pp-exp-open': expandedRow === row.id }"
+                    >
+                      <div class="pp-exp-inner">
+                        <div class="pp-exp-grid">
+
+                          <div v-if="row.amperios != null" class="pp-exp-field">
+                            <span class="pp-exp-label">Amperios</span>
+                            <span class="pp-exp-val">{{ row.amperios }}</span>
+                          </div>
+                          <div v-if="row.medidas" class="pp-exp-field">
+                            <span class="pp-exp-label">Medidas</span>
+                            <span class="pp-exp-val">{{ row.medidas }}</span>
+                          </div>
+                          <div v-if="row.qMotores != null" class="pp-exp-field">
+                            <span class="pp-exp-label">Motores</span>
+                            <span class="pp-exp-val">{{ row.qMotores }}</span>
+                          </div>
+                          <div v-if="row.qOperarios != null" class="pp-exp-field">
+                            <span class="pp-exp-label">Operarios</span>
+                            <span class="pp-exp-val">{{ row.qOperarios }}</span>
+                          </div>
+                          <div v-if="row.m2Dispositivo != null" class="pp-exp-field">
+                            <span class="pp-exp-label">m²</span>
+                            <span class="pp-exp-val">{{ row.m2Dispositivo }}</span>
+                          </div>
+                          <div v-if="row.pesoAproxDisp != null" class="pp-exp-field">
+                            <span class="pp-exp-label">Peso (kg)</span>
+                            <span class="pp-exp-val">{{ row.pesoAproxDisp }}</span>
+                          </div>
+                          <div v-if="row.m3Transporte != null" class="pp-exp-field">
+                            <span class="pp-exp-label">m³ Transporte</span>
+                            <span class="pp-exp-val">{{ row.m3Transporte }}</span>
+                          </div>
+                          <div v-if="row.qHorasOperacion != null" class="pp-exp-field">
+                            <span class="pp-exp-label">Horas Operación</span>
+                            <span class="pp-exp-val">{{ row.qHorasOperacion }}</span>
+                          </div>
+                          <div v-if="row.qHorasMontaje != null" class="pp-exp-field">
+                            <span class="pp-exp-label">Horas Montaje</span>
+                            <span class="pp-exp-val">{{ row.qHorasMontaje }}</span>
+                          </div>
+                          <div v-if="row.qPersonalMontaje != null" class="pp-exp-field">
+                            <span class="pp-exp-label">Personal Montaje</span>
+                            <span class="pp-exp-val">{{ row.qPersonalMontaje }}</span>
+                          </div>
+                          <div v-if="row.anioDispositivo != null" class="pp-exp-field">
+                            <span class="pp-exp-label">Año</span>
+                            <span class="pp-exp-val">{{ row.anioDispositivo }}</span>
+                          </div>
+                          <div v-if="row.montacarga" class="pp-exp-field">
+                            <span class="pp-exp-label">Montacarga</span>
+                            <span class="pp-exp-val">{{ row.montacarga }}</span>
+                          </div>
+                          <div v-if="row.incluyeTransporteBogMde" class="pp-exp-field">
+                            <span class="pp-exp-label">Incluye Transporte</span>
+                            <span class="pp-exp-val">{{ row.incluyeTransporteBogMde }}</span>
+                          </div>
+                          <div v-if="row.descripcion" class="pp-exp-field pp-exp-field--wide">
+                            <span class="pp-exp-label">Descripción</span>
+                            <span class="pp-exp-val">{{ row.descripcion }}</span>
+                          </div>
+                          <div v-if="row.notas" class="pp-exp-field pp-exp-field--wide">
+                            <span class="pp-exp-label">Notas</span>
+                            <span class="pp-exp-val">{{ row.notas }}</span>
+                          </div>
+
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+
+              </template>
+            </template>
+
+          </tbody>
         </table>
       </div>
 
-      <!-- BaseTable handles pagination + skeleton + expandable -->
-      <BaseTable
-        :columns="columns"
-        :rows="filteredSorted"
-        :loading="loading"
-        :page-size="Number(pageSize)"
-        :expandable="true"
-        empty-text="No se encontraron productos"
+      <!-- Estado vacío -->
+      <div
+        v-if="!loading && pagedRows.length === 0"
+        class="py-16 flex flex-col items-center gap-3 text-text-3"
       >
-        <!-- # -->
-        <template #cell-_idx="{ value }">
-          <span class="pp-idx">{{ value }}</span>
-        </template>
+        <Inbox class="w-10 h-10 opacity-40" />
+        <p class="text-[14px]">No se encontraron productos</p>
+      </div>
 
-        <!-- Dispositivo -->
-        <template #cell-dispositivo="{ row }">
-          <div class="pp-disp-cell">
-            <span class="pp-disp-name">{{ row.dispositivo || '—' }}</span>
-            <span v-if="row.nombre" class="pp-disp-sub">{{ row.nombre }}</span>
-          </div>
-        </template>
-
-        <!-- Categoría -->
-        <template #cell-categoria="{ value }">
-          <span class="pp-categ">{{ value || '—' }}</span>
-        </template>
-
-        <!-- Bodega -->
-        <template #cell-bodega="{ value }">
-          <span class="pp-bodega">{{ value || '—' }}</span>
-        </template>
-
-        <!-- Condición badge -->
-        <template #cell-conditionStatus="{ value }">
-          <span :class="condClass(value)">{{ condLabel(value) }}</span>
-        </template>
-
-        <!-- Disponibilidad badge -->
-        <template #cell-availabilityStatus="{ value }">
-          <span :class="availClass(value)">{{ availLabel(value) }}</span>
-        </template>
-
-        <!-- Precios -->
-        <template #cell-_precios="{ row }">
-          <button class="act-btn act-view" @click.stop="openModal(row)">
-            <Eye :size="12" /> Ver
+      <!-- Paginación -->
+      <div v-if="!loading && totalPages > 1" class="pp-pagination">
+        <span class="pg-info">
+          {{ (currentPage - 1) * Number(pageSize) + 1 }}–{{ Math.min(currentPage * Number(pageSize), filteredSorted.length) }}
+          de {{ filteredSorted.length }}
+        </span>
+        <div class="pg-pages">
+          <button class="pg-btn" :disabled="currentPage === 1" @click="currentPage = 1">
+            <ChevronsLeft :size="14" />
           </button>
-        </template>
+          <button class="pg-btn" :disabled="currentPage === 1" @click="currentPage--">
+            <ChevronLeft :size="14" />
+          </button>
+          <template v-for="p in visiblePages" :key="p">
+            <span v-if="p === '...'" class="pg-ellipsis">…</span>
+            <button
+              v-else
+              class="pg-btn pg-num"
+              :class="{ 'pg-active': p === currentPage }"
+              @click="currentPage = p"
+            >{{ p }}</button>
+          </template>
+          <button class="pg-btn" :disabled="currentPage === totalPages" @click="currentPage++">
+            <ChevronRight :size="14" />
+          </button>
+          <button class="pg-btn" :disabled="currentPage === totalPages" @click="currentPage = totalPages">
+            <ChevronsRight :size="14" />
+          </button>
+        </div>
+      </div>
 
-        <!-- Acciones -->
-        <template #cell-_actions="{ row }">
-          <div class="pp-actions">
-            <button class="act-btn act-edit" title="Editar">
-              <Pencil :size="12" />
-            </button>
-            <button class="act-btn act-del" title="Eliminar" @click.stop="confirmDelete(row)">
-              <Trash2 :size="12" />
-            </button>
-          </div>
-        </template>
-
-        <!-- Fila expandida: specs técnicas -->
-        <template #expanded="{ row }">
-          <div class="exp-grid">
-            <div v-if="row.amperios != null" class="exp-field">
-              <span class="exp-lbl">Amperios</span>
-              <span class="exp-val">{{ row.amperios }}</span>
-            </div>
-            <div v-if="row.medidas" class="exp-field">
-              <span class="exp-lbl">Medidas</span>
-              <span class="exp-val">{{ row.medidas }}</span>
-            </div>
-            <div v-if="row.qMotores != null" class="exp-field">
-              <span class="exp-lbl">Motores</span>
-              <span class="exp-val">{{ row.qMotores }}</span>
-            </div>
-            <div v-if="row.qOperarios != null" class="exp-field">
-              <span class="exp-lbl">Operarios</span>
-              <span class="exp-val">{{ row.qOperarios }}</span>
-            </div>
-            <div v-if="row.m2Dispositivo != null" class="exp-field">
-              <span class="exp-lbl">m²</span>
-              <span class="exp-val">{{ row.m2Dispositivo }}</span>
-            </div>
-            <div v-if="row.pesoAproxDisp != null" class="exp-field">
-              <span class="exp-lbl">Peso (kg)</span>
-              <span class="exp-val">{{ row.pesoAproxDisp }}</span>
-            </div>
-            <div v-if="row.m3Transporte != null" class="exp-field">
-              <span class="exp-lbl">m³ Transporte</span>
-              <span class="exp-val">{{ row.m3Transporte }}</span>
-            </div>
-            <div v-if="row.qHorasOperacion != null" class="exp-field">
-              <span class="exp-lbl">Horas Operación</span>
-              <span class="exp-val">{{ row.qHorasOperacion }}</span>
-            </div>
-            <div v-if="row.qHorasMontaje != null" class="exp-field">
-              <span class="exp-lbl">Horas Montaje</span>
-              <span class="exp-val">{{ row.qHorasMontaje }}</span>
-            </div>
-            <div v-if="row.qPersonalMontaje != null" class="exp-field">
-              <span class="exp-lbl">Personal Montaje</span>
-              <span class="exp-val">{{ row.qPersonalMontaje }}</span>
-            </div>
-            <div v-if="row.anioDispositivo != null" class="exp-field">
-              <span class="exp-lbl">Año</span>
-              <span class="exp-val">{{ row.anioDispositivo }}</span>
-            </div>
-            <div v-if="row.montacarga" class="exp-field">
-              <span class="exp-lbl">Montacarga</span>
-              <span class="exp-val">{{ row.montacarga }}</span>
-            </div>
-            <div v-if="row.incluyeTransporteBogMde" class="exp-field">
-              <span class="exp-lbl">Incluye Transporte</span>
-              <span class="exp-val">{{ row.incluyeTransporteBogMde }}</span>
-            </div>
-            <div v-if="row.descripcion" class="exp-field exp-field--wide">
-              <span class="exp-lbl">Descripción</span>
-              <span class="exp-val">{{ row.descripcion }}</span>
-            </div>
-            <div v-if="row.notas" class="exp-field exp-field--wide">
-              <span class="exp-lbl">Notas</span>
-              <span class="exp-val">{{ row.notas }}</span>
-            </div>
-          </div>
-        </template>
-
-      </BaseTable>
     </div>
 
-    <!-- ── TABLA FILTRADA POR BOX ──────────────────────────────── -->
-    <div v-if="isFiltering" class="bg-white rounded-[18px] shadow-[var(--shadow-card)] overflow-hidden mt-2">
+    <!-- ══════════════════════════════════════════ -->
+    <!-- TABLA FILTRADA POR BOX                     -->
+    <!-- ══════════════════════════════════════════ -->
+    <div v-if="isFiltering" class="bg-white rounded-[18px] shadow-[0_1px_4px_rgba(5,78,175,.06),_0_4px_16px_rgba(5,78,175,.08)] overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="pp-sort-table">
+        <table class="pp-table">
           <thead>
             <tr class="pp-head-row">
               <th class="pp-th">ID</th>
@@ -440,7 +547,7 @@ onMounted(fetchProducts)
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in filteredByName" :key="item.id" class="pp-box-row">
+            <tr v-for="item in filteredByName" :key="item.id" class="pp-row">
               <td class="pp-td pp-idx">{{ item.id }}</td>
               <td class="pp-td">{{ item.boxName }}</td>
               <td class="pp-td">
@@ -455,18 +562,18 @@ onMounted(fetchProducts)
           </tbody>
         </table>
       </div>
-      <div v-if="!filteredByName.length" class="py-12 flex flex-col items-center gap-3 text-[#94A3B8]">
-        <Inbox class="w-9 h-9 opacity-40" />
-        <p class="text-[13px]">No se encontraron registros para ese box</p>
+      <div v-if="!filteredByName.length" class="py-16 flex flex-col items-center gap-3 text-text-3">
+        <Inbox class="w-10 h-10 opacity-40" />
+        <p class="text-[14px]">No se encontraron registros para ese box</p>
       </div>
     </div>
 
-    <!-- ── MODAL: Precios por Box ──────────────────────────────── -->
+    <!-- ══════════════════════════════════════════ -->
+    <!-- MODAL: Precios por Box                     -->
+    <!-- ══════════════════════════════════════════ -->
     <ModalReutilizable :show="isModalOpen" @close="isModalOpen = false">
       <div>
-        <h2 class="modal-title">
-          Precios — {{ selectedProduct?.dispositivo }}
-        </h2>
+        <h2 class="modal-title">Precios — {{ selectedProduct?.dispositivo }}</h2>
         <table class="w-full text-sm border border-[#E5EAF0] rounded-[var(--r-lg)] overflow-hidden mt-4">
           <thead class="bg-[#F8FAFC]">
             <tr>
@@ -500,7 +607,9 @@ onMounted(fetchProducts)
       </div>
     </ModalReutilizable>
 
-    <!-- ── MODAL: Confirmar eliminación ───────────────────────── -->
+    <!-- ══════════════════════════════════════════ -->
+    <!-- MODAL: Confirmar eliminación               -->
+    <!-- ══════════════════════════════════════════ -->
     <ModalReutilizable :show="deleteModal" @close="deleteModal = false">
       <div class="text-center p-2">
         <div class="flex justify-center mb-4">
@@ -534,31 +643,28 @@ onMounted(fetchProducts)
 
 <style scoped>
 /* ─── Page ──────────────────────────────────────────────── */
-.pp-page { width: 100%; display: flex; flex-direction: column; gap: 20px; }
+.pp-page { width: 100%; }
 
 /* ─── Header ────────────────────────────────────────────── */
-.pp-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
 .pp-title {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 22px;
   font-weight: 700;
-  color: #0F1A2E;
+  color: var(--text-1, #0F1A2E);
   margin: 0 0 4px;
   line-height: 1.2;
 }
 .pp-subtitle {
   font-size: 13px;
-  color: #94A3B8;
+  color: var(--text-3, #94A3B8);
   font-family: 'Inter', sans-serif;
   margin: 0;
 }
-.pp-head-actions { display: flex; align-items: center; gap: 8px; }
+.pp-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
 .btn-reload {
   display: inline-flex;
@@ -569,13 +675,13 @@ onMounted(fetchProducts)
   font-weight: 600;
   font-family: 'Inter', sans-serif;
   border-radius: 8px;
-  border: 1px solid #E5EAF0;
+  border: 1px solid #E2EBF6;
   background: #F8FAFC;
   color: #64748B;
   cursor: pointer;
   transition: background 0.15s;
 }
-.btn-reload:hover { background: #E5EAF0; }
+.btn-reload:hover { background: #E2EBF6; }
 
 .btn-save-prices {
   padding: 8px 14px;
@@ -592,99 +698,53 @@ onMounted(fetchProducts)
 }
 .btn-save-prices:hover { background: #03368A; }
 
-/* ─── Filter bar ────────────────────────────────────────── */
-.filter-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  background: #FFFFFF;
-  border-radius: 14px;
-  padding: 14px 16px;
-  box-shadow: 0 1px 4px rgba(5,78,175,.06);
-  align-items: center;
-}
+.per-page-wrap { display: flex; align-items: center; gap: 8px; }
+.per-page-lbl  { font-size: 12px; color: #94A3B8; font-family: 'Inter', sans-serif; white-space: nowrap; }
 
-.search-field {
-  position: relative;
-  flex: 1;
-  min-width: 180px;
-}
-.s-ico {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #94A3B8;
-  pointer-events: none;
-}
-.search-field .pp-input { padding-left: 34px; width: 100%; }
-
+/* ─── Inputs / selects ──────────────────────────────────── */
 .pp-input {
+  width: 100%;
   background: #F8FAFC;
-  border: 1px solid #E5EAF0;
+  border: 1px solid #E2EBF6;
   border-radius: 999px;
-  padding: 8px 14px;
+  padding: 8px 16px;
   font-size: 13px;
+  color: var(--text-1, #0F1A2E);
   font-family: 'Inter', sans-serif;
-  color: #0F1A2E;
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
   appearance: auto;
 }
 .pp-input:focus {
-  border-color: #054EAF;
-  box-shadow: 0 0 0 3px rgba(5,78,175,.1);
+  border-color: var(--primary, #054EAF);
+  box-shadow: 0 0 0 3px rgba(5, 78, 175, 0.1);
 }
+.pp-input::placeholder { color: var(--text-3, #94A3B8); }
 .pp-input--sm { width: 70px; text-align: center; }
-.pp-input::placeholder { color: #94A3B8; }
 
-.per-page-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-}
-.per-page-lbl {
-  font-size: 12px;
-  color: #94A3B8;
-  font-family: 'Inter', sans-serif;
-  white-space: nowrap;
-}
-
-/* ─── Table wrapper ─────────────────────────────────────── */
-.pp-table-wrap { display: flex; flex-direction: column; gap: 0; }
-
-/* Hide BaseTable's internal thead — we render our own sortable one */
-.pp-table-wrap :deep(.bt-head) { display: none; }
-/* Remove top border-radius from bt-card since our header sits above */
-.pp-table-wrap :deep(.bt-card) { border-radius: 0 0 18px 18px; }
-
-/* ─── Sort header (visual only — aligned to BaseTable columns) ── */
-.pp-sort-header {
-  background: #EBF3FC;
-  border-radius: 18px 18px 0 0;
-  overflow: hidden;
-  border: 1px solid #EEF1F7;
-  border-bottom: none;
-}
-.pp-sort-table {
+/* ─── Tabla ─────────────────────────────────────────────── */
+.pp-table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   font-family: 'Inter', sans-serif;
 }
+
+/* ─── Head ──────────────────────────────────────────────── */
 .pp-head-row { background: #EBF3FC; }
+
 .pp-th {
-  padding: 11px 16px;
+  padding: 12px 16px;
   font-size: 11px;
   font-weight: 600;
-  color: #64748B;
+  color: var(--text-2, #64748B);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   text-align: left;
   white-space: nowrap;
   border-bottom: 1px solid #E2EBF6;
 }
+.pp-th-center { text-align: center; }
 .pp-th-sort {
   cursor: pointer;
   user-select: none;
@@ -704,41 +764,45 @@ onMounted(fetchProducts)
 .sort-active { color: #054EAF; }
 .sort-dim    { color: #CBD5E1; }
 
-/* ─── Box-filter table rows ─────────────────────────────── */
+/* ─── Filas ─────────────────────────────────────────────── */
+.pp-row {
+  background: #FFFFFF;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.pp-row:hover { background: #F0F7FF; }
+
 .pp-td {
-  padding: 13px 16px;
+  padding: 14px 16px;
   font-size: 13px;
-  color: #0F1A2E;
-  border-bottom: 1px solid #F1F5FA;
+  color: var(--text-1, #0F1A2E);
+  border-bottom: 1px solid #EBF3FC;
   vertical-align: middle;
   white-space: nowrap;
 }
-.pp-box-row:hover { background: #F0F7FF; }
+.pp-td-center { text-align: center; }
 
-.price-input {
-  background: #F8FAFC;
-  border: 1px solid #E5EAF0;
-  border-radius: 999px;
-  padding: 6px 12px;
-  font-size: 13px;
-  font-family: 'Inter', sans-serif;
-  color: #0F1A2E;
-  width: 120px;
-  outline: none;
+.pp-idx { font-size: 12px; color: var(--text-3, #94A3B8); font-weight: 500; }
+
+/* ─── Chevron toggle ────────────────────────────────────── */
+.pp-chevron {
+  color: var(--text-3, #94A3B8);
+  transition: transform 0.2s ease, color 0.15s ease;
+  display: block;
+  margin: 0 auto;
 }
-.price-input:focus {
-  border-color: #054EAF;
-  box-shadow: 0 0 0 3px rgba(5,78,175,.1);
+.pp-chevron-open {
+  transform: rotate(180deg);
+  color: #054EAF;
 }
 
 /* ─── Cell: dispositivo ─────────────────────────────────── */
 .pp-disp-cell { display: flex; flex-direction: column; gap: 2px; }
-.pp-disp-name { font-weight: 600; font-size: 13px; color: #0F1A2E; }
-.pp-disp-sub  { font-size: 11px; color: #94A3B8; }
+.pp-disp-name { font-weight: 600; font-size: 13px; color: var(--text-1, #0F1A2E); }
+.pp-disp-sub  { font-size: 11px; color: var(--text-3, #94A3B8); }
 
-.pp-categ  { font-size: 13px; color: #64748B; }
-.pp-bodega { font-size: 13px; color: #64748B; }
-.pp-idx    { font-size: 12px; color: #94A3B8; font-weight: 500; }
+.pp-categ  { font-size: 13px; color: var(--text-2, #64748B); }
+.pp-bodega { font-size: 13px; color: var(--text-2, #64748B); }
 
 /* ─── Badges ────────────────────────────────────────────── */
 .badge {
@@ -757,21 +821,21 @@ onMounted(fetchProducts)
 .badge--red    { background: #FEE2E2; color: #B91C1C; }
 .badge--slate  { background: #F1F5F9; color: #64748B; }
 
-/* ─── Action buttons ────────────────────────────────────── */
+/* ─── Botones de acción ─────────────────────────────────── */
 .pp-actions { display: flex; align-items: center; gap: 6px; }
 
 .act-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
+  gap: 5px;
+  padding: 6px 10px;
   font-size: 11px;
   font-weight: 600;
   font-family: 'Inter', sans-serif;
-  border-radius: 7px;
+  border-radius: 8px;
   border: none;
   cursor: pointer;
-  transition: background 0.12s;
+  transition: background 0.15s ease;
   white-space: nowrap;
   line-height: 1;
 }
@@ -782,33 +846,117 @@ onMounted(fetchProducts)
 .act-del        { background: #FEE2E2; color: #B91C1C; }
 .act-del:hover  { background: #FECACA; }
 
-/* ─── Expanded row grid ─────────────────────────────────── */
-.exp-grid {
+/* ─── Fila expandida ────────────────────────────────────── */
+.pp-exp-td {
+  padding: 0 !important;
+  border-bottom: 1px solid #EBF3FC;
+}
+
+.pp-exp-panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.25s ease;
+}
+.pp-exp-open { max-height: 600px; }
+
+.pp-exp-inner {
+  background: #F8FBFF;
+  border-left: 3px solid #054EAF;
+  padding: 16px 24px;
+}
+
+.pp-exp-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 14px 20px;
+  gap: 16px 24px;
 }
-@media (max-width: 768px) { .exp-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 768px) { .pp-exp-grid { grid-template-columns: repeat(2, 1fr); } }
 
-.exp-field { display: flex; flex-direction: column; gap: 3px; }
-.exp-field--wide { grid-column: span 2; }
+.pp-exp-field { display: flex; flex-direction: column; gap: 4px; }
+.pp-exp-field--wide { grid-column: span 2; }
 
-.exp-lbl {
+.pp-exp-label {
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  color: var(--text-3, #94A3B8);
+  font-family: 'Inter', sans-serif;
+}
+.pp-exp-val {
+  font-size: 13px;
+  color: var(--text-1, #0F1A2E);
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* ─── Skeleton ──────────────────────────────────────────── */
+.sk-box {
+  height: 14px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── Price input (tabla box) ───────────────────────────── */
+.price-input {
+  background: #F8FAFC;
+  border: 1px solid #E2EBF6;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  color: #0F1A2E;
+  width: 120px;
+  outline: none;
+}
+.price-input:focus {
+  border-color: #054EAF;
+  box-shadow: 0 0 0 3px rgba(5,78,175,.1);
+}
+
+/* ─── Paginación ────────────────────────────────────────── */
+.pp-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-top: 1px solid #EBF3FC;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pg-info {
+  font-size: 12px;
   color: #94A3B8;
   font-family: 'Inter', sans-serif;
 }
-.exp-val {
-  font-size: 13px;
-  color: #0F1A2E;
+.pg-pages { display: flex; align-items: center; gap: 4px; }
+.pg-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid #E2EBF6;
+  background: #FFFFFF;
+  color: #64748B;
+  font-size: 12px;
   font-family: 'Inter', sans-serif;
-  font-weight: 500;
-  word-break: break-word;
-  white-space: normal;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.12s ease;
 }
+.pg-btn:hover:not(:disabled) { background: #EEF4FF; color: #054EAF; border-color: #BFDBFE; }
+.pg-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.pg-active { background: #054EAF !important; color: #FFFFFF !important; border-color: #054EAF !important; font-weight: 600; }
+.pg-ellipsis { color: #94A3B8; font-size: 13px; padding: 0 4px; }
 
 /* ─── Modal title ───────────────────────────────────────── */
 .modal-title {

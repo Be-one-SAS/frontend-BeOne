@@ -66,6 +66,15 @@
       </div>
     </div>
 
+    <!-- ── Error de operaciones ─────────────────────────── -->
+    <Transition name="error-fade">
+      <div v-if="actionError" class="action-error-banner">
+        <AlertCircle :size="15" class="flex-shrink-0" />
+        <span>{{ actionError }}</span>
+        <button class="action-error-close" @click="actionError = ''">×</button>
+      </div>
+    </Transition>
+
     <!-- ══════════════════════════════════════════════════════
          TABLA — desktop
     ══════════════════════════════════════════════════════ -->
@@ -361,7 +370,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import {
-  Users, UserPlus, Search, X,
+  Users, UserPlus, Search, X, AlertCircle,
   Eye, Pencil, Shield, ToggleLeft, ToggleRight, Trash2,
   UserCheck, UserX, BarChart2,
 } from 'lucide-vue-next'
@@ -426,6 +435,9 @@ const getAvatarColor = (name) => AVATAR_COLORS[(name?.charCodeAt(0) ?? 0) % AVAT
 const getInitials = (name) =>
   (name ?? '').trim().split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
 
+// ── Error de operaciones CRUD ─────────────────────────
+const actionError = ref('')
+
 // ── Expand rows ───────────────────────────────────────
 const expandedId = ref(null)
 const toggleExpand = (id) => { expandedId.value = expandedId.value === id ? null : id }
@@ -437,9 +449,14 @@ const usuarioEditando = ref(null)
 const abrirModalCrear = () => { usuarioEditando.value = null; showFormModal.value = true }
 const abrirModalEditar = (u) => { usuarioEditando.value = { ...u }; showFormModal.value = true }
 
-const handleSaveUser = (data) => {
-  upsertUser(data) // conectar API aquí → createUser / updateUser
-  showFormModal.value = false
+const handleSaveUser = async (data) => {
+  actionError.value = ''
+  try {
+    await upsertUser(data)
+    showFormModal.value = false
+  } catch (e) {
+    actionError.value = e?.message ?? 'Error al guardar el usuario'
+  }
 }
 
 // ── Modal: Cambiar Rol ────────────────────────────────
@@ -448,9 +465,14 @@ const usuarioRol    = ref(null)
 
 const abrirModalRol = (u) => { usuarioRol.value = { ...u }; showRoleModal.value = true }
 
-const handleSaveRole = ({ usuario, nuevoRol }) => {
-  upsertUser({ ...usuario, role: nuevoRol }) // conectar API aquí → updateUserRole
-  showRoleModal.value = false
+const handleSaveRole = async ({ usuario, nuevoRol }) => {
+  actionError.value = ''
+  try {
+    await upsertUser({ ...usuario, role: nuevoRol })
+    showRoleModal.value = false
+  } catch (e) {
+    actionError.value = e?.message ?? 'Error al cambiar el rol'
+  }
 }
 
 // ── Modal: Eliminar ───────────────────────────────────
@@ -460,13 +482,23 @@ const usuarioEliminar  = ref(null)
 const abrirModalEliminar = (u) => { usuarioEliminar.value = { ...u }; showDeleteModal.value = true }
 
 const handleDeleteUser = async (u) => {
-  await removeUser(u.id) // conectar API aquí → deleteUser(u.id)
-  showDeleteModal.value = false
+  actionError.value = ''
+  try {
+    await removeUser(u.id)
+    showDeleteModal.value = false
+  } catch (e) {
+    actionError.value = e?.message ?? 'Error al eliminar el usuario'
+  }
 }
 
 // ── Toggle estado ─────────────────────────────────────
-const handleToggle = (u) => {
-  toggleStatus(u) // conectar API aquí → toggleUserStatus
+const handleToggle = async (u) => {
+  actionError.value = ''
+  try {
+    await toggleStatus(u)
+  } catch (e) {
+    actionError.value = e?.message ?? 'Error al cambiar el estado del usuario'
+  }
 }
 
 // ── Ver perfil (extender con router.push) ─────────────
@@ -998,4 +1030,34 @@ onMounted(() => loadUsers())
   .kpi-row { grid-template-columns: repeat(2, 1fr); }
   .filter-grid { grid-template-columns: 1fr 1fr; }
 }
+
+/* ── Banner error de operación ───────────────────────── */
+.action-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #FEE2E2;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #B91C1C;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+}
+
+.action-error-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #B91C1C;
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.error-fade-enter-active { transition: opacity 0.2s ease; }
+.error-fade-leave-active { transition: opacity 0.15s ease; }
+.error-fade-enter-from,
+.error-fade-leave-to { opacity: 0; }
 </style>

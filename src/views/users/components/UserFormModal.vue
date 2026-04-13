@@ -58,7 +58,7 @@
 
                 <!-- Username -->
                 <div class="field-wrap">
-                  <label class="field-lbl">Username <span class="req">*</span></label>
+                  <label class="field-lbl">Username <span class="optional">(opcional)</span></label>
                   <div class="input-prefix-wrap">
                     <span class="input-prefix">@</span>
                     <input
@@ -87,7 +87,7 @@
 
                 <!-- Rol -->
                 <div class="field-wrap">
-                  <label class="field-lbl">Rol <span class="req">*</span></label>
+                  <label class="field-lbl">Rol <span class="optional">(opcional)</span></label>
                   <div class="select-wrap">
                     <select
                       v-model="form.role"
@@ -110,7 +110,7 @@
 
                 <!-- Estado -->
                 <div class="field-wrap">
-                  <label class="field-lbl">Estado <span class="req">*</span></label>
+                  <label class="field-lbl">Estado <span class="optional">(opcional)</span></label>
                   <select v-model="form.status" class="field-input">
                     <option value="Activo">Activo</option>
                     <option value="Inactivo">Inactivo</option>
@@ -227,16 +227,13 @@ const props = defineProps({
 const emit = defineEmits(['close', 'save'])
 
 // ── Config ────────────────────────────────────────────
-const ROLES = ['ADMIN', 'COMERCIAL', 'SUPERVISOR', 'LOGISTICA', 'COORDINADOR', 'FINANCIERO', 'SOPORTE']
+const ROLES = ['ADMIN', 'COMERCIAL', 'SUPERVISOR', 'LOGISTICA']
 
 const ROLE_BADGE = {
   ADMIN:       'bg-[#FEE2E2] text-[#B91C1C]',
   COMERCIAL:   'bg-[#DBEAFE] text-[#1D4ED8]',
   SUPERVISOR:  'bg-[#EDE9FE] text-[#7C3AED]',
   LOGISTICA:   'bg-[#DCFCE7] text-[#16A34A]',
-  COORDINADOR: 'bg-[#FEF3C7] text-[#B45309]',
-  FINANCIERO:  'bg-[#FFEDD5] text-[#C2410C]',
-  SOPORTE:     'bg-[#F1F5F9] text-[#64748B]',
 }
 
 // ── Modo ──────────────────────────────────────────────
@@ -290,29 +287,25 @@ const validateField = (field) => {
     if (!form.email.trim()) errors.email = 'El email es requerido.'
     else if (!EMAIL_RE.test(form.email)) errors.email = 'Ingresa un email válido.'
   }
-  if (field === 'username') {
-    if (!form.username.trim()) errors.username = 'El username es requerido.'
-    else if (/\s/.test(form.username)) errors.username = 'Sin espacios.'
+  if (field === 'username' && form.username) {
+    if (/\s/.test(form.username)) errors.username = 'Sin espacios.'
     else if (form.username !== form.username.toLowerCase()) errors.username = 'Solo minúsculas.'
   }
-  if (field === 'role' && !form.role)
-    errors.role = 'Selecciona un rol.'
   if (field === 'password' && !isEdit.value) {
     if (!form.password) errors.password = 'La contraseña es requerida.'
-    else if (form.password.length < 8) errors.password = 'Mínimo 8 caracteres.'
+    else if (form.password.length < 6) errors.password = 'Mínimo 6 caracteres.'
   }
 }
 
 const validateAll = () => {
-  ['fullName', 'email', 'username', 'role'].forEach(validateField)
+  ['fullName', 'email', 'username'].forEach(validateField)
   if (!isEdit.value) validateField('password')
 }
 
 const isFormValid = computed(() => {
-  const baseOk = form.fullName && form.email && EMAIL_RE.test(form.email)
-    && form.username && form.role && Object.keys(errors).length === 0
+  const baseOk = form.fullName && form.email && EMAIL_RE.test(form.email) && Object.keys(errors).length === 0
   if (isEdit.value) return baseOk
-  return baseOk && form.password.length >= 8
+  return baseOk && form.password.length >= 6
 })
 
 // ── Fortaleza de contraseña ───────────────────────────
@@ -353,8 +346,22 @@ const guardar = () => {
   // conectar API aquí → createUser(form) / updateUser(props.usuario.id, form)
   const payload = {
     ...form,
-    ...(isEdit.value && { id: props.usuario.id }),
   }
+
+  // Eliminar campos vacíos y no enviar password si está vacío en edición
+  Object.keys(payload).forEach(key => {
+    if (payload[key] === '') {
+      delete payload[key]
+    }
+  })
+
+  // Evitar enviar un string vacío en status y usar el default o no enviarlo
+  if (!payload.status) delete payload.status
+
+  if (isEdit.value) {
+    payload.id = props.usuario.id
+  }
+
   emit('save', payload)
 }
 </script>

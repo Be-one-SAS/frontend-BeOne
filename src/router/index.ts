@@ -136,6 +136,18 @@ const routes = [
         meta: { roles: ['ADMIN', 'LOGISTICA'] },
       },
       {
+        path: 'inventory',
+        name: 'InventoryList',
+        component: () => import('../views/inventory/List.vue'),
+        meta: { roles: ['ADMIN', 'SUPERVISOR', 'LOGISTICA'] },
+      },
+      {
+        path: 'inventory/:id',
+        name: 'InventoryDetail',
+        component: () => import('../views/inventory/Detail.vue'),
+        meta: { roles: ['ADMIN', 'SUPERVISOR', 'LOGISTICA'] },
+      },
+      {
         path: 'operativa/montajes',
         name: 'Montajes',
         component: () => import('../views/operativa/Montajes.vue'),
@@ -159,7 +171,7 @@ const routes = [
         path: 'reportes/financiero',
         name: 'ReporteFinanciero',
         component: () => import('../views/reportes/ReporteFinanciero.vue'),
-        meta: { roles: ['ADMIN', 'FINANCIERO'] },
+        meta: { roles: ['ADMIN', 'SUPERVISOR', 'FINANCIERO'] },
       },
       {
         path: 'reportes/operacional',

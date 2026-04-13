@@ -15,6 +15,8 @@
             <tr>
               <th class="th-num">#</th>
               <th class="th-img"></th>
+              <th class="th-center">Q. Motores</th>
+              <th class="th-center">Q. Operarios</th>
               <th>Producto</th>
               <th class="th-right">Cantidad</th>
               <th class="th-right">Precio unit.</th>
@@ -40,6 +42,16 @@
                   class="prd-thumb"
                   alt=""
                 />
+              </td>
+
+              <!-- Q. Motores -->
+              <td class="td-center">
+                <span class="prd-qty-badge">{{ item.qMotores ?? '—' }}</span>
+              </td>
+
+              <!-- Q. Operarios -->
+              <td class="td-center">
+                <span class="prd-qty-badge">{{ item.qOperarios ?? '—' }}</span>
               </td>
 
               <!-- Producto -->
@@ -80,7 +92,7 @@
           </tbody>
           <tfoot>
             <tr class="prd-subtotal-row">
-              <td colspan="5" class="td-subtotal-label">Subtotal equipos propios</td>
+              <td colspan="7" class="td-subtotal-label">Subtotal equipos propios</td>
               <td class="td-subtotal-val">{{ format(subtotalItems) }}</td>
               <td></td>
             </tr>
@@ -172,7 +184,7 @@ const format = (value) => {
   width: 100%;
   border-collapse: collapse;
   table-layout: auto;
-  min-width: 600px;
+  min-width: 760px;
 }
 
 .prd-table thead tr {
@@ -252,6 +264,12 @@ const format = (value) => {
   font-size: 11px;
   color: #94A3B8;
   margin: 2px 0 0;
+}
+
+.prd-qty-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
 }
 
 .prd-qty {

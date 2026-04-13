@@ -30,6 +30,15 @@
       </select>
     </div>
 
+    <!-- Error de operaciones -->
+    <Transition name="error-fade">
+      <div v-if="actionError" class="action-error-banner">
+        <AlertOctagon :size="15" class="flex-shrink-0" />
+        <span>{{ actionError }}</span>
+        <button class="action-error-close" @click="actionError = ''">×</button>
+      </div>
+    </Transition>
+
     <!-- Table -->
     <div class="table-card">
       <!-- Sort header -->
@@ -139,6 +148,12 @@
             </div>
 
             <div class="modal-body">
+              <Transition name="error-fade">
+                <div v-if="actionError" class="action-error-banner" style="margin-bottom:4px">
+                  <AlertOctagon :size="14" class="flex-shrink-0" />
+                  <span>{{ actionError }}</span>
+                </div>
+              </Transition>
               <div class="field-group">
                 <label class="field-label">Nombre completo <span class="req">*</span></label>
                 <input v-model="form.fullName" class="field-input" :class="{ 'field-error': submitted && !form.fullName }" placeholder="Juan García" />
@@ -220,7 +235,7 @@ import { ref, computed, onMounted } from 'vue'
 import {
   UserPlus, Search, Users, AlertCircle, Pencil,
   UserX, UserCheck, ArrowLeftRight, UserCog, X,
-  ChevronUp, ChevronDown, ChevronsUpDown,
+  ChevronUp, ChevronDown, ChevronsUpDown, AlertOctagon,
 } from 'lucide-vue-next'
 import { useUsers } from '@/composables/useUsers'
 import { useAuth } from '@/composables/useAuth'
@@ -286,6 +301,9 @@ const avatarColors = ['#054EAF','#7C3AED','#0891B2','#059669','#D97706','#DB2777
 const avatarBg = (name) => avatarColors[(name?.charCodeAt(0) ?? 0) % avatarColors.length]
 const initials = (name) => name?.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() ?? '?'
 
+// Error de operaciones CRUD
+const actionError = ref('')
+
 // Create / Edit modal
 const showModal = ref(false)
 const editingUser = ref(null)
@@ -314,6 +332,7 @@ const handleSave = async () => {
   const { fullName, email, password, role } = form.value
   if (!fullName || !email || (!editingUser.value && !password) || !role) return
   saving.value = true
+  actionError.value = ''
   try {
     if (editingUser.value) {
       await editUser(editingUser.value.id, { fullName, email, role })
@@ -321,6 +340,8 @@ const handleSave = async () => {
       await addUser({ fullName, email, password, role })
     }
     closeModal()
+  } catch (e) {
+    actionError.value = e?.message ?? 'El usuario no fue encontrado.'
   } finally {
     saving.value = false
   }
@@ -328,7 +349,12 @@ const handleSave = async () => {
 
 // Toggle active
 const handleToggle = async (u) => {
-  await toggleActive(u.id)
+  actionError.value = ''
+  try {
+    await toggleActive(u.id)
+  } catch (e) {
+    actionError.value = e?.message ?? 'El usuario no fue encontrado.'
+  }
 }
 
 // Reassign modal
@@ -345,9 +371,12 @@ const openReassign = (u) => {
 const handleReassign = async () => {
   if (!newParentId.value) return
   saving.value = true
+  actionError.value = ''
   try {
     await reassign(reassignTarget.value.id, newParentId.value)
     showReassign.value = false
+  } catch (e) {
+    actionError.value = e?.message ?? 'El usuario no fue encontrado.'
   } finally {
     saving.value = false
   }
@@ -622,4 +651,34 @@ onMounted(async () => { await fetchUsers() })
 .tp-fade-leave-active { transition: all .15s ease; }
 .tp-fade-enter-from { opacity: 0; transform: translateY(16px); }
 .tp-fade-leave-to  { opacity: 0; transform: translateY(8px); }
+
+/* Error banner de operaciones */
+.action-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #FEE2E2;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #B91C1C;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+}
+
+.action-error-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #B91C1C;
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.error-fade-enter-active { transition: opacity 0.2s ease; }
+.error-fade-leave-active { transition: opacity 0.15s ease; }
+.error-fade-enter-from,
+.error-fade-leave-to { opacity: 0; }
 </style>

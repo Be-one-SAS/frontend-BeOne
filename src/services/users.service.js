@@ -50,14 +50,15 @@ export const createUser = async (payload) => {
 }
 
 /**
- * PUT /users/:id
+ * PATCH /users/:id
  * Edita los datos de un usuario existente.
  * @param {number|string} id
  * @param {Object} payload - Campos a actualizar
  */
 export const updateUser = async (id, payload) => {
   try {
-    const response = await api.put(`/users/${id}`, payload)
+    const { id: _, ...body } = payload
+    const response = await api.patch(`/users/${id}`, body)
     return response.data
   } catch (error) {
     console.error(`[users.service] Error en updateUser(${id}):`, error)
