@@ -176,3 +176,38 @@ export const nextQuotationNumber = async () => {
     }
 }
 
+// Agrega un colaborador (miembro) a una cotización
+export const addQuotationMember = async (quotationId: number, userId: number) => {
+    try {
+        const response = await api.post(
+            `/quotations/${quotationId}/members`,
+            { userId },
+            {
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            }
+        );
+        return response;
+    } catch (error) {
+        throw error;
+    }
+};
+
+// Elimina un colaborador de una cotización
+export const removeQuotationMember = async (quotationId: number, userId: number) => {
+    try {
+        const response = await api.delete(
+            `/quotations/${quotationId}/members/${userId}`,
+            {
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            }
+        );
+        return response;
+    } catch (error) {
+        throw error;
+    }
+};
+

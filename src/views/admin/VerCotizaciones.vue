@@ -5,7 +5,8 @@ import Badge from "../../components/badge/Badge.vue";
 import { useRouter } from "vue-router";
 import { cancelReservation, confirmReservation } from "../../services/reservation.service";
 import BaseTable from "../../components/ui/BaseTable.vue";
-import { ChevronDown, Eye, CheckCircle, XCircle, FileText, Inbox } from 'lucide-vue-next';
+import CollaboratorsManager from "./components/CollaboratorsManager.vue";
+import { ChevronDown, Eye, CheckCircle, XCircle, FileText, Inbox, Users } from 'lucide-vue-next';
 
 const { push } = useRouter();
 
@@ -20,6 +21,26 @@ const confirmedQuotation = ref(null);
 //  NUEVO → modal vista cliente
 const isClientPreviewOpen = ref(false);
 const quotationPreview = ref(null);
+
+//  NUEVO → modal colaboradores
+const isCollabModalOpen = ref(false);
+const selectedQuotationForCollab = ref(null);
+
+const openCollaboratorsModal = (quotation) => {
+  selectedQuotationForCollab.value = quotation;
+  isCollabModalOpen.value = true;
+};
+
+const closeCollabModal = () => {
+  selectedQuotationForCollab.value = null;
+  isCollabModalOpen.value = false;
+};
+
+const updateQuotationMembersLocal = (newMembers) => {
+  if (selectedQuotationForCollab.value) {
+    selectedQuotationForCollab.value.members = newMembers;
+  }
+};
 
 // ----------------------
 // FILTROS
@@ -328,6 +349,14 @@ const toggleRow = (id) => {
                       <FileText :size="12" /> Vista cliente
                     </button>
 
+                    <!-- Miembros -->
+                    <button
+                      @click.stop="openCollaboratorsModal(q)"
+                      class="act-btn act-collab"
+                    >
+                      <Users :size="12" /> Miembros
+                    </button>
+
                   </div>
                 </td>
               </tr>
@@ -455,6 +484,16 @@ const toggleRow = (id) => {
                           </span>
                         </div>
 
+                        <div class="vc-exp-field">
+                          <span class="vc-exp-label">Invitados</span>
+                          <span class="vc-exp-val">
+                            <span v-if="q.members && q.members.length > 0">
+                              {{ q.members.map(m => m.user?.fullName).join(', ') }}
+                            </span>
+                            <span v-else>Ninguno</span>
+                          </span>
+                        </div>
+
                       </div>
                     </div>
                   </div>
@@ -499,6 +538,36 @@ const toggleRow = (id) => {
             class="px-[18px] py-[9px] text-[13px] font-semibold bg-primary text-white rounded-[8px] shadow-[var(--shadow-btn)] hover:bg-primary-dark transition"
           >
             Entendido
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- MODAL COLABORADORES                        -->
+    <!-- ══════════════════════════════════════════ -->
+    <div
+      v-if="isCollabModalOpen"
+      class="fixed inset-0 bg-[rgba(15,26,46,0.4)] backdrop-blur-sm flex items-center justify-center z-50"
+    >
+      <div class="bg-white rounded-[var(--r-2xl)] shadow-[var(--shadow-modal)] max-w-md w-full p-6 space-y-4 relative">
+        <h3 class="text-[16px] font-semibold text-[#0F1A2E] font-['Plus_Jakarta_Sans',sans-serif]">
+          Gestionar Colaboradores
+        </h3>
+        
+        <CollaboratorsManager 
+          :quotationId="selectedQuotationForCollab?.id" 
+          :initialMembers="selectedQuotationForCollab?.members || []"
+          :isReadOnly="false"
+          @update-members="updateQuotationMembersLocal"
+        />
+
+        <div class="flex justify-end pt-2">
+          <button
+            @click="closeCollabModal"
+            class="px-[18px] py-[9px] text-[13px] font-medium bg-[#F1F5F9] text-[#475569] rounded-[8px] hover:bg-[#E2E8F0] transition"
+          >
+            Cerrar
           </button>
         </div>
       </div>
@@ -700,6 +769,9 @@ const toggleRow = (id) => {
 
 .act-preview         { background: #EDE9FE; color: #7C3AED; }
 .act-preview:hover   { background: #DDD6FE; }
+
+.act-collab          { background: #E0E7FF; color: #4338CA; }
+.act-collab:hover    { background: #C7D2FE; }
 
 .act-disabled {
   background: #F1F5F9;

@@ -6,6 +6,7 @@ import {
   updateQuotation,
   addQuotationItems,
   addThirdPartyQuotationItems,
+  addQuotationMember // ✅ ADDED
 } from '../../services/quotation.service'
 
 import { useAuth } from '../../composables/useAuth' // ✅ CHANGED — para obtener createdById
@@ -51,6 +52,7 @@ export function useQuotation() {
     cantidadProducto: 1,
     quotationStatusId: 1,
     descuentoPct: 0,
+    members: [] as any[], // ✅ ADDED — lista temporal de miembros
   })
 
   const items = ref<any[]>([])
@@ -121,6 +123,8 @@ export function useQuotation() {
         cantidadJornada:  it.cantidadJornada  ?? it.quantity ?? 1,
         cantidadProducto: it.cantidadProducto ?? 1,
       }))
+
+      cotizacion.members = data.members || [] // ✅ ADDED
 
       quotationId.value = id
     } finally {
@@ -207,6 +211,12 @@ export function useQuotation() {
         }
         if (itemsTerceros.value.length > 0) {
           await addThirdPartyQuotationItems(data.id, itemsTerceros.value)
+        }
+
+        if (cotizacion.members?.length > 0) {
+           for (const m of cotizacion.members) {
+             try { await addQuotationMember(data.id, m.userId ?? m.user.id); } catch(e) {}
+           }
         }
 
         modalCotizacionExitosa.value = true

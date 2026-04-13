@@ -152,6 +152,16 @@
               </div>
               <InputLabel label="Vigencia de Cotización" v-model="cotizacion.vigencia" />
             </div>
+
+            <div class="mt-4">
+              <CollaboratorsManager 
+                v-if="!loading"
+                :quotationId="id" 
+                :initialMembers="cotizacion.members || []"
+                :isReadOnly="false"
+                @update-members="(m) => cotizacion.members = m"
+              />
+            </div>
           </div>
 
         </template>
@@ -775,6 +785,7 @@
 <script setup>
 // ── Imports originales — NO modificar ──────────────────────────────────────
 import InputLabel from '@/components/input/InputLabel.vue';
+import CollaboratorsManager from './components/CollaboratorsManager.vue';
 import { ref, onMounted, watch, computed } from 'vue';   // añadido: computed
 import { getQuotationById } from '../../services/quotation.service';
 
