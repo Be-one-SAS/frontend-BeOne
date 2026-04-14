@@ -29,7 +29,7 @@ export function useQuotation() {
     description: '',
     agenteComercial: '',
     cliente: '',
-    clienteId: null as number | null, // ✅ CHANGED — campo correcto para relacionar con cliente (FK numérica)
+    clienteId: null as number | null, 
     empresa: '',
     contacto: '',
     correo: '',
@@ -52,7 +52,9 @@ export function useQuotation() {
     cantidadProducto: 1,
     quotationStatusId: 1,
     descuentoPct: 0,
-    members: [] as any[], // ✅ ADDED — lista temporal de miembros
+    createdById: null as number | null,
+    version: 1,
+    members: [] as any[],
   })
 
   const items = ref<any[]>([])
@@ -80,7 +82,7 @@ export function useQuotation() {
   const subtotalPropios = computed(() => subtotal.value)
 
   const subtotalTerceros = computed(() =>
-    itemsTerceros.value.reduce((sum, item) => sum + (item.totalFactura || 0), 0)
+    itemsTerceros.value.reduce((sum, item) => sum + (item.total || item.totalFactura || 0), 0)
   )
 
   const subtotalGeneral = computed(() => subtotalPropios.value + subtotalTerceros.value)
@@ -106,6 +108,7 @@ export function useQuotation() {
     try {
       const { data } = await getQuotationById(id)
       Object.assign(cotizacion, data)
+      cotizacion.createdById = data.createdById // ✅ ADDED
 
       // Map operationWindow → flat date/time fields used by the form
       cotizacion.fechaInicioEvento    = data.operationWindow?.eventStartAt?.split('T')[0]        ?? ''
@@ -142,13 +145,17 @@ export function useQuotation() {
       const payload: Record<string, any> = {
         // ── Campos requeridos ─────────────────────────────────────
         quotationStatusId: cotizacion.quotationStatusId,
-        createdById:       user.value!.id,              // ✅ CHANGED — obtenido de useAuth()
+        // Si es edición, mantenemos el createdById original
+        createdById:       cotizacion.createdById || user.value!.id,
 
-        // ── Fecha en ISO 8601 ─────────────────────────────────────
-        fechaCotizacion:   new Date().toISOString(),    // ✅ CHANGED — formato correcto, no string vacío
+        // ── Fecha ─────────────────────────────────────────────────
+        // Usamos la fecha original si existe para no sobrescribirla al editar.
+        fechaCotizacion:   cotizacion.fechaCotizacion 
+          ? new Date(cotizacion.fechaCotizacion).toISOString()
+          : new Date().toISOString(),
 
         // ── Datos del cliente ─────────────────────────────────────
-        clienteId:         cotizacion.clienteId   ?? undefined, // ✅ CHANGED — número, no string "cliente"
+        clienteId:         cotizacion.clienteId   ?? undefined,
         empresa:           cotizacion.empresa      || undefined,
 
         // ── Datos del agente/comercial ────────────────────────────
@@ -174,11 +181,10 @@ export function useQuotation() {
         cantidadJornada:  cotizacion.cantidadJornada  || undefined,
         cantidadProducto: cotizacion.cantidadProducto || undefined,
 
-        // ── Totales ───────────────────────────────────────────────
-        subtotal:     subtotalGeneral.value  || undefined,
+        // ── Descuento ─────────────────────────────────────────────
+        // subtotal / descuento / total are calculated server-side.
+        // Only send the user-controlled discount percentage.
         descuentoPct: cotizacion.descuentoPct || undefined,
-        descuento:    descuentoValor.value   || undefined,
-        total:        totalGeneral.value     || undefined,
 
         // ── Ventana operativa ─────────────────────────────────────
         // Construida como objeto anidado combinando fecha + hora
@@ -196,21 +202,45 @@ export function useQuotation() {
       if (quotationId.value) {
         await updateQuotation(quotationId.value, payload)
 
-        if (items.value.length > 0) {
-          await addQuotationItems(quotationId.value, items.value)
+        const ownItems = items.value
+          .filter(it => it.productId != null)
+          .map(it => ({
+            productId:        it.productId,
+            unitPrice:        it.unitPrice        ?? 0,
+            cantidadJornada:  it.cantidadJornada  ?? 1,
+            cantidadProducto: it.cantidadProducto ?? 1,
+          }))
+        if (ownItems.length > 0) {
+          await addQuotationItems(quotationId.value, ownItems)
         }
         if (itemsTerceros.value.length > 0) {
-          await addThirdPartyQuotationItems(quotationId.value, itemsTerceros.value)
+          try {
+            await addThirdPartyQuotationItems(quotationId.value, itemsTerceros.value)
+          } catch (e: any) {
+            console.warn('[useQuotation] third-party-items endpoint error (update):', e?.response?.data ?? e)
+          }
         }
       } else {
         const { data } = await createQuotation(payload)
         quotationId.value = data.id
 
-        if (items.value.length > 0) {
-          await addQuotationItems(data.id, items.value)
+        const ownItems = items.value
+          .filter(it => it.productId != null)
+          .map(it => ({
+            productId:        it.productId,
+            unitPrice:        it.unitPrice        ?? 0,
+            cantidadJornada:  it.cantidadJornada  ?? 1,
+            cantidadProducto: it.cantidadProducto ?? 1,
+          }))
+        if (ownItems.length > 0) {
+          await addQuotationItems(data.id, ownItems)
         }
         if (itemsTerceros.value.length > 0) {
-          await addThirdPartyQuotationItems(data.id, itemsTerceros.value)
+          try {
+            await addThirdPartyQuotationItems(data.id, itemsTerceros.value)
+          } catch (e: any) {
+            console.warn('[useQuotation] third-party-items endpoint error (create):', e?.response?.data ?? e)
+          }
         }
 
         if (cotizacion.members?.length > 0) {

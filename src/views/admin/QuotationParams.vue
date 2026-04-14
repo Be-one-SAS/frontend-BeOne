@@ -43,7 +43,7 @@
           </thead>
           <tbody>
             <tr v-for="param in params" :key="param.key" :class="{ 'qp-row--saving': saving[param.key] }">
-              <td class="qp-td-label">{{ param.label || param.key }}</td>
+              <td class="qp-td-label">{{ getLabel(param.key) }}</td>
               <td class="qp-td-key">
                 <code class="qp-code">{{ param.key }}</code>
               </td>
@@ -103,6 +103,19 @@ const loadError = ref('')
 const saving = ref({})
 const saved = ref({})
 const errors = ref({})
+
+const PARAM_LABELS = {
+  ica:            'ICA (0.966%)',
+  retefuente:     'Retefuente (4%)',
+  comision:       'Comisión (3%)',
+  margen_fijo:    'Margen Fijo (20%)',
+  provision_renta: 'Provisión Renta (6%)',
+  cuatro_x_mil:   '4x1000 (0.456%)',
+  gastos_financieros: 'Gastos Financieros (1%)',
+  gastos_administrativos: 'Gastos Administrativos (1%)',
+}
+
+const getLabel = (key) => PARAM_LABELS[key] || key
 
 const fetchParams = async () => {
   loading.value = true

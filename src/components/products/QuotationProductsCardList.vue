@@ -15,10 +15,9 @@
             <tr>
               <th class="th-num">#</th>
               <th class="th-img"></th>
-              <th class="th-center">Q. Motores</th>
-              <th class="th-center">Q. Operarios</th>
               <th>Producto</th>
-              <th class="th-right">Cantidad</th>
+              <th class="th-center">Q. Jornada</th>
+              <th class="th-center">Q. Producto</th>
               <th class="th-right">Precio unit.</th>
               <th class="th-right">Total</th>
               <th class="th-center">Acciones</th>
@@ -44,27 +43,20 @@
                 />
               </td>
 
-              <!-- Q. Motores -->
-              <td class="td-center">
-                <span class="prd-qty-badge">{{ item.qMotores ?? '—' }}</span>
-              </td>
-
-              <!-- Q. Operarios -->
-              <td class="td-center">
-                <span class="prd-qty-badge">{{ item.qOperarios ?? '—' }}</span>
-              </td>
-
               <!-- Producto -->
               <td class="td-name">
                 <p class="prd-nombre">{{ item.dispositivo || item.descripcion || '—' }}</p>
                 <p v-if="item.category" class="prd-cat">{{ item.category }}</p>
               </td>
 
-              <!-- Cantidad -->
-              <td class="td-right">
-                <span class="prd-qty">
-                  {{ item.cantidadJornada ?? 0 }}j × {{ item.cantidadProducto ?? 0 }}u
-                </span>
+              <!-- Q. Jornada -->
+              <td class="td-center">
+                <span class="prd-qty">{{ item.cantidadJornada ?? 1 }}</span>
+              </td>
+
+              <!-- Q. Producto -->
+              <td class="td-center">
+                <span class="prd-qty">{{ item.cantidadProducto ?? 1 }}</span>
               </td>
 
               <!-- Precio unitario -->
@@ -92,7 +84,7 @@
           </tbody>
           <tfoot>
             <tr class="prd-subtotal-row">
-              <td colspan="7" class="td-subtotal-label">Subtotal equipos propios</td>
+              <td colspan="6" class="td-subtotal-label">Subtotal equipos propios</td>
               <td class="td-subtotal-val">{{ format(subtotalItems) }}</td>
               <td></td>
             </tr>

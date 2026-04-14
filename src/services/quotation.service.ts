@@ -122,6 +122,20 @@ export const addThirdPartyQuotationItems = async (id: number, items: any[]) => {
     }
 };
 
+// Calcula precio, subtotal, utilidades desde costo unitario (fórmula calcularCotizacionDesdeCosto)
+export const calculateFromCost = async (data: { costoUnitario: number; cantidad: number; margenVariable: number }) => {
+    try {
+        const response = await api.post(
+            `/quotations/calculate-from-cost`,
+            data,
+            { headers: { 'Content-Type': 'application/json' } },
+        );
+        return response;
+    } catch (error) {
+        throw error;
+    }
+};
+
 // Calcula el desglose de un producto de tercero (backend-only logic)
 export const calculateThirdPartyItem = async (data: { catalogItemId: number; cantidad: number; costo: number; margen: number }) => {
     try {
@@ -205,6 +219,35 @@ export const removeQuotationMember = async (quotationId: number, userId: number)
                 },
             }
         );
+        return response;
+    } catch (error) {
+        throw error;
+    }
+};
+
+// ── VERSIONAMIENTO ────────────────────────────────────────────────────────
+
+export const getVersions = async (quotationId: number | string) => {
+    try {
+        const response = await api.get(`/quotations/${quotationId}/versions`);
+        return response;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const createVersion = async (quotationId: number | string) => {
+    try {
+        const response = await api.post(`/quotations/${quotationId}/versions`);
+        return response;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const restoreVersion = async (quotationId: number | string, versionId: number | string) => {
+    try {
+        const response = await api.post(`/quotations/${quotationId}/versions/${versionId}/restore`);
         return response;
     } catch (error) {
         throw error;

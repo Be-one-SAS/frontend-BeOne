@@ -9,7 +9,23 @@
 
       <!-- Botones de versión — solo si hay ID en la URL (lógica original) -->
       <div v-if="id" class="header-actions">
-        <span class="ver-chip">v{{ cotizacion.version }}</span>
+        <div class="version-trigger-wrap">
+          <span 
+            class="ver-chip clickable" 
+            title="Ver historial de versiones"
+            @click="showVersionsHistory = !showVersionsHistory"
+          >
+            v{{ cotizacion.version }}
+          </span>
+          
+          <!-- Dropdown de versiones -->
+          <QuotationVersions 
+            v-if="showVersionsHistory"
+            :quotationId="id" 
+            :canManage="canManage"
+            @version-restored="handleVersionRestored"
+          />
+        </div>
         <div class="btn-group">
           <button
             :class="['action-btn', modoEdicion ? 'action-btn--cancel' : 'action-btn--edit']"
@@ -247,9 +263,16 @@
             <!-- Panel izquierdo (60%) — Buscador -->
             <div class="search-col">
               <div class="form-card">
-                <div class="section-header">
-                  <Search :size="18" class="icon-primary" />
-                  <span>Buscar Equipos</span>
+                <div class="section-header j-bet">
+                  <div class="flex items-center gap-2">
+                    <Search :size="18" class="icon-primary" />
+                    <span>Seleccionar Equipos</span>
+                  </div>
+                  
+                    <div v-if="myClienteSeleccionado?.name || cotizacion.cliente" class="price-list-badge">
+                      <Check :size="12" />
+                      <span>Caja / Lista: {{ myClienteSeleccionado?.name || cotizacion.cliente }}</span>
+                    </div>
                 </div>
 
                 <!-- Inputs de búsqueda -->
@@ -329,7 +352,7 @@
                       class="qty-input"
                     />
                   </div>
-                  <button @click="abrirModal" class="btn-tercero">
+                  <button @click="abrirModalTerceroQuotation" class="btn-tercero">
                     <Package :size="14" />
                     Tercero
                   </button>
@@ -354,27 +377,40 @@
                 </div>
 
                 <!-- Estado vacío -->
-                <div v-if="!items.length" class="cart-empty">
+                <div v-if="!items.length && !itemsTerceros.length" class="cart-empty">
                   <Package :size="40" class="empty-ico" />
                   <p class="empty-title">Sin equipos agregados</p>
                   <p class="empty-sub">Busca y agrega equipos en el panel izquierdo</p>
                 </div>
 
-                <!-- Lista de items — usa el array `items` existente -->
+                <!-- Lista de items -->
                 <div v-else class="cart-items">
-                  <div v-for="(it, i) in items" :key="i" class="cart-row">
+                  <!-- Equipos Propios -->
+                  <div v-for="(it, i) in items" :key="'own-' + i" class="cart-row">
                     <p class="cart-name">{{ it.dispositivo || it.descripcion }}</p>
                     <div class="cart-meta">
                       <span class="cart-qty">{{ it.cantidadJornada }}j × {{ it.cantidadProducto }}u</span>
                       <span class="cart-price">${{ (it.unitPrice || 0).toLocaleString('es-CO') }}</span>
                     </div>
                   </div>
+
+                  <!-- Productos Terceros -->
+                  <div v-for="(it, i) in itemsTerceros" :key="'third-' + i" class="cart-row cart-row--tercero">
+                    <p class="cart-name">
+                      <Truck :size="10" class="inline-icon" />
+                      {{ it.nombre }}
+                    </p>
+                    <div class="cart-meta">
+                      <span class="cart-qty">{{ it.cantidad }} unid.</span>
+                      <span class="cart-price">${{ (it.precioUnitario || it.precioUnitarioConIva || 0).toLocaleString('es-CO') }}</span>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Total parcial -->
-                <div v-if="items.length" class="cart-total">
+                <div v-if="items.length || itemsTerceros.length" class="cart-total">
                   <span class="total-lbl">Total parcial</span>
-                  <span class="total-val">${{ (totalSummary.valorTotal || 0).toLocaleString('es-CO') }}</span>
+                  <span class="total-val">${{ (subtotalGeneral || 0).toLocaleString('es-CO') }}</span>
                 </div>
               </div>
             </div>
@@ -417,38 +453,86 @@
               <p>Sin productos de terceros agregados</p>
             </div>
 
-            <!-- Tabla de terceros -->
-            <div v-else class="table-wrap">
-              <table class="eq-table">
-                <thead>
-                  <tr>
-                    <th>Producto</th>
-                    <th>Cantidad</th>
-                    <th>Costo</th>
-                    <th>Margen %</th>
-                    <th>Precio unit.</th>
-                    <th>Total factura</th>
-                    <th>Utilidad final</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(it, i) in itemsTerceros" :key="i">
-                    <td class="td-name">{{ it.nombre }}</td>
-                    <td>{{ it.cantidad }}</td>
-                    <td>{{ formatCOP(it.costo) }}</td>
-                    <td>{{ it.margen }}%</td>
-                    <td>{{ formatCOP(it.precioUnitario ?? it.precioUnitarioConIva ?? null) }}</td>
-                    <td class="td-total">{{ formatCOP(it.totalFactura ?? null) }}</td>
-                    <td>{{ formatCOP(it.utilidadFinal ?? it.utilidadNeta ?? null) }}</td>
-                    <td>
-                      <button class="btn-del-tercero" @click="eliminarItemTercero(i)" title="Eliminar">
-                        <Trash2 :size="13" />
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+            <div v-else class="prd-table-card">
+              <div class="prd-table-scroll">
+                <table class="prd-table">
+                  <thead>
+                    <tr>
+                      <th class="th-num">#</th>
+                      <th class="th-img"></th>
+                      <th>Producto</th>
+                      <th class="th-center">Cant.</th>
+                      <th class="th-right">Costo unit.</th>
+                      <th class="th-center">Margen</th>
+                      <th class="th-right">Precio unit.</th>
+                      <th class="th-right">Total factura</th>
+                      <th class="th-right">Utilidad final</th>
+                      <th class="th-center"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(it, i) in itemsTerceros" :key="i" class="prd-row">
+                      <td class="td-num">{{ i + 1 }}</td>
+                      <td class="td-img">
+                        <img
+                          :src="it.linkFoto || it.linkFotoDispositivo || '/assets/be-one-logo.webp'"
+                          @error="$event.target.src = '/assets/be-one-logo.webp'"
+                          class="prd-thumb"
+                          alt=""
+                        />
+                      </td>
+                      <td class="td-name">
+                        <p class="prd-nombre">{{ it.nombre }}</p>
+                        <p v-if="it.categoria" class="prd-cat">{{ it.categoria }}</p>
+                      </td>
+                      <td class="td-center">
+                        <span class="prd-qty">{{ it.cantidad }}</span>
+                      </td>
+                      <td class="td-right">{{ formatCOP(it.costoUnitario || it.costo) }}</td>
+                      <td class="td-center">{{ it.margenVariable || it.margen }}%</td>
+                      <td class="td-right prd-price">
+                        {{ formatCOP(it.precioUnitario ?? it.precioUnitarioConIva ?? null) }}
+                      </td>
+                      <td class="td-right prd-total">
+                        {{ formatCOP(it.total ?? it.totalFactura ?? null) }}
+                      </td>
+                      <td class="td-right font-semibold" style="color: #059669">
+                        {{ formatCOP(it.utilidadFinal ?? it.utilidadNeta ?? null) }}
+                      </td>
+                      <td class="td-center">
+                        <button class="prd-action-btn" style="--hbg:#FEE2E2; --hc:#B91C1C" @click="eliminarItemTercero(i)" title="Eliminar">
+                          <Trash2 :size="14" />
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                  <tfoot>
+                    <tr class="prd-subtotal-row">
+                      <td colspan="7" class="td-subtotal-label">Subtotal productos terceros</td>
+                      <td class="td-subtotal-val">{{ formatCOP(subtotalTerceros) }}</td>
+                      <td colspan="2"></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+          
+          <!-- ✅ NUEVO: Resumen de totales al final del Paso 3 -->
+          <div class="selection-summary-card mt20" v-if="items.length || itemsTerceros.length">
+            <div class="summary-grid">
+              <div class="summary-item">
+                <span class="summary-label">Subtotal Equipos Propios</span>
+                <span class="summary-value">{{ formatCOP(subtotalPropios) }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Subtotal Terceros</span>
+                <span class="summary-value">{{ formatCOP(subtotalTerceros) }}</span>
+              </div>
+              <div class="summary-total">
+                <span class="total-label">Subtotal Selección</span>
+                <span class="total-value">{{ formatCOP(subtotalGeneral) }}</span>
+              </div>
             </div>
           </div>
 
@@ -496,32 +580,32 @@
                   <span>Equipos seleccionados</span>
                   <span class="item-count-badge">{{ items.length }}</span>
                 </div>
-                <div class="table-wrap">
-                  <table class="eq-table">
+                <div class="prd-table-scroll">
+                  <table class="prd-table">
                     <thead>
                       <tr>
                         <th>Producto</th>
-                        <th>Jornadas</th>
-                        <th>Cantidad</th>
-                        <th>Precio unit.</th>
-                        <th>Total</th>
+                        <th class="th-center">Jornadas</th>
+                        <th class="th-center">Cant.</th>
+                        <th class="th-right">Precio unit.</th>
+                        <th class="th-right">Total</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="(it, i) in items" :key="i">
+                      <tr v-for="(it, i) in items" :key="i" class="prd-row-view">
                         <td class="td-name">{{ it.dispositivo || it.descripcion }}</td>
-                        <td>{{ it.cantidadJornada }}</td>
-                        <td>{{ it.cantidadProducto }}</td>
-                        <td>{{ formatCOP(it.unitPrice) }}</td>
-                        <td class="td-total">
+                        <td class="td-center">{{ it.cantidadJornada }}</td>
+                        <td class="td-center">{{ it.cantidadProducto }}</td>
+                        <td class="td-right prd-price">{{ formatCOP(it.unitPrice) }}</td>
+                        <td class="td-right prd-total">
                           {{ formatCOP((it.unitPrice || 0) * (it.cantidadJornada || 0) * (it.cantidadProducto || 0)) }}
                         </td>
                       </tr>
                     </tbody>
                     <tfoot>
-                      <tr class="eq-subtotal-row">
-                        <td colspan="4" class="eq-subtotal-label">Subtotal equipos propios</td>
-                        <td class="eq-subtotal-val">{{ formatCOP(subtotalPropios) }}</td>
+                      <tr class="prd-subtotal-row">
+                        <td colspan="4" class="td-subtotal-label">Subtotal equipos propios</td>
+                        <td class="td-subtotal-val">{{ formatCOP(subtotalPropios) }}</td>
                       </tr>
                     </tfoot>
                   </table>
@@ -535,30 +619,36 @@
                   <span>Productos de Terceros</span>
                   <span class="item-count-badge">{{ itemsTerceros.length }}</span>
                 </div>
-                <div class="table-wrap">
-                  <table class="eq-table">
+                <div class="prd-table-scroll">
+                  <table class="prd-table">
                     <thead>
                       <tr>
                         <th>Producto</th>
-                        <th>Cant.</th>
-                        <th>Precio unit.</th>
-                        <th>Total factura</th>
-                        <th>Utilidad final</th>
+                        <th class="th-center">Cant.</th>
+                        <th class="th-right">Precio unit.</th>
+                        <th class="th-right">Total factura</th>
+                        <th class="th-right">Utilidad final</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="(it, i) in itemsTerceros" :key="i">
+                      <tr v-for="(it, i) in itemsTerceros" :key="i" class="prd-row-view">
                         <td class="td-name">{{ it.nombre }}</td>
-                        <td>{{ it.cantidad }}</td>
-                        <td>{{ formatCOP(it.precioUnitario ?? it.precioUnitarioConIva ?? null) }}</td>
-                        <td class="td-total">{{ formatCOP(it.totalFactura ?? null) }}</td>
-                        <td>{{ formatCOP(it.utilidadFinal ?? it.utilidadNeta ?? null) }}</td>
+                        <td class="td-center">{{ it.cantidad }}</td>
+                        <td class="td-right prd-price">
+                          {{ formatCOP(it.precioUnitario ?? it.precioUnitarioConIva ?? null) }}
+                        </td>
+                        <td class="td-right prd-total">
+                          {{ formatCOP(it.total ?? it.totalFactura ?? null) }}
+                        </td>
+                        <td class="td-right font-semibold" style="color: #059669">
+                          {{ formatCOP(it.utilidadFinal ?? it.utilidadNeta ?? null) }}
+                        </td>
                       </tr>
                     </tbody>
                     <tfoot>
-                      <tr class="eq-subtotal-row">
-                        <td colspan="3" class="eq-subtotal-label">Subtotal productos terceros</td>
-                        <td class="eq-subtotal-val">{{ formatCOP(subtotalTerceros) }}</td>
+                      <tr class="prd-subtotal-row">
+                        <td colspan="3" class="td-subtotal-label">Subtotal productos terceros</td>
+                        <td class="td-subtotal-val">{{ formatCOP(subtotalTerceros) }}</td>
                         <td></td>
                       </tr>
                     </tfoot>
@@ -786,8 +876,9 @@
 // ── Imports originales — NO modificar ──────────────────────────────────────
 import InputLabel from '@/components/input/InputLabel.vue';
 import CollaboratorsManager from './components/CollaboratorsManager.vue';
+import QuotationVersions from './components/QuotationVersions.vue';
 import { ref, onMounted, watch, computed } from 'vue';   // añadido: computed
-import { getQuotationById } from '../../services/quotation.service';
+import { getQuotationById, getVersions, createVersion } from '../../services/quotation.service';
 
 import ModalReutilizable from '../../components/modal/ModalReutilizable.vue';
 import ResumenCotizacion from '../../components/panels/ResumenCotizacion.vue';
@@ -846,6 +937,7 @@ const { user } = useAuth();
 const clienteSeleccionado   = ref({})
 const myClienteSeleccionado = ref({})
 const modalCalendarioIncompleto = ref(false);
+const showVersionsHistory = ref(false); // ✅ ADDED
 
 const {
   cotizacion,
@@ -860,7 +952,8 @@ const {
   totalGeneral,
   loading,
   modalCotizacionExitosa,
-  saveQuotation
+  saveQuotation,
+  quotationId // ✅ ADDED
 } = useQuotation()
 
 const {
@@ -900,6 +993,53 @@ const {
   validarCalendario
 })
 
+const canManage = computed(() => {
+  if (!user.value) return false;
+  // Solo ADMIN, SUPERVISOR o el creador de la cotización
+  const rolesPermitidos = ['ADMIN', 'SUPERVISOR'];
+  const hasRole = rolesPermitidos.includes(user.value.role);
+  const isCreator = user.value.id === cotizacion.createdById;
+  return hasRole || isCreator;
+});
+
+// ── Lógica de Guardado y Versiones ───────────────────────────────────────
+
+/**
+ * Guarda los cambios actuales vía PATCH a la cotización activa
+ */
+const guardarEdicion = async () => {
+  try {
+    await saveQuotation();
+    modoEdicion.value = false;
+    // recargar para asegurar consistencia
+    await getCotizacion();
+  } catch (error) {
+    console.error('[Cotizar] Error al guardar edición:', error);
+  }
+};
+
+/**
+ * Genera una nueva versión (Snapshot) y recarga la vista
+ */
+const guardarNuevaVersion = async () => {
+  if (!id) return;
+  try {
+    // ✅ IMPROVED — Guardar cambios actuales antes de generar el snapshot
+    // para que la versión contenga lo que el usuario ve en pantalla.
+    await saveQuotation();
+    
+    // Al generar nueva versión, limpiamos la marca de "versión restaurada"
+    // para que el sistema vuelva a calcular el máximo (que será la nueva versión)
+    localStorage.removeItem(`active_v_${id}`);
+    
+    await createVersion(id);
+    await getCotizacion();
+    alert('Nueva versión generada con éxito (incluyendo tus cambios actuales)');
+  } catch (error) {
+    console.error('[Cotizar] Error al generar versión:', error);
+  }
+};
+
 const {
   modalNuevoProducto,
   productoTercero,
@@ -931,7 +1071,9 @@ const agregarItemTercero = (item) => {
 }
 
 const eliminarItemTercero = (index) => {
-  itemsTerceros.value.splice(index, 1)
+  if (confirm(`¿Seguro que deseas eliminar este producto de tercero?`)) {
+    itemsTerceros.value.splice(index, 1)
+  }
 }
 
 const formatCOP = (val) =>
@@ -1028,10 +1170,10 @@ const getCotizacion = async () => {
     const response = await getQuotationById(id);
     const data = response.data;
 
-    cotizacion.cliente             = data.cliente;
+    cotizacion.cliente             = data.cliente ? data.cliente.name : '';
+    cotizacion.clienteId           = data.clienteId;
     cotizacion.celular             = data.celular;
     cotizacion.empresa             = data.empresa;
-    cotizacion.cliente             = data.cliente ? data?.cliente.name : '';
     cotizacion.contacto            = data.contacto;
     cotizacion.correo              = data.correo;
     // Map operationWindow → flat date/time fields used by the form inputs
@@ -1047,21 +1189,64 @@ const getCotizacion = async () => {
     cotizacion.linkMaps            = data.linkMaps;
     cotizacion.asistentes          = data.asistentes;
     cotizacion.vigencia            = data.vigencia;
+    cotizacion.description         = data.description; 
     cotizacion.unidadEjecucion     = data.unidadEjecucion;
     cotizacion.tipoSuelo           = data.tipoSuelo;
     cotizacion.quotationStatusId   = data.quotationStatusId;
+    cotizacion.createdById         = data.createdById; 
+    cotizacion.agenteComercial     = data.agenteComercial; // ✅ ADDED
+    cotizacion.fechaCotizacion     = data.fechaCotizacion ? data.fechaCotizacion.split('T')[0] : ''; // ✅ ADDED
+    cotizacion.cantidadJornada     = data.cantidadJornada; // ✅ ADDED
+    cotizacion.cantidadProducto    = data.cantidadProducto; // ✅ ADDED
+    
+    // ✅ SYNC ID — Esto evita que se creen duplicados al guardar
+    quotationId.value = data.id;
+
+    // Si hay un cliente de lista (Caja), sincronizar
+    if (data.cliente) {
+      cotizacion.cliente = data.cliente.name || '';
+      myClienteSeleccionado.value = data.cliente;
+    }
+    
+    // Si hay una empresa/cliente final
+    if (data.empresa) {
+      cotizacion.empresa = data.empresa;
+    }
+    
+    // ✅ PRIORIZAR VERSIÓN RESTAURADA DESDE LOCALSTORAGE
+    try {
+      const activeVKey = `active_v_${id}`;
+      const savedV = localStorage.getItem(activeVKey);
+      
+      if (savedV) {
+        cotizacion.version = parseInt(savedV);
+      } else {
+        // Si no hay versión activa manual, calculamos el máximo historial
+        const vRes = await getVersions(id);
+        const allV = vRes.data || [];
+        if (allV.length > 0) {
+          cotizacion.version = Math.max(...allV.map(v => v.versionNumber));
+        } else {
+          cotizacion.version = 1;
+        }
+      }
+    } catch (ve) {
+      cotizacion.version = 1;
+    }
 
     items.value = data.items.map(it => ({
-      category:          it.product.categoria,
-      dispositivo:       it.product.dispositivo,
-      descripcion:       it.product.descripcion,
-      estado:            it.product.conditionStatus,
-      incluyeTransporte: it.product.incluyeTransporteBogMde,
-      medidas:           it.product.medidas,
+      id:                it.id, // Original ID de la relación
+      productId:         it.productId || it.product?.id, // ID del catálogo de productos
+      category:          it.product?.categoria,
+      dispositivo:       it.product?.dispositivo,
+      descripcion:       it.product?.descripcion,
+      estado:            it.product?.conditionStatus,
+      incluyeTransporte: it.product?.incluyeTransporteBogMde,
+      medidas:           it.product?.medidas,
       unitPrice:         it.unitPrice,
-      linkFoto:          it.product.linkFotoDispositivo,
-      qMotores:          it.product.qMotores,
-      qOperarios:        it.product.qOperarios,
+      linkFoto:          it.product?.linkFotoDispositivo,
+      qMotores:          it.product?.qMotores,
+      qOperarios:        it.product?.qOperarios,
       cantidadJornada:   it.cantidadJornada  ?? it.quantity ?? 1,
       cantidadProducto:  it.cantidadProducto ?? 1,
     }))
@@ -1072,14 +1257,27 @@ const getCotizacion = async () => {
   }
 }
 
+/** 
+ * Maneja la restauración de una versión específica 
+ */
+const handleVersionRestored = async (vNum) => {
+  if (!id) return;
+  // Guardamos en localStorage para que el indicador lo respete tras el refresco
+  localStorage.setItem(`active_v_${id}`, vNum.toString());
+  
+  showVersionsHistory.value = false;
+  await getCotizacion();
+}
+
 onMounted(getCotizacion)
 
 const eliminarItem = (item) => {
-  if (confirm(`¿Seguro que deseas eliminar el producto "${item.descripcion}"?`)) {
-    items.value = items.value.filter((i) => i.id !== item.id)
-    // Si también lo eliminas del backend:
-    // await api.delete(`/productos/${item.id}`)
-    console.log('Eliminado:', item)
+  if (confirm(`¿Seguro que deseas eliminar el producto "${item.descripcion || item.dispositivo}"?`)) {
+    // Use reference equality (indexOf) so it works for unsaved items that have no id yet.
+    const idx = items.value.indexOf(item)
+    if (idx !== -1) {
+      items.value.splice(idx, 1)
+    }
   }
 }
 
@@ -1176,6 +1374,21 @@ const duracionMontaje = computed(() => {
   padding: 3px 10px;
   border-radius: 20px;
   font-family: 'Inter', sans-serif;
+}
+
+.version-trigger-wrap {
+  position: relative;
+}
+
+.clickable {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ver-chip.clickable:hover {
+  background: #DCECFB;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(5,78,175,0.1);
 }
 
 .btn-group {
@@ -2174,5 +2387,286 @@ const duracionMontaje = computed(() => {
 .btn-del-tercero:hover {
   background: #FEE2E2;
   color: #B91C1C;
+}
+/* ── Resumen de Selección (Paso 3) ───────────────────────── */
+.selection-summary-card {
+  background: linear-gradient(135deg, #0F1A2E 0%, #1E293B 100%);
+  border-radius: 20px;
+  padding: 24px 32px;
+  color: #FFFFFF;
+  box-shadow: 0 10px 25px -5px rgba(15, 26, 46, 0.3);
+  margin-bottom: 24px;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 24px;
+  align-items: center;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.summary-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #94A3B8;
+}
+
+.summary-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #F1F5F9;
+}
+
+.summary-total {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(5, 78, 175, 0.2);
+  padding: 16px 24px;
+  border-radius: 14px;
+  border: 1px solid rgba(5, 78, 175, 0.3);
+  text-align: right;
+}
+
+.total-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #38BDF8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.total-value {
+  font-size: 26px;
+  font-weight: 800;
+  color: #FFFFFF;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.price-list-badge, .client-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.price-list-badge {
+  background: #ECFDF5;
+  border: 1px solid #10B981;
+  color: #047857;
+}
+
+.client-badge {
+  background: #EFF6FF;
+  border: 1px solid #3B82F6;
+  color: #1D4ED8;
+}
+
+.j-bet {
+  justify-content: space-between;
+}
+
+@media (max-width: 640px) {
+  .summary-grid {
+    grid-template-columns: 1fr;
+    text-align: left;
+  }
+  .summary-total {
+    text-align: left;
+  }
+}
+
+.cart-row--tercero {
+  background: #F0F9FF;
+  border-left: 3px solid #0EA5E9;
+  border-radius: 4px;
+  padding: 8px;
+  margin-bottom: 4px;
+}
+.inline-icon {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 4px;
+  color: #0EA5E9;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SHARED TABLE STYLES (prd-table system)
+   Mirrors QuotationProductsCardList to make tables consistent
+   in Paso 3 (third-party) and Paso 4 (summary) tables.
+═══════════════════════════════════════════════════════════ */
+
+.prd-table-card {
+  background: #FFFFFF;
+  border-radius: 18px;
+  border: 1px solid #E2EBF6;
+  box-shadow: 0 1px 4px rgba(5, 78, 175, .06), 0 4px 16px rgba(5, 78, 175, .08);
+  overflow: hidden;
+}
+
+.prd-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.prd-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+  min-width: 720px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+}
+
+.prd-table thead tr {
+  background: #F8FAFC;
+  border-bottom: 1px solid #E2EBF6;
+}
+
+.prd-table th {
+  padding: 10px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94A3B8;
+  font-family: 'Inter', sans-serif;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.th-num    { width: 40px; text-align: center; }
+.th-img    { width: 72px; }
+.th-right  { text-align: right; }
+.th-center { text-align: center; }
+
+.prd-table td {
+  padding: 12px 16px;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  color: #475569;
+  border-bottom: 1px solid #F1F5FA;
+  vertical-align: middle;
+}
+
+.prd-table tbody tr:last-child td { border-bottom: none; }
+
+.prd-row {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.prd-row:hover { background: #F0F7FF; }
+
+.prd-row-view { transition: background 0.15s ease; }
+.prd-row-view:hover { background: #F8FAFC; }
+
+.td-num {
+  text-align: center;
+  color: #94A3B8;
+  font-size: 11px;
+  font-weight: 600;
+  width: 40px;
+}
+
+.td-img {
+  width: 72px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.prd-thumb {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #E5EAF0;
+  display: block;
+  background: #F1F5F9;
+}
+
+.td-name  { min-width: 160px; }
+.td-right { text-align: right; white-space: nowrap; }
+.td-center { text-align: center; white-space: nowrap; }
+
+.prd-nombre {
+  font-weight: 500;
+  color: #0F1A2E;
+  margin: 0;
+  line-height: 1.4;
+}
+.prd-cat {
+  font-size: 11px;
+  color: #94A3B8;
+  margin: 2px 0 0;
+}
+
+.prd-qty {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748B;
+  background: #F1F5F9;
+  padding: 2px 8px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+.prd-price { color: #374151; font-weight: 500; }
+.prd-total { font-weight: 700; color: #054EAF; }
+
+.prd-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #94A3B8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.prd-action-btn:hover {
+  background: var(--hbg);
+  color: var(--hc);
+}
+
+.prd-subtotal-row {
+  background: #F0F6FF;
+  border-top: 2px solid #D1DAE6;
+}
+.prd-subtotal-row td {
+  border-bottom: none;
+  padding: 10px 16px;
+}
+.td-subtotal-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-family: 'Inter', sans-serif;
+  text-align: right;
+}
+.td-subtotal-val {
+  font-size: 14px;
+  font-weight: 800;
+  color: #054EAF;
+  text-align: right;
+  font-family: 'Inter', sans-serif;
+  white-space: nowrap;
 }
 </style>

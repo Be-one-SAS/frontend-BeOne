@@ -314,7 +314,6 @@ onMounted(fetchProducts)
                 </span>
               </th>
               <th class="pp-th">Disponibilidad</th>
-              <th class="pp-th" style="width:80px">Precios</th>
               <th class="pp-th" style="width:120px">Acciones</th>
             </tr>
           </thead>
@@ -386,12 +385,6 @@ onMounted(fetchProducts)
                     <span :class="availClass(row.availabilityStatus)">{{ availLabel(row.availabilityStatus) }}</span>
                   </td>
 
-                  <!-- Precios — @click.stop evita el toggle -->
-                  <td class="pp-td" @click.stop>
-                    <button class="act-btn act-view" @click.stop="openModal(row)">
-                      <Eye :size="12" /> Ver
-                    </button>
-                  </td>
 
                   <!-- Acciones — @click.stop evita el toggle -->
                   <td class="pp-td" @click.stop>

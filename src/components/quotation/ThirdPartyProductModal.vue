@@ -252,7 +252,7 @@ const formatMoney = (val) =>
               <div class="g2">
 
                 <div class="fg" :class="{ 'fg--err': hasError('precios') }">
-                  <label class="flbl">Precio de Venta <span class="req">*</span></label>
+                  <label class="flbl">Precio Unitario <span class="req">*</span></label>
                   <input type="number" v-model="producto.precios" class="finp" placeholder="0" min="0" />
                   <span v-if="hasError('precios')" class="err-msg">Campo requerido</span>
                 </div>
@@ -313,7 +313,7 @@ const formatMoney = (val) =>
               </div>
               <div class="g3">
                 <div class="fin-pill fin-pill--green">
-                  <span class="fin-lbl">Precio de Venta</span>
+                  <span class="fin-lbl">Precio Unitario</span>
                   <span class="fin-val">{{ formatMoney(cotizacion.precioVenta) }}</span>
                 </div>
                 <div class="fin-pill fin-pill--blue">
