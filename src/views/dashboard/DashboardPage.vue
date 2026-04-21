@@ -1,184 +1,170 @@
 <template>
   <div class="dp">
 
-    <!-- ══════════════════════════════════════════════════════
-         FILA 1 — KPI CARDS
-    ══════════════════════════════════════════════════════ -->
-    <div class="dp-kpi-grid">
-
-      <!-- KPI 1: Cotizaciones en curso -->
-      <div class="kpi-card">
-        <div class="kpi-icon" style="--icon-bg: #EEF4FF">
-          <FileText :size="18" color="#054EAF" />
-        </div>
-        <!-- TODO: conectar con GET /api/dashboard/kpis -->
-        <p class="kpi-label">Cotizaciones en curso</p>
-        <p class="kpi-number">{{ kpis.cotizaciones.value }}</p>
-        <span class="kpi-trend trend-up">↑ {{ kpis.cotizaciones.trend }}% este mes</span>
+    <!-- SKELETON LOADER -->
+    <div v-if="isLoading" class="dp-loading">
+      <div class="dp-kpi-grid">
+        <div class="skeleton-card" v-for="i in 4" :key="i"></div>
       </div>
-
-      <!-- KPI 2: Eventos próximos (30 días) -->
-      <div class="kpi-card">
-        <div class="kpi-icon" style="--icon-bg: #DCFCE7">
-          <CalendarDays :size="18" color="#16A34A" />
-        </div>
-        <!-- TODO: conectar con GET /api/eventos?proximos=30 -->
-        <p class="kpi-label">Eventos próximos (30 días)</p>
-        <p class="kpi-number">{{ kpis.eventos.value }}</p>
-        <span class="kpi-trend trend-up">↑ {{ kpis.eventos.nuevos }} confirmados</span>
+      <div class="dp-mid-grid" style="margin-top: 16px;">
+        <div class="skeleton-card large" style="height: 400px;"></div>
+        <div class="skeleton-card split" style="height: 400px;"></div>
       </div>
-
-      <!-- KPI 3: Tareas operacionales pendientes -->
-      <div class="kpi-card">
-        <div class="kpi-icon" style="--icon-bg: #FEF3C7">
-          <ClipboardList :size="18" color="#F59E0B" />
-        </div>
-        <!-- TODO: conectar con GET /api/tareas?estado=pendiente -->
-        <p class="kpi-label">Tareas operacionales pendientes</p>
-        <p class="kpi-number">{{ kpis.tareas.value }}</p>
-        <span class="kpi-trend trend-down">↓ {{ kpis.tareas.vencidas }} vencidas</span>
-      </div>
-
-      <!-- KPI 4: Próximo evento — card primaria destacada (bg #054EAF) -->
-      <div class="kpi-card kpi-primary">
-        <div class="kpi-icon" style="--icon-bg: rgba(255,255,255,.18)">
-          <Zap :size="18" color="white" />
-        </div>
-        <!-- TODO: conectar con GET /api/eventos/proximo -->
-        <p class="kpi-label" style="color: rgba(255,255,255,.65)">Próximo evento</p>
-        <p class="kpi-number kpi-number--sm">{{ proximoEvento.nombre }}</p>
-        <p class="kpi-sub">{{ proximoEvento.fechaDisplay }} · {{ proximoEvento.ciudad }}</p>
-        <span class="kpi-trend" style="background: rgba(255,255,255,.18); color: white">
-          {{ proximoEvento.tipo }}
-        </span>
-      </div>
-
     </div>
 
-    <!-- ══════════════════════════════════════════════════════
-         FILA 2 — CALENDARIO (65%) + ALERTAS (35%)
-    ══════════════════════════════════════════════════════ -->
-    <div class="dp-mid-grid">
-
-      <!-- Calendario -->
-      <!-- El componente Calendar gestiona sus propios datos reales vía API.
-           Solo se envuelve para aplicar el card del design system. -->
-      <div class="card">
-        <Calendar />
-      </div>
-
-      <!-- Panel de Alertas -->
-      <div class="card alerts-card">
-        <div class="section-head">
-          <h2 class="section-title">Alertas activas</h2>
-          <span class="count-badge">{{ alertas.length }}</span>
+    <!-- MAIN DASHBOARD -->
+    <template v-else>
+      <!-- ══════════════════════════════════════════════════════
+           FILA 1 — KPI CARDS
+      ══════════════════════════════════════════════════════ -->
+      <div class="dp-kpi-grid">
+        <!-- KPI 1: Valor Total Cotizado -->
+        <div class="kpi-card">
+          <div class="kpi-icon" style="--icon-bg: #FEF3C7">
+            <DollarSign :size="18" color="#F59E0B" />
+          </div>
+          <p class="kpi-label">Valor Total Cotizado</p>
+          <p class="kpi-number" :title="formatCurrency(kpi.valorCotizado)">{{ formatCurrencyShort(kpi.valorCotizado) }}</p>
+          <span class="kpi-trend trend-up">Cotizaciones Activas</span>
         </div>
 
-        <!-- TODO: conectar con GET /api/alertas -->
-        <div class="alerts-list">
-          <div
-            v-for="alerta in alertas"
-            :key="alerta.id"
-            class="alert-item"
-            :style="`--ac: ${alerta.color}`"
-          >
-            <span class="alert-emoji">{{ alerta.icono }}</span>
-            <div class="alert-content">
-              <p class="alert-desc">{{ alerta.descripcion }}</p>
-              <p class="alert-time">{{ alerta.tiempo }}</p>
+        <!-- KPI 2: Total Cotizaciones -->
+        <div class="kpi-card">
+          <div class="kpi-icon" style="--icon-bg: #EEF4FF">
+            <FileText :size="18" color="#054EAF" />
+          </div>
+          <p class="kpi-label">Total Cotizaciones</p>
+          <p class="kpi-number">{{ kpi.totalCotizaciones }}</p>
+          <span class="kpi-trend trend-up">Históricas</span>
+        </div>
+
+        <!-- KPI 3: Clientes Registrados -->
+        <div class="kpi-card">
+          <div class="kpi-icon" style="--icon-bg: #DCFCE7">
+            <Users :size="18" color="#16A34A" />
+          </div>
+          <p class="kpi-label">Clientes Registrados</p>
+          <p class="kpi-number">{{ kpi.totalClientes }}</p>
+          <span class="kpi-trend trend-up" v-if="!isAdmin">Base Global</span>
+          <span class="kpi-trend trend-up" v-else>Base Activa</span>
+        </div>
+
+        <!-- KPI 4: Cotizaciones Aprobadas vs Pendientes -->
+        <div class="kpi-card kpi-primary">
+          <div class="kpi-icon" style="--icon-bg: rgba(255,255,255,.18)">
+            <CheckCircle2 :size="18" color="white" />
+          </div>
+          <p class="kpi-label" style="color: rgba(255,255,255,.65)">Ratio de Éxito</p>
+          <p class="kpi-number kpi-number--sm">{{ kpi.aprobadas }} vs {{ kpi.pendientes }}</p>
+          <p class="kpi-sub">Aprobadas / Pendientes</p>
+          <span class="kpi-trend" style="background: rgba(255,255,255,.18); color: white">
+            Eficiencia
+          </span>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════
+           FILA 2 — CALENDARIO (65%) + CONTROLES (35%)
+      ══════════════════════════════════════════════════════ -->
+      <div class="dp-mid-grid">
+
+        <!-- Calendario Dinámico -->
+        <div class="card">
+          <Calendar />
+        </div>
+
+        <!-- Panel Lateral derecho -->
+        <div class="side-panel">
+          
+          <!-- Accesos Rápidos -->
+          <div class="card alerts-card" style="margin-bottom: 16px;">
+            <div class="section-head">
+              <h2 class="section-title">Accesos Rápidos</h2>
+            </div>
+            <div class="alerts-list">
+              <router-link to="/admin/cotizar" class="alert-item link-item" style="--ac: #054EAF">
+                <span class="alert-emoji">📝</span>
+                <div class="alert-content">
+                  <p class="alert-desc">Nueva Cotización</p>
+                  <p class="alert-time">Crear y enviar al cliente</p>
+                </div>
+              </router-link>
+              
+              <router-link to="/customer/customer" class="alert-item link-item" style="--ac: #16A34A">
+                <span class="alert-emoji">👥</span>
+                <div class="alert-content">
+                  <p class="alert-desc">Directorio de Clientes</p>
+                  <p class="alert-time">Gestiona toda la base global</p>
+                </div>
+              </router-link>
+              
+              <router-link to="/admin/ver-cotizaciones" class="alert-item link-item" style="--ac: #8B5CF6">
+                <span class="alert-emoji">📂</span>
+                <div class="alert-content">
+                  <p class="alert-desc">Ver Cotizaciones</p>
+                  <p class="alert-time">Control y seguimiento comercial</p>
+                </div>
+              </router-link>
             </div>
           </div>
-        </div>
 
-        <button class="btn-link">Ver todas las alertas →</button>
-      </div>
-
-    </div>
-
-    <!-- ══════════════════════════════════════════════════════
-         FILA 3 — INVENTARIO (40%) · EQUIPO (30%) · ACTIVIDAD (30%)
-    ══════════════════════════════════════════════════════ -->
-    <div class="dp-bottom-grid">
-
-      <!-- Inventario de Equipos -->
-      <div class="card">
-        <div class="section-head">
-          <h2 class="section-title">Inventario de Equipos</h2>
-        </div>
-        <!-- TODO: conectar con GET /api/inventario/equipos -->
-        <div class="inv-list">
-          <div v-for="item in inventario" :key="item.nombre" class="inv-item">
-            <div class="inv-row">
-              <span class="inv-nombre">{{ item.nombre }}</span>
-              <span
-                class="status-badge"
-                :style="`background: ${item.statusBg}; color: ${item.statusColor}`"
-              >{{ item.status }}</span>
+          <!-- Distribución por Estado -->
+          <div class="card" v-show="chartDataExists">
+            <div class="section-head">
+              <h2 class="section-title">Tasa de Efectividad</h2>
             </div>
-            <p class="inv-counts">{{ item.disponibles }} / {{ item.total }} disponibles</p>
-            <div class="prog-track">
-              <div
-                class="prog-fill"
-                :style="`width: ${Math.round((item.disponibles / item.total) * 100)}%; background: ${item.progressColor}`"
-              ></div>
+            <div class="chart-container" style="position: relative; height: 180px; width: 100%;">
+              <canvas ref="chartCanvas"></canvas>
             </div>
           </div>
+
         </div>
+
       </div>
 
-      <!-- Equipo esta semana -->
-      <div class="card">
-        <div class="section-head">
-          <h2 class="section-title">Equipo esta semana</h2>
-        </div>
-        <!-- TODO: conectar con GET /api/equipo/semana -->
-        <div class="team-list">
-          <div v-for="persona in equipo" :key="persona.id" class="team-item">
-            <div
-              class="team-avatar"
-              :style="`background: ${persona.avatarBg}; color: ${persona.avatarColor}`"
-            >{{ persona.iniciales }}</div>
-            <div class="team-info">
-              <p class="team-nombre">{{ persona.nombre }}</p>
-              <p class="team-rol">{{ persona.rol }}</p>
-              <p class="team-evento">{{ persona.evento }}</p>
-            </div>
-            <span
-              class="status-badge"
-              :style="`background: ${persona.badgeBg}; color: ${persona.badgeColor}`"
-            >{{ persona.disponibilidad }}</span>
+      <!-- ══════════════════════════════════════════════════════
+           FILA 3 — ACTIVIDAD RECIENTE
+      ══════════════════════════════════════════════════════ -->
+      <div class="dp-bottom-grid single-col">
+        <div class="card">
+          <div class="section-head">
+            <h2 class="section-title">Últimas Cotizaciones Generadas</h2>
+            <span class="count-badge">{{ recentQuotations.length }}</span>
           </div>
-        </div>
-      </div>
 
-      <!-- Actividad reciente -->
-      <div class="card">
-        <div class="section-head">
-          <h2 class="section-title">Actividad reciente</h2>
-        </div>
-        <!-- TODO: conectar con GET /api/actividad?limit=8 -->
-        <div class="timeline">
-          <div v-for="(act, i) in actividad" :key="act.id" class="tl-item">
-            <div class="tl-left">
-              <div class="tl-dot" :style="`background: ${act.color}`">
-                <component :is="act.icono" :size="12" color="white" />
+          <div v-if="recentQuotations.length === 0" class="empty-state">
+            <p>No tienes cotizaciones recientes en tu historial.</p>
+            <router-link to="/admin/cotizar" class="btn-link">Comienza creando tu primera cotización →</router-link>
+          </div>
+          
+          <div v-else class="timeline">
+            <div v-for="(act, i) in recentQuotations" :key="act.id" class="tl-item">
+              <div class="tl-left">
+                <div class="tl-dot" style="background: #3B82F6">
+                  <FileEdit :size="12" color="white" />
+                </div>
+                <div v-if="i < recentQuotations.length - 1" class="tl-line"></div>
               </div>
-              <div v-if="i < actividad.length - 1" class="tl-line"></div>
-            </div>
-            <div class="tl-body">
-              <p class="tl-text">{{ act.texto }}</p>
-              <p class="tl-meta">{{ act.usuario }} · {{ act.tiempo }}</p>
+              <div class="tl-body tl-link-body" @click="$router.push(`/admin/cotizar/${act.id}`)">
+                <p class="tl-text">
+                  <span style="font-weight:700; color:#054EAF;">Cotización #{{ act.id }}</span>
+                   para {{ act.customer?.name || act.customer?.businessName || 'Cliente No Identificado' }}
+                </p>
+                <p class="tl-meta">
+                  Valor: {{ formatCurrency(act.total) }} · Estado: {{ act.status?.params?.name || 'Creado' }} 
+                  <span v-if="isAdmin">· Agente: {{ act.user?.fullName || 'Desconocido' }}</span>
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </div>
-
-    </div>
+    </template>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, computed, shallowRef } from 'vue'
 import {
   FileText,
   CalendarDays,
@@ -187,66 +173,144 @@ import {
   FileEdit,
   CheckCircle2,
   PackageCheck,
+  Users,
+  DollarSign
 } from 'lucide-vue-next'
 import Calendar from '@/components/calendar/Calendar.vue'
+import Chart from 'chart.js/auto'
+import { useRouter } from 'vue-router'
 
-// ── KPI ────────────────────────────────────────────────
-// TODO: reemplazar con respuesta de GET /api/dashboard/kpis
-const kpis = ref({
-  cotizaciones: { value: 8,  trend: 12 },
-  eventos:      { value: 5,  nuevos: 3 },
-  tareas:       { value: 13, vencidas: 2 },
+import { getQuotations } from '@/services/quotation.service'
+import { getCustomer } from '@/services/customer.service'
+import { useAuth } from '@/composables/useAuth'
+
+const router = useRouter()
+const { user } = useAuth()
+const isLoading = ref(true)
+const chartDataExists = ref(false)
+
+const kpi = ref({
+  totalCotizaciones: 0,
+  totalClientes: 0,
+  valorCotizado: 0,
+  aprobadas: 0,
+  pendientes: 0
 })
 
-// TODO: reemplazar con GET /api/eventos/proximo
-const proximoEvento = ref({
-  nombre:       'Team Building Bancolombia',
-  fechaDisplay: '3 Mar 2026',
-  ciudad:       'Medellín',
-  tipo:         'Team Building',
+const recentQuotations = ref([])
+const chartCanvas = ref(null)
+let chartInstance = null
+
+// RBAC
+const isAdmin = computed(() => {
+  return user.value?.roles?.includes('ADMIN') || false
 })
 
-// ── ALERTAS ────────────────────────────────────────────
-// TODO: reemplazar con GET /api/alertas
-const alertas = ref([
-  { id: 1, icono: '⚠️', descripcion: 'Stock bajo de Inflable XL — solo 1 disponible',        tiempo: 'hace 30 min', color: '#F59E0B' },
-  { id: 2, icono: '📋', descripcion: 'Cotización #124 (EPM) sin respuesta hace 3 días',        tiempo: 'hace 3 días', color: '#3B82F6' },
-  { id: 3, icono: '🚛', descripcion: 'Montaje Alpina Bogotá pendiente de confirmar',            tiempo: 'hace 1 día',  color: '#8B5CF6' },
-  { id: 4, icono: '📋', descripcion: 'Cotización #121 (Grupo Éxito) vence mañana',             tiempo: 'hace 5h',     color: '#EF4444' },
-  { id: 5, icono: '✅', descripcion: 'Evento Team Building Postobón completado con éxito',      tiempo: 'hace 2 días', color: '#10B981' },
-])
+const formatCurrency = (val) => {
+  if (!val) return '$0'
+  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val)
+}
 
-// ── INVENTARIO ─────────────────────────────────────────
-// TODO: reemplazar con GET /api/inventario/equipos
-const inventario = ref([
-  { nombre: 'Inflable XL',       disponibles: 1, total: 3, status: 'Bajo stock',     statusBg: '#FEE2E2', statusColor: '#B91C1C', progressColor: '#EF4444' },
-  { nombre: 'Inflable Mediano',   disponibles: 4, total: 6, status: 'Disponible',     statusBg: '#DCFCE7', statusColor: '#16A34A', progressColor: '#22C55E' },
-  { nombre: 'Castillo Inflable',  disponibles: 2, total: 4, status: 'Disponible',     statusBg: '#DCFCE7', statusColor: '#16A34A', progressColor: '#22C55E' },
-  { nombre: 'Tobogán Gigante',    disponibles: 1, total: 2, status: 'En evento',      statusBg: '#DBEAFE', statusColor: '#1D4ED8', progressColor: '#F59E0B' },
-  { nombre: 'Circuito Ninja',     disponibles: 0, total: 1, status: 'Mantenimiento',  statusBg: '#FEF3C7', statusColor: '#B45309', progressColor: '#EF4444' },
-  { nombre: 'Piscina de Pelotas', disponibles: 3, total: 4, status: 'Disponible',     statusBg: '#DCFCE7', statusColor: '#16A34A', progressColor: '#22C55E' },
-])
+const formatCurrencyShort = (val) => {
+  if (!val) return '$0'
+  if (val >= 1000000) {
+    return '$' + (val / 1000000).toFixed(1).replace(/\.0$/, '') + 'M'
+  }
+  return formatCurrency(val)
+}
 
-// ── EQUIPO ─────────────────────────────────────────────
-// TODO: reemplazar con GET /api/equipo/semana
-const equipo = ref([
-  { id: 1, nombre: 'Carlos Ruiz',   iniciales: 'CR', rol: 'Coordinador',  evento: 'Team Building Bancolombia', avatarBg: '#DBEAFE', avatarColor: '#1D4ED8', disponibilidad: 'En campo',   badgeBg: '#DBEAFE', badgeColor: '#1D4ED8' },
-  { id: 2, nombre: 'Laura Gómez',   iniciales: 'LG', rol: 'Comercial',    evento: 'Cotización EPM',             avatarBg: '#DCFCE7', avatarColor: '#16A34A', disponibilidad: 'Disponible', badgeBg: '#DCFCE7', badgeColor: '#16A34A' },
-  { id: 3, nombre: 'Andrés Mora',   iniciales: 'AM', rol: 'Téc. Montaje', evento: 'Feria Alpina Bogotá',        avatarBg: '#FEF3C7', avatarColor: '#B45309', disponibilidad: 'En campo',   badgeBg: '#DBEAFE', badgeColor: '#1D4ED8' },
-  { id: 4, nombre: 'Sandra Peña',   iniciales: 'SP', rol: 'Logística',    evento: 'Convención Éxito',           avatarBg: '#EDE9FE', avatarColor: '#7C3AED', disponibilidad: 'Disponible', badgeBg: '#DCFCE7', badgeColor: '#16A34A' },
-  { id: 5, nombre: 'Felipe Torres', iniciales: 'FT', rol: 'Téc. Montaje', evento: '—',                          avatarBg: '#F3F4F6', avatarColor: '#6B7280', disponibilidad: 'Libre',      badgeBg: '#F3F4F6', badgeColor: '#6B7280' },
-])
+onMounted(async () => {
+  try {
+    // Carga paralela controlada para que un fallo no rompa el dashboard completo
+    let customersData = []
+    let quotationsData = []
 
-// ── ACTIVIDAD RECIENTE ─────────────────────────────────
-// TODO: reemplazar con GET /api/actividad?limit=8
-const actividad = ref([
-  { id: 1, icono: FileEdit,      texto: 'Cotización #126 creada para Postobón — Día de Integración',  usuario: 'Laura G.',  tiempo: 'hace 20 min', color: '#3B82F6' },
-  { id: 2, icono: CheckCircle2,  texto: 'Evento Team Building Bancolombia confirmado',                 usuario: 'Carlos R.', tiempo: 'hace 1h',     color: '#10B981' },
-  { id: 3, icono: ClipboardList, texto: 'Tarea "Confirmar transporte Cali" completada',                usuario: 'Andrés M.', tiempo: 'hace 2h',     color: '#8B5CF6' },
-  { id: 4, icono: PackageCheck,  texto: 'Castillo Inflable regresó de mantenimiento',                  usuario: 'Sandra P.', tiempo: 'hace 3h',     color: '#F59E0B' },
-  { id: 5, icono: FileEdit,      texto: 'Cotización #125 enviada a EPM — Feria Corporativa',           usuario: 'Laura G.',  tiempo: 'hace 5h',     color: '#3B82F6' },
-  { id: 6, icono: CheckCircle2,  texto: 'Evento Convención Éxito marcado como completado',             usuario: 'Carlos R.', tiempo: 'ayer',        color: '#10B981' },
-])
+    try {
+      const custRes = await getCustomer()
+      // Estructura dependiendo del endpoint, normalmente data o data.data
+      customersData = custRes.data?.data || custRes.data || []
+      // El total de clientes es global para dar impresiones de tamaño
+      kpi.value.totalClientes = Array.isArray(customersData) ? customersData.length : 0
+    } catch (e) {
+      console.warn("Fallo carga silenciosa de clientes", e)
+    }
+
+    try {
+      const qRes = await getQuotations()
+      quotationsData = qRes.data?.data || qRes.data || []
+    } catch (e) {
+      console.warn("Fallo carga silenciosa de cotizaciones", e)
+    }
+
+    const allQuotes = Array.isArray(quotationsData) ? quotationsData : []
+    
+    // Si no es admin, filtra por creación o asignación como coordinador
+    const myQuotes = isAdmin.value 
+      ? allQuotes 
+      : allQuotes.filter(q => q.userId === user.value?.id || q.coordinadores?.some(c => c.id === user.value?.id))
+
+    kpi.value.totalCotizaciones = myQuotes.length
+
+    let val = 0
+    let aprob = 0
+    let pend = 0
+    let estadosCount = {}
+
+    myQuotes.forEach(q => {
+      val += (q.total || 0)
+      
+      const st = q.status?.params?.name?.toLowerCase() || 'creado'
+      const stName = q.status?.params?.name || 'Creado'
+
+      if (st.includes('aprobad') || st.includes('ganad') || st.includes('acept')) aprob++
+      if (st.includes('pendient') || st.includes('cread') || st.includes('proceso')) pend++
+      
+      estadosCount[stName] = (estadosCount[stName] || 0) + 1
+    })
+
+    kpi.value.valorCotizado = val
+    kpi.value.aprobadas = aprob
+    kpi.value.pendientes = pend
+
+    // Ordenar descendentemente por ID
+    const sorted = [...myQuotes].sort((a,b) => b.id - a.id)
+    recentQuotations.value = sorted.slice(0, 5)
+
+    // Renderizar Chart.js
+    if (Object.keys(estadosCount).length > 0) {
+      chartDataExists.value = true
+      setTimeout(() => {
+        if (chartCanvas.value) {
+          chartInstance = new Chart(chartCanvas.value, {
+            type: 'doughnut',
+            data: {
+              labels: Object.keys(estadosCount),
+              datasets: [{
+                data: Object.values(estadosCount),
+                backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#6366F1'],
+                borderWidth: 0,
+                hoverOffset: 4
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { position: 'right', labels: { boxWidth: 10, font: { size: 11, family: 'Inter' } } }
+              },
+              cutout: '72%'
+            }
+          })
+        }
+      }, 50)
+    }
+
+  } catch (error) {
+    console.error("Dashboard mount error:", error)
+  } finally {
+    isLoading.value = false
+  }
+})
 </script>
 
 <style scoped>
@@ -260,6 +324,24 @@ const actividad = ref([
   width: 100%;
 }
 
+/* Skeleton Loaders */
+.dp-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.skeleton-card {
+  background: #E2E8F0;
+  border-radius: 18px;
+  height: 120px;
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 0.3; }
+  100% { opacity: 0.6; }
+}
+
 /* Grid: 4 columnas iguales para KPIs */
 .dp-kpi-grid {
   display: grid;
@@ -267,7 +349,7 @@ const actividad = ref([
   gap: 16px;
 }
 
-/* Grid: 65% calendario | 35% alertas */
+/* Grid: 65% calendario | 35% alertas/graficos */
 .dp-mid-grid {
   display: grid;
   grid-template-columns: 65fr 35fr;
@@ -275,10 +357,12 @@ const actividad = ref([
   align-items: start;
 }
 
-/* Grid: 40% inventario | 30% equipo | 30% actividad */
+/* Grid: Full width simple para el historial */
+.single-col {
+  grid-template-columns: 1fr;
+}
 .dp-bottom-grid {
   display: grid;
-  grid-template-columns: 40fr 30fr 30fr;
   gap: 16px;
   align-items: start;
 }
@@ -339,7 +423,7 @@ const actividad = ref([
   font-weight: 500;
   color: #64748B;
   font-family: 'Inter', sans-serif;
-  padding-right: 48px; /* evita solapar con el ícono */
+  padding-right: 48px; 
   line-height: 1.4;
 }
 
@@ -352,9 +436,8 @@ const actividad = ref([
   margin-top: 2px;
 }
 
-/* Versión reducida para nombre del próximo evento */
 .kpi-number--sm {
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 700;
   line-height: 1.3;
   color: #FFFFFF;
@@ -382,7 +465,7 @@ const actividad = ref([
 .trend-down { background: #FEE2E2; color: #B91C1C; }
 
 /* ─────────────────────────────────────────────
-   SECTION HEADER (compartido)
+   SECTION HEADER 
 ───────────────────────────────────────────── */
 .section-head {
   display: flex;
@@ -408,19 +491,8 @@ const actividad = ref([
   font-family: 'Inter', sans-serif;
 }
 
-/* Badge reutilizable (inventario + equipo) */
-.status-badge {
-  font-size: 10px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 20px;
-  white-space: nowrap;
-  flex-shrink: 0;
-  font-family: 'Inter', sans-serif;
-}
-
 /* ─────────────────────────────────────────────
-   PANEL DE ALERTAS
+   PANEL LATERAL: RUTAS CORTAS Y ALERTAS
 ───────────────────────────────────────────── */
 .alerts-card {
   display: flex;
@@ -442,10 +514,15 @@ const actividad = ref([
   border-radius: 10px;
   border-left: 3px solid var(--ac);
   background: #FAFBFE;
-  transition: background 0.15s;
+  transition: all 0.15s;
+  text-decoration: none;
+  cursor: pointer;
 }
 
-.alert-item:hover { background: #F4F7FD; }
+.alert-item:hover { 
+  background: #F4F7FD; 
+  transform: translateX(4px);
+}
 
 .alert-emoji   { font-size: 16px; flex-shrink: 0; line-height: 1.3; }
 .alert-content { flex: 1; min-width: 0; }
@@ -453,131 +530,16 @@ const actividad = ref([
 .alert-desc {
   font-size: 12px;
   color: #0F1A2E;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.4;
   font-family: 'Inter', sans-serif;
 }
 
 .alert-time {
   font-size: 11px;
-  color: #94A3B8;
+  color: #64748B;
   margin-top: 2px;
   font-family: 'Inter', sans-serif;
-}
-
-.btn-link {
-  margin-top: 14px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #054EAF;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  text-align: left;
-  font-family: 'Inter', sans-serif;
-  transition: opacity 0.15s;
-}
-
-.btn-link:hover { opacity: 0.7; }
-
-/* ─────────────────────────────────────────────
-   INVENTARIO
-───────────────────────────────────────────── */
-.inv-list { display: flex; flex-direction: column; }
-
-.inv-item {
-  padding: 12px 0;
-  border-bottom: 1px solid #F1F5FA;
-}
-
-.inv-item:last-child { border-bottom: none; }
-
-.inv-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-.inv-nombre {
-  font-size: 13px;
-  font-weight: 500;
-  color: #0F1A2E;
-  font-family: 'Inter', sans-serif;
-}
-
-.inv-counts {
-  font-size: 11px;
-  color: #94A3B8;
-  margin-bottom: 6px;
-  font-family: 'Inter', sans-serif;
-}
-
-.prog-track {
-  height: 5px;
-  background: #F1F5FA;
-  border-radius: 99px;
-  overflow: hidden;
-}
-
-.prog-fill {
-  height: 100%;
-  border-radius: 99px;
-  transition: width 0.6s ease;
-}
-
-/* ─────────────────────────────────────────────
-   EQUIPO
-───────────────────────────────────────────── */
-.team-list { display: flex; flex-direction: column; }
-
-.team-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 0;
-  border-bottom: 1px solid #F1F5FA;
-}
-
-.team-item:last-child { border-bottom: none; }
-
-.team-avatar {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-  flex-shrink: 0;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-}
-
-.team-info { flex: 1; min-width: 0; }
-
-.team-nombre {
-  font-size: 13px;
-  font-weight: 600;
-  color: #0F1A2E;
-  font-family: 'Inter', sans-serif;
-}
-
-.team-rol {
-  font-size: 11px;
-  color: #64748B;
-  font-family: 'Inter', sans-serif;
-}
-
-.team-evento {
-  font-size: 11px;
-  color: #94A3B8;
-  font-family: 'Inter', sans-serif;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* ─────────────────────────────────────────────
@@ -627,20 +589,60 @@ const actividad = ref([
   min-width: 0;
 }
 
+.tl-link-body {
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+.tl-link-body:hover {
+  background: #FAFBFE;
+}
+
 .tl-text {
-  font-size: 12px;
+  font-size: 13px;
   color: #0F1A2E;
   line-height: 1.5;
   font-weight: 500;
   font-family: 'Inter', sans-serif;
 }
 
+.tl-link {
+  text-decoration: none;
+  font-weight: 600;
+  color: inherit;
+}
+
 .tl-meta {
   font-size: 11px;
-  color: #94A3B8;
+  color: #64748B;
   margin-top: 2px;
   font-family: 'Inter', sans-serif;
 }
+
+.empty-state {
+  font-size: 13px;
+  color: #64748B;
+  text-align: center;
+  padding: 30px;
+  font-family: 'Inter', sans-serif;
+}
+
+.btn-link {
+  margin-top: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #054EAF;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  font-family: 'Inter', sans-serif;
+  transition: opacity 0.15s;
+  text-decoration: none;
+}
+.btn-link:hover { opacity: 0.7; }
 
 /* ─────────────────────────────────────────────
    RESPONSIVE
