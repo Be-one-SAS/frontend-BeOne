@@ -29,12 +29,90 @@
                 <label class="tq-label">Producto del catálogo <span class="tq-req">*</span></label>
                 <select v-model="form.catalogItemId" class="tq-select" :disabled="loadingCalc">
                   <option :value="null" disabled>Selecciona un producto del catálogo…</option>
-                  <option v-for="item in catalog" :key="item.id" :value="item.id">
+                  <option v-for="item in allCatalog" :key="item.id" :value="item.id">
                     {{ item.dispositivo || item.nombre || item.descripcion || `Producto #${item.id}` }}
                   </option>
+                  <option disabled>──────────────────────────</option>
+                  <option value="__new__">+ Agregar nuevo producto</option>
                 </select>
                 <span v-if="errors.catalogItemId" class="tq-err">{{ errors.catalogItemId }}</span>
               </div>
+
+              <!-- Sub-formulario: nuevo producto del catálogo -->
+              <Transition name="tq-slide">
+                <div v-if="showNewProductForm" class="tq-new-product-form">
+                  <div class="tq-new-product-hdr">
+                    <Plus :size="14" />
+                    <span>Nuevo producto en catálogo</span>
+                    <button type="button" class="tq-new-product-close" @click="cancelarNuevoProducto">
+                      <X :size="14" />
+                    </button>
+                  </div>
+
+                  <div class="tq-grid-2">
+                    <div class="tq-field tq-field--span-2">
+                      <label class="tq-label">Nombre del dispositivo <span class="tq-req">*</span></label>
+                      <input
+                        v-model="newProductForm.dispositivo"
+                        type="text"
+                        class="tq-input"
+                        placeholder="Ej: Pantalla LED 4x3"
+                        :disabled="savingNewProduct"
+                      />
+                    </div>
+                    <div class="tq-field">
+                      <label class="tq-label">Precio base (COP)</label>
+                      <input
+                        v-model.number="newProductForm.valorBase"
+                        type="number"
+                        min="0"
+                        class="tq-input tq-input--money"
+                        placeholder="$ 0"
+                        :disabled="savingNewProduct"
+                      />
+                    </div>
+                    <div class="tq-field">
+                      <label class="tq-label">Categoría</label>
+                      <input
+                        v-model="newProductForm.categoria"
+                        type="text"
+                        class="tq-input"
+                        placeholder="Ej: Sonido"
+                        :disabled="savingNewProduct"
+                      />
+                    </div>
+                    <div class="tq-field tq-field--span-2">
+                      <label class="tq-label">Descripción</label>
+                      <input
+                        v-model="newProductForm.descripcion"
+                        type="text"
+                        class="tq-input"
+                        placeholder="Descripción breve"
+                        :disabled="savingNewProduct"
+                      />
+                    </div>
+                  </div>
+
+                  <p v-if="newProductError" class="tq-new-product-error">{{ newProductError }}</p>
+                  <p v-if="newProductSuccess" class="tq-new-product-success">Producto creado y seleccionado.</p>
+
+                  <div class="tq-new-product-actions">
+                    <button type="button" class="tq-btn-cancel" @click="cancelarNuevoProducto" :disabled="savingNewProduct">
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      class="tq-btn-add"
+                      :disabled="!newProductForm.dispositivo.trim() || savingNewProduct"
+                      @click="guardarNuevoProducto"
+                    >
+                      <Loader2 v-if="savingNewProduct" :size="14" class="tq-spin" />
+                      <Plus v-else :size="14" />
+                      {{ savingNewProduct ? 'Guardando…' : 'Guardar producto' }}
+                    </button>
+                  </div>
+                </div>
+              </Transition>
 
               <div class="tq-grid-3">
                 <div class="tq-field">
@@ -195,6 +273,7 @@
                   </div>
                   <span v-if="errors.margenVariable" class="tq-err">{{ errors.margenVariable }}</span>
                 </div>
+
               </div>
             </div>
 
@@ -269,13 +348,18 @@ import { ref, computed, watch } from 'vue'
 import { watchDebounced } from '@vueuse/core'
 import { Package, Truck, X, Calculator, Loader2, Plus, BarChart2, Cpu, FileText } from 'lucide-vue-next'
 import { calculateFromCost } from '@/services/quotation.service'
+import { thirdPartyCatalog } from '@/services/products.service'
 
 const props = defineProps({
   show: { type: Boolean, default: false },
   catalog: { type: Array, default: () => [] },
 })
 
-const emit = defineEmits(['close', 'add'])
+const emit = defineEmits(['close', 'add', 'catalog-updated'])
+
+// ── Catálogo local (extiende el prop con productos recién creados) ────────────
+const localAdditions = ref([])
+const allCatalog = computed(() => [...props.catalog, ...localAdditions.value])
 
 // ── Form state ───────────────────────────────────────────────────────────────
 const initialForm = {
@@ -312,6 +396,44 @@ const loadingCalc = ref(false)
 const calcError = ref('')
 const desglose = ref(null)
 
+// ── Sub-formulario: nuevo producto ───────────────────────────────────────────
+const showNewProductForm = ref(false)
+const newProductForm = ref({ dispositivo: '', valorBase: null, descripcion: '', categoria: '' })
+const savingNewProduct = ref(false)
+const newProductError = ref('')
+const newProductSuccess = ref(false)
+
+const guardarNuevoProducto = async () => {
+  if (!newProductForm.value.dispositivo.trim()) return
+  savingNewProduct.value = true
+  newProductError.value = ''
+  try {
+    const { data } = await thirdPartyCatalog({
+      dispositivo:  newProductForm.value.dispositivo.trim(),
+      valorBase:    newProductForm.value.valorBase    || undefined,
+      descripcion:  newProductForm.value.descripcion.trim()  || undefined,
+      categoria:    newProductForm.value.categoria.trim()    || undefined,
+    })
+    localAdditions.value.push(data)
+    form.value.catalogItemId = data.id
+    showNewProductForm.value = false
+    newProductSuccess.value = true
+    newProductForm.value = { dispositivo: '', valorBase: null, descripcion: '', categoria: '' }
+    emit('catalog-updated', data)
+    setTimeout(() => { newProductSuccess.value = false }, 3000)
+  } catch (e) {
+    newProductError.value = e?.response?.data?.message || 'Error al crear el producto. Intenta de nuevo.'
+  } finally {
+    savingNewProduct.value = false
+  }
+}
+
+const cancelarNuevoProducto = () => {
+  showNewProductForm.value = false
+  newProductForm.value = { dispositivo: '', valorBase: null, descripcion: '', categoria: '' }
+  newProductError.value = ''
+}
+
 // Reset when modal opens
 watch(() => props.show, (val) => {
   if (val) {
@@ -319,13 +441,26 @@ watch(() => props.show, (val) => {
     errors.value = {}
     calcError.value = ''
     desglose.value = null
+    showNewProductForm.value = false
+    newProductForm.value = { dispositivo: '', valorBase: null, descripcion: '', categoria: '' }
+    newProductError.value = ''
+    newProductSuccess.value = false
+  }
+})
+
+// Intercept special "__new__" value from select
+watch(() => form.value.catalogItemId, (newId) => {
+  if (newId === '__new__') {
+    form.value.catalogItemId = null
+    showNewProductForm.value = true
+    return
   }
 })
 
 // Auto-fill form when product is selected from catalog
 watch(() => form.value.catalogItemId, (newId) => {
-  if (!newId) return
-  const selected = props.catalog.find(c => c.id === newId)
+  if (!newId || newId === '__new__') return
+  const selected = allCatalog.value.find(c => c.id === newId)
   if (selected) {
     // Fill technical fields from catalog item
     form.value.dispositivo       = selected.dispositivo || ''
@@ -410,7 +545,7 @@ const calcular = async () => {
 }
 
 // ── Display helpers ───────────────────────────────────────────────────────────
-const RESULT_KEYS = ['precioUnitario', 'subtotalVenta', 'costoTotal', 'iva', 'total', 'utilidadProyectada', 'utilidadFinal']
+const RESULT_KEYS = ['precioUnitario', 'subtotalVenta', 'costoTotal', 'comisionPct', 'comisionMonto', 'iva', 'total', 'utilidadProyectada', 'utilidadFinal']
 
 const desgloseVisible = computed(() => {
   if (!desglose.value) return {}
@@ -421,13 +556,16 @@ const FIELD_LABELS = {
   precioUnitario:     'Precio unitario',
   subtotalVenta:      'Subtotal venta',
   costoTotal:         'Costo total',
+  comisionPct:        'Comisión %',
+  comisionMonto:      'Comisión (monto)',
   iva:                'IVA (19%)',
   total:              'Total con IVA',
   utilidadProyectada: 'Utilidad proyectada',
   utilidadFinal:      'Utilidad final',
 }
 
-const COP_KEYS = new Set(['precioUnitario', 'subtotalVenta', 'costoTotal', 'iva', 'total', 'utilidadProyectada', 'utilidadFinal'])
+const PCT_KEYS = new Set(['comisionPct'])
+const COP_KEYS = new Set(['precioUnitario', 'subtotalVenta', 'costoTotal', 'comisionMonto', 'iva', 'total', 'utilidadProyectada', 'utilidadFinal'])
 
 const formatCOP = (val) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(val)
@@ -436,6 +574,7 @@ const fieldLabel = (key) => FIELD_LABELS[key] || key
 
 const formatVal = (key, val) => {
   if (val == null) return '—'
+  if (PCT_KEYS.has(key) && typeof val === 'number') return `${val}%`
   if (COP_KEYS.has(key) && typeof val === 'number') return formatCOP(val)
   return val
 }
@@ -444,7 +583,7 @@ const formatVal = (key, val) => {
 const agregar = () => {
   if (!desglose.value) return
 
-  const catalogItem = props.catalog.find(c => c.id === form.value.catalogItemId)
+  const catalogItem = allCatalog.value.find(c => c.id === form.value.catalogItemId)
 
   emit('add', {
     ...catalogItem, // Base catalog item
@@ -760,4 +899,66 @@ const agregar = () => {
 .tq-slide-leave-active { transition: all 0.18s ease-in; }
 .tq-slide-enter-from { opacity: 0; transform: translateY(-8px); }
 .tq-slide-leave-to { opacity: 0; transform: translateY(-8px); }
+
+/* ── Sub-formulario nuevo producto ───────────────────────────── */
+.tq-new-product-form {
+  margin-top: 10px;
+  background: #EEF4FF;
+  border: 1.5px solid #BFDBFE;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tq-new-product-hdr {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #054EAF;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.tq-new-product-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #64748B;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+}
+.tq-new-product-close:hover { color: #0F1A2E; }
+
+.tq-new-product-error {
+  font-size: 12px;
+  color: #B91C1C;
+  background: #FEE2E2;
+  border: 1px solid #FECACA;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 0;
+}
+
+.tq-new-product-success {
+  font-size: 12px;
+  color: #166534;
+  background: #DCFCE7;
+  border: 1px solid #BBF7D0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 0;
+}
+
+.tq-new-product-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
 </style>
