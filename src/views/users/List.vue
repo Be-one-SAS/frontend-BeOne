@@ -112,7 +112,7 @@
           </tr>
         </thead>
         <tbody>
-          <template v-for="u in filteredUsers" :key="u.id">
+          <template v-for="u in paginatedUsers" :key="u.id">
 
             <!-- Fila principal -->
             <tr
@@ -268,6 +268,13 @@
           </template>
         </tbody>
       </table>
+
+      <!-- Paginación -->
+      <div v-if="!loading && filteredUsers.length > 0" class="pagination-wrap">
+        <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">Ant</button>
+        <span class="page-info">Pág {{ currentPage }} de {{ totalPages }}</span>
+        <button class="page-btn" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">Sig</button>
+      </div>
     </div>
 
     <!-- ══════════════════════════════════════════════════════
@@ -289,7 +296,7 @@
       <!-- Cards -->
       <div
         v-else
-        v-for="u in filteredUsers"
+        v-for="u in paginatedUsers"
         :key="u.id"
         class="mobile-card"
       >
@@ -340,6 +347,13 @@
           </button>
         </div>
       </div>
+      
+      <!-- Paginación Mobile -->
+      <div v-if="!loading && filteredUsers.length > 0" class="pagination-wrap mobile-pagination">
+        <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">Ant</button>
+        <span class="page-info">Pág {{ currentPage }} de {{ totalPages }}</span>
+        <button class="page-btn" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">Sig</button>
+      </div>
     </div>
 
     <!-- ── Modales ────────────────────────────────────────── -->
@@ -368,7 +382,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import {
   Users, UserPlus, Search, X, AlertCircle,
   Eye, Pencil, Shield, ToggleLeft, ToggleRight, Trash2,
@@ -391,6 +405,26 @@ const {
   loadUsers, toggleStatus, removeUser, upsertUser,
   getTimeAgo, formatDate, getUserActions,
 } = useUsers()
+
+const currentPage = ref(1)
+const itemsPerPage = ref(10)
+
+const paginatedUsers = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value
+  return filteredUsers.value.slice(start, start + itemsPerPage.value)
+})
+
+const totalPages = computed(() => {
+  return Math.max(1, Math.ceil(filteredUsers.value.length / itemsPerPage.value))
+})
+
+const changePage = (p) => {
+  if (p >= 1 && p <= totalPages.value) currentPage.value = p
+}
+
+watch([search, rolFiltro, statusFiltro], () => {
+  currentPage.value = 1
+})
 
 // ── Config ────────────────────────────────────────────
 const ROLES = ['ADMIN', 'COMERCIAL', 'SUPERVISOR', 'LOGISTICA', 'COORDINADOR', 'FINANCIERO', 'SOPORTE']
@@ -702,7 +736,50 @@ onMounted(() => loadUsers())
   border-radius: 18px;
   border: 1px solid #E2EBF6;
   box-shadow: 0 1px 4px rgba(5, 78, 175, .06), 0 4px 16px rgba(5, 78, 175, .08);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+.pagination-wrap {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-top: 1px solid #E2EBF6;
+}
+
+.mobile-pagination {
+  justify-content: center;
+  border-top: none;
+  padding-top: 16px;
+  padding-bottom: 30px;
+}
+
+.page-btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #E2EBF6;
+  background: #F8FAFC;
+  color: #0F172A;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.page-btn:hover:not(:disabled) {
+  background: #E2EBF6;
+  color: #054EAF;
+}
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.page-info {
+  font-size: 13px;
+  color: #64748B;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
 }
 
 .users-table {
