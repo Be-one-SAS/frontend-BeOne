@@ -810,6 +810,7 @@
       :catalog="catalogTerceros"
       @close="showModalTerceroQuotation = false"
       @add="agregarItemTercero"
+      @catalog-updated="(item) => catalogTerceros.push(item)"
     />
 
     <!-- Modal: confirmar limpiar formulario -->

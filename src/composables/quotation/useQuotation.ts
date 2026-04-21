@@ -207,6 +207,7 @@ export function useQuotation() {
     costoUnitario:   it.costoUnitario   ?? 0,
     margenVariable:  it.margenVariable  ?? 0,
     descuentoPct:    it.descuentoPct    ?? 0,
+    comisionPct:     it.comisionPct     ?? 0,
     dispositivo:     it.dispositivo     || undefined,
     descripcion:     it.descripcion     || undefined,
     categoria:       it.categoria       || undefined,
