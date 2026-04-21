@@ -225,14 +225,24 @@ export const removeQuotationMember = async (quotationId: number, userId: number)
     }
 };
 
-// Asigna un coordinador a una cotización
-export const assignCoordinator = async (quotationId: number, coordinadorId: number) => {
+// Reemplaza la lista completa de coordinadores de una cotización (M2M)
+export const setCoordinadores = async (quotationId: number, coordinadorIds: number[]) => {
     try {
         const response = await api.patch(
-            `/quotations/${quotationId}/coordinador`,
-            { coordinadorId },
+            `/quotations/${quotationId}/coordinadores`,
+            { coordinadorIds },
             { headers: { 'Content-Type': 'application/json' } },
         );
+        return response;
+    } catch (error) {
+        throw error;
+    }
+};
+
+// Obtiene los coordinadores asignados a una cotización
+export const getCoordinadores = async (quotationId: number) => {
+    try {
+        const response = await api.get(`/quotations/${quotationId}/coordinadores`);
         return response;
     } catch (error) {
         throw error;

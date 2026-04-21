@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import api from '@/services/api'
 import { getUsersByRole } from '@/services/user.service'
-import { assignCoordinator } from '@/services/quotation.service'
+import { setCoordinadores } from '@/services/quotation.service'
 
 export function useControl() {
   const eventos = ref<any[]>([])
@@ -37,18 +37,17 @@ export function useControl() {
     }
   }
 
-  const assignCoordinadorEvento = async (quotationId: number, coordinadorId: number | null) => {
-    await assignCoordinator(quotationId, coordinadorId as number)
+  const updateCoordinadores = async (quotationId: number, coordinadorIds: number[]) => {
+    await setCoordinadores(quotationId, coordinadorIds)
     const idx = eventos.value.findIndex(e => e.id === quotationId)
     if (idx !== -1) {
-      const coord = coordinadores.value.find(c => c.id === coordinadorId) ?? null
+      const assigned = coordinadores.value.filter(c => coordinadorIds.includes(c.id))
       eventos.value[idx] = {
         ...eventos.value[idx],
-        coordinadorId,
-        coordinador: coord?.fullName ?? null,
+        coordinadores: assigned.map(u => ({ user: u })),
       }
     }
   }
 
-  return { eventos, loading, coordinadores, fetchEventos, fetchCoordinadores, updateEvento, assignCoordinadorEvento }
+  return { eventos, loading, coordinadores, fetchEventos, fetchCoordinadores, updateEvento, updateCoordinadores }
 }

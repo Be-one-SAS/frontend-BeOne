@@ -168,12 +168,17 @@ watch(
     { immediate: true }
 )
 
-// Filtro
-const filteredClientes = computed(() =>
-    clientes.value.filter(c =>
-        c.name?.toLowerCase().includes(search.value.toLowerCase())
+const CLIENTE_DIRECTO = { id: 'cliente_directo', name: 'Cliente Directo' }
+
+// Filtro — siempre muestra "Cliente Directo" primero si coincide con la búsqueda
+const filteredClientes = computed(() => {
+    const term = search.value.toLowerCase()
+    const rest = clientes.value.filter(c =>
+        c.name?.toLowerCase().includes(term)
     )
-)
+    const showDirecto = !term || 'cliente directo'.includes(term)
+    return showDirecto ? [CLIENTE_DIRECTO, ...rest] : rest
+})
 
 // Seleccionar cliente
 function seleccionarCliente(cliente) {
