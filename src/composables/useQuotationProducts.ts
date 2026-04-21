@@ -93,29 +93,32 @@ export function useQuotationProducts({
     // ========================
     // Precio según cliente
     // ========================
-    const calcularPrecioCliente = (producto: any) => {
-        const selectedBoxName = myClienteSeleccionado.value?.name?.toString().trim().toLowerCase()
-        const boxes = producto?.productBoxes || []
 
-        console.log(`[Pricing] Buscando caja: "${selectedBoxName}" en producto:`, producto.dispositivo)
-
-        if (selectedBoxName && boxes.length > 0) {
-            // Buscamos coincidencia exacta (ignoring case/spaces)
-            const boxEntry = boxes.find((b: any) => 
-                b.boxName?.toString().trim().toLowerCase() === selectedBoxName
-            )
-            
-            if (boxEntry) {
-                console.log(`[Pricing] Match encontrado! Caja: ${boxEntry.boxName}, Precio: ${boxEntry.price}`)
-                productPrice.value = boxEntry.price
-                return
-            }
+    // Devuelve el precio correspondiente al cliente activo para un producto dado.
+    // Si la lista es "Cliente Directo", usa valorCuadroCotizador; si no, busca el box.
+    const resolverPrecioParaCliente = (producto: any, cliente: any): number => {
+        if (cliente?.id === 'cliente_directo') {
+            const vcc = producto?.valorCuadroCotizador ?? producto?._valorCuadroCotizador
+            if (vcc && vcc > 0) return vcc
+            // fallback a box si no tiene valorCuadroCotizador
         }
 
-        // Fallback: Si no hay match o no hay selección, buscamos el primer precio > 0 para no dejar en blanco
-        console.warn(`[Pricing] No hay match para "${selectedBoxName}". Aplicando fallback...`)
+        const selectedBoxName = cliente?.name?.toString().trim().toLowerCase()
+        const boxes: any[] = producto?.productBoxes ?? producto?._productBoxes ?? []
+
+        if (selectedBoxName && boxes.length > 0) {
+            const boxEntry = boxes.find((b: any) =>
+                b.boxName?.toString().trim().toLowerCase() === selectedBoxName
+            )
+            if (boxEntry) return boxEntry.price
+        }
+
         const fallbackBox = boxes.find((b: any) => b.price > 0)
-        productPrice.value = fallbackBox?.price ?? 0
+        return fallbackBox?.price ?? 0
+    }
+
+    const calcularPrecioCliente = (producto: any) => {
+        productPrice.value = resolverPrecioParaCliente(producto, myClienteSeleccionado.value)
     }
 
     // ========================
@@ -171,6 +174,9 @@ export function useQuotationProducts({
             cantidadProducto: cotizacion.cantidadProducto,
             unitPrice: productPrice.value,
             descuentoPct: 0,
+            // Guardados para recalcular si cambia la lista de precio
+            _productBoxes: selectedProduct.value.productBoxes || [],
+            _valorCuadroCotizador: selectedProduct.value.valorCuadroCotizador ?? null,
         })
 
         const total = items.value.reduce((sum: number, it: any) => {
@@ -184,11 +190,17 @@ export function useQuotationProducts({
 
     watch([searchProducto, searchCategoria], filtrarProductos)
 
-    // Recalcular precio si cambia el cliente seleccionado
-    watch(myClienteSeleccionado, () => {
+    // Recalcular precio si cambia la lista de precio
+    watch(myClienteSeleccionado, (cliente) => {
+        // Recalcular preview del producto seleccionado en el picker
         if (selectedProduct.value) {
             calcularPrecioCliente(selectedProduct.value)
         }
+        // Recalcular unitPrice de todos los items ya agregados que tengan datos de precio
+        items.value.forEach((item: any) => {
+            if (!item._productBoxes && item._valorCuadroCotizador == null) return
+            item.unitPrice = resolverPrecioParaCliente(item, cliente)
+        })
     }, { deep: true })
 
     return {

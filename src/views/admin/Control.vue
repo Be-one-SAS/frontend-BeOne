@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import {
   ClipboardCheck, ClipboardX, ChevronDown, Search,
@@ -6,7 +6,20 @@ import {
 } from 'lucide-vue-next'
 import { useControl } from '@/composables/useControl'
 
-const { eventos, loading, coordinadores, fetchEventos, fetchCoordinadores, updateEvento, assignCoordinadorEvento } = useControl()
+// Directiva local para cerrar el dropdown al hacer click fuera
+const vClickOutside = {
+  mounted(el: HTMLElement, binding: any) {
+    el._clickOutside = (e: MouseEvent) => {
+      if (!el.contains(e.target as Node)) binding.value(e)
+    }
+    document.addEventListener('click', el._clickOutside, true)
+  },
+  unmounted(el: HTMLElement) {
+    document.removeEventListener('click', el._clickOutside, true)
+  },
+}
+
+const { eventos, loading, coordinadores, fetchEventos, fetchCoordinadores, updateEvento, updateCoordinadores } = useControl()
 
 // ── Filtros ────────────────────────────────────────────
 const search        = ref('')
@@ -52,20 +65,41 @@ const toggleRow = (id) => {
   expandedRow.value = expandedRow.value === id ? null : id
 }
 
-// ── Coordinador saving ─────────────────────────────────
-const savingCoord = ref({}) // { eventId: true/false }
+// ── Coordinadores multi-select ─────────────────────────
+const savingCoord = ref({})  // { eventId: true }
+const coordOpen   = ref({})  // { eventId: true } dropdown visible
 
-const handleCoordChange = async (evento, newCoordId) => {
+const getAssignedIds = (evento) =>
+  (evento.coordinadores ?? []).map(c => c.user?.id ?? c.id).filter(Boolean)
+
+const isAssigned = (evento, userId) => getAssignedIds(evento).includes(userId)
+
+const toggleCoord = async (evento, userId) => {
+  const current = getAssignedIds(evento)
+  const next    = current.includes(userId)
+    ? current.filter(id => id !== userId)
+    : [...current, userId]
+
   savingCoord.value = { ...savingCoord.value, [evento.id]: true }
   try {
-    await assignCoordinadorEvento(evento.id, newCoordId ? Number(newCoordId) : null)
+    await updateCoordinadores(evento.id, next)
   } catch (e) {
-    console.error('[Control] Error asignando coordinador:', e)
+    console.error('[Control] Error actualizando coordinadores:', e)
   } finally {
-    const next = { ...savingCoord.value }
-    delete next[evento.id]
-    savingCoord.value = next
+    const s = { ...savingCoord.value }
+    delete s[evento.id]
+    savingCoord.value = s
   }
+}
+
+const toggleCoordDropdown = (eventoId) => {
+  coordOpen.value = { ...coordOpen.value, [eventoId]: !coordOpen.value[eventoId] }
+}
+
+const closeCoordDropdown = (eventoId) => {
+  const s = { ...coordOpen.value }
+  delete s[eventoId]
+  coordOpen.value = s
 }
 
 // ── Checkboxes con spinner por celda ──────────────────
@@ -260,21 +294,53 @@ onMounted(async () => {
 
                 <!-- Coordinador -->
                 <td class="vc-td" @click.stop>
-                  <div class="coord-wrap">
+                  <div class="coord-cell">
                     <Loader2 v-if="savingCoord[ev.id]" :size="13" class="spin coord-spin" />
-                    <select
-                      v-else
-                      class="coord-select"
-                      :value="ev.coordinadorId ?? ''"
-                      @change="handleCoordChange(ev, $event.target.value || null)"
-                    >
-                      <option value="">— Sin asignar —</option>
-                      <option
-                        v-for="c in coordinadores"
-                        :key="c.id"
-                        :value="c.id"
-                      >{{ c.fullName }}</option>
-                    </select>
+                    <template v-else>
+                      <!-- Chips de coordinadores asignados -->
+                      <div class="coord-chips">
+                        <span
+                          v-for="c in (ev.coordinadores ?? [])"
+                          :key="c.user?.id ?? c.id"
+                          class="coord-chip"
+                        >
+                          {{ c.user?.fullName ?? c.fullName ?? '—' }}
+                          <button
+                            class="coord-chip-rm"
+                            @click.stop="toggleCoord(ev, c.user?.id ?? c.id)"
+                            title="Remover"
+                          >×</button>
+                        </span>
+                        <span v-if="!(ev.coordinadores?.length)" class="coord-empty">—</span>
+                      </div>
+                      <!-- Botón para abrir dropdown -->
+                      <div class="coord-dropdown-wrap">
+                        <button
+                          class="coord-add-btn"
+                          @click.stop="toggleCoordDropdown(ev.id)"
+                          title="Asignar coordinador"
+                        >+</button>
+                        <div
+                          v-if="coordOpen[ev.id]"
+                          class="coord-dropdown"
+                          v-click-outside="() => closeCoordDropdown(ev.id)"
+                        >
+                          <div
+                            v-for="c in coordinadores"
+                            :key="c.id"
+                            class="coord-opt"
+                            :class="{ 'coord-opt--active': isAssigned(ev, c.id) }"
+                            @click.stop="toggleCoord(ev, c.id)"
+                          >
+                            <span class="coord-opt-check">{{ isAssigned(ev, c.id) ? '✓' : '' }}</span>
+                            {{ c.fullName }}
+                          </div>
+                          <div v-if="!coordinadores.length" class="coord-opt coord-opt--empty">
+                            Sin coordinadores disponibles
+                          </div>
+                        </div>
+                      </div>
+                    </template>
                   </div>
                 </td>
 
@@ -771,31 +837,115 @@ onMounted(async () => {
   color: #166534;
 }
 
-/* Coordinator select */
-.coord-wrap {
+/* Coordinator multi-select */
+.coord-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 140px;
+}
+
+.coord-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.coord-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #EBF3FC;
+  color: #054EAF;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  font-family: 'Inter', sans-serif;
+}
+
+.coord-chip-rm {
+  background: none;
+  border: none;
+  color: #64748B;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0 1px;
+  transition: color 0.12s;
+}
+.coord-chip-rm:hover { color: #B91C1C; }
+
+.coord-empty {
+  font-size: 12px;
+  color: #94A3B8;
+  font-family: 'Inter', sans-serif;
+}
+
+.coord-dropdown-wrap {
+  position: relative;
+}
+
+.coord-add-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px dashed #94A3B8;
+  background: transparent;
+  color: #94A3B8;
+  font-size: 15px;
+  line-height: 1;
   display: flex;
   align-items: center;
-  min-width: 120px;
-}
-
-.coord-select {
-  width: 100%;
-  background: #F8FAFC;
-  border: 1px solid #E2EBF6;
-  border-radius: 8px;
-  padding: 5px 8px;
-  font-size: 12px;
-  color: var(--text-1, #0F1A2E);
-  font-family: 'Inter', sans-serif;
-  outline: none;
+  justify-content: center;
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
-  appearance: auto;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+}
+.coord-add-btn:hover {
+  border-color: #054EAF;
+  color: #054EAF;
+  background: #EBF3FC;
 }
 
-.coord-select:focus {
-  border-color: var(--primary, #054EAF);
-  box-shadow: 0 0 0 2px rgba(5, 78, 175, 0.1);
+.coord-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 50;
+  background: #FFFFFF;
+  border: 1px solid #E2EBF6;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(5, 78, 175, 0.12);
+  min-width: 180px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.coord-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #0F1A2E;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: background 0.12s;
+}
+.coord-opt:hover { background: #F0F7FF; }
+.coord-opt--active { color: #054EAF; font-weight: 700; }
+.coord-opt--empty { color: #94A3B8; cursor: default; font-style: italic; }
+.coord-opt--empty:hover { background: none; }
+
+.coord-opt-check {
+  width: 14px;
+  font-size: 11px;
+  color: #054EAF;
+  flex-shrink: 0;
 }
 
 .coord-spin {
