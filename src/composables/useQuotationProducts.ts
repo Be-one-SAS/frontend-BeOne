@@ -94,8 +94,28 @@ export function useQuotationProducts({
     // Precio según cliente
     // ========================
     const calcularPrecioCliente = (producto: any) => {
-        productPrice.value =
-            producto?.productBoxes?.[myClienteSeleccionado.value?.id - 1]?.price ?? 0
+        const selectedBoxName = myClienteSeleccionado.value?.name?.toString().trim().toLowerCase()
+        const boxes = producto?.productBoxes || []
+
+        console.log(`[Pricing] Buscando caja: "${selectedBoxName}" en producto:`, producto.dispositivo)
+
+        if (selectedBoxName && boxes.length > 0) {
+            // Buscamos coincidencia exacta (ignoring case/spaces)
+            const boxEntry = boxes.find((b: any) => 
+                b.boxName?.toString().trim().toLowerCase() === selectedBoxName
+            )
+            
+            if (boxEntry) {
+                console.log(`[Pricing] Match encontrado! Caja: ${boxEntry.boxName}, Precio: ${boxEntry.price}`)
+                productPrice.value = boxEntry.price
+                return
+            }
+        }
+
+        // Fallback: Si no hay match o no hay selección, buscamos el primer precio > 0 para no dejar en blanco
+        console.warn(`[Pricing] No hay match para "${selectedBoxName}". Aplicando fallback...`)
+        const fallbackBox = boxes.find((b: any) => b.price > 0)
+        productPrice.value = fallbackBox?.price ?? 0
     }
 
     // ========================
@@ -128,6 +148,14 @@ export function useQuotationProducts({
     const addProduct = () => {
         if (!validarCalendario() || !selectedProduct.value) return
 
+        // ✅ Ajuste: Asegurar que si el usuario dejó en 0 o vacío las cantidades, se asuma 1
+        if (!cotizacion.cantidadJornada || cotizacion.cantidadJornada <= 0) {
+            cotizacion.cantidadJornada = 1
+        }
+        if (!cotizacion.cantidadProducto || cotizacion.cantidadProducto <= 0) {
+            cotizacion.cantidadProducto = 1
+        }
+
         items.value.push({
             productId: selectedProduct.value.id,
             category: selectedProduct.value.categoria,
@@ -136,15 +164,13 @@ export function useQuotationProducts({
             incluyeTransporte: selectedProduct.value.incluyeTransporteBogMde,
             medidas: selectedProduct.value.medidas,
             linkFoto: selectedProduct.value.linkFotoDispositivo,
+            qMotores: selectedProduct.value.qMotores,
+            qOperarios: selectedProduct.value.qOperarios,
             estado: 'PRODUCTO PROPIO',
             cantidadJornada: cotizacion.cantidadJornada,
             cantidadProducto: cotizacion.cantidadProducto,
-            unitPrice:
-                calcularCotizacionDesdeCosto(
-                    productPrice.value,
-                    15,
-                    cotizacion.cantidadProducto
-                ).total || 0
+            unitPrice: productPrice.value,
+            descuentoPct: 0,
         })
 
         const total = items.value.reduce((sum: number, it: any) => {
@@ -157,6 +183,13 @@ export function useQuotationProducts({
     }
 
     watch([searchProducto, searchCategoria], filtrarProductos)
+
+    // Recalcular precio si cambia el cliente seleccionado
+    watch(myClienteSeleccionado, () => {
+        if (selectedProduct.value) {
+            calcularPrecioCliente(selectedProduct.value)
+        }
+    }, { deep: true })
 
     return {
         // state

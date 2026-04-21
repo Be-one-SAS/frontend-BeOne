@@ -1,13 +1,75 @@
-
-
 @import "tailwindcss";
 
+/* ─────────────────────────────────────────────
+   TAILWIND v4 THEME — registers utility classes
+   bg-primary, text-text-1, border-border, etc.
+───────────────────────────────────────────── */
+@theme {
+  /* Brand */
+  --color-primary:       #054EAF;
+  --color-primary-light: #EEF4FF;
+  --color-primary-dark:  #03368A;
 
-#app {
-  padding: 0rem;
-  font-weight: normal;
-  background: white;
-  overflow: hidden;
+  /* Accent */
+  --color-accent:        #6EE7A0;
+
+  /* Surfaces */
+  --color-app-bg:        #EBF3FC;
+  --color-card:          #FFFFFF;
+
+  /* Borders */
+  --color-border:        #E5EAF0;
+  --color-border-light:  #F1F5FA;
+
+  /* Text */
+  --color-text-1:        #0F1A2E;
+  --color-text-2:        #64748B;
+  --color-text-3:        #94A3B8;
 }
 
+/* ─────────────────────────────────────────────
+   ROOT — non-color design tokens
+───────────────────────────────────────────── */
+:root {
+  /* Border radii */
+  --r-sm:   4px;
+  --r-md:   8px;
+  --r-lg:   12px;
+  --r-xl:   16px;
+  --r-2xl:  24px;
 
+  /* Shadows */
+  --shadow-card:  0 1px 4px rgba(5,78,175,.06), 0 4px 16px rgba(5,78,175,.08);
+  --shadow-btn:   0 2px 8px  rgba(5, 78, 175, 0.18);
+  --shadow-modal: 0 8px 40px rgba(5, 78, 175, 0.14);
+
+  /* Layout */
+  --sidebar-w: 200px;
+  --topbar-h:  64px;
+
+  /* Spacing scale */
+  --sp-lg: 16px;
+  --sp-xl: 24px;
+
+  /* Surface aliases (uso directo en CSS) */
+  --bg-app:  #EBF3FC;
+  --bg-card: #FFFFFF;
+}
+
+/* ─────────────────────────────────────────────
+   BASE STYLES
+───────────────────────────────────────────── */
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--color-app-bg);
+  color: var(--color-text-1);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+#app {
+  padding: 0;
+  overflow: hidden;
+}

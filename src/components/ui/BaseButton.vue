@@ -60,13 +60,13 @@ const props = defineProps({
 
 const buttonClasses = computed(() => {
   const base =
-    "inline-flex items-center justify-center px-4 py-2 rounded-full text-lg font-medium transition-all duration-200 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+    "inline-flex items-center justify-center px-[18px] py-[9px] rounded-[8px] text-[13px] font-semibold transition-all duration-200 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
 
   const variants = {
     primary:
-      "bg-cyan-500 text-white hover:bg-cyan-600 active:scale-[0.98]",
+      "bg-primary text-white shadow-[var(--shadow-btn)] hover:bg-primary-dark active:scale-[0.98]",
     secondary:
-      "bg-gray-200 text-gray-800 hover:bg-gray-300 active:scale-[0.98]",
+      "bg-primary-light text-primary border border-[#BFDBFE] hover:bg-[#DBEAFE] active:scale-[0.98]",
   }
 
   return [

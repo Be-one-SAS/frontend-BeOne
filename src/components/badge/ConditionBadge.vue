@@ -1,7 +1,7 @@
 <template>
   <span
     :class="[
-      'px-3 py-1 text-xs font-medium rounded-full max-h-[24px]',
+      'rounded-full px-[10px] py-[3px] text-[11px] font-medium',
       colorClass
     ]"
   >
@@ -22,19 +22,19 @@ const props = defineProps({
 const colorClass = computed(() => {
   switch (props.condition) {
     case 'OPERATIVO_OK':
-      return 'bg-green-100 text-green-800'
+      return 'bg-[#DCFCE7] text-[#16A34A]'
     case 'OPERATIVO_70':
-      return 'bg-yellow-100 text-yellow-800'
+      return 'bg-[#FEF3C7] text-[#B45309]'
     case 'OPERATIVO_50':
-      return 'bg-orange-100 text-orange-800'
+      return 'bg-[#FEF3C7] text-[#B45309]'
     case 'EN_MANTENIMIENTO':
-      return 'bg-blue-100 text-blue-800'
+      return 'bg-[#DBEAFE] text-[#1D4ED8]'
     case 'DEFECTUOSO':
-      return 'bg-red-100 text-red-800'
+      return 'bg-[#FEE2E2] text-[#B91C1C]'
     case 'NO_ACTIVO':
-      return 'bg-gray-100 text-gray-800'
+      return 'bg-[#F1F5F9] text-[#475569]'
     default:
-      return 'bg-gray-200 text-gray-900'
+      return 'bg-[#F1F5F9] text-[#475569]'
   }
 })
 

@@ -1,11 +1,11 @@
 <template>
-    <div class="bg-white rounded-xl shadow p-4 flex items-center space-x-4">
-      <div class="text-blue-600 text-3xl">
+    <div class="bg-card rounded-[var(--r-xl)] px-5 py-[18px] shadow-[var(--shadow-card)] flex items-center gap-4">
+      <div class="w-9 h-9 rounded-full bg-primary-light flex items-center justify-center text-primary text-lg">
         <slot name="icon" />
       </div>
       <div>
-        <p class="text-gray-600 text-sm">{{ title }}</p>
-        <p class="text-xl font-semibold text-gray-900">{{ value }}</p>
+        <p class="text-[13px] text-text-2">{{ title }}</p>
+        <p class="text-[32px] font-bold text-text-1 font-['Plus_Jakarta_Sans',sans-serif] leading-none">{{ value }}</p>
       </div>
     </div>
   </template>

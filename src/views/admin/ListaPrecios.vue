@@ -34,7 +34,7 @@ onMounted(async () => {
 
 <template>
   <div class="p-4">
-    <h1 class="text-2xl font-semibold mb-4">Listado de Clientes</h1>
+    <h1 class="text-[22px] font-bold text-text-1 mb-4 font-['Plus_Jakarta_Sans',sans-serif]">Listado de Precios</h1>
      
  <TableDinamic :data="data" :columns="columns">
       <template #foto="{ value }">

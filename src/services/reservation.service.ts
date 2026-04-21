@@ -47,6 +47,7 @@ export const cancelReservation = async (quotationId: number) => {
   try {
     const response = await api.patch(
       `/reservation/cancel/${quotationId}`,
+      {},
       {
         headers: {
           "Content-Type": "application/json",

@@ -77,8 +77,8 @@ export const createUser = async ({ email, password, fullName, role }: CreateUser
 
 /**
 * Servicio para crear
-* @param data 
-* @returns 
+* @param data
+* @returns
 */
 export const getUsers = async () => {
   try {
@@ -94,6 +94,72 @@ export const getUsers = async () => {
     return response;
   } catch (error) {
     console.error("Fallo el servicio para ver los usuarios:", error);
-    throw error; // Lanza el error para manejarlo donde se use
+    throw error;
+  }
+};
+
+export const updateUser = async (id: string, data: Partial<{ fullName: string; email: string; role: string }>) => {
+  try {
+    const response = await api.patch(`/users/${id}`, data, {
+      headers: { "Content-Type": "application/json" },
+    });
+    return response;
+  } catch (error) {
+    console.error("Fallo el servicio para actualizar el usuario:", error);
+    throw error;
+  }
+};
+
+export const toggleUserActive = async (id: string) => {
+  try {
+    const response = await api.patch(`/users/${id}/toggle-active`, {}, {
+      headers: { "Content-Type": "application/json" },
+    });
+    return response;
+  } catch (error) {
+    console.error("Fallo el servicio para cambiar estado del usuario:", error);
+    throw error;
+  }
+};
+
+export const reassignUser = async (id: string, newParentId: string) => {
+  try {
+    const response = await api.patch(`/users/${id}/reassign`, { newParentId }, {
+      headers: { "Content-Type": "application/json" },
+    });
+    return response;
+  } catch (error) {
+    console.error("Fallo el servicio para reasignar el usuario:", error);
+    throw error;
+  }
+};
+
+export const getMe = async (id: number) => {
+  try {
+    const response = await api.get(`/users/${id}`);
+    return response;
+  } catch (error) {
+    console.error("Fallo el servicio para obtener el perfil:", error);
+    throw error;
+  }
+};
+
+export const updateProfile = async (id: number, data: Record<string, unknown>) => {
+  try {
+    const response = await api.patch(`/users/${id}`, data);
+    return response;
+  } catch (error) {
+    console.error("Fallo el servicio para actualizar el perfil:", error);
+    throw error;
+  }
+};
+
+export const getUsersByRole = async (role: string) => {
+  try {
+    const response = await api.get(`/users?role=${role}`);
+    return response;
+  } catch (error) {
+    console.error("Fallo el servicio para obtener usuarios por rol:", error);
+    throw error;
   }
 };
