@@ -15,11 +15,12 @@
             <tr>
               <th class="th-num">#</th>
               <th class="th-img"></th>
-              <th>Producto</th>
+              <th class="th-product">Producto</th>
               <th class="th-center">Q. Jornada</th>
               <th class="th-center">Q. Producto</th>
-              <th class="th-right">Precio unit.</th>
-              <th class="th-right">Total</th>
+              <th class="th-center">Precio unit.</th>
+              <th class="th-center">Desc. (%)</th>
+              <th class="th-center">Total</th>
               <th class="th-center">Acciones</th>
             </tr>
           </thead>
@@ -28,7 +29,7 @@
               v-for="(item, index) in items"
               :key="index"
               class="prd-row"
-              @click="emitEdit(item)"
+              @click="emitEdit(item, index)"
             >
               <!-- # -->
               <td class="td-num">{{ index + 1 }}</td>
@@ -60,13 +61,26 @@
               </td>
 
               <!-- Precio unitario -->
-              <td class="td-right prd-price">
+              <td class="td-center prd-price">
                 {{ format(item.unitPrice) }}
               </td>
 
+              <!-- Descuento (%) -->
+              <td class="td-center" @click.stop>
+                <input
+                  v-model.number="item.descuentoPct"
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="0%"
+                  class="prd-discount-input"
+                  @click.stop
+                />
+              </td>
+
               <!-- Total -->
-              <td class="td-right prd-total">
-                {{ format((item.unitPrice || 0) * (item.cantidadJornada || 0) * (item.cantidadProducto || 0)) }}
+              <td class="td-center prd-total">
+                {{ format(totalesFilas[index]) }}
               </td>
 
               <!-- Acciones -->
@@ -84,7 +98,7 @@
           </tbody>
           <tfoot>
             <tr class="prd-subtotal-row">
-              <td colspan="6" class="td-subtotal-label">Subtotal equipos propios</td>
+              <td colspan="7" class="td-subtotal-label">Subtotal equipos propios</td>
               <td class="td-subtotal-val">{{ format(subtotalItems) }}</td>
               <td></td>
             </tr>
@@ -122,11 +136,16 @@ const emitDelete = (item) => {
   emit('delete', item)
 }
 
+const totalesFilas = computed(() =>
+  props.items.map(item => {
+    const sub = (item.unitPrice || 0) * (item.cantidadJornada || 0) * (item.cantidadProducto || 0)
+    const dsc = Number(item.descuentoPct) || 0
+    return sub - (sub * dsc / 100)
+  })
+)
+
 const subtotalItems = computed(() =>
-  props.items.reduce(
-    (sum, item) => sum + (item.unitPrice || 0) * (item.cantidadJornada || 0) * (item.cantidadProducto || 0),
-    0
-  )
+  totalesFilas.value.reduce((sum, t) => sum + t, 0)
 )
 
 const format = (value) => {
@@ -195,10 +214,11 @@ const format = (value) => {
   text-align: left;
   white-space: nowrap;
 }
-.th-num    { width: 40px; text-align: center; }
-.th-img    { width: 72px; }
-.th-right  { text-align: right; }
-.th-center { text-align: center; width: 72px; }
+.prd-table th.th-num     { width: 40px; text-align: center; }
+.prd-table th.th-img     { width: 72px; }
+.prd-table th.th-right   { text-align: right; }
+.prd-table th.th-center  { text-align: center; }
+.prd-table th.th-product { width: 240px; min-width: 240px; }
 
 /* ── Celdas ────────────────────────────────────────────── */
 .prd-table td {
@@ -279,6 +299,30 @@ const format = (value) => {
 
 .prd-price { color: #374151; font-weight: 500; }
 .prd-total { font-weight: 700; color: #054EAF; }
+
+/* Input de descuento */
+.prd-discount-input {
+  width: 60px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  color: #0F1A2E;
+  background: #F8FAFC;
+  border: 1px solid #E5EAF0;
+  border-radius: 99px;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.prd-discount-input:focus {
+  border-color: #054EAF;
+  box-shadow: 0 0 0 2px rgba(5, 78, 175, 0.12);
+}
+.prd-discount-input::-webkit-outer-spin-button,
+.prd-discount-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
 
 /* ── Botón acción ──────────────────────────────────────── */
 .prd-action-btn {

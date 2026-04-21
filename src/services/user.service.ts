@@ -133,3 +133,33 @@ export const reassignUser = async (id: string, newParentId: string) => {
     throw error;
   }
 };
+
+export const getMe = async (id: number) => {
+  try {
+    const response = await api.get(`/users/${id}`);
+    return response;
+  } catch (error) {
+    console.error("Fallo el servicio para obtener el perfil:", error);
+    throw error;
+  }
+};
+
+export const updateProfile = async (id: number, data: Record<string, unknown>) => {
+  try {
+    const response = await api.patch(`/users/${id}`, data);
+    return response;
+  } catch (error) {
+    console.error("Fallo el servicio para actualizar el perfil:", error);
+    throw error;
+  }
+};
+
+export const getUsersByRole = async (role: string) => {
+  try {
+    const response = await api.get(`/users?role=${role}`);
+    return response;
+  } catch (error) {
+    console.error("Fallo el servicio para obtener usuarios por rol:", error);
+    throw error;
+  }
+};

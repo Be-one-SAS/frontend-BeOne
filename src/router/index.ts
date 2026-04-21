@@ -214,6 +214,14 @@ const routes = [
         component: () => import('../views/configuracion/Configuracion.vue'),
         meta: { roles: ['ADMIN'] },
       },
+
+      // ── Perfil del usuario ──────────────────────────────
+      {
+        path: 'admin/perfil',
+        name: 'Perfil',
+        component: () => import('../views/admin/Perfil.vue'),
+        meta: { requiresAuth: true },
+      },
     ],
   },
 ]

@@ -169,7 +169,8 @@ export function useQuotationProducts({
             estado: 'PRODUCTO PROPIO',
             cantidadJornada: cotizacion.cantidadJornada,
             cantidadProducto: cotizacion.cantidadProducto,
-            unitPrice: productPrice.value
+            unitPrice: productPrice.value,
+            descuentoPct: 0,
         })
 
         const total = items.value.reduce((sum: number, it: any) => {

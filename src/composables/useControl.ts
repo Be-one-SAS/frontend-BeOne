@@ -1,9 +1,12 @@
 import { ref } from 'vue'
 import api from '@/services/api'
+import { getUsersByRole } from '@/services/user.service'
+import { assignCoordinator } from '@/services/quotation.service'
 
 export function useControl() {
   const eventos = ref<any[]>([])
   const loading = ref(false)
+  const coordinadores = ref<any[]>([])
 
   const fetchEventos = async () => {
     loading.value = true
@@ -17,14 +20,35 @@ export function useControl() {
     }
   }
 
+  const fetchCoordinadores = async () => {
+    try {
+      const { data } = await getUsersByRole('coordinador')
+      coordinadores.value = Array.isArray(data) ? data : (data.data ?? [])
+    } catch (e) {
+      console.error('[useControl] Error cargando coordinadores:', e)
+    }
+  }
+
   const updateEvento = async (id: number, campo: string, valor: any) => {
     await api.patch(`/quotations/${id}`, { [campo]: valor })
-    // Optimistic local update — no full reload needed
     const idx = eventos.value.findIndex(e => e.id === id)
     if (idx !== -1) {
       eventos.value[idx] = { ...eventos.value[idx], [campo]: valor }
     }
   }
 
-  return { eventos, loading, fetchEventos, updateEvento }
+  const assignCoordinadorEvento = async (quotationId: number, coordinadorId: number | null) => {
+    await assignCoordinator(quotationId, coordinadorId as number)
+    const idx = eventos.value.findIndex(e => e.id === quotationId)
+    if (idx !== -1) {
+      const coord = coordinadores.value.find(c => c.id === coordinadorId) ?? null
+      eventos.value[idx] = {
+        ...eventos.value[idx],
+        coordinadorId,
+        coordinador: coord?.fullName ?? null,
+      }
+    }
+  }
+
+  return { eventos, loading, coordinadores, fetchEventos, fetchCoordinadores, updateEvento, assignCoordinadorEvento }
 }

@@ -390,7 +390,7 @@
                     <p class="cart-name">{{ it.dispositivo || it.descripcion }}</p>
                     <div class="cart-meta">
                       <span class="cart-qty">{{ it.cantidadJornada }}j × {{ it.cantidadProducto }}u</span>
-                      <span class="cart-price">${{ (it.unitPrice || 0).toLocaleString('es-CO') }}</span>
+                      <span class="cart-price">${{ Math.round(totalesFilasPropias[i] || 0).toLocaleString('es-CO') }}</span>
                     </div>
                   </div>
 
@@ -402,7 +402,7 @@
                     </p>
                     <div class="cart-meta">
                       <span class="cart-qty">{{ it.cantidad }} unid.</span>
-                      <span class="cart-price">${{ (it.precioUnitario || it.precioUnitarioConIva || 0).toLocaleString('es-CO') }}</span>
+                      <span class="cart-price">${{ Math.round(totalesFilasTerceros[i] || 0).toLocaleString('es-CO') }}</span>
                     </div>
                   </div>
                 </div>
@@ -449,7 +449,7 @@
 
             <!-- Tabla vacía -->
             <div v-if="!itemsTerceros.length" class="tercero-empty">
-              <Truck :size="32" class="tercero-empty-ico" />
+              <Truck :size="36" class="tercero-empty-ico" />
               <p>Sin productos de terceros agregados</p>
             </div>
 
@@ -460,14 +460,13 @@
                     <tr>
                       <th class="th-num">#</th>
                       <th class="th-img"></th>
-                      <th>Producto</th>
-                      <th class="th-center">Cant.</th>
-                      <th class="th-right">Costo unit.</th>
-                      <th class="th-center">Margen</th>
-                      <th class="th-right">Precio unit.</th>
-                      <th class="th-right">Total factura</th>
-                      <th class="th-right">Utilidad final</th>
-                      <th class="th-center"></th>
+                      <th class="th-product">Producto</th>
+                      <th class="th-center">Q. Jornada</th>
+                      <th class="th-center">Q. Producto</th>
+                      <th class="th-center">Precio unit.</th>
+                      <th class="th-center">Desc. (%)</th>
+                      <th class="th-center">Total</th>
+                      <th class="th-center">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -486,20 +485,28 @@
                         <p v-if="it.categoria" class="prd-cat">{{ it.categoria }}</p>
                       </td>
                       <td class="td-center">
-                        <span class="prd-qty">{{ it.cantidad }}</span>
-                      </td>
-                      <td class="td-right">{{ formatCOP(it.costoUnitario || it.costo) }}</td>
-                      <td class="td-center">{{ it.margenVariable || it.margen }}%</td>
-                      <td class="td-right prd-price">
-                        {{ formatCOP(it.precioUnitario ?? it.precioUnitarioConIva ?? null) }}
-                      </td>
-                      <td class="td-right prd-total">
-                        {{ formatCOP(it.total ?? it.totalFactura ?? null) }}
-                      </td>
-                      <td class="td-right font-semibold" style="color: #059669">
-                        {{ formatCOP(it.utilidadFinal ?? it.utilidadNeta ?? null) }}
+                        <span class="prd-qty">1</span>
                       </td>
                       <td class="td-center">
+                        <span class="prd-qty">{{ it.cantidad ?? 1 }}</span>
+                      </td>
+                      <td class="td-center prd-price">
+                        {{ formatCOP(it.precioUnitario ?? null) }}
+                      </td>
+                      <td class="td-center">
+                        <input
+                          v-model.number="it.descuentoPct"
+                          type="number"
+                          min="0"
+                          max="100"
+                          placeholder="0%"
+                          class="prd-discount-input"
+                        />
+                      </td>
+                      <td class="td-center prd-total">
+                        {{ formatCOP(totalesFilasTerceros[i]) }}
+                      </td>
+                      <td class="td-center" @click.stop>
                         <button class="prd-action-btn" style="--hbg:#FEE2E2; --hc:#B91C1C" @click="eliminarItemTercero(i)" title="Eliminar">
                           <Trash2 :size="14" />
                         </button>
@@ -509,8 +516,8 @@
                   <tfoot>
                     <tr class="prd-subtotal-row">
                       <td colspan="7" class="td-subtotal-label">Subtotal productos terceros</td>
-                      <td class="td-subtotal-val">{{ formatCOP(subtotalTerceros) }}</td>
-                      <td colspan="2"></td>
+                      <td class="td-subtotal-val">{{ formatCOP(totalesFilasTerceros.reduce((s, v) => s + v, 0)) }}</td>
+                      <td></td>
                     </tr>
                   </tfoot>
                 </table>
@@ -518,22 +525,35 @@
             </div>
           </div>
           
-          <!-- ✅ NUEVO: Resumen de totales al final del Paso 3 -->
-          <div class="selection-summary-card mt20" v-if="items.length || itemsTerceros.length">
-            <div class="summary-grid">
-              <div class="summary-item">
-                <span class="summary-label">Subtotal Equipos Propios</span>
-                <span class="summary-value">{{ formatCOP(subtotalPropios) }}</span>
-              </div>
-              <div class="summary-item">
-                <span class="summary-label">Subtotal Terceros</span>
-                <span class="summary-value">{{ formatCOP(subtotalTerceros) }}</span>
-              </div>
-              <div class="summary-total">
-                <span class="total-label">Subtotal Selección</span>
-                <span class="total-value">{{ formatCOP(subtotalGeneral) }}</span>
-              </div>
+          <!-- Resumen de totales al final del Paso 3 -->
+          <div class="fin-bar" v-if="items.length || itemsTerceros.length">
+
+            <div class="fin-bar-item">
+              <span class="fin-bar-lbl">Totales</span>
+              <span class="fin-bar-val">{{ formatCOP(subtotalGeneral) }}</span>
             </div>
+
+            <div class="fin-bar-sep"></div>
+
+            <div class="fin-bar-item">
+              <span class="fin-bar-lbl">Total Descuentos</span>
+              <span class="fin-bar-val fin-bar-val--disc">− {{ formatCOP(totalDescuentos) }}</span>
+            </div>
+
+            <div class="fin-bar-sep"></div>
+
+            <div class="fin-bar-item">
+              <span class="fin-bar-lbl">IVA (19%)</span>
+              <span class="fin-bar-val fin-bar-val--iva">{{ formatCOP(ivaGeneral) }}</span>
+            </div>
+
+            <div class="fin-bar-sep"></div>
+
+            <div class="fin-bar-item fin-bar-item--total">
+              <span class="fin-bar-lbl fin-bar-lbl--total">TOTAL GENERAL</span>
+              <span class="fin-bar-val fin-bar-val--total">{{ formatCOP(totalGeneral) }}</span>
+            </div>
+
           </div>
 
         </template>
@@ -598,7 +618,7 @@
                         <td class="td-center">{{ it.cantidadProducto }}</td>
                         <td class="td-right prd-price">{{ formatCOP(it.unitPrice) }}</td>
                         <td class="td-right prd-total">
-                          {{ formatCOP((it.unitPrice || 0) * (it.cantidadJornada || 0) * (it.cantidadProducto || 0)) }}
+                          {{ formatCOP(totalesFilasPropias[i]) }}
                         </td>
                       </tr>
                     </tbody>
@@ -638,7 +658,7 @@
                           {{ formatCOP(it.precioUnitario ?? it.precioUnitarioConIva ?? null) }}
                         </td>
                         <td class="td-right prd-total">
-                          {{ formatCOP(it.total ?? it.totalFactura ?? null) }}
+                          {{ formatCOP(calcularTotalFilaTercero(it)) }}
                         </td>
                         <td class="td-right font-semibold" style="color: #059669">
                           {{ formatCOP(it.utilidadFinal ?? it.utilidadNeta ?? null) }}
@@ -663,6 +683,7 @@
                 :subtotalGeneral="subtotalGeneral"
                 :descuentoPct="cotizacion.descuentoPct"
                 :descuentoValor="descuentoValor"
+                :ivaGeneral="ivaGeneral"
                 :totalGeneral="totalGeneral"
                 @update:descuentoPct="cotizacion.descuentoPct = $event"
               />
@@ -924,6 +945,7 @@ import {
   Clock,
   Truck,
   Plus,
+  ReceiptText,
 } from 'lucide-vue-next'
 
 // ── Lógica original — NO modificar ─────────────────────────────────────────
@@ -948,6 +970,9 @@ const {
   subtotalPropios,
   subtotalTerceros,
   subtotalGeneral,
+  subtotalSinDescuento,
+  totalDescuentos,
+  ivaGeneral,
   descuentoValor,
   totalGeneral,
   loading,
@@ -1067,7 +1092,10 @@ const abrirModalTerceroQuotation = async () => {
 }
 
 const agregarItemTercero = (item) => {
-  itemsTerceros.value.push(item)
+  itemsTerceros.value.push({
+    ...item,
+    descuentoPct: typeof item.descuentoPct === 'number' ? item.descuentoPct : 0,
+  })
 }
 
 const eliminarItemTercero = (index) => {
@@ -1075,6 +1103,40 @@ const eliminarItemTercero = (index) => {
     itemsTerceros.value.splice(index, 1)
   }
 }
+
+// Calcular subtotal de un item propio (sin descuento)
+const calcularSubtotalItem = (item) => {
+  return (item.unitPrice || 0) * (item.cantidadProducto || 0) * (item.cantidadJornada || 0)
+}
+
+// Calcular total de una fila propia considerando el descuento
+const calcularTotalFila = (item) => {
+  const sub = calcularSubtotalItem(item)
+  const dsc = Number(item.descuentoPct) || 0
+  return sub - (sub * dsc / 100)
+}
+
+// Totales de filas propias como computed para reactividad garantizada
+const totalesFilasPropias = computed(() =>
+  items.value.map(item => calcularTotalFila(item))
+)
+
+// Calcular total de una fila de tercero considerando el descuento.
+// Usa subtotalVenta (precio venta × cantidad) calculado por el API.
+// Fallback a precioUnitario × cantidad y luego a costoUnitario para datos legacy.
+const calcularTotalFilaTercero = (item) => {
+  let sub
+  if (item.subtotalVenta != null) sub = item.subtotalVenta
+  else if (item.precioUnitario != null) sub = item.precioUnitario * (item.cantidad || 1)
+  else sub = (item.costoUnitario || 0) * (item.cantidad || 1)
+  const dsc = Number(item.descuentoPct) || 0
+  return sub - (sub * dsc / 100)
+}
+
+// Totales de filas terceros como computed para reactividad garantizada
+const totalesFilasTerceros = computed(() =>
+  itemsTerceros.value.map(item => calcularTotalFilaTercero(item))
+)
 
 const formatCOP = (val) =>
   val == null ? '—' : new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(val)
@@ -1109,8 +1171,15 @@ const buildThirdPartyPayload = () => ({
 onMounted(async () => {
   cotizacion.fechaCotizacion = formatDateTime(getCurrentISODate())
   cotizacion.agenteComercial = user.value.fullName
+
   // Restore draft only for new quotations (not edit mode)
   if (!id) restoreDraft()
+
+  // Preseleccionar Unidad de Ejecución según la zona del usuario (solo en nueva cotización)
+  // Se aplica después de restoreDraft para asegurar que el valor autodetectado prevalezca
+  if (!id && user.value?.zona) {
+    cotizacion.unidadEjecucion = user.value.zona.trim()
+  }
 })
 
 /**
@@ -1235,8 +1304,8 @@ const getCotizacion = async () => {
     }
 
     items.value = data.items.map(it => ({
-      id:                it.id, // Original ID de la relación
-      productId:         it.productId || it.product?.id, // ID del catálogo de productos
+      id:                it.id,
+      productId:         it.productId || it.product?.id,
       category:          it.product?.categoria,
       dispositivo:       it.product?.dispositivo,
       descripcion:       it.product?.descripcion,
@@ -1249,6 +1318,7 @@ const getCotizacion = async () => {
       qOperarios:        it.product?.qOperarios,
       cantidadJornada:   it.cantidadJornada  ?? it.quantity ?? 1,
       cantidadProducto:  it.cantidadProducto ?? 1,
+      descuentoPct:      typeof it.descuentoPct === 'number' ? it.descuentoPct : 0,
     }))
 
     console.log("Cotización cargada para edición:", data);
@@ -2131,7 +2201,7 @@ const duracionMontaje = computed(() => {
   color: #0F1A2E;
 }
 .eq-table tr:last-child td { border-bottom: none; }
-.td-name  { font-weight: 500; max-width: 200px; }
+.eq-table .td-name  { font-weight: 500; max-width: 200px; }
 .td-total { font-weight: 600; color: #054EAF; }
 
 .eq-subtotal-row {
@@ -2364,8 +2434,8 @@ const duracionMontaje = computed(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 28px 0;
+  gap: 10px;
+  padding: 48px 24px;
   color: #94A3B8;
   font-size: 13px;
   font-family: 'Inter', sans-serif;
@@ -2388,67 +2458,94 @@ const duracionMontaje = computed(() => {
   background: #FEE2E2;
   color: #B91C1C;
 }
-/* ── Resumen de Selección (Paso 3) ───────────────────────── */
-.selection-summary-card {
-  background: linear-gradient(135deg, #0F1A2E 0%, #1E293B 100%);
-  border-radius: 20px;
-  padding: 24px 32px;
-  color: #FFFFFF;
-  box-shadow: 0 10px 25px -5px rgba(15, 26, 46, 0.3);
+/* ── Barra de totales financieros ────────────────────────── */
+.fin-bar {
+  display: flex;
+  align-items: stretch;
+  background: linear-gradient(135deg, #054EAF 0%, #0B6BDB 100%);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(5, 78, 175, 0.30), 0 1px 4px rgba(0,0,0,0.12);
+  border: 1px solid rgba(255,255,255,0.12);
   margin-bottom: 24px;
 }
 
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 24px;
-  align-items: center;
-}
-
-.summary-item {
+.fin-bar-item {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  flex: 1;
+  padding: 20px 24px;
+  justify-content: center;
 }
 
-.summary-label {
-  font-size: 11px;
-  font-weight: 600;
+.fin-bar-item--total {
+  background: rgba(0,0,0,0.18);
+  border-left: 1px solid rgba(255,255,255,0.12);
+  text-align: right;
+  flex: 0 0 auto;
+  min-width: 220px;
+  padding: 20px 32px;
+}
+
+.fin-bar-sep {
+  width: 1px;
+  background: rgba(255,255,255,0.10);
+  flex-shrink: 0;
+  margin: 14px 0;
+}
+
+.fin-bar-lbl {
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #94A3B8;
+  letter-spacing: 0.10em;
+  color: rgba(186, 210, 255, 0.75);
+  white-space: nowrap;
+  font-family: 'Inter', sans-serif;
 }
 
-.summary-value {
-  font-size: 18px;
+.fin-bar-lbl--total {
+  color: #93C5FD;
+}
+
+.fin-bar-val {
+  font-size: 16px;
   font-weight: 700;
   color: #F1F5F9;
+  white-space: nowrap;
+  font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
-.summary-total {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  background: rgba(5, 78, 175, 0.2);
-  padding: 16px 24px;
-  border-radius: 14px;
-  border: 1px solid rgba(5, 78, 175, 0.3);
-  text-align: right;
-}
+.fin-bar-val--disc { color: #FCA5A5; }
+.fin-bar-val--iva  { color: #7DD3FC; }
 
-.total-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: #38BDF8;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.total-value {
+.fin-bar-val--total {
   font-size: 26px;
   font-weight: 800;
   color: #FFFFFF;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+@media (max-width: 900px) {
+  .fin-bar {
+    flex-wrap: wrap;
+  }
+  .fin-bar-item {
+    flex: 0 0 calc(50% - 1px);
+    padding: 16px 20px;
+  }
+  .fin-bar-sep { display: none; }
+  .fin-bar-item--total {
+    flex: 0 0 100%;
+    border-left: none;
+    border-top: 1px solid rgba(255,255,255,0.10);
+    text-align: left;
+    min-width: unset;
+    padding: 16px 20px;
+  }
+  .fin-bar-val--total { font-size: 22px; }
 }
 
 .price-list-badge, .client-badge {
@@ -2477,16 +2574,6 @@ const duracionMontaje = computed(() => {
 
 .j-bet {
   justify-content: space-between;
-}
-
-@media (max-width: 640px) {
-  .summary-grid {
-    grid-template-columns: 1fr;
-    text-align: left;
-  }
-  .summary-total {
-    text-align: left;
-  }
 }
 
 .cart-row--tercero {
@@ -2526,7 +2613,7 @@ const duracionMontaje = computed(() => {
   width: 100%;
   border-collapse: collapse;
   table-layout: auto;
-  min-width: 720px;
+  min-width: 760px;
   font-family: 'Inter', sans-serif;
   font-size: 13px;
 }
@@ -2548,13 +2635,14 @@ const duracionMontaje = computed(() => {
   white-space: nowrap;
 }
 
-.th-num    { width: 40px; text-align: center; }
-.th-img    { width: 72px; }
-.th-right  { text-align: right; }
-.th-center { text-align: center; }
+.prd-table th.th-num     { width: 40px; text-align: center; }
+.prd-table th.th-img     { width: 72px; }
+.prd-table th.th-right   { text-align: right; }
+.prd-table th.th-center  { text-align: center; }
+.prd-table th.th-product { width: 240px; min-width: 240px; }
 
 .prd-table td {
-  padding: 12px 16px;
+  padding: 13px 16px;
   font-size: 13px;
   font-family: 'Inter', sans-serif;
   color: #475569;
@@ -2588,8 +2676,8 @@ const duracionMontaje = computed(() => {
 }
 
 .prd-thumb {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   object-fit: cover;
   border-radius: 8px;
   border: 1px solid #E5EAF0;
@@ -2625,6 +2713,30 @@ const duracionMontaje = computed(() => {
 
 .prd-price { color: #374151; font-weight: 500; }
 .prd-total { font-weight: 700; color: #054EAF; }
+
+/* Input de descuento */
+.prd-discount-input {
+  width: 60px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  color: #0F1A2E;
+  background: #F8FAFC;
+  border: 1px solid #E5EAF0;
+  border-radius: 99px;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.prd-discount-input:focus {
+  border-color: #054EAF;
+  box-shadow: 0 0 0 2px rgba(5, 78, 175, 0.12);
+}
+.prd-discount-input::-webkit-outer-spin-button,
+.prd-discount-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
 
 .prd-action-btn {
   width: 32px;

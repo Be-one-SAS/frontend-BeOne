@@ -2,7 +2,7 @@
 import { createGlobalState } from '@vueuse/core';
 import { ref, computed } from 'vue';
 
-interface User {
+export interface User {
   countryId: null
   createdAt: string
   email: string
@@ -11,12 +11,16 @@ interface User {
   statusId: number
   updatedAt: string
   username: string
+  fullName?: string
+  telefono?: string
+  ciudad?: string
+  zona?: string
+  documento?: string
 }
 
 export const useAuth = createGlobalState(() => {
   const user = ref<User | null>(null);
   const token = ref<string | null>(null);
-  //Guarda el token en el localStorage
   const storedToken = localStorage.getItem('authToken');
   const storedUser = localStorage.getItem('userData');
 
@@ -34,6 +38,11 @@ export const useAuth = createGlobalState(() => {
     localStorage.setItem('userData', JSON.stringify(userData));
   };
 
+  const updateUserData = (userData: User) => {
+    user.value = userData;
+    localStorage.setItem('userData', JSON.stringify(userData));
+  };
+
   const setLogout = () => {
     user.value = null;
     token.value = null;
@@ -45,6 +54,7 @@ export const useAuth = createGlobalState(() => {
     token,
     isAuthenticated,
     login,
+    updateUserData,
     setLogout,
   };
 });

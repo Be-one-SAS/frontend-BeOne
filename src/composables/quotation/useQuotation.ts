@@ -72,26 +72,89 @@ export function useQuotation() {
     )
   )
 
-  const totalDescuentos = computed(() =>
-    items.value.reduce((sum, item) => sum + (item.descuento || 0), 0)
-  )
-
-  const total = computed(() => subtotal.value - totalDescuentos.value)
-
   // ── Resumen financiero ────────────────────────────────────────
-  const subtotalPropios = computed(() => subtotal.value)
 
-  const subtotalTerceros = computed(() =>
-    itemsTerceros.value.reduce((sum, item) => sum + (item.total || item.totalFactura || 0), 0)
+  // Calcular subtotal de un item propio (sin descuento)
+  const calcularSubtotalItem = (item: any) =>
+    (item.unitPrice || 0) * (item.cantidadProducto || 0) * (item.cantidadJornada || 0)
+
+  // Calcular total de un item propio (con descuento)
+  const calcularTotalItem = (item: any) => {
+    const subtotal = calcularSubtotalItem(item)
+    const descuento = (item.descuentoPct || 0)
+    return subtotal - (subtotal * descuento / 100)
+  }
+
+  // Calcular subtotal de un item tercero (sin descuento)
+  // Usa subtotalVenta (precio venta × cantidad) calculado por el API.
+  // Fallback a precioUnitario × cantidad para ítems sin desglose, y a costoUnitario para datos legacy.
+  const calcularSubtotalTercero = (item: any) => {
+    if (item.subtotalVenta != null) return item.subtotalVenta
+    if (item.precioUnitario != null) return item.precioUnitario * (item.cantidad || 1)
+    return (item.costoUnitario || 0) * (item.cantidad || 1)
+  }
+
+  // Calcular total de un item tercero (con descuento)
+  const calcularTotalTercero = (item: any) => {
+    const subtotal = calcularSubtotalTercero(item)
+    const descuento = (item.descuentoPct || 0)
+    return subtotal - (subtotal * descuento / 100)
+  }
+
+  // Subtotal SIN descuentos (propios)
+  const subtotalPropiosSinDescuento = computed(() =>
+    items.value.reduce((sum, item) => sum + calcularSubtotalItem(item), 0)
   )
 
+  // Subtotal SIN descuentos (terceros)
+  const subtotalTercerosSinDescuento = computed(() =>
+    itemsTerceros.value.reduce((sum, item) => sum + calcularSubtotalTercero(item), 0)
+  )
+
+  // Subtotal total SIN descuentos
+  const subtotalSinDescuento = computed(() =>
+    subtotalPropiosSinDescuento.value + subtotalTercerosSinDescuento.value
+  )
+
+  // Total de descuentos aplicados en ambas tablas
+  const totalDescuentos = computed(() => {
+    const descuentosPropios = items.value.reduce(
+      (sum, item) => sum + (calcularSubtotalItem(item) * (item.descuentoPct || 0) / 100), 0
+    )
+    const descuentosTerceros = itemsTerceros.value.reduce(
+      (sum, item) => sum + (calcularSubtotalTercero(item) * (item.descuentoPct || 0) / 100), 0
+    )
+    return descuentosPropios + descuentosTerceros
+  })
+
+  // Subtotal CON descuentos (propios) - para mostrar
+  const subtotalPropios = computed(() =>
+    items.value.reduce((sum, item) => sum + calcularTotalItem(item), 0)
+  )
+
+  // Subtotal CON descuentos (terceros) - para mostrar
+  const subtotalTerceros = computed(() =>
+    itemsTerceros.value.reduce((sum, item) => sum + calcularTotalTercero(item), 0)
+  )
+
+  // Totales: suma de ambas tablas (con descuentos aplicados)
   const subtotalGeneral = computed(() => subtotalPropios.value + subtotalTerceros.value)
 
+  // IVA: calculado sobre el total CON descuentos (19%)
+  const ivaGeneral = computed(() => subtotalGeneral.value * 0.19)
+
+  // Descuento global aplicado sobre el subtotal
   const descuentoValor = computed(() =>
     subtotalGeneral.value * ((cotizacion.descuentoPct || 0) / 100)
   )
 
-  const totalGeneral = computed(() => subtotalGeneral.value - descuentoValor.value)
+  // Total general: Subtotal - Descuento Global + IVA
+  const totalGeneral = computed(() =>
+    subtotalGeneral.value - descuentoValor.value + ivaGeneral.value
+  )
+
+  // Alias para compatibilidad con importaciones existentes
+  const total = computed(() => subtotalGeneral.value)
 
   /* =========================
    * ACTIONS
@@ -125,6 +188,7 @@ export function useQuotation() {
         ...it,
         cantidadJornada:  it.cantidadJornada  ?? it.quantity ?? 1,
         cantidadProducto: it.cantidadProducto ?? 1,
+        descuentoPct:     typeof it.descuentoPct === 'number' ? it.descuentoPct : 0,
       }))
 
       cotizacion.members = data.members || [] // ✅ ADDED
@@ -134,6 +198,20 @@ export function useQuotation() {
       loading.value = false
     }
   }
+
+  // Maps a third-party item to the fields expected by the backend DTO
+  const mapThirdPartyItem = (it: any) => ({
+    catalogItemId:   it.catalogItemId ?? it.id,
+    cantidad:        it.cantidad        ?? 1,
+    costoUnitario:   it.costoUnitario   ?? 0,
+    margenVariable:  it.margenVariable  ?? 0,
+    descuentoPct:    it.descuentoPct    ?? 0,
+    dispositivo:     it.dispositivo     || undefined,
+    descripcion:     it.descripcion     || undefined,
+    categoria:       it.categoria       || undefined,
+    bodega:          it.bodega          || undefined,
+    nombre:          it.nombre          || undefined,
+  })
 
   const saveQuotation = async () => {
     loading.value = true
@@ -183,8 +261,8 @@ export function useQuotation() {
 
         // ── Descuento ─────────────────────────────────────────────
         // subtotal / descuento / total are calculated server-side.
-        // Only send the user-controlled discount percentage.
-        descuentoPct: cotizacion.descuentoPct || undefined,
+        // Only send the user-controlled discount percentage (0 is a valid value).
+        descuentoPct: cotizacion.descuentoPct ?? undefined,
 
         // ── Ventana operativa ─────────────────────────────────────
         // Construida como objeto anidado combinando fecha + hora
@@ -215,7 +293,7 @@ export function useQuotation() {
         }
         if (itemsTerceros.value.length > 0) {
           try {
-            await addThirdPartyQuotationItems(quotationId.value, itemsTerceros.value)
+            await addThirdPartyQuotationItems(quotationId.value, itemsTerceros.value.map(mapThirdPartyItem))
           } catch (e: any) {
             console.warn('[useQuotation] third-party-items endpoint error (update):', e?.response?.data ?? e)
           }
@@ -237,7 +315,7 @@ export function useQuotation() {
         }
         if (itemsTerceros.value.length > 0) {
           try {
-            await addThirdPartyQuotationItems(data.id, itemsTerceros.value)
+            await addThirdPartyQuotationItems(data.id, itemsTerceros.value.map(mapThirdPartyItem))
           } catch (e: any) {
             console.warn('[useQuotation] third-party-items endpoint error (create):', e?.response?.data ?? e)
           }
@@ -281,6 +359,8 @@ export function useQuotation() {
     subtotalPropios,
     subtotalTerceros,
     subtotalGeneral,
+    subtotalSinDescuento,
+    ivaGeneral,
     descuentoValor,
     totalGeneral,
 

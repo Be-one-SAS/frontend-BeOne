@@ -8,29 +8,29 @@
 
     <div class="rc-body">
 
-      <!-- Subtotal propios -->
+      <!-- Subtotales -->
       <div class="rc-row">
         <span class="rc-label">Subtotal equipos propios</span>
         <span class="rc-val">{{ fmt(subtotalPropios) }}</span>
       </div>
 
-      <!-- Subtotal terceros -->
       <div class="rc-row">
         <span class="rc-label">Subtotal productos terceros</span>
         <span class="rc-val">{{ fmt(subtotalTerceros) }}</span>
       </div>
 
-      <!-- Divisor + SUBTOTAL -->
+      <!-- Divisor -->
       <div class="rc-divider" />
 
+      <!-- Subtotal general -->
       <div class="rc-row rc-row--subtotal">
         <span class="rc-label rc-label--strong">SUBTOTAL</span>
         <span class="rc-val rc-val--strong">{{ fmt(subtotalGeneral) }}</span>
       </div>
 
-      <!-- Descuento -->
+      <!-- Descuento global -->
       <div class="rc-row rc-row--discount">
-        <span class="rc-label">Descuento</span>
+        <span class="rc-label">Descuento global</span>
         <div class="rc-discount-right">
           <div class="rc-pct-wrap">
             <input
@@ -48,11 +48,18 @@
         </div>
       </div>
 
-      <!-- Divisor + TOTAL -->
+      <!-- Divisor -->
       <div class="rc-divider" />
 
+      <!-- IVA -->
+      <div class="rc-row">
+        <span class="rc-label">IVA (19%)</span>
+        <span class="rc-val" style="color: #38BDF8; font-weight: 600;">+ {{ fmt(ivaGeneral) }}</span>
+      </div>
+
+      <!-- TOTAL -->
       <div class="rc-row rc-row--total">
-        <span class="rc-label rc-label--total">TOTAL</span>
+        <span class="rc-label rc-label--total">TOTAL GENERAL</span>
         <span class="rc-val rc-val--total">{{ fmt(totalGeneral) }}</span>
       </div>
 
@@ -70,6 +77,7 @@ defineProps({
   subtotalGeneral:  { type: Number, default: 0 },
   descuentoPct:     { type: Number, default: 0 },
   descuentoValor:   { type: Number, default: 0 },
+  ivaGeneral:       { type: Number, default: 0 },
   totalGeneral:     { type: Number, default: 0 },
 })
 

@@ -6,7 +6,7 @@ import {
 } from 'lucide-vue-next'
 import { useControl } from '@/composables/useControl'
 
-const { eventos, loading, fetchEventos, updateEvento } = useControl()
+const { eventos, loading, coordinadores, fetchEventos, fetchCoordinadores, updateEvento, assignCoordinadorEvento } = useControl()
 
 // ── Filtros ────────────────────────────────────────────
 const search        = ref('')
@@ -50,6 +50,22 @@ const filteredEventos = computed(() => {
 const expandedRow = ref(null)
 const toggleRow = (id) => {
   expandedRow.value = expandedRow.value === id ? null : id
+}
+
+// ── Coordinador saving ─────────────────────────────────
+const savingCoord = ref({}) // { eventId: true/false }
+
+const handleCoordChange = async (evento, newCoordId) => {
+  savingCoord.value = { ...savingCoord.value, [evento.id]: true }
+  try {
+    await assignCoordinadorEvento(evento.id, newCoordId ? Number(newCoordId) : null)
+  } catch (e) {
+    console.error('[Control] Error asignando coordinador:', e)
+  } finally {
+    const next = { ...savingCoord.value }
+    delete next[evento.id]
+    savingCoord.value = next
+  }
 }
 
 // ── Checkboxes con spinner por celda ──────────────────
@@ -99,7 +115,9 @@ const estadoAdminCls = (e) => ({
   'Facturada':  'badge-blue',
 }[e] ?? 'badge-gray')
 
-onMounted(async () => { await fetchEventos() })
+onMounted(async () => {
+  await Promise.all([fetchEventos(), fetchCoordinadores()])
+})
 </script>
 
 <template>
@@ -241,7 +259,24 @@ onMounted(async () => { await fetchEventos() })
                 </td>
 
                 <!-- Coordinador -->
-                <td class="vc-td ctrl-text-sm">{{ ev.coordinador ?? '—' }}</td>
+                <td class="vc-td" @click.stop>
+                  <div class="coord-wrap">
+                    <Loader2 v-if="savingCoord[ev.id]" :size="13" class="spin coord-spin" />
+                    <select
+                      v-else
+                      class="coord-select"
+                      :value="ev.coordinadorId ?? ''"
+                      @change="handleCoordChange(ev, $event.target.value || null)"
+                    >
+                      <option value="">— Sin asignar —</option>
+                      <option
+                        v-for="c in coordinadores"
+                        :key="c.id"
+                        :value="c.id"
+                      >{{ c.fullName }}</option>
+                    </select>
+                  </div>
+                </td>
 
                 <!-- Cliente -->
                 <td class="vc-td ctrl-text-sm">
@@ -410,17 +445,32 @@ onMounted(async () => { await fetchEventos() })
                           </span>
                         </div>
 
-                        <!-- Items (equipos) -->
-                        <div v-if="ev.items?.length" class="vc-exp-field" style="grid-column: span 4">
-                          <span class="vc-exp-label">Equipos / Productos ({{ ev.items.length }})</span>
+                        <!-- Items (equipos propios + terceros) -->
+                        <div
+                          v-if="ev.items?.length || ev.thirdPartyItems?.length"
+                          class="vc-exp-field"
+                          style="grid-column: span 5"
+                        >
+                          <span class="vc-exp-label">
+                            Equipos / Productos
+                            ({{ (ev.items?.length ?? 0) + (ev.thirdPartyItems?.length ?? 0) }})
+                          </span>
                           <div class="ctrl-items-list">
                             <span
                               v-for="it in ev.items"
-                              :key="it.id ?? it.productId"
+                              :key="`own-${it.id ?? it.productId}`"
                               class="ctrl-item-pill"
                             >
                               {{ it.product?.dispositivo ?? it.dispositivo ?? it.productId }}
                               <span class="ctrl-item-qty">×{{ it.cantidadProducto ?? it.quantity ?? 1 }}</span>
+                            </span>
+                            <span
+                              v-for="it in ev.thirdPartyItems"
+                              :key="`3p-${it.id}`"
+                              class="ctrl-item-pill ctrl-item-pill--third"
+                            >
+                              {{ it.dispositivo ?? it.nombre ?? `#${it.id}` }}
+                              <span class="ctrl-item-qty">×{{ it.cantidad ?? 1 }}</span>
                             </span>
                           </div>
                         </div>
@@ -714,4 +764,43 @@ onMounted(async () => { await fetchEventos() })
 
 /* Dense table override */
 .ctrl-table .vc-td { padding: 9px 12px; }
+
+/* Third-party item pill */
+.ctrl-item-pill--third {
+  background: #F0FDF4;
+  color: #166534;
+}
+
+/* Coordinator select */
+.coord-wrap {
+  display: flex;
+  align-items: center;
+  min-width: 120px;
+}
+
+.coord-select {
+  width: 100%;
+  background: #F8FAFC;
+  border: 1px solid #E2EBF6;
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 12px;
+  color: var(--text-1, #0F1A2E);
+  font-family: 'Inter', sans-serif;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  appearance: auto;
+}
+
+.coord-select:focus {
+  border-color: var(--primary, #054EAF);
+  box-shadow: 0 0 0 2px rgba(5, 78, 175, 0.1);
+}
+
+.coord-spin {
+  color: #94A3B8;
+  animation: spin-anim 0.7s linear infinite;
+  margin: auto;
+}
 </style>

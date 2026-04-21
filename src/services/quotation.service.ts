@@ -225,6 +225,20 @@ export const removeQuotationMember = async (quotationId: number, userId: number)
     }
 };
 
+// Asigna un coordinador a una cotización
+export const assignCoordinator = async (quotationId: number, coordinadorId: number) => {
+    try {
+        const response = await api.patch(
+            `/quotations/${quotationId}/coordinador`,
+            { coordinadorId },
+            { headers: { 'Content-Type': 'application/json' } },
+        );
+        return response;
+    } catch (error) {
+        throw error;
+    }
+};
+
 // ── VERSIONAMIENTO ────────────────────────────────────────────────────────
 
 export const getVersions = async (quotationId: number | string) => {
