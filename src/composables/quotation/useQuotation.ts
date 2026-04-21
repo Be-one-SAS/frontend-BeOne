@@ -29,7 +29,8 @@ export function useQuotation() {
     description: '',
     agenteComercial: '',
     cliente: '',
-    clienteId: null as number | null, 
+    clienteId: null as number | null,
+    listaPrecio: '' as string,
     empresa: '',
     contacto: '',
     correo: '',
@@ -233,7 +234,10 @@ export function useQuotation() {
           : new Date().toISOString(),
 
         // ── Datos del cliente ─────────────────────────────────────
-        clienteId:         cotizacion.clienteId   ?? undefined,
+        // clienteId se omite del payload cuando es null (Cliente Directo) para evitar
+        // que @Type(() => Number) lo convierta en 0 antes de llegar al @IsOptional() del DTO.
+        ...(cotizacion.clienteId != null && { clienteId: Number(cotizacion.clienteId) }),
+        listaPrecio:       cotizacion.listaPrecio  || undefined,
         empresa:           cotizacion.empresa      || undefined,
 
         // ── Datos del agente/comercial ────────────────────────────
@@ -250,7 +254,7 @@ export function useQuotation() {
         linkMaps:          cotizacion.linkMaps   || undefined,
 
         // ── Evento ────────────────────────────────────────────────
-        asistentes:        cotizacion.asistentes    || undefined,
+        asistentes:        cotizacion.asistentes != null ? Number(cotizacion.asistentes) : undefined,
         vigencia:          cotizacion.vigencia      || undefined,
         unidadEjecucion:   cotizacion.unidadEjecucion || undefined,
         tipoSuelo:         cotizacion.tipoSuelo     || undefined,

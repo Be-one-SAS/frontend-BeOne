@@ -906,7 +906,6 @@ import ResumenCotizacion from '../../components/panels/ResumenCotizacion.vue';
 import ClienteFinalSelector from '../suppliers/ClienteFinalSelector.vue';
 import BarraInfo from '../../components/panels/BarraInfo.vue';
 import { useAuth } from '../../composables/useAuth';
-import { formatDateTime, getCurrentISODate } from '../../utils/date';
 import MapSelector from '../../components/map/MapSelector.vue';
 
 import { useRoute } from 'vue-router';
@@ -1169,7 +1168,7 @@ const buildThirdPartyPayload = () => ({
 
 // Auto completa el campo Agente comercial y restaura el draft si existe
 onMounted(async () => {
-  cotizacion.fechaCotizacion = formatDateTime(getCurrentISODate())
+  cotizacion.fechaCotizacion = new Date().toISOString().split('T')[0]
   cotizacion.agenteComercial = user.value.fullName
 
   // Restore draft only for new quotations (not edit mode)
@@ -1192,9 +1191,18 @@ watch(clienteSeleccionado, (nuevoCliente) => {
   cotizacion.celular  = nuevoCliente.reference
 })
 
-// ✅ CHANGED — sincroniza clienteId (FK numérica) cuando se selecciona un cliente de pricing
+// sincroniza clienteId (FK numérica) y listaPrecio cuando se selecciona un grupo de precios
 watch(myClienteSeleccionado, (nuevoCliente) => {
-  cotizacion.clienteId = nuevoCliente.id ?? null
+  if (!nuevoCliente?.id) {
+    cotizacion.clienteId   = null
+    cotizacion.listaPrecio = ''
+  } else if (nuevoCliente.id === 'cliente_directo') {
+    cotizacion.clienteId   = null
+    cotizacion.listaPrecio = 'cliente_directo'
+  } else {
+    cotizacion.clienteId   = Number(nuevoCliente.id)
+    cotizacion.listaPrecio = nuevoCliente.name || ''
+  }
 })
 
 // Obtiene el precio según el cliente seleccionado
@@ -1240,7 +1248,8 @@ const getCotizacion = async () => {
     const data = response.data;
 
     cotizacion.cliente             = data.cliente ? data.cliente.name : '';
-    cotizacion.clienteId           = data.clienteId;
+    cotizacion.clienteId           = data.clienteId ?? null;
+    cotizacion.listaPrecio         = data.listaPrecio || '';
     cotizacion.celular             = data.celular;
     cotizacion.empresa             = data.empresa;
     cotizacion.contacto            = data.contacto;
@@ -1366,7 +1375,7 @@ const {
 /** Limpia el draft y re-aplica los valores de sesión (nombre del agente y fecha de hoy) */
 const handleClearDraft = () => {
   clearDraft()
-  cotizacion.fechaCotizacion = formatDateTime(getCurrentISODate())
+  cotizacion.fechaCotizacion = new Date().toISOString().split('T')[0]
   cotizacion.agenteComercial = user.value.fullName
 }
 
