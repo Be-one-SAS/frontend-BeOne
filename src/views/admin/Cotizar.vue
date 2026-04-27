@@ -784,9 +784,20 @@
       <div class="nav-right">
         <!-- Pasos 1-3: botón Siguiente -->
         <template v-if="pasoActual < 4">
-          <button @click="irAPaso(pasoActual + 1)" class="btn-next">
-            Siguiente <ChevronRight :size="16" />
-          </button>
+          <div
+            class="btn-next-wrap"
+            :data-tip="pasoActual === 2 && !cotizacion.linkMaps
+              ? 'Selecciona una ubicación en el mapa para continuar'
+              : undefined"
+          >
+            <button
+              @click="irAPaso(pasoActual + 1)"
+              class="btn-next"
+              :disabled="pasoActual === 2 && !cotizacion.linkMaps"
+            >
+              Siguiente <ChevronRight :size="16" />
+            </button>
+          </div>
         </template>
 
         <!-- Paso 4: Guardar borrador + Generar cotización -->
@@ -1404,9 +1415,16 @@ const pasos = [
   { num: 4, label: 'Resumen'  },
 ]
 
+watch(pasoActual, () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+  const container = document.querySelector('.page-content')
+  if (container) {
+    container.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+}, { flush: 'post' })
+
 const irAPaso = (n) => {
   pasoActual.value = n
-  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 // Computed: duración del evento en días
@@ -2366,7 +2384,39 @@ const duracionMontaje = computed(() => {
   transition: background 0.15s;
   font-family: 'Inter', sans-serif;
 }
-.btn-next:hover { background: #03368A; }
+.btn-next:hover    { background: #03368A; }
+.btn-next:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-next:disabled:hover { background: #054EAF; }
+
+/* Tooltip sobre el botón Siguiente cuando está deshabilitado */
+.btn-next-wrap { position: relative; }
+.btn-next-wrap[data-tip]:hover::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 9px);
+  right: 0;
+  background: #0F1A2E;
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  padding: 7px 12px;
+  border-radius: 8px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 14px rgba(15, 26, 46, 0.22);
+  z-index: 200;
+}
+.btn-next-wrap[data-tip]:hover::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 3px);
+  right: 20px;
+  border: 5px solid transparent;
+  border-top-color: #0F1A2E;
+  pointer-events: none;
+  z-index: 200;
+}
 
 .btn-ghost-nav {
   padding: 9px 16px;
