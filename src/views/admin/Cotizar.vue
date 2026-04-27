@@ -196,7 +196,11 @@
             <div class="g3">
               <InputLabel label="Nombre descriptivo del evento" v-model="cotizacion.description" />
               <InputLabel label="Ubicación del Evento" v-model="cotizacion.ubicacion" />
-              <MapSelector v-model="cotizacion.linkMaps" />
+              <MapSelector
+                v-model="cotizacion.linkMaps"
+                :address="cotizacion.ubicacion"
+                @update:address="cotizacion.ubicacion = $event"
+              />
               <InputLabel label="Número de Asistentes" v-model="cotizacion.asistentes" type="number" />
               <div class="field-wrap">
                 <label class="field-lbl">Tipo de Suelo</label>
@@ -215,12 +219,18 @@
               <span>Calendario del Evento</span>
               <span v-if="duracionEvento" class="dur-badge">Duración: {{ duracionEvento }}</span>
             </div>
-            <div class="g4">
-              <InputLabel label="Fecha Inicio Evento"      v-model="cotizacion.fechaInicioEvento" type="date" />
-              <InputLabel label="Horario de Inicio"        v-model="cotizacion.horarioInicio"     type="time" />
-              <InputLabel label="Fecha Fin Evento"         v-model="cotizacion.fechaFinEvento"    type="date" />
-              <InputLabel label="Horario de Finalización"  v-model="cotizacion.horarioFin"        type="time" />
-            </div>
+
+            <!-- Selector de fechas con modal -->
+            <EventDatePickerModal
+              :fechaInicio="cotizacion.fechaInicioEvento"
+              :horaInicio="cotizacion.horarioInicio"
+              :fechaFin="cotizacion.fechaFinEvento"
+              :horaFin="cotizacion.horarioFin"
+              @update:fechaInicio="cotizacion.fechaInicioEvento = $event"
+              @update:horaInicio="cotizacion.horarioInicio = $event"
+              @update:fechaFin="cotizacion.fechaFinEvento = $event"
+              @update:horaFin="cotizacion.horarioFin = $event"
+            />
           </div>
 
           <!-- Card: Operación y Montaje -->
@@ -230,12 +240,18 @@
               <span>Operación y Montaje</span>
               <span v-if="duracionMontaje" class="dur-badge">Duración: {{ duracionMontaje }}</span>
             </div>
-            <div class="g4">
-              <InputLabel label="Fecha Inicio Montaje"    v-model="cotizacion.fechaInicioMontaje"    type="date" />
-              <InputLabel label="Hora de Montaje"         v-model="cotizacion.horarioInicioMontaje"  type="time" />
-              <InputLabel label="Fecha Inicio Desmontaje" v-model="cotizacion.fechaFinMontaje"       type="date" />
-              <InputLabel label="Horario de Desmontaje"   v-model="cotizacion.horarioFinMontaje"     type="time" />
-            </div>
+
+            <!-- Selector de fechas con modal -->
+            <EventDatePickerModal
+              :fechaInicio="cotizacion.fechaInicioMontaje"
+              :horaInicio="cotizacion.horarioInicioMontaje"
+              :fechaFin="cotizacion.fechaFinMontaje"
+              :horaFin="cotizacion.horarioFinMontaje"
+              @update:fechaInicio="cotizacion.fechaInicioMontaje = $event"
+              @update:horaInicio="cotizacion.horarioInicioMontaje = $event"
+              @update:fechaFin="cotizacion.fechaFinMontaje = $event"
+              @update:horaFin="cotizacion.horarioFinMontaje = $event"
+            />
           </div>
 
         </template>
@@ -925,6 +941,7 @@ import { useQuotation }               from '../../composables/quotation/useQuota
 import { useQuotationDraft }          from '../../composables/useQuotationDraft';
 import QuotationNextNumber            from '../../components/quotation/QuotationNextNumber.vue';
 import QuotationProductsCardList      from '../../components/products/QuotationProductsCardList.vue';
+import EventDatePickerModal           from '../../components/quotation/EventDatePickerModal.vue';
 import { getThirdPartyCatalog }       from '../../services/products.service';
 
 import {
