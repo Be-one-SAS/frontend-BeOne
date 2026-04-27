@@ -11,20 +11,22 @@ export function useThirdPartyProduct(items: any, cotizacion: any) {
     precios: 0,
     categoria: '',
     incluyeTransporte: false,
-    medidas: ''
+    medidas: '',
+    imageUrl: ''
   })
 
   const abrirModal = () => (modalNuevoProducto.value = true)
   const cerrarModal = () => (modalNuevoProducto.value = false)
 
   const guardarProducto = async () => {
-    const payload = {
+    const payload: Record<string, unknown> = {
       dispositivo: productoTercero.dispositivo,
       descripcion: productoTercero.descripcion,
       valorBase: Number(productoTercero.precios),
       categoria: productoTercero.categoria,
       incluyeTransporteBogMde: productoTercero.incluyeTransporte ? 'SI' : 'NO',
-      medidas: productoTercero.medidas
+      medidas: productoTercero.medidas,
+      ...(productoTercero.imageUrl ? { imageUrl: productoTercero.imageUrl } : {})
     }
 
     const { data } = await thirdPartyCatalog(payload)
@@ -37,6 +39,7 @@ export function useThirdPartyProduct(items: any, cotizacion: any) {
       descripcion: data.descripcion,
       incluyeTransporte: data.incluyeTransporteBogMde,
       medidas: data.medidas,
+      linkFoto: data.imageUrl || '',
       estado: 'PRODUCTO EXTERNO',
       cantidadJornada: cotizacion.cantidadJornada,
       cantidadProducto: cotizacion.cantidadProducto,

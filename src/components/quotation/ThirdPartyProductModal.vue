@@ -1,9 +1,9 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import {
   Package, X, Save,
   Cpu, Zap, Truck, Clock, DollarSign,
-  FileText, Calculator,
+  FileText, Calculator, ImageIcon,
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -53,6 +53,22 @@ const cotizacion = computed(() => {
 
 const formatMoney = (val) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(val || 0)
+
+/* ────────────────────────────────────────────────────
+   IMAGE PREVIEW
+──────────────────────────────────────────────────── */
+const imgError = ref(false)
+const onImgError = () => { imgError.value = true }
+const onImgInput = () => { imgError.value = false }
+watch(() => props.show, (val) => {
+  if (val) {
+    submitted.value = false
+    nextTick(() => {
+      const body = document.querySelector('.tp-body')
+      if (body) body.scrollTop = 0
+    })
+  }
+})
 </script>
 
 <template>
@@ -118,6 +134,31 @@ const formatMoney = (val) =>
                 <div class="fg">
                   <label class="flbl">Bodega</label>
                   <input type="text" v-model="producto.bodega" class="finp" placeholder="Ubicación de bodega" />
+                </div>
+
+                <!-- Imagen URL — span full width -->
+                <div class="fg fg--full">
+                  <label class="flbl">
+                    <ImageIcon :size="12" style="display:inline;vertical-align:middle;margin-right:4px" />
+                    URL de imagen
+                  </label>
+                  <input
+                    type="url"
+                    v-model="producto.imageUrl"
+                    class="finp"
+                    placeholder="https://ejemplo.com/imagen.jpg"
+                    @input="onImgInput"
+                  />
+                </div>
+
+                <!-- Preview -->
+                <div v-if="producto.imageUrl && !imgError" class="img-preview-wrap fg--full">
+                  <img
+                    :src="producto.imageUrl"
+                    @error="onImgError"
+                    class="img-preview"
+                    alt="preview"
+                  />
                 </div>
 
               </div>
@@ -698,6 +739,28 @@ const formatMoney = (val) =>
 
 .fin-pill--slate { border-color: #E5EAF0; }
 .fin-pill--slate .fin-val { color: #475569; }
+
+/* ─── Image preview ────────────────────────────────────────── */
+.fg--full {
+  grid-column: 1 / -1;
+}
+
+.img-preview-wrap {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.img-preview {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #E5EAF0;
+  background: #F1F5F9;
+  display: block;
+}
 
 /* ─── Footer ───────────────────────────────────────────────── */
 .tp-footer {
