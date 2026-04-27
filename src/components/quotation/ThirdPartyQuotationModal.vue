@@ -91,6 +91,28 @@
                         :disabled="savingNewProduct"
                       />
                     </div>
+                    <div class="tq-field tq-field--span-2">
+                      <label class="tq-label">Imagen del producto</label>
+                      <div class="tq-upload-area" @click="$refs.fileInputNew.click()">
+                        <input
+                          type="file"
+                          ref="fileInputNew"
+                          style="display: none"
+                          accept="image/*"
+                          @change="onFileChangeNew"
+                        />
+                        <div v-if="!newProductForm.imageUrl" class="tq-upload-placeholder">
+                          <Upload :size="16" />
+                          <span>Subir imagen...</span>
+                        </div>
+                        <div v-else class="tq-upload-preview-wrap">
+                          <img :src="newProductForm.imageUrl" class="tq-upload-preview" alt="preview" />
+                          <button type="button" class="tq-upload-remove" @click.stop="newProductForm.imageUrl = ''">
+                            <X :size="12" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <p v-if="newProductError" class="tq-new-product-error">{{ newProductError }}</p>
@@ -132,6 +154,28 @@
               <div class="tq-field tq-field--full">
                 <label class="tq-label">Descripción <span class="tq-req">*</span></label>
                 <input v-model="form.descripcion" type="text" class="tq-input" placeholder="Descripción breve del producto" />
+              </div>
+              <div class="tq-field tq-field--full">
+                <label class="tq-label">Imagen del producto</label>
+                <div class="tq-upload-area" @click="$refs.fileInputMain.click()">
+                  <input
+                    type="file"
+                    ref="fileInputMain"
+                    style="display: none"
+                    accept="image/*"
+                    @change="onFileChangeMain"
+                  />
+                  <div v-if="!form.imageUrl" class="tq-upload-placeholder">
+                    <Upload :size="16" />
+                    <span>Subir imagen...</span>
+                  </div>
+                  <div v-else class="tq-upload-preview-wrap">
+                    <img :src="form.imageUrl" class="tq-upload-preview" alt="preview" />
+                    <button type="button" class="tq-upload-remove" @click.stop="form.imageUrl = ''">
+                      <X :size="12" />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -346,9 +390,32 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { watchDebounced } from '@vueuse/core'
-import { Package, Truck, X, Calculator, Loader2, Plus, BarChart2, Cpu, FileText } from 'lucide-vue-next'
+import { Package, Truck, X, Calculator, Loader2, Plus, BarChart2, Cpu, FileText, ImageIcon, Upload } from 'lucide-vue-next'
 import { calculateFromCost } from '@/services/quotation.service'
 import { thirdPartyCatalog } from '@/services/products.service'
+
+const fileInputNew = ref(null)
+const fileInputMain = ref(null)
+
+const onFileChangeNew = (e) => {
+  const file = e.target.files[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = (event) => {
+    newProductForm.value.imageUrl = event.target.result
+  }
+  reader.readAsDataURL(file)
+}
+
+const onFileChangeMain = (e) => {
+  const file = e.target.files[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = (event) => {
+    form.value.imageUrl = event.target.result
+  }
+  reader.readAsDataURL(file)
+}
 
 const props = defineProps({
   show: { type: Boolean, default: false },
@@ -387,7 +454,8 @@ const initialForm = {
   horasOperacion: null,
   horasMontaje: null,
   personalMontaje: null,
-  notas: ''
+  notas: '',
+  imageUrl: ''
 }
 
 const form = ref({ ...initialForm })
@@ -398,7 +466,7 @@ const desglose = ref(null)
 
 // ── Sub-formulario: nuevo producto ───────────────────────────────────────────
 const showNewProductForm = ref(false)
-const newProductForm = ref({ dispositivo: '', valorBase: null, descripcion: '', categoria: '' })
+const newProductForm = ref({ dispositivo: '', valorBase: null, descripcion: '', categoria: '', imageUrl: '' })
 const savingNewProduct = ref(false)
 const newProductError = ref('')
 const newProductSuccess = ref(false)
@@ -413,12 +481,13 @@ const guardarNuevoProducto = async () => {
       valorBase:    newProductForm.value.valorBase    || undefined,
       descripcion:  newProductForm.value.descripcion.trim()  || undefined,
       categoria:    newProductForm.value.categoria.trim()    || undefined,
+      imageUrl:     newProductForm.value.imageUrl.trim()     || undefined,
     })
     localAdditions.value.push(data)
     form.value.catalogItemId = data.id
     showNewProductForm.value = false
     newProductSuccess.value = true
-    newProductForm.value = { dispositivo: '', valorBase: null, descripcion: '', categoria: '' }
+    newProductForm.value = { dispositivo: '', valorBase: null, descripcion: '', categoria: '', imageUrl: '' }
     emit('catalog-updated', data)
     setTimeout(() => { newProductSuccess.value = false }, 3000)
   } catch (e) {
@@ -430,7 +499,7 @@ const guardarNuevoProducto = async () => {
 
 const cancelarNuevoProducto = () => {
   showNewProductForm.value = false
-  newProductForm.value = { dispositivo: '', valorBase: null, descripcion: '', categoria: '' }
+  newProductForm.value = { dispositivo: '', valorBase: null, descripcion: '', categoria: '', imageUrl: '' }
   newProductError.value = ''
 }
 
@@ -442,9 +511,15 @@ watch(() => props.show, (val) => {
     calcError.value = ''
     desglose.value = null
     showNewProductForm.value = false
-    newProductForm.value = { dispositivo: '', valorBase: null, descripcion: '', categoria: '' }
+    newProductForm.value = { dispositivo: '', valorBase: null, descripcion: '', categoria: '', imageUrl: '' }
     newProductError.value = ''
     newProductSuccess.value = false
+
+    // Reset scroll
+    setTimeout(() => {
+      const body = document.querySelector('.tq-body')
+      if (body) body.scrollTop = 0
+    }, 50)
   }
 })
 
@@ -483,6 +558,7 @@ watch(() => form.value.catalogItemId, (newId) => {
     form.value.horasMontaje      = selected.horasMontaje
     form.value.personalMontaje   = selected.personalMontaje
     form.value.notas             = selected.notas       || ''
+    form.value.imageUrl          = selected.imageUrl    || ''
     
     // Also pre-fill cost if available in catalog
     if (selected.valorBase && !form.value.costoUnitario) {
@@ -960,5 +1036,76 @@ const agregar = () => {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+/* Image Upload Area */
+.tq-upload-area {
+  width: 100%;
+  min-height: 100px;
+  background: #F8FAFC;
+  border: 1.5px dashed #CBD5E1;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  overflow: hidden;
+  position: relative;
+}
+
+.tq-upload-area:hover {
+  background: #F1F5F9;
+  border-color: #054EAF;
+}
+
+.tq-upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: #64748B;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.tq-upload-preview-wrap {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+
+.tq-upload-preview {
+  max-width: 100%;
+  max-height: 120px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.tq-upload-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.tq-upload-remove:hover {
+  transform: scale(1.1);
+  background: #EF4444;
 }
 </style>

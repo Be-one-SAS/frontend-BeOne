@@ -1416,10 +1416,16 @@ const pasos = [
 ]
 
 watch(pasoActual, () => {
+  // Intentar scroll en window y fallbacks (estándar)
   window.scrollTo({ top: 0, behavior: 'smooth' })
+  document.documentElement.scrollTop = 0
+  document.body.scrollTop = 0
+
+  // Intentar scroll en el contenedor principal del layout (.page-content)
   const container = document.querySelector('.page-content')
   if (container) {
     container.scrollTo({ top: 0, behavior: 'smooth' })
+    container.scrollTop = 0
   }
 }, { flush: 'post' })
 

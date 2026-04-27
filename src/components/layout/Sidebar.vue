@@ -42,9 +42,6 @@
           </div>
           <div class="user-info">
             <p class="user-name">{{ displayName }}</p>
-            <span class="user-role-badge" :style="roleBadgeStyle">
-              {{ userRole ?? 'Sin rol' }}
-            </span>
           </div>
         </div>
 

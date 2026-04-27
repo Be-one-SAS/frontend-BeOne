@@ -11,7 +11,6 @@
       <!-- Name + role (desktop only) -->
       <div class="ph-info hidden md:flex">
         <span class="ph-name">{{ displayName }}</span>
-        <span class="ph-role" :style="roleBadgeStyle">{{ userRole ?? '—' }}</span>
       </div>
 
       <ChevronDown class="ph-chevron hidden md:block" :class="{ 'ph-chevron--open': open }" :size="14" />
