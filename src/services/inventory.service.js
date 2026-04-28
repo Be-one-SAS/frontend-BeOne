@@ -53,3 +53,30 @@ export const getItemHistory = async (id) => {
   const res = await api.get(`/inventory/${id}/history`)
   return res.data
 }
+
+// ── Sesiones de escaneo ──────────────────────────────────
+
+export const createScanSession = async (tipo) => {
+  const res = await api.post('/scan-sessions', { tipo })
+  return res.data
+}
+
+export const getScanSession = async (token) => {
+  const res = await api.get(`/scan-sessions/${token}`)
+  return res.data
+}
+
+export const getScanEvents = async (token) => {
+  const res = await api.get(`/scan-sessions/${token}/events`)
+  return res.data
+}
+
+export const closeScanSession = async (token) => {
+  const res = await api.patch(`/scan-sessions/${token}/close`)
+  return res.data
+}
+
+export const submitScan = async (token, { code, cantidadNueva, metodo }) => {
+  const res = await api.post(`/scan-sessions/${token}/scan`, { code, cantidadNueva, metodo })
+  return res.data
+}

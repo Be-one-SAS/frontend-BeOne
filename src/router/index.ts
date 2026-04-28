@@ -30,6 +30,14 @@ const routes = [
     component: Unauthorized,
   },
 
+  // ── Sesión de escaneo (pública, sin auth) ────────────
+  {
+    path: '/scan/:token',
+    name: 'ScanPage',
+    component: () => import('../views/inventory/ScanPage.vue'),
+    meta: { public: true },
+  },
+
   // ── Auth (solo invitados) ─────────────────────────────
   {
     path: '/',
@@ -239,6 +247,9 @@ const router = createRouter({
 const { isAuthenticated, user } = useAuth()
 
 router.beforeEach((to, _from, next) => {
+  // 0. Ruta pública (ej: /scan/:token) — pasa siempre
+  if (to.meta.public) return next()
+
   // 1. Ruta protegida sin sesión → redirige al login
   if (to.meta.requiresAuth && !isAuthenticated.value) {
     return next('/login')

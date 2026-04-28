@@ -49,5 +49,24 @@ export function useControl() {
     }
   }
 
-  return { eventos, loading, coordinadores, fetchEventos, fetchCoordinadores, updateEvento, updateCoordinadores }
+  const refreshEventTeam = async (eventId: number) => {
+    try {
+      const [coordsRes, membersRes] = await Promise.all([
+        api.get(`/quotations/${eventId}/coordinadores`),
+        api.get(`/quotations/${eventId}/members`),
+      ])
+      const idx = eventos.value.findIndex(e => e.id === eventId)
+      if (idx !== -1) {
+        eventos.value[idx] = {
+          ...eventos.value[idx],
+          coordinadores: coordsRes.data,
+          members: membersRes.data,
+        }
+      }
+    } catch (e) {
+      console.error('[useControl] Error refrescando equipo:', e)
+    }
+  }
+
+  return { eventos, loading, coordinadores, fetchEventos, fetchCoordinadores, updateEvento, updateCoordinadores, refreshEventTeam }
 }
