@@ -4,10 +4,11 @@ import { useRouter } from 'vue-router'
 import { getInventory } from '@/services/inventory.service'
 import BaseTable     from '@/components/ui/BaseTable.vue'
 import ScanModal     from '@/components/inventory/ScanModal.vue'
+import SessionPanel  from '@/components/inventory/SessionPanel.vue'
 import {
   Search, RefreshCw, ChevronUp, ChevronDown,
   QrCode, Wifi, AlertTriangle, Eye, X,
-  PackageCheck, PackageSearch, Clock, Wrench,
+  PackageCheck, PackageSearch, Clock, Wrench, Smartphone,
 } from 'lucide-vue-next'
 
 /* ─── state ──────────────────────────────────────────────── */
@@ -24,7 +25,8 @@ const bodegaFilter  = ref('')
 const sortKey = ref('nombre')
 const sortDir = ref('asc')
 
-const showScan    = ref(false)
+const showScan        = ref(false)
+const showSession     = ref(false)
 const alertOpen   = ref(true)
 
 /* ─── options ────────────────────────────────────────────── */
@@ -189,6 +191,9 @@ onMounted(fetchItems)
       <div class="inv-head-actions">
         <button class="inv-btn-scan" @click="showScan = true">
           <QrCode :size="14" /> Escanear
+        </button>
+        <button class="inv-btn-session" @click="showSession = true">
+          <Smartphone :size="14" /> Sesión móvil
         </button>
         <button class="inv-btn-reload" @click="fetchItems">
           <RefreshCw :size="13" /> Recargar
@@ -440,6 +445,11 @@ onMounted(fetchItems)
 
     <!-- ── Scan Modal ─────────────────────────────────────────── -->
     <ScanModal :show="showScan" @close="showScan = false" />
+    <SessionPanel
+      :show="showSession"
+      :total-items="items.length"
+      @close="showSession = false"
+    />
 
   </div>
 </template>
@@ -489,6 +499,15 @@ onMounted(fetchItems)
   transition: background 0.15s;
 }
 .inv-btn-scan:hover { background: #03368A; }
+
+.inv-btn-session {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; background: #F0FDF4; color: #16A34A;
+  border: 1px solid #86EFAC; border-radius: 10px;
+  font-size: 13px; font-weight: 600; font-family: 'Inter',sans-serif;
+  cursor: pointer; transition: all 0.2s;
+}
+.inv-btn-session:hover { background: #16A34A; color: #fff; border-color: #16A34A; }
 
 .inv-btn-reload {
   display: inline-flex;
