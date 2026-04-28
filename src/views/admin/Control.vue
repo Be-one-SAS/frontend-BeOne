@@ -2,9 +2,10 @@
 import { ref, computed, onMounted } from 'vue'
 import {
   ClipboardCheck, ClipboardX, ChevronDown, Search,
-  Loader2,
+  Loader2, CheckCircle2
 } from 'lucide-vue-next'
 import { useControl } from '@/composables/useControl'
+import OperationalListModal from '@/components/quotation/OperationalListModal.vue'
 
 // Directiva local para cerrar el dropdown al hacer click fuera
 const vClickOutside = {
@@ -149,6 +150,22 @@ const estadoAdminCls = (e) => ({
   'Facturada':  'badge-blue',
 }[e] ?? 'badge-gray')
 
+// ── Modal Lista Operativa ──────────────────────────────
+const showOpListModal = ref(false)
+const selectedEvent   = ref(null)
+
+const openOpList = (evento) => {
+  selectedEvent.value = evento
+  showOpListModal.value = true
+}
+
+const onOpListComplete = async ({ eventId, notes }) => {
+  await updateEvento(eventId, 'listadoMaterial', true)
+  if (notes?.trim()) {
+    await updateEvento(eventId, 'notasOperativas', notes.trim())
+  }
+}
+
 onMounted(async () => {
   await Promise.all([fetchEventos(), fetchCoordinadores()])
 })
@@ -243,6 +260,9 @@ onMounted(async () => {
               <th class="vc-th vc-th-center" style="width:52px" title="Listado de Material">Mat.</th>
               <th class="vc-th vc-th-center" style="width:52px" title="Planilla de Ejecución">Plan.</th>
               <th class="vc-th vc-th-center" style="width:62px" title="Evento Finalizado">Final.</th>
+              <th class="vc-th vc-th-center" style="width:40px" title="Lista Operativa">
+                <ClipboardCheck :size="12" />
+              </th>
               <th class="vc-th" style="width:90px">Est. Admin.</th>
             </tr>
           </thead>
@@ -389,12 +409,19 @@ onMounted(async () => {
                 <td class="vc-td vc-td-center" @click.stop>
                   <button
                     class="ctrl-check"
-                    :class="ev.listadoMaterial ? 'ctrl-check-on' : 'ctrl-check-off'"
+                    :class="ev.listadoMaterial ? 'ctrl-check-done' : 'ctrl-check-off'"
                     :disabled="isSaving(ev.id, 'listadoMaterial')"
                     @click="handleCheck(ev, 'listadoMaterial')"
+                    :title="ev.listadoMaterial ? 'Material Completo' : 'Pendiente'"
                   >
                     <Loader2 v-if="isSaving(ev.id, 'listadoMaterial')" :size="12" class="spin" />
-                    <span v-else>{{ ev.listadoMaterial ? '✓' : '✗' }}</span>
+                    <template v-else>
+                      <span v-if="ev.listadoMaterial" class="flex items-center gap-1">
+                        <CheckCircle2 :size="12" />
+                        <span class="hidden xl:inline">Completo</span>
+                      </span>
+                      <span v-else>✗</span>
+                    </template>
                   </button>
                 </td>
 
@@ -424,6 +451,17 @@ onMounted(async () => {
                   </button>
                 </td>
 
+                <!-- Lista Operativa -->
+                <td class="vc-td vc-td-center" @click.stop>
+                  <button
+                    class="ctrl-check ctrl-check-op"
+                    title="Ver Lista Operativa"
+                    @click="openOpList(ev)"
+                  >
+                    <ClipboardCheck :size="13" />
+                  </button>
+                </td>
+
                 <!-- Estado Admin -->
                 <td class="vc-td" @click.stop>
                   <span v-if="ev.estadoAdministrativo" class="ctrl-badge" :class="estadoAdminCls(ev.estadoAdministrativo)">
@@ -436,7 +474,7 @@ onMounted(async () => {
 
               <!-- ── Fila expandida ── -->
               <tr class="vc-exp-tr">
-                <td :colspan="16" class="vc-exp-td">
+                <td :colspan="17" class="vc-exp-td">
                   <div
                     class="vc-exp-panel"
                     :class="{ 'vc-exp-open': expandedRow === ev.id }"
@@ -517,10 +555,12 @@ onMounted(async () => {
                           class="vc-exp-field"
                           style="grid-column: span 5"
                         >
-                          <span class="vc-exp-label">
-                            Equipos / Productos
-                            ({{ (ev.items?.length ?? 0) + (ev.thirdPartyItems?.length ?? 0) }})
-                          </span>
+                          <div class="mb-2">
+                            <span class="vc-exp-label">
+                              Equipos / Productos
+                              ({{ (ev.items?.length ?? 0) + (ev.thirdPartyItems?.length ?? 0) }})
+                            </span>
+                          </div>
                           <div class="ctrl-items-list">
                             <span
                               v-for="it in ev.items"
@@ -553,6 +593,15 @@ onMounted(async () => {
         </table>
       </div>
     </div>
+
+    <!-- ── Modal Lista Operativa ── -->
+    <OperationalListModal
+      v-if="showOpListModal"
+      :show="showOpListModal"
+      :event="selectedEvent"
+      @close="showOpListModal = false"
+      @complete="onOpListComplete"
+    />
 
   </div>
 </template>
@@ -765,7 +814,10 @@ onMounted(async () => {
 }
 
 .ctrl-check-on  { background: #DCFCE7; color: #16A34A; }
+.ctrl-check-done { background: #054EAF; color: #FFFFFF; min-width: 26px; width: auto; padding: 0 8px; }
 .ctrl-check-off { background: #FEE2E2; color: #DC2626; }
+.ctrl-check-op  { background: #EBF3FC; color: #054EAF; }
+.ctrl-check-op:hover { background: #054EAF; color: #FFFFFF; }
 .ctrl-check:hover:not(:disabled) { opacity: 0.75; }
 .ctrl-check:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -953,4 +1005,5 @@ onMounted(async () => {
   animation: spin-anim 0.7s linear infinite;
   margin: auto;
 }
+
 </style>
