@@ -517,7 +517,7 @@
                         <span class="prd-qty">{{ it.cantidad ?? 1 }}</span>
                       </td>
                       <td class="td-center prd-price">
-                        {{ formatCOP(it.precioUnitario ?? null) }}
+                        {{ formatCOP(it.costoUnitario ?? null) }}
                       </td>
                       <td class="td-center">
                         <input
@@ -1133,6 +1133,8 @@ const agregarItemTercero = (item) => {
   itemsTerceros.value.push({
     ...item,
     descuentoPct: typeof item.descuentoPct === 'number' ? item.descuentoPct : 0,
+    // Ensure costoUnitario is preserved from the modal
+    costoUnitario: item.costoUnitario,
   })
 }
 

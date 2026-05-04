@@ -485,10 +485,12 @@ const guardarNuevoProducto = async () => {
     })
     localAdditions.value.push(data)
     form.value.catalogItemId = data.id
+    // Auto-set costoUnitario from the valorBase of the newly created product
+    form.value.costoUnitario = data.valorBase || newProductForm.value.valorBase
     showNewProductForm.value = false
     newProductSuccess.value = true
     newProductForm.value = { dispositivo: '', valorBase: null, descripcion: '', categoria: '', imageUrl: '' }
-    emit('catalog-updated', data)
+    // No emitir catalog-updated para evitar duplicados - ya está en localAdditions
     setTimeout(() => { newProductSuccess.value = false }, 3000)
   } catch (e) {
     newProductError.value = e?.response?.data?.message || 'Error al crear el producto. Intenta de nuevo.'
@@ -533,35 +535,39 @@ watch(() => form.value.catalogItemId, (newId) => {
 })
 
 // Auto-fill form when product is selected from catalog
-watch(() => form.value.catalogItemId, (newId) => {
+watch(() => form.value.catalogItemId, (newId, oldId) => {
   if (!newId || newId === '__new__') return
+  
   const selected = allCatalog.value.find(c => c.id === newId)
   if (selected) {
-    // Fill technical fields from catalog item
-    form.value.dispositivo       = selected.dispositivo || ''
-    form.value.descripcion       = selected.descripcion || ''
-    form.value.categoria         = selected.categoria   || ''
-    form.value.bodega            = selected.bodega      || ''
-    form.value.amperios          = selected.amperios
-    form.value.medidas           = selected.medidas     || ''
-    form.value.motores           = selected.motores
-    form.value.operarios         = selected.operarios
-    form.value.metrosExt         = selected.metrosExt
-    form.value.m2Disp            = selected.m2Disp
-    form.value.pesosEstacas      = selected.pesosEstacas
-    form.value.extintores        = selected.extintores
-    form.value.peso              = selected.peso
-    form.value.m3Transporte      = selected.m3Transporte
-    form.value.incluyeTransporte = selected.incluyeTransporteBogMde === 'SI'
-    form.value.montacarga        = selected.montacarga === 'SI'
-    form.value.horasOperacion    = selected.horasOperacion
-    form.value.horasMontaje      = selected.horasMontaje
-    form.value.personalMontaje   = selected.personalMontaje
-    form.value.notas             = selected.notas       || ''
-    form.value.imageUrl          = selected.imageUrl    || ''
+    // Fill technical fields from catalog item (only on first selection)
+    if (oldId == null) {
+      form.value.dispositivo       = selected.dispositivo || ''
+      form.value.descripcion       = selected.descripcion || ''
+      form.value.categoria         = selected.categoria   || ''
+      form.value.bodega            = selected.bodega      || ''
+      form.value.amperios          = selected.amperios
+      form.value.medidas           = selected.medidas     || ''
+      form.value.motores           = selected.motores
+      form.value.operarios         = selected.operarios
+      form.value.metrosExt         = selected.metrosExt
+      form.value.m2Disp            = selected.m2Disp
+      form.value.pesosEstacas      = selected.pesosEstacas
+      form.value.extintores        = selected.extintores
+      form.value.peso              = selected.peso
+      form.value.m3Transporte      = selected.m3Transporte
+      form.value.incluyeTransporte = selected.incluyeTransporteBogMde === 'SI'
+      form.value.montacarga        = selected.montacarga === 'SI'
+      form.value.horasOperacion    = selected.horasOperacion
+      form.value.horasMontaje      = selected.horasMontaje
+      form.value.personalMontaje   = selected.personalMontaje
+      form.value.notas             = selected.notas       || ''
+      form.value.imageUrl          = selected.imageUrl    || ''
+    }
     
-    // Also pre-fill cost if available in catalog
-    if (selected.valorBase && !form.value.costoUnitario) {
+    // Update costoUnitario from valorBase when switching products
+    // This ensures precioUnitario recalculates based on the new product's base cost
+    if (selected.valorBase != null) {
       form.value.costoUnitario = selected.valorBase
     }
   }
@@ -621,14 +627,10 @@ const calcular = async () => {
 }
 
 // ── Display helpers ───────────────────────────────────────────────────────────
-const RESULT_KEYS = ['precioUnitario', 'subtotalVenta', 'costoTotal', 'comisionPct', 'comisionMonto', 'iva', 'total', 'utilidadProyectada', 'utilidadFinal']
-
-const desgloseVisible = computed(() => {
-  if (!desglose.value) return {}
-  return Object.fromEntries(RESULT_KEYS.map(k => [k, desglose.value[k]]))
-})
+const RESULT_KEYS = ['costoUnitario', 'precioUnitario', 'subtotalVenta', 'costoTotal', 'comisionPct', 'comisionMonto', 'iva', 'total', 'utilidadProyectada', 'utilidadFinal']
 
 const FIELD_LABELS = {
+  costoUnitario:      'Costo unitario',
   precioUnitario:     'Precio unitario',
   subtotalVenta:      'Subtotal venta',
   costoTotal:         'Costo total',
@@ -640,8 +642,16 @@ const FIELD_LABELS = {
   utilidadFinal:      'Utilidad final',
 }
 
+const desgloseVisible = computed(() => {
+  if (!desglose.value) return {}
+  const result = Object.fromEntries(RESULT_KEYS.map(k => [k, desglose.value[k] ?? form.value[k]]))
+  // Ensure costoUnitario always comes from form (user input)
+  result.costoUnitario = form.value.costoUnitario
+  return result
+})
+
 const PCT_KEYS = new Set(['comisionPct'])
-const COP_KEYS = new Set(['precioUnitario', 'subtotalVenta', 'costoTotal', 'comisionMonto', 'iva', 'total', 'utilidadProyectada', 'utilidadFinal'])
+const COP_KEYS = new Set(['costoUnitario', 'precioUnitario', 'subtotalVenta', 'costoTotal', 'comisionMonto', 'iva', 'total', 'utilidadProyectada', 'utilidadFinal'])
 
 const formatCOP = (val) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(val)
@@ -661,7 +671,7 @@ const agregar = () => {
 
   const catalogItem = allCatalog.value.find(c => c.id === form.value.catalogItemId)
 
-  emit('add', {
+  const itemToEmit = {
     ...catalogItem, // Base catalog item
     ...form.value,  // Technical fields from form
     ...desglose.value, // Calculation results
@@ -669,7 +679,12 @@ const agregar = () => {
     montacarga:              form.value.montacarga ? 'SI' : 'NO',
     // Fallback names
     nombre: form.value.dispositivo || catalogItem?.nombre || catalogItem?.descripcion || `Producto #${form.value.catalogItemId}`,
-  })
+  }
+
+  // Override costoUnitario with form value (user input) - must be AFTER spread
+  itemToEmit.costoUnitario = form.value.costoUnitario
+
+  emit('add', itemToEmit)
 
   emit('close')
 }
