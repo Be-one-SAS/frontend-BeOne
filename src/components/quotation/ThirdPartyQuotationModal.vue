@@ -27,14 +27,54 @@
               
               <div class="tq-field tq-field--full">
                 <label class="tq-label">Producto del catálogo <span class="tq-req">*</span></label>
-                <select v-model="form.catalogItemId" class="tq-select" :disabled="loadingCalc">
-                  <option :value="null" disabled>Selecciona un producto del catálogo…</option>
-                  <option v-for="item in allCatalog" :key="item.id" :value="item.id">
-                    {{ item.dispositivo || item.nombre || item.descripcion || `Producto #${item.id}` }}
-                  </option>
-                  <option disabled>──────────────────────────</option>
-                  <option value="__new__">+ Agregar nuevo producto</option>
-                </select>
+                <div class="tq-select-wrap" :class="{ 'tq-select-wrap--open': selectOpen }">
+                  <button type="button" class="tq-select-btn" @click="toggleSelect" :disabled="loadingCalc">
+                    <span class="tq-select-value" :class="{ 'tq-select-value--placeholder': !form.catalogItemId }">
+                      {{ selectedProductLabel || 'Selecciona un producto del catálogo…' }}
+                    </span>
+                    <ChevronDown :size="18" class="tq-select-chevron" />
+                  </button>
+                  
+                  <Transition name="tq-dropdown">
+                    <div v-if="selectOpen" class="tq-dropdown">
+                      <div class="tq-dropdown-search">
+                        <Search :size="14" class="tq-dropdown-search-ico" />
+                        <input
+                          v-model="selectSearch"
+                          type="text"
+                          placeholder="Buscar producto..."
+                          class="tq-dropdown-input"
+                          @click.stop
+                        />
+                      </div>
+                      <div class="tq-dropdown-list">
+                        <div
+                          v-for="item in filteredCatalog"
+                          :key="item.id"
+                          class="tq-dropdown-item"
+                          :class="{ 'tq-dropdown-item--active': form.catalogItemId === item.id }"
+                          @click="selectProduct(item.id)"
+                        >
+                          <Package :size="14" class="tq-dropdown-item-icon" />
+                          <span class="tq-dropdown-item-label">
+                            {{ item.dispositivo || item.nombre || item.descripcion || `Producto #${item.id}` }}
+                          </span>
+                          <span v-if="item.valorBase" class="tq-dropdown-item-price">
+                            {{ formatCOP(item.valorBase) }}
+                          </span>
+                        </div>
+                        <div class="tq-dropdown-divider"></div>
+                        <div
+                          class="tq-dropdown-item tq-dropdown-item--new"
+                          @click="selectNewProduct"
+                        >
+                          <Plus :size="14" class="tq-dropdown-item-icon" />
+                          <span class="tq-dropdown-item-label">+ Agregar nuevo producto</span>
+                        </div>
+                      </div>
+                    </div>
+                  </Transition>
+                </div>
                 <span v-if="errors.catalogItemId" class="tq-err">{{ errors.catalogItemId }}</span>
               </div>
 
@@ -390,12 +430,60 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { watchDebounced } from '@vueuse/core'
-import { Package, Truck, X, Calculator, Loader2, Plus, BarChart2, Cpu, FileText, ImageIcon, Upload } from 'lucide-vue-next'
+import { Package, Truck, X, Calculator, Loader2, Plus, BarChart2, Cpu, FileText, ImageIcon, Upload, ChevronDown, Search } from 'lucide-vue-next'
 import { calculateFromCost } from '@/services/quotation.service'
 import { thirdPartyCatalog } from '@/services/products.service'
 
 const fileInputNew = ref(null)
 const fileInputMain = ref(null)
+
+// Custom select state
+const selectOpen = ref(false)
+const selectSearch = ref('')
+
+const toggleSelect = () => {
+  selectOpen.value = !selectOpen.value
+  if (selectOpen.value) {
+    setTimeout(() => {
+      const input = document.querySelector('.tq-dropdown-input')
+      if (input) input.focus()
+    }, 100)
+  }
+}
+
+const closeSelect = () => {
+  selectOpen.value = false
+  selectSearch.value = ''
+}
+
+const selectProduct = (id) => {
+  form.value.catalogItemId = id
+  closeSelect()
+}
+
+const selectNewProduct = () => {
+  form.value.catalogItemId = '__new__'
+  closeSelect()
+}
+
+const filteredCatalog = computed(() => {
+  if (!selectSearch.value.trim()) return allCatalog.value
+  const search = selectSearch.value.toLowerCase()
+  return allCatalog.value.filter(item => {
+    const text = (item.dispositivo || item.nombre || item.descripcion || '').toLowerCase()
+    return text.includes(search)
+  })
+})
+
+const selectedProductLabel = computed(() => {
+  if (!form.value.catalogItemId) return ''
+  if (form.value.catalogItemId === '__new__') return '+ Agregar nuevo producto'
+  const item = allCatalog.value.find(c => c.id === form.value.catalogItemId)
+  return item ? (item.dispositivo || item.nombre || item.descripcion || `Producto #${item.id}`) : ''
+})
+
+const formatCOP = (val) =>
+  new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(val)
 
 const onFileChangeNew = (e) => {
   const file = e.target.files[0]
@@ -653,9 +741,6 @@ const desgloseVisible = computed(() => {
 const PCT_KEYS = new Set(['comisionPct'])
 const COP_KEYS = new Set(['costoUnitario', 'precioUnitario', 'subtotalVenta', 'costoTotal', 'comisionMonto', 'iva', 'total', 'utilidadProyectada', 'utilidadFinal'])
 
-const formatCOP = (val) =>
-  new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(val)
-
 const fieldLabel = (key) => FIELD_LABELS[key] || key
 
 const formatVal = (key, val) => {
@@ -790,7 +875,164 @@ const agregar = () => {
 }
 .tq-req { color: #EF4444; }
 
-.tq-select, .tq-input {
+.tq-select-wrap {
+  position: relative;
+}
+.tq-select-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 14px;
+  color: #1E293B;
+  transition: all 0.2s;
+  cursor: pointer;
+  text-align: left;
+}
+.tq-select-btn:hover {
+  border-color: #94A3B8;
+  background-color: #F8FAFC;
+}
+.tq-select-wrap--open .tq-select-btn {
+  border-color: #054EAF;
+  box-shadow: 0 0 0 4px rgba(5, 78, 175, 0.08);
+}
+.tq-select-value {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tq-select-value--placeholder {
+  color: #94A3B8;
+  font-style: italic;
+}
+.tq-select-chevron {
+  color: #64748B;
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+.tq-select-wrap--open .tq-select-chevron {
+  transform: rotate(180deg);
+  color: #054EAF;
+}
+.tq-select-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #F1F5F9;
+}
+
+.tq-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #FFFFFF;
+  border: 1.5px solid #054EAF;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(5, 78, 175, 0.15);
+  z-index: 100;
+  overflow: hidden;
+}
+.tq-dropdown-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #E2E8F0;
+  background: #F8FAFC;
+}
+.tq-dropdown-search-ico {
+  color: #94A3B8;
+  flex-shrink: 0;
+}
+.tq-dropdown-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: #1E293B;
+  background: transparent;
+}
+.tq-dropdown-input::placeholder {
+  color: #94A3B8;
+}
+.tq-dropdown-list {
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 6px;
+}
+.tq-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.tq-dropdown-item:hover {
+  background: #F1F5F9;
+}
+.tq-dropdown-item--active {
+  background: #EBF3FC;
+  border: 1px solid #BFDBFE;
+}
+.tq-dropdown-item--new {
+  color: #054EAF;
+  font-weight: 600;
+  background: #F0F9FF;
+  border: 1px dashed #BAE6FD;
+}
+.tq-dropdown-item--new:hover {
+  background: #E0F2FE;
+}
+.tq-dropdown-item-icon {
+  color: #64748B;
+  flex-shrink: 0;
+}
+.tq-dropdown-item--active .tq-dropdown-item-icon {
+  color: #054EAF;
+}
+.tq-dropdown-item--new .tq-dropdown-item-icon {
+  color: #054EAF;
+}
+.tq-dropdown-item-label {
+  flex: 1;
+  font-size: 14px;
+  color: #1E293B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tq-dropdown-item-price {
+  font-size: 13px;
+  font-weight: 600;
+  color: #054EAF;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+.tq-dropdown-divider {
+  height: 1px;
+  background: #E2E8F0;
+  margin: 4px 6px;
+}
+
+.tq-dropdown-enter-active,
+.tq-dropdown-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.tq-dropdown-enter-from,
+.tq-dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.tq-input {
   width: 100%;
   background: #FFFFFF;
   border: 1.5px solid #E2E8F0;
@@ -800,10 +1042,10 @@ const agregar = () => {
   color: #1E293B;
   transition: all 0.2s;
   outline: none;
+  cursor: pointer;
 }
-.tq-select:focus, .tq-input:focus {
+.tq-input:focus, .tq-input:hover {
   border-color: #054EAF;
-  box-shadow: 0 0 0 4px rgba(5, 78, 175, 0.08);
 }
 
 .tq-input--money {
