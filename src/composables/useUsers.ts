@@ -8,13 +8,13 @@ import {
 } from '@/services/users.service'
 
 export const rolePermissions: Record<string, string[]> = {
-  ADMIN:       ['Acceso total', 'Gestión usuarios', 'Configuración', 'Eliminación', 'Reportes'],
-  COMERCIAL:   ['Cotizaciones', 'Clientes', 'Proveedores', 'Propuestas comerciales'],
-  SUPERVISOR:  ['Supervisión operacional', 'Reportes', 'Solo lectura general'],
-  LOGISTICA:   ['Inventario', 'Montajes', 'Operaciones logísticas', 'Desmontaje'],
-  COORDINADOR: ['Eventos en campo', 'Coordinación de equipo', 'Check-in/out'],
-  FINANCIERO:  ['Resúmenes financieros', 'Aprobaciones', 'Reportes de facturación'],
-  SOPORTE:     ['Solo lectura general', 'Consultas básicas'],
+  ADMIN:         ['Acceso total', 'Gestión usuarios', 'Configuración', 'Eliminación', 'Reportes'],
+  ADMINISTRADOR: ['Cotizaciones', 'Clientes', 'Productos', 'Reservas', 'Inventario', 'Control', 'Tareas', 'Reportes'],
+  DIRECCION:     ['Vista cotizaciones', 'Vista clientes', 'Vista productos', 'Inventario (lectura)', 'Reportes'],
+  LIDER:         ['Cotizaciones', 'Clientes', 'Productos (lectura)', 'Reservas', 'Tareas'],
+  SUPERVISOR:    ['Reservas', 'Inventario', 'Control operativo', 'Materiales', 'Tareas'],
+  COORDINADOR:   ['Sus cotizaciones asignadas', 'Control operativo', 'Materiales', 'Check-in/out'],
+  LOGISTICO:     ['Control operativo', 'Materiales', 'Check-in/out'],
 }
 
 export function useUsers() {

@@ -111,7 +111,7 @@
 import { ref, watch } from 'vue'
 import {
   X, Shield, AlertTriangle, CheckCircle2,
-  TrendingUp, Eye, Truck, Users, DollarSign, HelpCircle,
+  TrendingUp, Eye, Truck, Users, UserCog, BarChart2,
 } from 'lucide-vue-next'
 
 // ── Props & Emits ─────────────────────────────────────
@@ -140,57 +140,57 @@ const ROLE_CONFIG = [
     description: 'Acceso total al sistema',
   },
   {
-    key:         'COMERCIAL',
-    icon:        TrendingUp,
+    key:         'ADMINISTRADOR',
+    icon:        UserCog,
     iconBg:      '#DBEAFE',
     iconColor:   '#1D4ED8',
-    description: 'Cotizaciones y clientes',
+    description: 'Gestión comercial y operativa',
   },
   {
-    key:         'SUPERVISOR',
-    icon:        Eye,
+    key:         'DIRECCION',
+    icon:        BarChart2,
     iconBg:      '#EDE9FE',
     iconColor:   '#7C3AED',
     description: 'Supervisión y reportes',
   },
   {
-    key:         'LOGISTICA',
-    icon:        Truck,
+    key:         'LIDER',
+    icon:        TrendingUp,
     iconBg:      '#DCFCE7',
     iconColor:   '#16A34A',
-    description: 'Operaciones e inventario',
+    description: 'Cotizaciones y clientes',
+  },
+  {
+    key:         'SUPERVISOR',
+    icon:        Eye,
+    iconBg:      '#FEF3C7',
+    iconColor:   '#B45309',
+    description: 'Reservas, inventario y control',
   },
   {
     key:         'COORDINADOR',
     icon:        Users,
-    iconBg:      '#FEF3C7',
-    iconColor:   '#B45309',
+    iconBg:      '#FFEDD5',
+    iconColor:   '#C2410C',
     description: 'Coordinación en campo',
   },
   {
-    key:         'FINANCIERO',
-    icon:        DollarSign,
-    iconBg:      '#FFEDD5',
-    iconColor:   '#C2410C',
-    description: 'Finanzas y aprobaciones',
-  },
-  {
-    key:         'SOPORTE',
-    icon:        HelpCircle,
+    key:         'LOGISTICO',
+    icon:        Truck,
     iconBg:      '#F1F5F9',
     iconColor:   '#64748B',
-    description: 'Solo lectura general',
+    description: 'Control operativo y materiales',
   },
 ]
 
 const ROLE_BADGE = {
-  ADMIN:       'bg-[#FEE2E2] text-[#B91C1C]',
-  COMERCIAL:   'bg-[#DBEAFE] text-[#1D4ED8]',
-  SUPERVISOR:  'bg-[#EDE9FE] text-[#7C3AED]',
-  LOGISTICA:   'bg-[#DCFCE7] text-[#16A34A]',
-  COORDINADOR: 'bg-[#FEF3C7] text-[#B45309]',
-  FINANCIERO:  'bg-[#FFEDD5] text-[#C2410C]',
-  SOPORTE:     'bg-[#F1F5F9] text-[#64748B]',
+  ADMIN:         'bg-[#FEE2E2] text-[#B91C1C]',
+  ADMINISTRADOR: 'bg-[#DBEAFE] text-[#1D4ED8]',
+  DIRECCION:     'bg-[#EDE9FE] text-[#7C3AED]',
+  LIDER:         'bg-[#DCFCE7] text-[#16A34A]',
+  SUPERVISOR:    'bg-[#FEF3C7] text-[#B45309]',
+  COORDINADOR:   'bg-[#FFEDD5] text-[#C2410C]',
+  LOGISTICO:     'bg-[#F1F5F9] text-[#64748B]',
 }
 
 // ── Avatar helpers ────────────────────────────────────

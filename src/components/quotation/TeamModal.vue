@@ -70,11 +70,11 @@
               </div>
             </section>
 
-            <!-- ── Equipo de apoyo ─────────────────────────────── -->
+            <!-- ── Equipo logístico ─────────────────────────────── -->
             <section class="tm-section">
               <h4 class="tm-section-title">
                 <Users :size="13" />
-                Equipo de apoyo
+                Equipo logístico
               </h4>
 
               <div class="tm-chips" v-if="assignedMembers.length">
@@ -86,10 +86,10 @@
                   </button>
                 </div>
               </div>
-              <p v-else class="tm-empty-hint">Sin miembros de apoyo asignados</p>
+              <p v-else class="tm-empty-hint">Sin miembros logísticos asignados</p>
 
               <div class="tm-selector">
-                <div class="tm-selector-label">Agregar miembro de apoyo</div>
+                <div class="tm-selector-label">Agregar miembro logístico</div>
                 <div class="tm-user-list">
                   <div v-if="loadingUsers" class="tm-loading-row">
                     <Loader2 :size="14" class="spin" /> Cargando…

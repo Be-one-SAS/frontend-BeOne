@@ -66,7 +66,7 @@ const routes = [
         component: DashboardPage,
         meta: {
           requiresAuth: true,
-          roles: ['ADMIN', 'COMERCIAL', 'SUPERVISOR', 'LOGISTICA', 'COORDINADOR', 'FINANCIERO', 'SOPORTE'],
+          roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'],
         },
       },
 
@@ -75,19 +75,19 @@ const routes = [
         path: 'admin/cotizar/:id?',
         name: 'Cotizar',
         component: Cotizar,
-        meta: { roles: ['ADMIN', 'COMERCIAL'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'LIDER'] },
       },
       {
         path: 'admin/ver-cotizaciones',
         name: 'VerCotizaciones',
         component: VerCotizaciones,
-        meta: { roles: ['ADMIN', 'COMERCIAL', 'SUPERVISOR'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR'] },
       },
       {
         path: 'customer/customer',
         name: 'Clientes',
         component: Customer,
-        meta: { roles: ['ADMIN', 'COMERCIAL'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER'] },
       },
       {
         path: 'suppliers/suppliers',
@@ -99,7 +99,7 @@ const routes = [
         path: 'customer/price',
         name: 'ListPrice',
         component: PriceList,
-        meta: { roles: ['ADMIN', 'COMERCIAL'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'LIDER'] },
       },
 
       // ── Productos ──────────────────────────────────────
@@ -107,13 +107,13 @@ const routes = [
         path: 'products',
         name: 'Productos',
         component: Products,
-        meta: { roles: ['ADMIN', 'LOGISTICA'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'] },
       },
       {
         path: 'products/no-propios',
         name: 'ProductosNoPropios',
         component: ProductsNoPropios,
-        meta: { roles: ['ADMIN', 'LOGISTICA'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'] },
       },
 
       // ── Control Operativo ──────────────────────────────
@@ -121,7 +121,7 @@ const routes = [
         path: 'admin/control',
         name: 'Control',
         component: () => import('../views/admin/Control.vue'),
-        meta: { roles: ['ADMIN', 'COMERCIAL', 'SUPERVISOR'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
       },
 
       // ── Operativo ──────────────────────────────────────
@@ -129,43 +129,41 @@ const routes = [
         path: 'operativa/reporte',
         name: 'Reporte',
         component: Reporte,
-        meta: { roles: ['ADMIN', 'SUPERVISOR', 'LOGISTICA'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
       },
       {
         path: 'operativa/checkins',
         name: 'CheckIns',
         component: () => import('../views/operativa/CheckIns.vue'),
-        meta: { roles: ['ADMIN', 'LOGISTICA', 'COORDINADOR'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
       },
       {
         path: 'operativa/inventario',
         name: 'Inventario',
         component: () => import('../views/operativa/Inventario.vue'),
-        meta: { roles: ['ADMIN', 'LOGISTICA'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'SUPERVISOR'] },
       },
       {
         path: 'inventory',
         name: 'InventoryList',
         component: () => import('../views/inventory/List.vue'),
-        meta: { roles: ['ADMIN', 'SUPERVISOR', 'LOGISTICA'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'SUPERVISOR'] },
       },
       {
         path: 'inventory/:id',
         name: 'InventoryDetail',
         component: () => import('../views/inventory/Detail.vue'),
-        meta: { roles: ['ADMIN', 'SUPERVISOR', 'LOGISTICA'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'SUPERVISOR'] },
       },
       {
         path: 'operativa/montajes',
         name: 'Montajes',
         component: () => import('../views/operativa/Montajes.vue'),
-        meta: { roles: ['ADMIN', 'LOGISTICA', 'COORDINADOR'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
       },
       {
         path: 'operativa/equipos',
-        name: 'AsignacionEquipos',
-        component: () => import('../views/operativa/AsignacionEquipos.vue'),
-        meta: { roles: ['ADMIN', 'SUPERVISOR', 'COORDINADOR'] },
+        redirect: '/admin/control',
       },
 
       // ── Reportes ───────────────────────────────────────
@@ -173,19 +171,19 @@ const routes = [
         path: 'reportes/general',
         name: 'ReporteGeneral',
         component: () => import('../views/reportes/ReporteGeneral.vue'),
-        meta: { roles: ['ADMIN', 'SUPERVISOR', 'FINANCIERO'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
       },
       {
         path: 'reportes/financiero',
         name: 'ReporteFinanciero',
         component: () => import('../views/reportes/ReporteFinanciero.vue'),
-        meta: { roles: ['ADMIN', 'SUPERVISOR', 'FINANCIERO'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
       },
       {
         path: 'reportes/operacional',
         name: 'ReporteOperacional',
         component: () => import('../views/reportes/ReporteOperacional.vue'),
-        meta: { roles: ['ADMIN', 'SUPERVISOR'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
       },
 
       // ── Usuarios ───────────────────────────────────────
@@ -199,13 +197,13 @@ const routes = [
         path: 'admin/usuarios',
         name: 'Usuarios',
         component: Usuarios,
-        meta: { roles: ['ADMIN', 'COMERCIAL'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR'] },
       },
       {
         path: 'admin/tareas',
         name: 'Tareas',
         component: Tareas,
-        meta: { roles: ['ADMIN', 'COMERCIAL'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'] },
       },
       {
         path: 'admin/quotation-params',
@@ -267,7 +265,7 @@ router.beforeEach((to, _from, next) => {
 
     if (!userRole || !allowedRoles.includes(userRole)) {
       console.warn(`[Router] Acceso denegado. Roles requeridos: ${allowedRoles.join(', ')}`)
-      return next('/dashboard')
+      return next('/unauthorized')
     }
   }
 

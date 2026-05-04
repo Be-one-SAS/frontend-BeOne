@@ -156,7 +156,7 @@
               <span>Datos Comerciales</span>
             </div>
             <div class="g3">
-              <InputLabel label="Agente Comercial" v-model="cotizacion.agenteComercial" />
+              <InputLabel label="Agente Comercial" v-model="cotizacion.agenteComercial" disabled />
               <div class="field-wrap">
                 <label class="field-lbl">Unidad de Ejecución</label>
                 <select v-model="cotizacion.unidadEjecucion" class="field-sel">
@@ -226,6 +226,11 @@
               :horaInicio="cotizacion.horarioInicio"
               :fechaFin="cotizacion.fechaFinEvento"
               :horaFin="cotizacion.horarioFin"
+              :fechaInicioEvento="cotizacion.fechaInicioEvento"
+              :horaInicioEvento="cotizacion.horarioInicio"
+              :fechaFinEvento="cotizacion.fechaFinEvento"
+              :horaFinEvento="cotizacion.horarioFin"
+              calendarType="evento"
               @update:fechaInicio="cotizacion.fechaInicioEvento = $event"
               @update:horaInicio="cotizacion.horarioInicio = $event"
               @update:fechaFin="cotizacion.fechaFinEvento = $event"
@@ -247,6 +252,11 @@
               :horaInicio="cotizacion.horarioInicioMontaje"
               :fechaFin="cotizacion.fechaFinMontaje"
               :horaFin="cotizacion.horarioFinMontaje"
+              :fechaInicioEvento="cotizacion.fechaInicioEvento"
+              :horaInicioEvento="cotizacion.horarioInicio"
+              :fechaFinEvento="cotizacion.fechaFinEvento"
+              :horaFinEvento="cotizacion.horarioFin"
+              calendarType="montaje"
               @update:fechaInicio="cotizacion.fechaInicioMontaje = $event"
               @update:horaInicio="cotizacion.horarioInicioMontaje = $event"
               @update:fechaFin="cotizacion.fechaFinMontaje = $event"
@@ -1305,6 +1315,7 @@ const getCotizacion = async () => {
     cotizacion.fechaCotizacion     = data.fechaCotizacion ? data.fechaCotizacion.split('T')[0] : ''; // ✅ ADDED
     cotizacion.cantidadJornada     = data.cantidadJornada; // ✅ ADDED
     cotizacion.cantidadProducto    = data.cantidadProducto; // ✅ ADDED
+    cotizacion.members             = data.members || []; // ✅ ADDED - Cargar colaboradores
     
     // ✅ SYNC ID — Esto evita que se creen duplicados al guardar
     quotationId.value = data.id;

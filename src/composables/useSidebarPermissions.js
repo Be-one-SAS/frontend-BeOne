@@ -19,13 +19,13 @@ export const useMobileSidebar = createGlobalState(() => {
 
 /** Mapa de estilos inline para el badge de cada rol */
 const ROLE_BADGE_STYLES = {
-  ADMIN:       'background:#FEE2E2;color:#B91C1C',
-  COMERCIAL:   'background:#DBEAFE;color:#1D4ED8',
-  SUPERVISOR:  'background:#EDE9FE;color:#7C3AED',
-  LOGISTICA:   'background:#DCFCE7;color:#16A34A',
-  COORDINADOR: 'background:#FEF3C7;color:#B45309',
-  FINANCIERO:  'background:#FFEDD5;color:#C2410C',
-  SOPORTE:     'background:#F1F5F9;color:#64748B',
+  ADMIN:         'background:#FEE2E2;color:#B91C1C',
+  ADMINISTRADOR: 'background:#DBEAFE;color:#1D4ED8',
+  DIRECCION:     'background:#EDE9FE;color:#7C3AED',
+  LIDER:         'background:#DCFCE7;color:#16A34A',
+  SUPERVISOR:    'background:#FEF3C7;color:#B45309',
+  COORDINADOR:   'background:#FFEDD5;color:#C2410C',
+  LOGISTICO:     'background:#F1F5F9;color:#64748B',
 }
 
 /** Colores de avatar por letra inicial del username */
@@ -47,8 +47,8 @@ export const useSidebarPermissions = () => {
    */
   const canSee = (roles) => {
     if (!roles || roles.length === 0) return true
-    if (!userRole.value) return false
-    return roles.includes(userRole.value)
+    const role = userRole.value ?? 'ADMINISTRADOR'
+    return roles.includes(role)
   }
 
   /** Estilo CSS inline del badge del rol actual */
