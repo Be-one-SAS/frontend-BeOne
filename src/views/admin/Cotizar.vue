@@ -1318,6 +1318,7 @@ const getCotizacion = async () => {
     cotizacion.fechaCotizacion     = data.fechaCotizacion ? data.fechaCotizacion.split('T')[0] : ''; // ✅ ADDED
     cotizacion.cantidadJornada     = data.cantidadJornada; // ✅ ADDED
     cotizacion.cantidadProducto    = data.cantidadProducto; // ✅ ADDED
+    cotizacion.descuentoPct        = data.descuentoPct ?? 0;
     cotizacion.members             = data.members || []; // ✅ ADDED - Cargar colaboradores
     
     // ✅ SYNC ID — Esto evita que se creen duplicados al guardar
@@ -1383,10 +1384,14 @@ const getCotizacion = async () => {
         categoria:           it.catalogProduct?.categoria || it.categoria,
         descripcion:         it.catalogProduct?.descripcion || it.descripcion,
         cantidad:            it.cantidad ?? 1,
-        costo:               it.costo ?? 0,
-        margen:              it.margen ?? 0,
+        costoUnitario:       it.costoUnitario ?? 0,
+        margenVariable:      it.margenVariable ?? 0,
         precioUnitario:      it.precioUnitario ?? 0,
-        precioTotal:         it.precioTotal ?? 0,
+        subtotalVenta:       it.precioUnitario != null ? it.precioUnitario * (it.cantidad ?? 1) : 0,
+        descuentoPct:        it.descuento ?? 0,
+        comisionPct:         it.comisionPct ?? 0,
+        comisionMonto:       it.comisionMonto ?? 0,
+        total:               it.total ?? 0,
         incluyeTransporte:   it.catalogProduct?.incluyeTransporteBogMde ?? false,
       }))
     }
