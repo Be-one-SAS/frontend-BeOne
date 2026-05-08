@@ -1,26 +1,37 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { getThirdPartyCatalog } from '@/services/products.service'
-import BaseTable          from '@/components/ui/BaseTable.vue'
-import ModalReutilizable  from '@/components/modal/ModalReutilizable.vue'
+import ModalReutilizable from '@/components/modal/ModalReutilizable.vue'
 import {
-  Search, RefreshCw, ChevronUp, ChevronDown,
+  Search, RefreshCw, ChevronUp, ChevronDown, Inbox,
   Pencil, Trash2,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
 } from 'lucide-vue-next'
 
 /* ─── state ─────────────────────────────────────────────── */
-const products  = ref([])
-const loading   = ref(false)
+const products = ref([])
+const loading  = ref(false)
 
 const search      = ref('')
 const categFilter = ref('')
+const condFilter  = ref('')
 const pageSize    = ref(25)
 
-// sort
+const conditionOptions = [
+  { value: 'OPERATIVO_OK',      label: 'Operativo OK'      },
+  { value: 'OPERATIVO_70',      label: 'Operativo 70%'     },
+  { value: 'OPERATIVO_50',      label: 'Operativo 50%'     },
+  { value: 'EN_MANTENIMIENTO',  label: 'En mantenimiento'  },
+  { value: 'DEFECTUOSO',        label: 'Defectuoso'        },
+  { value: 'NO_ACTIVO',         label: 'No activo'         },
+]
+
 const sortKey = ref('dispositivo')
 const sortDir = ref('asc')
 
-// delete modal
+const expandedRow = ref(null)
+const toggleRow   = (id) => { expandedRow.value = expandedRow.value === id ? null : id }
+
 const deleteModal     = ref(false)
 const productToDelete = ref(null)
 
@@ -30,18 +41,38 @@ const categorias = computed(() => {
   return [...set].sort()
 })
 
-/* ─── columns ────────────────────────────────────────────── */
-const columns = [
-  { key: '_idx',       label: '#',            width: '44px'  },
-  { key: 'dispositivo',label: 'Dispositivo'                  },
-  { key: 'descripcion',label: 'Descripción'                  },
-  { key: 'categoria',  label: 'Categoría'                    },
-  { key: 'bodega',     label: 'Bodega'                       },
-  { key: 'valorBase',  label: 'Valor Base',   width: '110px' },
-  { key: '_actions',   label: 'Acciones',     width: '100px' },
-]
+/* ─── badge helpers ──────────────────────────────────────── */
+const condClass = (val) => ({
+  OPERATIVO_OK:     'badge badge--green',
+  OPERATIVO_70:     'badge badge--yellow',
+  OPERATIVO_50:     'badge badge--orange',
+  EN_MANTENIMIENTO: 'badge badge--blue',
+  DEFECTUOSO:       'badge badge--red',
+  NO_ACTIVO:        'badge badge--slate',
+}[val] || 'badge badge--slate')
 
-/* ─── filter + sort ─────────────────────────────────────── */
+const condLabel = (val) => ({
+  OPERATIVO_OK:     'Operativo OK',
+  OPERATIVO_70:     'Operativo 70%',
+  OPERATIVO_50:     'Operativo 50%',
+  EN_MANTENIMIENTO: 'En mantenimiento',
+  DEFECTUOSO:       'Defectuoso',
+  NO_ACTIVO:        'No activo',
+}[val] || val || '—')
+
+const availClass = (val) => ({
+  DISPONIBLE:    'badge badge--green',
+  EN_RESERVA:    'badge badge--yellow',
+  NO_DISPONIBLE: 'badge badge--red',
+}[val] || 'badge badge--slate')
+
+const availLabel = (val) => ({
+  DISPONIBLE:    'Disponible',
+  EN_RESERVA:    'En reserva',
+  NO_DISPONIBLE: 'No disponible',
+}[val] || val || '—')
+
+/* ─── filter + sort ──────────────────────────────────────── */
 const filteredSorted = computed(() => {
   const q = search.value.toLowerCase()
   let list = products.value.filter(p => {
@@ -50,7 +81,8 @@ const filteredSorted = computed(() => {
       (p.descripcion?.toLowerCase().includes(q)) ||
       (p.categoria?.toLowerCase().includes(q))
     const matchCateg = !categFilter.value || p.categoria === categFilter.value
-    return matchSearch && matchCateg
+    const matchCond  = !condFilter.value  || p.conditionStatus === condFilter.value
+    return matchSearch && matchCateg && matchCond
   })
 
   if (sortKey.value) {
@@ -62,26 +94,44 @@ const filteredSorted = computed(() => {
     })
   }
 
-  return list.map((p, i) => ({ ...p, _idx: i + 1 }))
+  return list
 })
 
-/* ─── sort toggle ───────────────────────────────────────── */
+/* ─── pagination ─────────────────────────────────────────── */
+const currentPage = ref(1)
+watch(filteredSorted, () => { currentPage.value = 1 })
+
+const pagedRows = computed(() => {
+  const start = (currentPage.value - 1) * Number(pageSize.value)
+  return filteredSorted.value.slice(start, start + Number(pageSize.value))
+})
+
+const totalPages = computed(() => Math.ceil(filteredSorted.value.length / Number(pageSize.value)))
+
+const visiblePages = computed(() => {
+  const total = totalPages.value
+  const cur   = currentPage.value
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages = []
+  if (cur <= 4)            pages.push(1, 2, 3, 4, 5, '...', total)
+  else if (cur >= total-3) pages.push(1, '...', total-4, total-3, total-2, total-1, total)
+  else                     pages.push(1, '...', cur-1, cur, cur+1, '...', total)
+  return pages
+})
+
+/* ─── sort toggle ────────────────────────────────────────── */
 const sortBy = (key) => {
-  if (sortKey.value === key) {
-    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
-  } else {
-    sortKey.value = key
-    sortDir.value = 'asc'
-  }
+  if (sortKey.value === key) sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+  else { sortKey.value = key; sortDir.value = 'asc' }
 }
 
-/* ─── currency format ───────────────────────────────────── */
+/* ─── currency format ────────────────────────────────────── */
 const formatCOP = (val) =>
   val != null
     ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(val)
     : '—'
 
-/* ─── fetch ─────────────────────────────────────────────── */
+/* ─── fetch ──────────────────────────────────────────────── */
 async function fetchProducts() {
   loading.value = true
   try {
@@ -97,16 +147,16 @@ async function fetchProducts() {
 function reset() {
   search.value = ''
   categFilter.value = ''
+  condFilter.value = ''
   fetchProducts()
 }
 
-/* ─── delete ────────────────────────────────────────────── */
+/* ─── delete ─────────────────────────────────────────────── */
 function confirmDelete(product) {
   productToDelete.value = product
   deleteModal.value = true
 }
 function executeDelete() {
-  // Wire to DELETE /third-party-catalog/:id when ready
   products.value = products.value.filter(p => p.id !== productToDelete.value.id)
   deleteModal.value = false
   productToDelete.value = null
@@ -118,21 +168,29 @@ onMounted(fetchProducts)
 <template>
   <div class="np-page">
 
-    <!-- ── Header ──────────────────────────────────────────────── -->
-    <div class="np-head">
+    <!-- ── Header ──────────────────────────────────────────── -->
+    <div class="flex items-center justify-between mb-6">
       <div>
         <h2 class="np-title">Productos de Terceros</h2>
         <p class="np-subtitle">{{ filteredSorted.length }} productos encontrados</p>
       </div>
       <div class="np-head-actions">
+        <div class="per-page-wrap">
+          <span class="per-page-lbl">Por página</span>
+          <select v-model="pageSize" class="np-input np-input--sm">
+            <option :value="10">10</option>
+            <option :value="25">25</option>
+            <option :value="50">50</option>
+          </select>
+        </div>
         <button class="btn-reload" @click="reset">
           <RefreshCw :size="13" /> Recargar
         </button>
       </div>
     </div>
 
-    <!-- ── Filters ─────────────────────────────────────────────── -->
-    <div class="filter-bar">
+    <!-- ── Filters ────────────────────────────────────────── -->
+    <div class="bg-white rounded-[14px] p-4 mb-5 shadow-[0_1px_4px_rgba(5,78,175,.06)] grid grid-cols-2 md:grid-cols-4 gap-4">
       <div class="search-field">
         <Search :size="14" class="s-ico" />
         <input
@@ -140,6 +198,7 @@ onMounted(fetchProducts)
           type="text"
           placeholder="Buscar dispositivo, descripción, categoría…"
           class="np-input"
+          style="padding-left:34px"
         />
       </div>
 
@@ -148,180 +207,251 @@ onMounted(fetchProducts)
         <option v-for="c in categorias" :key="c" :value="c">{{ c }}</option>
       </select>
 
-      <div class="per-page-wrap">
-        <span class="per-page-lbl">Por página</span>
-        <select v-model="pageSize" class="np-input np-input--sm">
-          <option :value="10">10</option>
-          <option :value="25">25</option>
-          <option :value="50">50</option>
-        </select>
-      </div>
+      <select v-model="condFilter" class="np-input">
+        <option value="">Todas las condiciones</option>
+        <option v-for="c in conditionOptions" :key="c.value" :value="c.value">{{ c.label }}</option>
+      </select>
     </div>
 
-    <!-- ── Table ───────────────────────────────────────────────── -->
-    <div class="np-table-wrap">
+    <!-- ── Tabla ──────────────────────────────────────────── -->
+    <div class="bg-white rounded-[18px] shadow-[0_1px_4px_rgba(5,78,175,.06),_0_4px_16px_rgba(5,78,175,.08)] overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="np-table">
 
-      <!-- Sort header row -->
-      <div class="np-sort-header">
-        <table class="np-sort-table">
           <thead>
             <tr class="np-head-row">
-              <th class="np-th" style="width:44px">#</th>
+              <th class="np-th" style="width:36px"></th>
+              <th class="np-th np-th-center" style="width:44px">#</th>
               <th class="np-th np-th-sort" @click="sortBy('dispositivo')">
                 Dispositivo
                 <span class="sort-icons">
-                  <ChevronUp   :size="11" :class="sortKey === 'dispositivo' && sortDir === 'asc'  ? 'sort-active' : 'sort-dim'" />
-                  <ChevronDown :size="11" :class="sortKey === 'dispositivo' && sortDir === 'desc' ? 'sort-active' : 'sort-dim'" />
+                  <ChevronUp   :size="11" :class="sortKey==='dispositivo'&&sortDir==='asc'  ?'sort-active':'sort-dim'" />
+                  <ChevronDown :size="11" :class="sortKey==='dispositivo'&&sortDir==='desc' ?'sort-active':'sort-dim'" />
                 </span>
               </th>
-              <th class="np-th">Descripción</th>
               <th class="np-th np-th-sort" @click="sortBy('categoria')">
                 Categoría
                 <span class="sort-icons">
-                  <ChevronUp   :size="11" :class="sortKey === 'categoria' && sortDir === 'asc'  ? 'sort-active' : 'sort-dim'" />
-                  <ChevronDown :size="11" :class="sortKey === 'categoria' && sortDir === 'desc' ? 'sort-active' : 'sort-dim'" />
+                  <ChevronUp   :size="11" :class="sortKey==='categoria'&&sortDir==='asc'  ?'sort-active':'sort-dim'" />
+                  <ChevronDown :size="11" :class="sortKey==='categoria'&&sortDir==='desc' ?'sort-active':'sort-dim'" />
                 </span>
               </th>
               <th class="np-th np-th-sort" @click="sortBy('bodega')">
                 Bodega
                 <span class="sort-icons">
-                  <ChevronUp   :size="11" :class="sortKey === 'bodega' && sortDir === 'asc'  ? 'sort-active' : 'sort-dim'" />
-                  <ChevronDown :size="11" :class="sortKey === 'bodega' && sortDir === 'desc' ? 'sort-active' : 'sort-dim'" />
+                  <ChevronUp   :size="11" :class="sortKey==='bodega'&&sortDir==='asc'  ?'sort-active':'sort-dim'" />
+                  <ChevronDown :size="11" :class="sortKey==='bodega'&&sortDir==='desc' ?'sort-active':'sort-dim'" />
                 </span>
               </th>
-              <th class="np-th np-th-sort" style="width:110px" @click="sortBy('valorBase')">
+              <th class="np-th np-th-sort" @click="sortBy('conditionStatus')">
+                Condición
+                <span class="sort-icons">
+                  <ChevronUp   :size="11" :class="sortKey==='conditionStatus'&&sortDir==='asc'  ?'sort-active':'sort-dim'" />
+                  <ChevronDown :size="11" :class="sortKey==='conditionStatus'&&sortDir==='desc' ?'sort-active':'sort-dim'" />
+                </span>
+              </th>
+              <th class="np-th">Disponibilidad</th>
+              <th class="np-th np-th-sort" @click="sortBy('valorBase')">
                 Valor Base
                 <span class="sort-icons">
-                  <ChevronUp   :size="11" :class="sortKey === 'valorBase' && sortDir === 'asc'  ? 'sort-active' : 'sort-dim'" />
-                  <ChevronDown :size="11" :class="sortKey === 'valorBase' && sortDir === 'desc' ? 'sort-active' : 'sort-dim'" />
+                  <ChevronUp   :size="11" :class="sortKey==='valorBase'&&sortDir==='asc'  ?'sort-active':'sort-dim'" />
+                  <ChevronDown :size="11" :class="sortKey==='valorBase'&&sortDir==='desc' ?'sort-active':'sort-dim'" />
                 </span>
               </th>
-              <th class="np-th" style="width:100px">Acciones</th>
+              <th class="np-th" style="width:120px">Acciones</th>
             </tr>
           </thead>
+
+          <tbody>
+
+            <!-- Skeleton -->
+            <template v-if="loading">
+              <tr v-for="n in 5" :key="`sk-${n}`" class="np-row">
+                <td class="np-td"></td>
+                <td class="np-td"><div class="sk-box" style="width:30px"></div></td>
+                <td class="np-td"><div class="sk-box" style="width:140px"></div></td>
+                <td class="np-td"><div class="sk-box" style="width:90px"></div></td>
+                <td class="np-td"><div class="sk-box" style="width:80px"></div></td>
+                <td class="np-td"><div class="sk-box" style="width:100px"></div></td>
+                <td class="np-td"><div class="sk-box" style="width:90px"></div></td>
+                <td class="np-td"><div class="sk-box" style="width:80px"></div></td>
+                <td class="np-td"><div class="sk-box" style="width:60px"></div></td>
+              </tr>
+            </template>
+
+            <!-- Filas reales -->
+            <template v-else>
+              <template v-for="(row, index) in pagedRows" :key="row.id">
+
+                <!-- Fila principal -->
+                <tr class="np-row" @click="toggleRow(row.id)">
+
+                  <td class="np-td np-td-center">
+                    <ChevronDown
+                      :size="14"
+                      class="np-chevron"
+                      :class="{ 'np-chevron-open': expandedRow === row.id }"
+                    />
+                  </td>
+
+                  <td class="np-td np-td-center np-idx">
+                    {{ index + 1 + (currentPage - 1) * Number(pageSize) }}
+                  </td>
+
+                  <td class="np-td">
+                    <div class="np-disp-cell">
+                      <span class="np-disp-name">{{ row.dispositivo || '—' }}</span>
+                      <span v-if="row.nombre" class="np-disp-sub">{{ row.nombre }}</span>
+                    </div>
+                  </td>
+
+                  <td class="np-td">
+                    <span class="np-categ">{{ row.categoria || '—' }}</span>
+                  </td>
+
+                  <td class="np-td">
+                    <span class="np-bodega">{{ row.bodega || '—' }}</span>
+                  </td>
+
+                  <td class="np-td">
+                    <span :class="condClass(row.conditionStatus)">{{ condLabel(row.conditionStatus) }}</span>
+                  </td>
+
+                  <td class="np-td">
+                    <span :class="availClass(row.availabilityStatus)">{{ availLabel(row.availabilityStatus) }}</span>
+                  </td>
+
+                  <td class="np-td">
+                    <span class="np-price">{{ formatCOP(row.valorBase) }}</span>
+                  </td>
+
+                  <td class="np-td" @click.stop>
+                    <div class="np-actions">
+                      <button class="act-btn act-edit" title="Editar">
+                        <Pencil :size="12" />
+                      </button>
+                      <button class="act-btn act-del" title="Eliminar" @click.stop="confirmDelete(row)">
+                        <Trash2 :size="12" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- Fila expandida -->
+                <tr class="np-exp-tr">
+                  <td colspan="9" class="np-exp-td" style="padding:0!important">
+                    <div class="np-exp-panel" :class="{ 'np-exp-open': expandedRow === row.id }">
+                      <div class="np-exp-inner">
+                        <div class="np-exp-grid">
+
+                          <div class="np-exp-field">
+                            <span class="np-exp-label">Amperios</span>
+                            <span class="np-exp-val">{{ row.amperios ?? '—' }}</span>
+                          </div>
+                          <div class="np-exp-field">
+                            <span class="np-exp-label">Medidas</span>
+                            <span class="np-exp-val">{{ row.medidas || '—' }}</span>
+                          </div>
+                          <div class="np-exp-field">
+                            <span class="np-exp-label">Motores</span>
+                            <span class="np-exp-val">{{ row.qMotores ?? '—' }}</span>
+                          </div>
+                          <div class="np-exp-field">
+                            <span class="np-exp-label">Operarios</span>
+                            <span class="np-exp-val">{{ row.qOperarios ?? '—' }}</span>
+                          </div>
+                          <div class="np-exp-field">
+                            <span class="np-exp-label">m²</span>
+                            <span class="np-exp-val">{{ row.m2Dispositivo ?? '—' }}</span>
+                          </div>
+                          <div class="np-exp-field">
+                            <span class="np-exp-label">Peso (kg)</span>
+                            <span class="np-exp-val">{{ row.pesoAproxDisp ?? '—' }}</span>
+                          </div>
+                          <div class="np-exp-field">
+                            <span class="np-exp-label">m³ Transporte</span>
+                            <span class="np-exp-val">{{ row.m3Transporte ?? '—' }}</span>
+                          </div>
+                          <div class="np-exp-field">
+                            <span class="np-exp-label">Horas Operación</span>
+                            <span class="np-exp-val">{{ row.qHorasOperacion ?? '—' }}</span>
+                          </div>
+                          <div class="np-exp-field">
+                            <span class="np-exp-label">Horas Montaje</span>
+                            <span class="np-exp-val">{{ row.qHorasMontaje ?? '—' }}</span>
+                          </div>
+                          <div class="np-exp-field">
+                            <span class="np-exp-label">Personal Montaje</span>
+                            <span class="np-exp-val">{{ row.qPersonalMontaje ?? '—' }}</span>
+                          </div>
+                          <div class="np-exp-field">
+                            <span class="np-exp-label">Año</span>
+                            <span class="np-exp-val">{{ row.anioDispositivo ?? '—' }}</span>
+                          </div>
+                          <div class="np-exp-field">
+                            <span class="np-exp-label">Montacarga</span>
+                            <span class="np-exp-val">{{ row.montacarga || '—' }}</span>
+                          </div>
+                          <div class="np-exp-field">
+                            <span class="np-exp-label">Pesos Estacas</span>
+                            <span class="np-exp-val">{{ row.qPesosEstacas ?? '—' }}</span>
+                          </div>
+                          <div class="np-exp-field">
+                            <span class="np-exp-label">Extintores</span>
+                            <span class="np-exp-val">{{ row.qExtintores ?? '—' }}</span>
+                          </div>
+                          <div class="np-exp-field np-exp-field--wide">
+                            <span class="np-exp-label">Incluye Transporte</span>
+                            <span class="np-exp-val">{{ row.incluyeTransporteBogMde || '—' }}</span>
+                          </div>
+                          <div class="np-exp-field np-exp-field--wide">
+                            <span class="np-exp-label">Descripción</span>
+                            <span class="np-exp-val">{{ row.descripcion || '—' }}</span>
+                          </div>
+                          <div class="np-exp-field np-exp-field--wide">
+                            <span class="np-exp-label">Notas</span>
+                            <span class="np-exp-val">{{ row.notas || '—' }}</span>
+                          </div>
+
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+
+              </template>
+            </template>
+
+          </tbody>
         </table>
       </div>
 
-      <BaseTable
-        :columns="columns"
-        :rows="filteredSorted"
-        :loading="loading"
-        :page-size="Number(pageSize)"
-        :expandable="true"
-        empty-text="No se encontraron productos de terceros"
-      >
-        <!-- # -->
-        <template #cell-_idx="{ value }">
-          <span class="np-idx">{{ value }}</span>
-        </template>
+      <!-- Estado vacío -->
+      <div v-if="!loading && pagedRows.length === 0" class="py-16 flex flex-col items-center gap-3 text-text-3">
+        <Inbox class="w-10 h-10 opacity-40" />
+        <p class="text-[14px]">No se encontraron productos de terceros</p>
+      </div>
 
-        <!-- Dispositivo -->
-        <template #cell-dispositivo="{ value }">
-          <span class="np-disp">{{ value || '—' }}</span>
-        </template>
-
-        <!-- Descripción -->
-        <template #cell-descripcion="{ value }">
-          <span class="np-desc">{{ value || '—' }}</span>
-        </template>
-
-        <!-- Categoría -->
-        <template #cell-categoria="{ value }">
-          <span class="np-categ">{{ value || '—' }}</span>
-        </template>
-
-        <!-- Bodega -->
-        <template #cell-bodega="{ value }">
-          <span class="np-categ">{{ value || '—' }}</span>
-        </template>
-
-        <!-- Valor Base -->
-        <template #cell-valorBase="{ value }">
-          <span class="np-price">{{ formatCOP(value) }}</span>
-        </template>
-
-        <!-- Acciones -->
-        <template #cell-_actions="{ row }">
-          <div class="np-actions">
-            <button class="act-btn act-edit" title="Editar">
-              <Pencil :size="12" />
-            </button>
-            <button class="act-btn act-del" title="Eliminar" @click.stop="confirmDelete(row)">
-              <Trash2 :size="12" />
-            </button>
-          </div>
-        </template>
-
-        <!-- Fila expandida: specs técnicas -->
-        <template #expanded="{ row }">
-          <div class="exp-grid">
-            <div v-if="row.amperios != null" class="exp-field">
-              <span class="exp-lbl">Amperios</span>
-              <span class="exp-val">{{ row.amperios }}</span>
-            </div>
-            <div v-if="row.medidas" class="exp-field">
-              <span class="exp-lbl">Medidas</span>
-              <span class="exp-val">{{ row.medidas }}</span>
-            </div>
-            <div v-if="row.qMotores != null" class="exp-field">
-              <span class="exp-lbl">Motores</span>
-              <span class="exp-val">{{ row.qMotores }}</span>
-            </div>
-            <div v-if="row.qOperarios != null" class="exp-field">
-              <span class="exp-lbl">Operarios</span>
-              <span class="exp-val">{{ row.qOperarios }}</span>
-            </div>
-            <div v-if="row.m2Dispositivo != null" class="exp-field">
-              <span class="exp-lbl">m²</span>
-              <span class="exp-val">{{ row.m2Dispositivo }}</span>
-            </div>
-            <div v-if="row.pesoAproxDisp != null" class="exp-field">
-              <span class="exp-lbl">Peso (kg)</span>
-              <span class="exp-val">{{ row.pesoAproxDisp }}</span>
-            </div>
-            <div v-if="row.m3Transporte != null" class="exp-field">
-              <span class="exp-lbl">m³ Transporte</span>
-              <span class="exp-val">{{ row.m3Transporte }}</span>
-            </div>
-            <div v-if="row.qHorasOperacion != null" class="exp-field">
-              <span class="exp-lbl">Horas Operación</span>
-              <span class="exp-val">{{ row.qHorasOperacion }}</span>
-            </div>
-            <div v-if="row.qHorasMontaje != null" class="exp-field">
-              <span class="exp-lbl">Horas Montaje</span>
-              <span class="exp-val">{{ row.qHorasMontaje }}</span>
-            </div>
-            <div v-if="row.qPersonalMontaje != null" class="exp-field">
-              <span class="exp-lbl">Personal Montaje</span>
-              <span class="exp-val">{{ row.qPersonalMontaje }}</span>
-            </div>
-            <div v-if="row.anioDispositivo != null" class="exp-field">
-              <span class="exp-lbl">Año</span>
-              <span class="exp-val">{{ row.anioDispositivo }}</span>
-            </div>
-            <div v-if="row.montacarga" class="exp-field">
-              <span class="exp-lbl">Montacarga</span>
-              <span class="exp-val">{{ row.montacarga }}</span>
-            </div>
-            <div v-if="row.incluyeTransporteBogMde" class="exp-field">
-              <span class="exp-lbl">Incluye Transporte</span>
-              <span class="exp-val">{{ row.incluyeTransporteBogMde }}</span>
-            </div>
-            <div v-if="row.porcentajeAmortizacion != null" class="exp-field">
-              <span class="exp-lbl">Amortización %</span>
-              <span class="exp-val">{{ row.porcentajeAmortizacion }}</span>
-            </div>
-            <div v-if="row.notas" class="exp-field exp-field--wide">
-              <span class="exp-lbl">Notas</span>
-              <span class="exp-val">{{ row.notas }}</span>
-            </div>
-          </div>
-        </template>
-
-      </BaseTable>
+      <!-- Paginación -->
+      <div v-if="!loading && filteredSorted.length > 0" class="np-pagination">
+        <span class="pg-info">
+          {{ (currentPage - 1) * Number(pageSize) + 1 }}–{{ Math.min(currentPage * Number(pageSize), filteredSorted.length) }}
+          de {{ filteredSorted.length }}
+        </span>
+        <div class="pg-pages">
+          <button class="pg-btn" :disabled="currentPage === 1" @click="currentPage = 1"><ChevronsLeft :size="14" /></button>
+          <button class="pg-btn" :disabled="currentPage === 1" @click="currentPage--"><ChevronLeft :size="14" /></button>
+          <template v-for="p in visiblePages" :key="p">
+            <span v-if="p === '...'" class="pg-ellipsis">…</span>
+            <button v-else class="pg-btn pg-num" :class="{ 'pg-active': p === currentPage }" @click="currentPage = p">{{ p }}</button>
+          </template>
+          <button class="pg-btn" :disabled="currentPage === totalPages" @click="currentPage++"><ChevronRight :size="14" /></button>
+          <button class="pg-btn" :disabled="currentPage === totalPages" @click="currentPage = totalPages"><ChevronsRight :size="14" /></button>
+        </div>
+      </div>
     </div>
 
-    <!-- ── MODAL: Confirmar eliminación ───────────────────────── -->
+    <!-- ── MODAL: Confirmar eliminación ──────────────────── -->
     <ModalReutilizable :show="deleteModal" @close="deleteModal = false">
       <div class="text-center p-2">
         <div class="flex justify-center mb-4">
@@ -354,17 +484,9 @@ onMounted(fetchProducts)
 </template>
 
 <style scoped>
-/* ─── Page ──────────────────────────────────────────────── */
-.np-page { width: 100%; display: flex; flex-direction: column; gap: 20px; }
+.np-page { width: 100%; }
 
 /* ─── Header ────────────────────────────────────────────── */
-.np-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
 .np-title {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 22px;
@@ -390,31 +512,19 @@ onMounted(fetchProducts)
   font-weight: 600;
   font-family: 'Inter', sans-serif;
   border-radius: 8px;
-  border: 1px solid #E5EAF0;
+  border: 1px solid #E2EBF6;
   background: #F8FAFC;
   color: #64748B;
   cursor: pointer;
   transition: background 0.15s;
 }
-.btn-reload:hover { background: #E5EAF0; }
+.btn-reload:hover { background: #E2EBF6; }
 
-/* ─── Filter bar ────────────────────────────────────────── */
-.filter-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  background: #FFFFFF;
-  border-radius: 14px;
-  padding: 14px 16px;
-  box-shadow: 0 1px 4px rgba(5,78,175,.06);
-  align-items: center;
-}
+.per-page-wrap { display: flex; align-items: center; gap: 8px; }
+.per-page-lbl  { font-size: 12px; color: #94A3B8; font-family: 'Inter', sans-serif; white-space: nowrap; }
 
-.search-field {
-  position: relative;
-  flex: 1;
-  min-width: 200px;
-}
+/* ─── Search field ──────────────────────────────────────── */
+.search-field { position: relative; }
 .s-ico {
   position: absolute;
   left: 12px;
@@ -423,64 +533,40 @@ onMounted(fetchProducts)
   color: #94A3B8;
   pointer-events: none;
 }
-.search-field .np-input { padding-left: 34px; width: 100%; }
 
+/* ─── Inputs ────────────────────────────────────────────── */
 .np-input {
+  width: 100%;
   background: #F8FAFC;
-  border: 1px solid #E5EAF0;
+  border: 1px solid #E2EBF6;
   border-radius: 999px;
-  padding: 8px 14px;
+  padding: 8px 16px;
   font-size: 13px;
-  font-family: 'Inter', sans-serif;
   color: #0F1A2E;
+  font-family: 'Inter', sans-serif;
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
   appearance: auto;
 }
 .np-input:focus {
   border-color: #054EAF;
-  box-shadow: 0 0 0 3px rgba(5,78,175,.1);
+  box-shadow: 0 0 0 3px rgba(5,78,175,0.1);
 }
-.np-input--sm { width: 70px; text-align: center; }
 .np-input::placeholder { color: #94A3B8; }
+.np-input--sm { width: 70px; text-align: center; }
 
-.per-page-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-}
-.per-page-lbl {
-  font-size: 12px;
-  color: #94A3B8;
-  font-family: 'Inter', sans-serif;
-  white-space: nowrap;
-}
-
-/* ─── Table wrapper ─────────────────────────────────────── */
-.np-table-wrap { display: flex; flex-direction: column; gap: 0; }
-
-/* Hide BaseTable's internal thead — we render our own sortable one */
-.np-table-wrap :deep(.bt-head) { display: none; }
-/* Remove top border-radius from bt-card since our header sits above */
-.np-table-wrap :deep(.bt-card) { border-radius: 0 0 18px 18px; }
-
-.np-sort-header {
-  background: #EBF3FC;
-  border-radius: 18px 18px 0 0;
-  overflow: hidden;
-  border: 1px solid #EEF1F7;
-  border-bottom: none;
-}
-.np-sort-table {
+/* ─── Tabla ─────────────────────────────────────────────── */
+.np-table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   font-family: 'Inter', sans-serif;
 }
+
 .np-head-row { background: #EBF3FC; }
+
 .np-th {
-  padding: 11px 16px;
+  padding: 12px 16px;
   font-size: 11px;
   font-weight: 600;
   color: #64748B;
@@ -490,11 +576,8 @@ onMounted(fetchProducts)
   white-space: nowrap;
   border-bottom: 1px solid #E2EBF6;
 }
-.np-th-sort {
-  cursor: pointer;
-  user-select: none;
-  transition: color 0.12s;
-}
+.np-th-center { text-align: center; }
+.np-th-sort { cursor: pointer; user-select: none; transition: color 0.12s; }
 .np-th-sort:hover { color: #054EAF; }
 
 .sort-icons {
@@ -509,28 +592,76 @@ onMounted(fetchProducts)
 .sort-active { color: #054EAF; }
 .sort-dim    { color: #CBD5E1; }
 
-/* ─── Cell styles ───────────────────────────────────────── */
-.np-idx   { font-size: 12px; color: #94A3B8; font-weight: 500; }
-.np-disp  { font-weight: 600; font-size: 13px; color: #0F1A2E; }
-.np-desc  { font-size: 13px; color: #64748B; max-width: 240px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.np-categ { font-size: 13px; color: #64748B; }
-.np-price { font-size: 13px; font-weight: 600; color: #16A34A; font-family: 'Inter', sans-serif; }
+/* ─── Filas ─────────────────────────────────────────────── */
+.np-row {
+  background: #FFFFFF;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.np-row:hover { background: #F0F7FF; }
 
-/* ─── Action buttons ────────────────────────────────────── */
+.np-td {
+  padding: 14px 16px;
+  font-size: 13px;
+  color: #0F1A2E;
+  border-bottom: 1px solid #EBF3FC;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.np-td-center { text-align: center; }
+.np-idx { font-size: 12px; color: #94A3B8; font-weight: 500; }
+
+/* ─── Chevron ────────────────────────────────────────────── */
+.np-chevron {
+  color: #94A3B8;
+  transition: transform 0.2s ease, color 0.15s ease;
+  display: block;
+  margin: 0 auto;
+}
+.np-chevron-open { transform: rotate(180deg); color: #054EAF; }
+
+/* ─── Cell: dispositivo ──────────────────────────────────── */
+.np-disp-cell { display: flex; flex-direction: column; gap: 2px; }
+.np-disp-name { font-weight: 600; font-size: 13px; color: #0F1A2E; }
+.np-disp-sub  { font-size: 11px; color: #94A3B8; }
+
+.np-categ  { font-size: 13px; color: #64748B; }
+.np-bodega { font-size: 13px; color: #64748B; }
+.np-price  { font-size: 13px; font-weight: 600; color: #16A34A; font-family: 'Inter', sans-serif; }
+
+/* ─── Badges ─────────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  white-space: nowrap;
+}
+.badge--green  { background: #DCFCE7; color: #16A34A; }
+.badge--yellow { background: #FEF3C7; color: #B45309; }
+.badge--orange { background: #FFEDD5; color: #C2410C; }
+.badge--blue   { background: #DBEAFE; color: #1D4ED8; }
+.badge--red    { background: #FEE2E2; color: #B91C1C; }
+.badge--slate  { background: #F1F5F9; color: #64748B; }
+
+/* ─── Acciones ───────────────────────────────────────────── */
 .np-actions { display: flex; align-items: center; gap: 6px; }
 
 .act-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
+  gap: 5px;
+  padding: 6px 10px;
   font-size: 11px;
   font-weight: 600;
   font-family: 'Inter', sans-serif;
-  border-radius: 7px;
+  border-radius: 8px;
   border: none;
   cursor: pointer;
-  transition: background 0.12s;
+  transition: background 0.15s ease;
+  white-space: nowrap;
   line-height: 1;
 }
 .act-edit       { background: #FEF3C7; color: #B45309; }
@@ -538,18 +669,33 @@ onMounted(fetchProducts)
 .act-del        { background: #FEE2E2; color: #B91C1C; }
 .act-del:hover  { background: #FECACA; }
 
-/* ─── Expanded row grid ─────────────────────────────────── */
-.exp-grid {
+/* ─── Fila expandida ─────────────────────────────────────── */
+.np-exp-td { padding: 0 !important; border-bottom: 1px solid #EBF3FC; }
+
+.np-exp-panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.25s ease;
+}
+.np-exp-open { max-height: 600px; }
+
+.np-exp-inner {
+  background: #F8FBFF;
+  border-left: 3px solid #054EAF;
+  padding: 16px 24px;
+}
+
+.np-exp-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 14px 20px;
+  gap: 16px 24px;
 }
-@media (max-width: 768px) { .exp-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 768px) { .np-exp-grid { grid-template-columns: repeat(2, 1fr); } }
 
-.exp-field { display: flex; flex-direction: column; gap: 3px; }
-.exp-field--wide { grid-column: span 2; }
+.np-exp-field { display: flex; flex-direction: column; gap: 4px; }
+.np-exp-field--wide { grid-column: span 2; }
 
-.exp-lbl {
+.np-exp-label {
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
@@ -557,16 +703,61 @@ onMounted(fetchProducts)
   color: #94A3B8;
   font-family: 'Inter', sans-serif;
 }
-.exp-val {
+.np-exp-val {
   font-size: 13px;
   color: #0F1A2E;
   font-family: 'Inter', sans-serif;
   font-weight: 500;
-  word-break: break-word;
   white-space: normal;
+  word-break: break-word;
 }
 
-/* ─── Modal title ───────────────────────────────────────── */
+/* ─── Skeleton ───────────────────────────────────────────── */
+.sk-box {
+  height: 14px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── Paginación ─────────────────────────────────────────── */
+.np-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-top: 1px solid #EBF3FC;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pg-info { font-size: 12px; color: #94A3B8; font-family: 'Inter', sans-serif; }
+.pg-pages { display: flex; align-items: center; gap: 4px; }
+.pg-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid #E2EBF6;
+  background: #FFFFFF;
+  color: #64748B;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.12s ease;
+}
+.pg-btn:hover:not(:disabled) { background: #EEF4FF; color: #054EAF; border-color: #BFDBFE; }
+.pg-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.pg-active { background: #054EAF !important; color: #FFFFFF !important; border-color: #054EAF !important; font-weight: 600; }
+.pg-ellipsis { color: #94A3B8; font-size: 13px; padding: 0 4px; }
+
+/* ─── Modal title ────────────────────────────────────────── */
 .modal-title {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 16px;

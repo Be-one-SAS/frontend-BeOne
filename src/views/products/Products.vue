@@ -409,65 +409,73 @@ onMounted(fetchProducts)
                       <div class="pp-exp-inner">
                         <div class="pp-exp-grid">
 
-                          <div v-if="row.amperios != null" class="pp-exp-field">
+                          <div class="pp-exp-field">
                             <span class="pp-exp-label">Amperios</span>
-                            <span class="pp-exp-val">{{ row.amperios }}</span>
+                            <span class="pp-exp-val">{{ row.amperios ?? '—' }}</span>
                           </div>
-                          <div v-if="row.medidas" class="pp-exp-field">
+                          <div class="pp-exp-field">
                             <span class="pp-exp-label">Medidas</span>
-                            <span class="pp-exp-val">{{ row.medidas }}</span>
+                            <span class="pp-exp-val">{{ row.medidas || '—' }}</span>
                           </div>
-                          <div v-if="row.qMotores != null" class="pp-exp-field">
+                          <div class="pp-exp-field">
                             <span class="pp-exp-label">Motores</span>
-                            <span class="pp-exp-val">{{ row.qMotores }}</span>
+                            <span class="pp-exp-val">{{ row.qMotores ?? '—' }}</span>
                           </div>
-                          <div v-if="row.qOperarios != null" class="pp-exp-field">
+                          <div class="pp-exp-field">
                             <span class="pp-exp-label">Operarios</span>
-                            <span class="pp-exp-val">{{ row.qOperarios }}</span>
+                            <span class="pp-exp-val">{{ row.qOperarios ?? '—' }}</span>
                           </div>
-                          <div v-if="row.m2Dispositivo != null" class="pp-exp-field">
+                          <div class="pp-exp-field">
                             <span class="pp-exp-label">m²</span>
-                            <span class="pp-exp-val">{{ row.m2Dispositivo }}</span>
+                            <span class="pp-exp-val">{{ row.m2Dispositivo ?? '—' }}</span>
                           </div>
-                          <div v-if="row.pesoAproxDisp != null" class="pp-exp-field">
+                          <div class="pp-exp-field">
                             <span class="pp-exp-label">Peso (kg)</span>
-                            <span class="pp-exp-val">{{ row.pesoAproxDisp }}</span>
+                            <span class="pp-exp-val">{{ row.pesoAproxDisp ?? '—' }}</span>
                           </div>
-                          <div v-if="row.m3Transporte != null" class="pp-exp-field">
+                          <div class="pp-exp-field">
                             <span class="pp-exp-label">m³ Transporte</span>
-                            <span class="pp-exp-val">{{ row.m3Transporte }}</span>
+                            <span class="pp-exp-val">{{ row.m3Transporte ?? '—' }}</span>
                           </div>
-                          <div v-if="row.qHorasOperacion != null" class="pp-exp-field">
+                          <div class="pp-exp-field">
                             <span class="pp-exp-label">Horas Operación</span>
-                            <span class="pp-exp-val">{{ row.qHorasOperacion }}</span>
+                            <span class="pp-exp-val">{{ row.qHorasOperacion ?? '—' }}</span>
                           </div>
-                          <div v-if="row.qHorasMontaje != null" class="pp-exp-field">
+                          <div class="pp-exp-field">
                             <span class="pp-exp-label">Horas Montaje</span>
-                            <span class="pp-exp-val">{{ row.qHorasMontaje }}</span>
+                            <span class="pp-exp-val">{{ row.qHorasMontaje ?? '—' }}</span>
                           </div>
-                          <div v-if="row.qPersonalMontaje != null" class="pp-exp-field">
+                          <div class="pp-exp-field">
                             <span class="pp-exp-label">Personal Montaje</span>
-                            <span class="pp-exp-val">{{ row.qPersonalMontaje }}</span>
+                            <span class="pp-exp-val">{{ row.qPersonalMontaje ?? '—' }}</span>
                           </div>
-                          <div v-if="row.anioDispositivo != null" class="pp-exp-field">
+                          <div class="pp-exp-field">
                             <span class="pp-exp-label">Año</span>
-                            <span class="pp-exp-val">{{ row.anioDispositivo }}</span>
+                            <span class="pp-exp-val">{{ row.anioDispositivo ?? '—' }}</span>
                           </div>
-                          <div v-if="row.montacarga" class="pp-exp-field">
+                          <div class="pp-exp-field">
                             <span class="pp-exp-label">Montacarga</span>
-                            <span class="pp-exp-val">{{ row.montacarga }}</span>
+                            <span class="pp-exp-val">{{ row.montacarga || '—' }}</span>
                           </div>
-                          <div v-if="row.incluyeTransporteBogMde" class="pp-exp-field">
+                          <div class="pp-exp-field">
+                            <span class="pp-exp-label">Pesos Estacas</span>
+                            <span class="pp-exp-val">{{ row.qPesosEstacas ?? '—' }}</span>
+                          </div>
+                          <div class="pp-exp-field">
+                            <span class="pp-exp-label">Extintores</span>
+                            <span class="pp-exp-val">{{ row.qExtintores ?? '—' }}</span>
+                          </div>
+                          <div class="pp-exp-field pp-exp-field--wide">
                             <span class="pp-exp-label">Incluye Transporte</span>
-                            <span class="pp-exp-val">{{ row.incluyeTransporteBogMde }}</span>
+                            <span class="pp-exp-val">{{ row.incluyeTransporteBogMde || '—' }}</span>
                           </div>
-                          <div v-if="row.descripcion" class="pp-exp-field pp-exp-field--wide">
+                          <div class="pp-exp-field pp-exp-field--wide">
                             <span class="pp-exp-label">Descripción</span>
-                            <span class="pp-exp-val">{{ row.descripcion }}</span>
+                            <span class="pp-exp-val">{{ row.descripcion || '—' }}</span>
                           </div>
-                          <div v-if="row.notas" class="pp-exp-field pp-exp-field--wide">
+                          <div class="pp-exp-field pp-exp-field--wide">
                             <span class="pp-exp-label">Notas</span>
-                            <span class="pp-exp-val">{{ row.notas }}</span>
+                            <span class="pp-exp-val">{{ row.notas || '—' }}</span>
                           </div>
 
                         </div>
@@ -493,7 +501,7 @@ onMounted(fetchProducts)
       </div>
 
       <!-- Paginación -->
-      <div v-if="!loading && totalPages > 1" class="pp-pagination">
+      <div v-if="!loading && filteredSorted.length > 0" class="pp-pagination">
         <span class="pg-info">
           {{ (currentPage - 1) * Number(pageSize) + 1 }}–{{ Math.min(currentPage * Number(pageSize), filteredSorted.length) }}
           de {{ filteredSorted.length }}

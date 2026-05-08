@@ -253,8 +253,14 @@ router.beforeEach((to, _from, next) => {
     return next('/login')
   }
 
-  // 2. Ruta de invitado con sesión activa → redirige al dashboard
+  // 2. Ruta de invitado con sesión activa → validar si el token es válido
   if (to.meta.guestOnly && isAuthenticated.value) {
+    // Si hay token pero no hay usuario, el token es inválido → limpiar
+    if (!user.value) {
+      localStorage.removeItem('authToken')
+      localStorage.removeItem('userData')
+      return next()
+    }
     return next('/dashboard')
   }
 

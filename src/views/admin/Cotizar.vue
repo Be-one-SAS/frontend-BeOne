@@ -424,7 +424,7 @@
                   <div v-for="(it, i) in itemsTerceros" :key="'third-' + i" class="cart-row cart-row--tercero">
                     <p class="cart-name">
                       <Truck :size="10" class="inline-icon" />
-                      {{ it.nombre }}
+                      {{ it.nombre || it.dispositivo || '—' }}
                     </p>
                     <div class="cart-meta">
                       <span class="cart-qty">{{ it.cantidad }} unid.</span>
@@ -507,7 +507,7 @@
                         />
                       </td>
                       <td class="td-name">
-                        <p class="prd-nombre">{{ it.nombre }}</p>
+                        <p class="prd-nombre">{{ it.nombre || it.dispositivo || '—' }}</p>
                         <p v-if="it.categoria" class="prd-cat">{{ it.categoria }}</p>
                       </td>
                       <td class="td-center">
@@ -678,7 +678,7 @@
                     </thead>
                     <tbody>
                       <tr v-for="(it, i) in itemsTerceros" :key="i" class="prd-row-view">
-                        <td class="td-name">{{ it.nombre }}</td>
+                        <td class="td-name">{{ it.nombre || it.dispositivo || '—' }}</td>
                         <td class="td-center">{{ it.cantidad }}</td>
                         <td class="td-right prd-price">
                           {{ formatCOP(it.precioUnitario ?? it.precioUnitarioConIva ?? null) }}
@@ -920,6 +920,7 @@
           </button>
           <button
             class="px-[18px] py-[9px] text-[13px] font-semibold bg-primary text-white rounded-[8px] shadow-[var(--shadow-btn)] hover:bg-primary-dark transition"
+            @click="push('/admin/ver-cotizaciones')"
           >
             Ver cotizaciones
           </button>
@@ -1371,6 +1372,24 @@ const getCotizacion = async () => {
       cantidadProducto:  it.cantidadProducto ?? 1,
       descuentoPct:      typeof it.descuentoPct === 'number' ? it.descuentoPct : 0,
     }))
+
+    // Cargar productos de terceros
+    if (data.thirdPartyItems && data.thirdPartyItems.length > 0) {
+      itemsTerceros.value = data.thirdPartyItems.map(it => ({
+        id:                  it.id,
+        catalogItemId:       it.catalogProductId || it.catalogProduct?.id,
+        nombre:              it.catalogProduct?.nombre || it.catalogProduct?.dispositivo || it.nombre || it.dispositivo,
+        dispositivo:         it.catalogProduct?.dispositivo || it.dispositivo,
+        categoria:           it.catalogProduct?.categoria || it.categoria,
+        descripcion:         it.catalogProduct?.descripcion || it.descripcion,
+        cantidad:            it.cantidad ?? 1,
+        costo:               it.costo ?? 0,
+        margen:              it.margen ?? 0,
+        precioUnitario:      it.precioUnitario ?? 0,
+        precioTotal:         it.precioTotal ?? 0,
+        incluyeTransporte:   it.catalogProduct?.incluyeTransporteBogMde ?? false,
+      }))
+    }
 
     console.log("Cotización cargada para edición:", data);
   } catch (error) {

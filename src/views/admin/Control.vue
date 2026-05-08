@@ -577,8 +577,20 @@ onMounted(async () => {
                               v-for="it in ev.thirdPartyItems"
                               :key="`3p-${it.id}`"
                               class="ctrl-item-pill ctrl-item-pill--third"
+                              :title="it.catalogProduct?.nombre || it.catalogProduct?.dispositivo || it.nombre || it.dispositivo || it.producto?.nombre || 'Producto de tercero'"
                             >
-                              {{ it.dispositivo ?? it.nombre ?? `#${it.id}` }}
+                              <template v-if="it.catalogProduct?.nombre || it.catalogProduct?.dispositivo">
+                                {{ it.catalogProduct.nombre || it.catalogProduct.dispositivo }}
+                              </template>
+                              <template v-else-if="it.nombre || it.dispositivo">
+                                {{ it.nombre || it.dispositivo }}
+                              </template>
+                              <template v-else-if="it.producto?.nombre">
+                                {{ it.producto.nombre }}
+                              </template>
+                              <template v-else>
+                                #{{ it.id }}
+                              </template>
                               <span class="ctrl-item-qty">×{{ it.cantidad ?? 1 }}</span>
                             </span>
                           </div>
