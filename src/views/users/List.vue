@@ -1,7 +1,5 @@
 <template>
   <div class="page-wrap">
-
-    <!-- ── KPI Chips ──────────────────────────────────────── -->
     <div class="kpi-row">
       <div v-for="chip in kpiList" :key="chip.label" class="kpi-chip">
         <div class="kpi-icon-wrap" :style="{ background: chip.iconBg }">
@@ -33,12 +31,8 @@
         <!-- Buscador -->
         <div class="search-wrap">
           <Search :size="14" class="search-icon" />
-          <input
-            v-model="search"
-            type="text"
-            placeholder="Buscar por nombre, email o usuario..."
-            class="search-input"
-          />
+          <input v-model="search" type="text" placeholder="Buscar por nombre, email o usuario..."
+            class="search-input" />
           <button v-if="search" class="search-clear" @click="search = ''">
             <X :size="12" />
           </button>
@@ -115,11 +109,7 @@
           <template v-for="u in paginatedUsers" :key="u.id">
 
             <!-- Fila principal -->
-            <tr
-              class="data-row"
-              :class="{ 'row-expanded': expandedId === u.id }"
-              @click="toggleExpand(u.id)"
-            >
+            <tr class="data-row" :class="{ 'row-expanded': expandedId === u.id }" @click="toggleExpand(u.id)">
               <!-- Usuario: avatar + nombre + email -->
               <td class="td-user">
                 <div class="user-cell">
@@ -157,50 +147,26 @@
 
               <!-- Acciones -->
               <td class="td-actions" @click.stop>
-                <button
-                  class="action-btn"
-                  title="Ver perfil"
-                  style="--hbg:#DBEAFE; --hc:#1D4ED8"
-                  @click="verPerfil(u)"
-                >
+                <button class="action-btn" title="Ver perfil" style="--hbg:#DBEAFE; --hc:#1D4ED8" @click="verPerfil(u)">
                   <Eye :size="15" />
                 </button>
-                <button
-                  v-if="canEdit('usuarios')"
-                  class="action-btn"
-                  title="Editar usuario"
-                  style="--hbg:#FEF3C7; --hc:#B45309"
-                  @click="abrirModalEditar(u)"
-                >
+                <button v-if="canEdit('usuarios')" class="action-btn" title="Editar usuario"
+                  style="--hbg:#FEF3C7; --hc:#B45309" @click="abrirModalEditar(u)">
                   <Pencil :size="15" />
                 </button>
-                <button
-                  v-if="canEdit('usuarios')"
-                  class="action-btn"
-                  title="Cambiar rol"
-                  style="--hbg:#EDE9FE; --hc:#7C3AED"
-                  @click="abrirModalRol(u)"
-                >
+                <button v-if="canEdit('usuarios')" class="action-btn" title="Cambiar rol"
+                  style="--hbg:#EDE9FE; --hc:#7C3AED" @click="abrirModalRol(u)">
                   <Shield :size="15" />
                 </button>
-                <button
-                  class="action-btn"
-                  :title="u.status === 'Activo' ? 'Desactivar usuario' : 'Activar usuario'"
+                <button class="action-btn" :title="u.status === 'Activo' ? 'Desactivar usuario' : 'Activar usuario'"
                   :style="u.status === 'Activo'
                     ? '--hbg:#FEE2E2; --hc:#B91C1C'
-                    : '--hbg:#DCFCE7; --hc:#16A34A'"
-                  @click="handleToggle(u)"
-                >
+                    : '--hbg:#DCFCE7; --hc:#16A34A'" @click="handleToggle(u)">
                   <ToggleRight v-if="u.status === 'Activo'" :size="15" />
                   <ToggleLeft v-else :size="15" />
                 </button>
-                <button
-                  v-if="canDelete('usuarios')"
-                  class="action-btn"
-                  title="Eliminar usuario"
-                  style="--hbg:#FEE2E2; --hc:#B91C1C"
-                  @click="abrirModalEliminar(u)"
-                >
+                <button v-if="canDelete('usuarios')" class="action-btn" title="Eliminar usuario"
+                  style="--hbg:#FEE2E2; --hc:#B91C1C" @click="abrirModalEliminar(u)">
                   <Trash2 :size="15" />
                 </button>
               </td>
@@ -240,20 +206,12 @@
                       <div>
                         <p class="exp-section-title">Permisos del rol ({{ u.role }})</p>
                         <div class="perms-row">
-                          <span
-                            v-for="p in rolePermissions[u.role]"
-                            :key="p"
-                            class="perm-pill"
-                          >{{ p }}</span>
+                          <span v-for="p in rolePermissions[u.role]" :key="p" class="perm-pill">{{ p }}</span>
                         </div>
 
                         <p class="exp-section-title" style="margin-top:12px">Últimas acciones</p>
                         <ul class="actions-list">
-                          <li
-                            v-for="action in getUserActions(u.id)"
-                            :key="action"
-                            class="action-item"
-                          >
+                          <li v-for="action in getUserActions(u.id)" :key="action" class="action-item">
                             <span class="action-bullet" />
                             {{ action }}
                           </li>
@@ -274,7 +232,8 @@
       <div v-if="!loading && filteredUsers.length > 0" class="pagination-wrap">
         <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">Ant</button>
         <span class="page-info">Pág {{ currentPage }} de {{ totalPages }}</span>
-        <button class="page-btn" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">Sig</button>
+        <button class="page-btn" :disabled="currentPage === totalPages"
+          @click="changePage(currentPage + 1)">Sig</button>
       </div>
     </div>
 
@@ -295,12 +254,7 @@
       </div>
 
       <!-- Cards -->
-      <div
-        v-else
-        v-for="u in paginatedUsers"
-        :key="u.id"
-        class="mobile-card"
-      >
+      <div v-else v-for="u in paginatedUsers" :key="u.id" class="mobile-card">
         <div class="mc-top">
           <div class="user-cell">
             <div class="avatar" :style="{ background: getAvatarColor(u.fullName) }">
@@ -322,62 +276,44 @@
           <span class="td-meta">{{ getTimeAgo(u.lastLogin) }}</span>
         </div>
         <div class="mc-actions">
-          <button v-if="canEdit('usuarios')" class="action-btn" title="Editar" style="--hbg:#FEF3C7; --hc:#B45309" @click="abrirModalEditar(u)">
+          <button v-if="canEdit('usuarios')" class="action-btn" title="Editar" style="--hbg:#FEF3C7; --hc:#B45309"
+            @click="abrirModalEditar(u)">
             <Pencil :size="15" />
           </button>
-          <button v-if="canEdit('usuarios')" class="action-btn" title="Cambiar rol" style="--hbg:#EDE9FE; --hc:#7C3AED" @click="abrirModalRol(u)">
+          <button v-if="canEdit('usuarios')" class="action-btn" title="Cambiar rol" style="--hbg:#EDE9FE; --hc:#7C3AED"
+            @click="abrirModalRol(u)">
             <Shield :size="15" />
           </button>
-          <button
-            class="action-btn"
-            :title="u.status === 'Activo' ? 'Desactivar' : 'Activar'"
+          <button class="action-btn" :title="u.status === 'Activo' ? 'Desactivar' : 'Activar'"
             :style="u.status === 'Activo' ? '--hbg:#FEE2E2; --hc:#B91C1C' : '--hbg:#DCFCE7; --hc:#16A34A'"
-            @click="handleToggle(u)"
-          >
+            @click="handleToggle(u)">
             <ToggleRight v-if="u.status === 'Activo'" :size="15" />
             <ToggleLeft v-else :size="15" />
           </button>
-          <button
-            v-if="canDelete('usuarios')"
-            class="action-btn"
-            title="Eliminar"
-            style="--hbg:#FEE2E2; --hc:#B91C1C"
-            @click="abrirModalEliminar(u)"
-          >
+          <button v-if="canDelete('usuarios')" class="action-btn" title="Eliminar" style="--hbg:#FEE2E2; --hc:#B91C1C"
+            @click="abrirModalEliminar(u)">
             <Trash2 :size="15" />
           </button>
         </div>
       </div>
-      
+
       <!-- Paginación Mobile -->
       <div v-if="!loading && filteredUsers.length > 0" class="pagination-wrap mobile-pagination">
         <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">Ant</button>
         <span class="page-info">Pág {{ currentPage }} de {{ totalPages }}</span>
-        <button class="page-btn" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">Sig</button>
+        <button class="page-btn" :disabled="currentPage === totalPages"
+          @click="changePage(currentPage + 1)">Sig</button>
       </div>
     </div>
 
     <!-- ── Modales ────────────────────────────────────────── -->
-    <UserFormModal
-      :show="showFormModal"
-      :usuario="usuarioEditando"
-      @close="showFormModal = false"
-      @save="handleSaveUser"
-    />
+    <UserFormModal :show="showFormModal" :usuario="usuarioEditando" @close="showFormModal = false"
+      @save="handleSaveUser" />
 
-    <UserRoleModal
-      :show="showRoleModal"
-      :usuario="usuarioRol"
-      @close="showRoleModal = false"
-      @save="handleSaveRole"
-    />
+    <UserRoleModal :show="showRoleModal" :usuario="usuarioRol" @close="showRoleModal = false" @save="handleSaveRole" />
 
-    <UserDeleteModal
-      :show="showDeleteModal"
-      :usuario="usuarioEliminar"
-      @close="showDeleteModal = false"
-      @confirm="handleDeleteUser"
-    />
+    <UserDeleteModal :show="showDeleteModal" :usuario="usuarioEliminar" @close="showDeleteModal = false"
+      @confirm="handleDeleteUser" />
 
   </div>
 </template>
@@ -393,8 +329,8 @@ import { useUsers, rolePermissions } from '@/composables/useUsers'
 import { useAuth } from '@/composables/useAuth'
 import { usePermissions } from '@/composables/usePermissions'
 import { updateUserRole } from '@/services/users.service'
-import UserFormModal  from './components/UserFormModal.vue'
-import UserRoleModal  from './components/UserRoleModal.vue'
+import UserFormModal from './components/UserFormModal.vue'
+import UserRoleModal from './components/UserRoleModal.vue'
 import UserDeleteModal from './components/UserDeleteModal.vue'
 
 // ── Auth & permisos ───────────────────────────────────
@@ -436,31 +372,31 @@ const TABLE_COLS = ['Usuario', 'Username', 'Rol', 'Estado', 'Último acceso', 'C
 
 // ── Badge maps ────────────────────────────────────────
 const ROLE_BADGE = {
-  ADMIN:         'bg-[#FEE2E2] text-[#B91C1C]',
+  ADMIN: 'bg-[#FEE2E2] text-[#B91C1C]',
   ADMINISTRADOR: 'bg-[#DBEAFE] text-[#1D4ED8]',
-  DIRECCION:     'bg-[#EDE9FE] text-[#7C3AED]',
-  LIDER:         'bg-[#DCFCE7] text-[#16A34A]',
-  SUPERVISOR:    'bg-[#FEF3C7] text-[#B45309]',
-  COORDINADOR:   'bg-[#FFEDD5] text-[#C2410C]',
-  LOGISTICO:     'bg-[#F1F5F9] text-[#64748B]',
+  DIRECCION: 'bg-[#EDE9FE] text-[#7C3AED]',
+  LIDER: 'bg-[#DCFCE7] text-[#16A34A]',
+  SUPERVISOR: 'bg-[#FEF3C7] text-[#B45309]',
+  COORDINADOR: 'bg-[#FFEDD5] text-[#C2410C]',
+  LOGISTICO: 'bg-[#F1F5F9] text-[#64748B]',
 }
 const STATUS_BADGE = {
-  Activo:     'bg-[#DCFCE7] text-[#16A34A]',
-  Inactivo:   'bg-[#F1F5F9] text-[#64748B]',
+  Activo: 'bg-[#DCFCE7] text-[#16A34A]',
+  Inactivo: 'bg-[#F1F5F9] text-[#64748B]',
   Suspendido: 'bg-[#FEE2E2] text-[#B91C1C]',
 }
 const DOT_CLASS = {
-  Activo:     'bg-[#16A34A]',
-  Inactivo:   'bg-[#94A3B8]',
+  Activo: 'bg-[#16A34A]',
+  Inactivo: 'bg-[#94A3B8]',
   Suspendido: 'bg-[#B91C1C]',
 }
 
 // ── KPI chips ─────────────────────────────────────────
 const kpiList = computed(() => [
-  { label: 'Total usuarios',           value: kpis.value.total,    icon: Users,    iconBg: '#EBF3FC', iconColor: '#054EAF' },
-  { label: 'Activos',                  value: kpis.value.activos,  icon: UserCheck, iconBg: '#DCFCE7', iconColor: '#16A34A' },
-  { label: 'Inactivos / Suspendidos',  value: kpis.value.inactivos,icon: UserX,    iconBg: '#FEE2E2', iconColor: '#B91C1C' },
-  { label: 'Roles en uso',             value: kpis.value.roles,    icon: BarChart2, iconBg: '#EDE9FE', iconColor: '#7C3AED' },
+  { label: 'Total usuarios', value: kpis.value.total, icon: Users, iconBg: '#EBF3FC', iconColor: '#054EAF' },
+  { label: 'Activos', value: kpis.value.activos, icon: UserCheck, iconBg: '#DCFCE7', iconColor: '#16A34A' },
+  { label: 'Inactivos / Suspendidos', value: kpis.value.inactivos, icon: UserX, iconBg: '#FEE2E2', iconColor: '#B91C1C' },
+  { label: 'Roles en uso', value: kpis.value.roles, icon: BarChart2, iconBg: '#EDE9FE', iconColor: '#7C3AED' },
 ])
 
 // ── Filtros ───────────────────────────────────────────
@@ -481,7 +417,7 @@ const expandedId = ref(null)
 const toggleExpand = (id) => { expandedId.value = expandedId.value === id ? null : id }
 
 // ── Modal: Crear / Editar ─────────────────────────────
-const showFormModal  = ref(false)
+const showFormModal = ref(false)
 const usuarioEditando = ref(null)
 
 const abrirModalCrear = () => { usuarioEditando.value = null; showFormModal.value = true }
@@ -499,7 +435,7 @@ const handleSaveUser = async (data) => {
 
 // ── Modal: Cambiar Rol ────────────────────────────────
 const showRoleModal = ref(false)
-const usuarioRol    = ref(null)
+const usuarioRol = ref(null)
 
 const abrirModalRol = (u) => { usuarioRol.value = { ...u }; showRoleModal.value = true }
 
@@ -515,8 +451,8 @@ const handleSaveRole = async ({ usuario, nuevoRol }) => {
 }
 
 // ── Modal: Eliminar ───────────────────────────────────
-const showDeleteModal  = ref(false)
-const usuarioEliminar  = ref(null)
+const showDeleteModal = ref(false)
+const usuarioEliminar = ref(null)
 
 const abrirModalEliminar = (u) => { usuarioEliminar.value = { ...u }; showDeleteModal.value = true }
 
@@ -641,7 +577,9 @@ onMounted(() => loadUsers())
   transition: background 0.15s ease;
 }
 
-.btn-primary:hover { background: #03368A; }
+.btn-primary:hover {
+  background: #03368A;
+}
 
 /* ── Filter bar ──────────────────────────────────────── */
 .filter-card {
@@ -714,7 +652,9 @@ onMounted(() => loadUsers())
   transition: border-color 0.15s;
 }
 
-.filter-select:focus { border-color: #054EAF; }
+.filter-select:focus {
+  border-color: #054EAF;
+}
 
 .btn-ghost-filter {
   display: inline-flex;
@@ -733,7 +673,10 @@ onMounted(() => loadUsers())
   transition: all 0.15s;
 }
 
-.btn-ghost-filter:hover { background: #F8FAFC; color: #0F172A; }
+.btn-ghost-filter:hover {
+  background: #F8FAFC;
+  color: #0F172A;
+}
 
 /* ── Table card ──────────────────────────────────────── */
 .table-card {
@@ -772,14 +715,17 @@ onMounted(() => loadUsers())
   cursor: pointer;
   transition: all 0.2s ease;
 }
+
 .page-btn:hover:not(:disabled) {
   background: #E2EBF6;
   color: #054EAF;
 }
+
 .page-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
+
 .page-info {
   font-size: 13px;
   color: #64748B;
@@ -826,13 +772,28 @@ onMounted(() => loadUsers())
   transition: background 0.15s ease;
 }
 
-.data-row:hover { background: #F0F7FF; }
-.data-row.row-expanded { background: #F0F7FF; }
+.data-row:hover {
+  background: #F0F7FF;
+}
+
+.data-row.row-expanded {
+  background: #F0F7FF;
+}
 
 /* ── Celdas específicas ──────────────────────────────── */
-.td-user { min-width: 220px; }
-.td-meta { color: #94A3B8; font-size: 12px; white-space: nowrap; }
-.td-actions { white-space: nowrap; }
+.td-user {
+  min-width: 220px;
+}
+
+.td-meta {
+  color: #94A3B8;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.td-actions {
+  white-space: nowrap;
+}
 
 /* ── User cell ───────────────────────────────────────── */
 .user-cell {
@@ -921,7 +882,9 @@ onMounted(() => loadUsers())
 }
 
 /* ── Skeleton ────────────────────────────────────────── */
-.skel-tr td { padding: 14px 16px; }
+.skel-tr td {
+  padding: 14px 16px;
+}
 
 .skel-bar {
   height: 12px;
@@ -941,7 +904,9 @@ onMounted(() => loadUsers())
 }
 
 /* ── Panel expandible ────────────────────────────────── */
-.exp-tr { background: #F8FBFF; }
+.exp-tr {
+  background: #F8FBFF;
+}
 
 .exp-td {
   padding: 0 !important;
@@ -1039,14 +1004,27 @@ onMounted(() => loadUsers())
 }
 
 /* ── Transición expand ───────────────────────────────── */
-.expand-enter-active { transition: opacity 0.2s ease; }
-.expand-leave-active { transition: opacity 0.15s ease; }
+.expand-enter-active {
+  transition: opacity 0.2s ease;
+}
+
+.expand-leave-active {
+  transition: opacity 0.15s ease;
+}
+
 .expand-enter-from,
-.expand-leave-to { opacity: 0; }
+.expand-leave-to {
+  opacity: 0;
+}
 
 /* ── Mobile cards ────────────────────────────────────── */
-.mobile-list { display: none; }
-.desktop-table { display: block; }
+.mobile-list {
+  display: none;
+}
+
+.desktop-table {
+  display: block;
+}
 
 .mobile-card {
   background: #FFFFFF;
@@ -1089,7 +1067,9 @@ onMounted(() => loadUsers())
 
 /* ── Responsive ──────────────────────────────────────── */
 @media (max-width: 767px) {
-  .page-wrap { padding: 16px; }
+  .page-wrap {
+    padding: 16px;
+  }
 
   .kpi-row {
     grid-template-columns: 1fr 1fr;
@@ -1100,7 +1080,10 @@ onMounted(() => loadUsers())
     grid-template-columns: 1fr;
   }
 
-  .desktop-table { display: none; }
+  .desktop-table {
+    display: none;
+  }
+
   .mobile-list {
     display: flex;
     flex-direction: column;
@@ -1109,8 +1092,13 @@ onMounted(() => loadUsers())
 }
 
 @media (max-width: 1100px) {
-  .kpi-row { grid-template-columns: repeat(2, 1fr); }
-  .filter-grid { grid-template-columns: 1fr 1fr; }
+  .kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .filter-grid {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 /* ── Banner error de operación ───────────────────────── */
@@ -1138,8 +1126,16 @@ onMounted(() => loadUsers())
   padding: 0 2px;
 }
 
-.error-fade-enter-active { transition: opacity 0.2s ease; }
-.error-fade-leave-active { transition: opacity 0.15s ease; }
+.error-fade-enter-active {
+  transition: opacity 0.2s ease;
+}
+
+.error-fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+
 .error-fade-enter-from,
-.error-fade-leave-to { opacity: 0; }
+.error-fade-leave-to {
+  opacity: 0;
+}
 </style>
