@@ -2,11 +2,15 @@
 import { ref, computed, onMounted } from 'vue'
 import {
   ClipboardCheck, ClipboardX, ChevronDown, Search,
-  Loader2, CheckCircle2, Users
+  Loader2, CheckCircle2, Users, Activity
 } from 'lucide-vue-next'
 import { useControl } from '@/composables/useControl'
 import OperationalListModal from '@/components/quotation/OperationalListModal.vue'
 import TeamModal from '@/components/quotation/TeamModal.vue'
+import ModalFlujoEvento from '@/components/quotation/ModalFlujoEvento.vue'
+import AsignacionEquipos from '@/views/operativa/AsignacionEquipos.vue'
+
+const activeTab = ref<'control' | 'equipo'>('control')
 
 const { eventos, loading, fetchEventos, updateEvento, refreshEventTeam } = useControl()
 
@@ -67,6 +71,21 @@ const onTeamUpdated = async () => {
   if (selectedTeamEvent.value?.id) {
     await refreshEventTeam(selectedTeamEvent.value.id)
   }
+}
+
+// ── Flujo modal ────────────────────────────────────────
+const showFlujoModal   = ref(false)
+const selectedFlujoEvent = ref(null)
+
+const openFlujoModal = (evento) => {
+  selectedFlujoEvent.value = evento
+  showFlujoModal.value = true
+}
+
+const onFlujoOpenTeam = () => {
+  showFlujoModal.value = false
+  selectedTeamEvent.value = selectedFlujoEvent.value
+  showTeamModal.value = true
 }
 
 // ── Checkboxes con spinner por celda ──────────────────
@@ -139,6 +158,35 @@ onMounted(async () => {
 
 <template>
   <div class="vc-page">
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- TABS                                            -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <div class="ctrl-tabs-bar">
+      <button
+        class="ctrl-tab"
+        :class="{ 'ctrl-tab--active': activeTab === 'control' }"
+        @click="activeTab = 'control'"
+      >
+        <ClipboardCheck :size="14" />
+        Control
+      </button>
+      <button
+        class="ctrl-tab"
+        :class="{ 'ctrl-tab--active': activeTab === 'equipo' }"
+        @click="activeTab = 'equipo'"
+      >
+        <Users :size="14" />
+        Equipo
+      </button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- TAB: EQUIPO                                     -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <AsignacionEquipos v-if="activeTab === 'equipo'" />
+
+    <template v-if="activeTab === 'control'">
 
     <!-- ═══════════════════════════════════════════════ -->
     <!-- HEADER                                          -->
@@ -218,6 +266,9 @@ onMounted(async () => {
               <th class="vc-th" style="min-width:160px">Evento</th>
               <th class="vc-th" style="width:100px">Estado Op.</th>
               <th class="vc-th" style="width:140px">Equipo</th>
+              <th class="vc-th vc-th-center" style="width:40px" title="Flujo del Evento">
+                <Activity :size="12" />
+              </th>
               <th class="vc-th" style="width:130px">Cliente</th>
               <th class="vc-th" style="width:90px">F. Inicio</th>
               <th class="vc-th" style="width:90px">F. Fin</th>
@@ -292,7 +343,7 @@ onMounted(async () => {
                       </template>
                       <span v-else class="equipo-empty">Sin coord.</span>
                       <span v-if="ev.members?.length" class="equipo-members-badge">
-                        {{ ev.members.length }} apoyo
+                        {{ ev.members.length }} logístico
                       </span>
                     </div>
                     <button
@@ -303,6 +354,17 @@ onMounted(async () => {
                       <Users :size="12" />
                     </button>
                   </div>
+                </td>
+
+                <!-- Flujo del Evento -->
+                <td class="vc-td vc-td-center" @click.stop>
+                  <button
+                    class="ctrl-check ctrl-check-op"
+                    title="Ver flujo del evento"
+                    @click.stop="openFlujoModal(ev)"
+                  >
+                    <Activity :size="13" />
+                  </button>
                 </td>
 
                 <!-- Cliente -->
@@ -515,8 +577,20 @@ onMounted(async () => {
                               v-for="it in ev.thirdPartyItems"
                               :key="`3p-${it.id}`"
                               class="ctrl-item-pill ctrl-item-pill--third"
+                              :title="it.catalogProduct?.nombre || it.catalogProduct?.dispositivo || it.nombre || it.dispositivo || it.producto?.nombre || 'Producto de tercero'"
                             >
-                              {{ it.dispositivo ?? it.nombre ?? `#${it.id}` }}
+                              <template v-if="it.catalogProduct?.nombre || it.catalogProduct?.dispositivo">
+                                {{ it.catalogProduct.nombre || it.catalogProduct.dispositivo }}
+                              </template>
+                              <template v-else-if="it.nombre || it.dispositivo">
+                                {{ it.nombre || it.dispositivo }}
+                              </template>
+                              <template v-else-if="it.producto?.nombre">
+                                {{ it.producto.nombre }}
+                              </template>
+                              <template v-else>
+                                #{{ it.id }}
+                              </template>
                               <span class="ctrl-item-qty">×{{ it.cantidad ?? 1 }}</span>
                             </span>
                           </div>
@@ -534,6 +608,8 @@ onMounted(async () => {
         </table>
       </div>
     </div>
+
+    </template><!-- /control tab -->
 
     <!-- ── Modal Lista Operativa ── -->
     <OperationalListModal
@@ -553,12 +629,51 @@ onMounted(async () => {
       @updated="onTeamUpdated"
     />
 
+    <!-- ── Modal Flujo del Evento ── -->
+    <ModalFlujoEvento
+      v-if="showFlujoModal"
+      :show="showFlujoModal"
+      :event="selectedFlujoEvent"
+      @close="showFlujoModal = false"
+      @open-team="onFlujoOpenTeam"
+    />
+
   </div>
 </template>
 
 <style scoped>
 /* ── Shared from VerCotizaciones ─────────────────────── */
 .vc-page { width: 100%; }
+
+/* ── Tabs bar ────────────────────────────────────────── */
+.ctrl-tabs-bar {
+  display: flex;
+  gap: 4px;
+  background: #F1F5F9;
+  border-radius: 12px;
+  padding: 4px;
+  width: fit-content;
+  margin-bottom: 24px;
+}
+
+.ctrl-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: 9px;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  color: #64748B;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ctrl-tab:hover { color: #0F1A2E; background: rgba(255,255,255,.6); }
+.ctrl-tab--active { background: #FFFFFF; color: #054EAF; box-shadow: 0 1px 4px rgba(15,26,46,.1); }
 
 .vc-title {
   font-family: 'Plus Jakarta Sans', sans-serif;

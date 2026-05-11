@@ -79,7 +79,7 @@
               <th class="ae-th" style="width:110px">Fecha</th>
               <th class="ae-th" style="width:100px">Estado Op.</th>
               <th class="ae-th" style="width:160px">Coordinador(es)</th>
-              <th class="ae-th" style="width:100px">Apoyo</th>
+              <th class="ae-th" style="width:100px">Logístico</th>
               <th class="ae-th" style="width:80px">Acción</th>
             </tr>
           </thead>
@@ -157,15 +157,10 @@
 
               <!-- Acciones -->
               <td class="ae-td">
-                <div class="ae-actions">
-                  <button class="ae-btn-manage" @click="openTeamModal(ev)">
-                    <UserCog :size="13" />
-                    Equipo
-                  </button>
-                  <button class="ae-btn-flujo" @click="openFlujoModal(ev)" title="Ver flujo del evento">
-                    <Activity :size="13" />
-                  </button>
-                </div>
+                <button class="ae-btn-manage" @click="openTeamModal(ev)">
+                  <UserCog :size="13" />
+                  Equipo
+                </button>
               </td>
             </tr>
           </tbody>
@@ -206,7 +201,7 @@
               <span class="ae-persona-ev-name">{{ ev.description ?? ev.empresa ?? '—' }}</span>
               <span class="ae-persona-ev-date">{{ formatDate(ev.operationWindow?.eventStartAt) }}</span>
               <span class="ae-badge ae-badge-sm" :class="ev.rolEnEvento === 'coord' ? 'badge-blue' : 'badge-green'">
-                {{ ev.rolEnEvento === 'coord' ? 'Coord.' : 'Apoyo' }}
+                {{ ev.rolEnEvento === 'coord' ? 'Coord.' : 'Logístico' }}
               </span>
             </div>
           </div>
@@ -224,24 +219,14 @@
       @updated="onTeamUpdated"
     />
 
-    <!-- Flujo Modal -->
-    <ModalFlujoEvento
-      v-if="showFlujoModal"
-      :show="showFlujoModal"
-      :event="selectedFlujoEvent"
-      @close="showFlujoModal = false"
-      @open-team="onFlujoOpenTeam"
-    />
-
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Users, UserCog, Search, CalendarDays, Activity } from 'lucide-vue-next'
+import { Users, UserCog, Search, CalendarDays } from 'lucide-vue-next'
 import { useControl } from '@/composables/useControl'
 import TeamModal from '@/components/quotation/TeamModal.vue'
-import ModalFlujoEvento from '@/components/quotation/ModalFlujoEvento.vue'
 
 const { eventos, loading, fetchEventos, fetchCoordinadores, refreshEventTeam } = useControl()
 
@@ -258,21 +243,6 @@ const onTeamUpdated = async () => {
   if (selectedEvent.value?.id) {
     await refreshEventTeam(selectedEvent.value.id)
   }
-}
-
-// ── Flujo modal ─────────────────────────────────────
-const showFlujoModal   = ref(false)
-const selectedFlujoEvent = ref(null)
-
-const openFlujoModal = (evento) => {
-  selectedFlujoEvent.value = evento
-  showFlujoModal.value = true
-}
-
-const onFlujoOpenTeam = () => {
-  showFlujoModal.value = false
-  selectedEvent.value  = selectedFlujoEvent.value
-  showTeamModal.value  = true
 }
 
 // ── Progress helpers ────────────────────────────────
@@ -581,8 +551,6 @@ onMounted(async () => {
 .mini-green { background: #22C55E; }
 
 /* Action buttons */
-.ae-actions { display: flex; align-items: center; gap: 6px; }
-
 .ae-btn-manage {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 6px 11px;
@@ -593,15 +561,6 @@ onMounted(async () => {
   cursor: pointer; transition: all 0.15s;
 }
 .ae-btn-manage:hover { background: #054EAF; color: #FFFFFF; }
-
-.ae-btn-flujo {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 30px; height: 30px;
-  background: #F8FAFC; color: #64748B;
-  border: 1px solid #E2EBF6; border-radius: 8px;
-  cursor: pointer; transition: all 0.15s;
-}
-.ae-btn-flujo:hover { background: #F0FDF4; color: #16A34A; border-color: #86EFAC; }
 
 /* Skeleton */
 .ae-skeleton { padding: 16px; display: flex; flex-direction: column; gap: 10px; }

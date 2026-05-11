@@ -83,7 +83,9 @@ api.interceptors.response.use(
     const { stopLoading } = useGlobalLoader()
     stopLoading()
 
-    if (error.response?.status === 401) {
+    // 401 en el propio endpoint de login = credenciales incorrectas, no sesión expirada
+    const isLoginEndpoint = error.config?.url?.includes('/auth/login')
+    if (error.response?.status === 401 && !isLoginEndpoint) {
       const { setLogout } = useAuth()
       setLogout()
       window.location.href = '/login'

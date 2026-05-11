@@ -2,49 +2,37 @@
   <div class="cot-page">
 
     <!-- ════════════════════════════════════════════════════════
-         HEADER — QuotationNextNumber + botones de versión
+         HEADER — QuotationNextNumber + acciones de cotización
     ════════════════════════════════════════════════════════ -->
     <div class="cot-header">
       <QuotationNextNumber />
 
-      <!-- Botones de versión — solo si hay ID en la URL (lógica original) -->
+      <!-- Acciones de cotización — solo si hay ID en la URL (modo edición) -->
       <div v-if="id" class="header-actions">
-        <div class="version-trigger-wrap">
-          <span 
-            class="ver-chip clickable" 
-            title="Ver historial de versiones"
-            @click="showVersionsHistory = !showVersionsHistory"
-          >
-            v{{ cotizacion.version }}
-          </span>
-          
-          <!-- Dropdown de versiones -->
-          <QuotationVersions 
-            v-if="showVersionsHistory"
-            :quotationId="id" 
-            :canManage="canManage"
-            @version-restored="handleVersionRestored"
-          />
+        <!-- Versión de la cotización -->
+        <div class="version-badge">
+          <span class="version-label">Versión</span>
+          <span class="version-number">{{ cotizacion.version }}</span>
         </div>
+        
+        <!-- Botones de acción -->
         <div class="btn-group">
           <button
-            :class="['action-btn', modoEdicion ? 'action-btn--cancel' : 'action-btn--edit']"
-            @click="modoEdicion = !modoEdicion"
+            @click="saveQuotation"
+            class="action-btn action-btn--ghost"
           >
-            {{ modoEdicion ? 'Cancelar edición' : 'Editar' }}
+            Guardar borrador
           </button>
           <button
-            class="action-btn action-btn--save"
+            class="action-btn action-btn--update"
             @click="guardarEdicion"
-            :disabled="!modoEdicion"
+            :disabled="isUpdating"
           >
-            Guardar edición
-          </button>
-          <button
-            :class="['action-btn', modoEdicion ? 'action-btn--edit' : 'action-btn--primary']"
-            @click="guardarNuevaVersion"
-          >
-            Generar nueva versión
+            <Loader2 v-if="isUpdating" :size="16" class="spin" />
+            <CheckCircle2 v-else-if="updateSuccess" :size="16" />
+            <span v-else>Actualizar cotización</span>
+            <span v-if="isUpdating">Actualizando...</span>
+            <span v-else-if="updateSuccess">¡Actualizado!</span>
           </button>
         </div>
       </div>
@@ -156,7 +144,7 @@
               <span>Datos Comerciales</span>
             </div>
             <div class="g3">
-              <InputLabel label="Agente Comercial" v-model="cotizacion.agenteComercial" />
+              <InputLabel label="Agente Comercial" v-model="cotizacion.agenteComercial" disabled />
               <div class="field-wrap">
                 <label class="field-lbl">Unidad de Ejecución</label>
                 <select v-model="cotizacion.unidadEjecucion" class="field-sel">
@@ -226,6 +214,11 @@
               :horaInicio="cotizacion.horarioInicio"
               :fechaFin="cotizacion.fechaFinEvento"
               :horaFin="cotizacion.horarioFin"
+              :fechaInicioEvento="cotizacion.fechaInicioEvento"
+              :horaInicioEvento="cotizacion.horarioInicio"
+              :fechaFinEvento="cotizacion.fechaFinEvento"
+              :horaFinEvento="cotizacion.horarioFin"
+              calendarType="evento"
               @update:fechaInicio="cotizacion.fechaInicioEvento = $event"
               @update:horaInicio="cotizacion.horarioInicio = $event"
               @update:fechaFin="cotizacion.fechaFinEvento = $event"
@@ -247,6 +240,11 @@
               :horaInicio="cotizacion.horarioInicioMontaje"
               :fechaFin="cotizacion.fechaFinMontaje"
               :horaFin="cotizacion.horarioFinMontaje"
+              :fechaInicioEvento="cotizacion.fechaInicioEvento"
+              :horaInicioEvento="cotizacion.horarioInicio"
+              :fechaFinEvento="cotizacion.fechaFinEvento"
+              :horaFinEvento="cotizacion.horarioFin"
+              calendarType="montaje"
               @update:fechaInicio="cotizacion.fechaInicioMontaje = $event"
               @update:horaInicio="cotizacion.horarioInicioMontaje = $event"
               @update:fechaFin="cotizacion.fechaFinMontaje = $event"
@@ -414,7 +412,7 @@
                   <div v-for="(it, i) in itemsTerceros" :key="'third-' + i" class="cart-row cart-row--tercero">
                     <p class="cart-name">
                       <Truck :size="10" class="inline-icon" />
-                      {{ it.nombre }}
+                      {{ it.nombre || it.dispositivo || '—' }}
                     </p>
                     <div class="cart-meta">
                       <span class="cart-qty">{{ it.cantidad }} unid.</span>
@@ -497,7 +495,7 @@
                         />
                       </td>
                       <td class="td-name">
-                        <p class="prd-nombre">{{ it.nombre }}</p>
+                        <p class="prd-nombre">{{ it.nombre || it.dispositivo || '—' }}</p>
                         <p v-if="it.categoria" class="prd-cat">{{ it.categoria }}</p>
                       </td>
                       <td class="td-center">
@@ -507,7 +505,7 @@
                         <span class="prd-qty">{{ it.cantidad ?? 1 }}</span>
                       </td>
                       <td class="td-center prd-price">
-                        {{ formatCOP(it.precioUnitario ?? null) }}
+                        {{ formatCOP(it.costoUnitario ?? null) }}
                       </td>
                       <td class="td-center">
                         <input
@@ -668,7 +666,7 @@
                     </thead>
                     <tbody>
                       <tr v-for="(it, i) in itemsTerceros" :key="i" class="prd-row-view">
-                        <td class="td-name">{{ it.nombre }}</td>
+                        <td class="td-name">{{ it.nombre || it.dispositivo || '—' }}</td>
                         <td class="td-center">{{ it.cantidad }}</td>
                         <td class="td-right prd-price">
                           {{ formatCOP(it.precioUnitario ?? it.precioUnitarioConIva ?? null) }}
@@ -709,52 +707,51 @@
             <!-- Columna derecha sticky (40%) -->
             <div class="resumen-side">
 
-              <!-- Card versión y estado — solo con ID (lógica original) -->
+              <!-- Card versión y estado — solo con ID (modo lectura) -->
               <div v-if="id" class="form-card">
                 <div class="section-header">
                   <FileText :size="18" class="icon-primary" />
-                  <span>Versión y estado</span>
+                  <span>Información de cotización</span>
                 </div>
-                <p class="ver-text">
-                  Versión actual: <strong>{{ cotizacion.version }}</strong>
-                </p>
-                <div class="side-btns">
-                  <button
-                    :class="['side-btn', modoEdicion ? 'side-btn--cancel' : 'side-btn--edit']"
-                    @click="modoEdicion = !modoEdicion"
-                  >
-                    {{ modoEdicion ? 'Cancelar edición' : 'Editar' }}
-                  </button>
-                  <button
-                    class="side-btn side-btn--save"
-                    @click="guardarEdicion"
-                    :disabled="!modoEdicion"
-                  >
-                    Guardar edición
-                  </button>
-                  <button
-                    :class="['side-btn', modoEdicion ? 'side-btn--edit' : 'side-btn--primary']"
-                    @click="guardarNuevaVersion"
-                  >
-                    Nueva versión
-                  </button>
+                <div class="info-list">
+                  <div class="info-row">
+                    <span class="info-label">No. Cotización:</span>
+                    <span class="info-value">{{ cotizacion.numero }}-2026</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">Versión:</span>
+                    <span class="info-value">{{ cotizacion.version }}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">Estado:</span>
+                    <span class="info-value">{{ cotizacion.quotationStatus?.name || 'Pendiente' }}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">Última actualización:</span>
+                    <span class="info-value">{{ cotizacion.updatedAt ? formatDate(cotizacion.updatedAt) : '—' }}</span>
+                  </div>
                 </div>
               </div>
 
               <!-- Card acciones principales -->
               <div class="form-card">
                 <div class="section-header">
-                  <span>Acciones</span>
+                  <span>Acciones de cotización</span>
                 </div>
                 <div class="action-stack">
                   <button @click="saveQuotation" class="btn-ghost-full">
                     Guardar borrador
                   </button>
                   <button
-                    @click="saveQuotation"
-                    :class="['btn-primary-full', { 'btn-warning-full': modoEdicion }]"
+                    @click="guardarEdicion"
+                    class="btn-primary-full"
+                    :disabled="isUpdating"
                   >
-                    {{ modoEdicion ? 'Guardar cambios' : 'Generar cotización' }}
+                    <Loader2 v-if="isUpdating" :size="16" class="spin" />
+                    <CheckCircle2 v-else-if="updateSuccess" :size="16" />
+                    <span v-else>Actualizar cotización</span>
+                    <span v-if="isUpdating">Actualizando...</span>
+                    <span v-else-if="updateSuccess">¡Actualizado!</span>
                   </button>
                 </div>
               </div>
@@ -800,16 +797,21 @@
           </div>
         </template>
 
-        <!-- Paso 4: Guardar borrador + Generar cotización -->
+        <!-- Paso 4: Guardar borrador + Actualizar cotización -->
         <template v-else>
-          <button @click="saveQuotation" class="btn-ghost-nav">
+          <button @click="saveQuotation" class="btn-ghost-nav" :disabled="isUpdating">
             Guardar borrador
           </button>
           <button
-            @click="saveQuotation"
-            :class="['btn-primary-nav', { 'btn-warning-nav': modoEdicion }]"
+            @click="guardarEdicion"
+            class="btn-primary-nav"
+            :disabled="isUpdating"
           >
-            {{ modoEdicion ? 'Guardar cambios' : 'Generar cotización' }}
+            <Loader2 v-if="isUpdating" :size="16" class="spin" />
+            <CheckCircle2 v-else-if="updateSuccess" :size="16" />
+            <span v-else>Actualizar cotización</span>
+            <span v-if="isUpdating">Actualizando...</span>
+            <span v-else-if="updateSuccess">¡Actualizado!</span>
           </button>
         </template>
       </div>
@@ -910,6 +912,7 @@
           </button>
           <button
             class="px-[18px] py-[9px] text-[13px] font-semibold bg-primary text-white rounded-[8px] shadow-[var(--shadow-btn)] hover:bg-primary-dark transition"
+            @click="push('/admin/ver-cotizaciones')"
           >
             Ver cotizaciones
           </button>
@@ -974,6 +977,8 @@ import {
   Truck,
   Plus,
   ReceiptText,
+  Loader2,
+  CheckCircle2,
 } from 'lucide-vue-next'
 
 // ── Lógica original — NO modificar ─────────────────────────────────────────
@@ -1057,17 +1062,32 @@ const canManage = computed(() => {
 
 // ── Lógica de Guardado y Versiones ───────────────────────────────────────
 
+const isUpdating = ref(false);
+const updateSuccess = ref(false);
+
 /**
  * Guarda los cambios actuales vía PATCH a la cotización activa
  */
 const guardarEdicion = async () => {
+  isUpdating.value = true;
+  updateSuccess.value = false;
+  
   try {
     await saveQuotation();
     modoEdicion.value = false;
     // recargar para asegurar consistencia
     await getCotizacion();
+    
+    // Mostrar éxito
+    updateSuccess.value = true;
+    setTimeout(() => {
+      updateSuccess.value = false;
+    }, 2000);
   } catch (error) {
     console.error('[Cotizar] Error al guardar edición:', error);
+    alert('Error al actualizar la cotización. Por favor intenta nuevamente.');
+  } finally {
+    isUpdating.value = false;
   }
 };
 
@@ -1123,6 +1143,8 @@ const agregarItemTercero = (item) => {
   itemsTerceros.value.push({
     ...item,
     descuentoPct: typeof item.descuentoPct === 'number' ? item.descuentoPct : 0,
+    // Ensure costoUnitario is preserved from the modal
+    costoUnitario: item.costoUnitario,
   })
 }
 
@@ -1305,6 +1327,8 @@ const getCotizacion = async () => {
     cotizacion.fechaCotizacion     = data.fechaCotizacion ? data.fechaCotizacion.split('T')[0] : ''; // ✅ ADDED
     cotizacion.cantidadJornada     = data.cantidadJornada; // ✅ ADDED
     cotizacion.cantidadProducto    = data.cantidadProducto; // ✅ ADDED
+    cotizacion.descuentoPct        = data.descuentoPct ?? 0;
+    cotizacion.members             = data.members || []; // ✅ ADDED - Cargar colaboradores
     
     // ✅ SYNC ID — Esto evita que se creen duplicados al guardar
     quotationId.value = data.id;
@@ -1359,6 +1383,28 @@ const getCotizacion = async () => {
       descuentoPct:      typeof it.descuentoPct === 'number' ? it.descuentoPct : 0,
     }))
 
+    // Cargar productos de terceros
+    if (data.thirdPartyItems && data.thirdPartyItems.length > 0) {
+      itemsTerceros.value = data.thirdPartyItems.map(it => ({
+        id:                  it.id,
+        catalogItemId:       it.catalogProductId || it.catalogProduct?.id,
+        nombre:              it.catalogProduct?.nombre || it.catalogProduct?.dispositivo || it.nombre || it.dispositivo,
+        dispositivo:         it.catalogProduct?.dispositivo || it.dispositivo,
+        categoria:           it.catalogProduct?.categoria || it.categoria,
+        descripcion:         it.catalogProduct?.descripcion || it.descripcion,
+        cantidad:            it.cantidad ?? 1,
+        costoUnitario:       it.costoUnitario ?? 0,
+        margenVariable:      it.margenVariable ?? 0,
+        precioUnitario:      it.precioUnitario ?? 0,
+        subtotalVenta:       it.precioUnitario != null ? it.precioUnitario * (it.cantidad ?? 1) : 0,
+        descuentoPct:        it.descuento ?? 0,
+        comisionPct:         it.comisionPct ?? 0,
+        comisionMonto:       it.comisionMonto ?? 0,
+        total:               it.total ?? 0,
+        incluyeTransporte:   it.catalogProduct?.incluyeTransporteBogMde ?? false,
+      }))
+    }
+
     console.log("Cotización cargada para edición:", data);
   } catch (error) {
     console.error("Error al cargar cotización", error);
@@ -1378,6 +1424,18 @@ const handleVersionRestored = async (vNum) => {
 }
 
 onMounted(getCotizacion)
+
+// Helper para formatear fechas
+const formatDate = (iso) => {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleDateString('es-CO', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
 
 const eliminarItem = (item) => {
   if (confirm(`¿Seguro que deseas eliminar el producto "${item.descripcion || item.dispositivo}"?`)) {
@@ -1483,51 +1541,83 @@ const duracionMontaje = computed(() => {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
-.ver-chip {
-  font-size: 12px;
+/* Badge de versión mejorado */
+.version-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #054EAF 0%, #0A3D8F 100%);
+  padding: 8px 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(5, 78, 175, 0.2);
+}
+
+.version-label {
+  font-size: 11px;
   font-weight: 600;
-  color: #054EAF;
-  background: #EEF4FF;
-  padding: 3px 10px;
-  border-radius: 20px;
+  color: rgba(255, 255, 255, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   font-family: 'Inter', sans-serif;
 }
 
-.version-trigger-wrap {
-  position: relative;
-}
-
-.clickable {
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.ver-chip.clickable:hover {
-  background: #DCECFB;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 5px rgba(5,78,175,0.1);
+.version-number {
+  font-size: 20px;
+  font-weight: 800;
+  color: #FFFFFF;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  min-width: 28px;
+  text-align: center;
 }
 
 .btn-group {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .action-btn {
-  padding: 7px 12px;
-  font-size: 12px;
+  padding: 9px 16px;
+  font-size: 13px;
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: 10px;
   border: none;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.2s;
   font-family: 'Inter', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
+
+.action-btn--ghost {
+  background: #F1F5F9;
+  color: #475569;
+  border: 1px solid #E2E8F0;
+}
+
+.action-btn--ghost:hover {
+  background: #E2E8F0;
+  border-color: #CBD5E1;
+  transform: translateY(-1px);
+}
+
+.action-btn--update {
+  background: linear-gradient(135deg, #054EAF 0%, #0A3D8F 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(5, 78, 175, 0.25);
+}
+
+.action-btn--update:hover {
+  background: linear-gradient(135deg, #03368A 0%, #072D6F 100%);
+  box-shadow: 0 6px 16px rgba(5, 78, 175, 0.35);
+  transform: translateY(-2px);
+}
+
 .action-btn--cancel          { background: #FEE2E2; color: #B91C1C; }
 .action-btn--cancel:hover    { background: #FECACA; }
 .action-btn--edit            { background: #FEF3C7; color: #B45309; }
@@ -2274,37 +2364,34 @@ const duracionMontaje = computed(() => {
   padding: 9px 8px;
 }
 
-/* Panel lateral versión */
-.ver-text {
-  font-size: 13px;
+/* Panel lateral información */
+.info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.info-label {
+  font-size: 12px;
   color: #64748B;
   font-family: 'Inter', sans-serif;
-  margin-bottom: 12px;
+  font-weight: 500;
 }
 
-.side-btns { display: flex; flex-direction: column; gap: 6px; }
-
-.side-btn {
-  width: 100%;
-  padding: 8px 14px;
+.info-value {
   font-size: 12px;
-  font-weight: 600;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  transition: all 0.15s;
+  color: #0F1A2E;
   font-family: 'Inter', sans-serif;
-  text-align: center;
+  font-weight: 600;
+  text-align: right;
 }
-.side-btn--cancel        { background: #FEE2E2; color: #B91C1C; }
-.side-btn--cancel:hover  { background: #FECACA; }
-.side-btn--edit          { background: #FEF3C7; color: #B45309; }
-.side-btn--edit:hover    { background: #FDE68A; }
-.side-btn--save          { background: #DCFCE7; color: #16A34A; }
-.side-btn--save:hover    { background: #BBF7D0; }
-.side-btn--save:disabled { opacity: 0.5; cursor: not-allowed; }
-.side-btn--primary       { background: #054EAF; color: white; box-shadow: 0 2px 8px rgba(5,78,175,.18); }
-.side-btn--primary:hover { background: #03368A; }
 
 /* Botones de acción principales */
 .action-stack { display: flex; flex-direction: column; gap: 10px; }
@@ -2811,6 +2898,17 @@ const duracionMontaje = computed(() => {
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
+
+/* Spinner de carga */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
 .prd-discount-input:focus {
   border-color: #054EAF;
   box-shadow: 0 0 0 2px rgba(5, 78, 175, 0.12);

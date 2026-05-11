@@ -1,8 +1,7 @@
 <template>
   <!-- Trigger -->
   <div>
-    <label class="block mb-1.5 text-sm font-medium text-text-2">Ubicación en Maps</label>
-
+    <label class="text-[13px] font-medium text-text-1 mb-1 block">Ubicación en Maps</label>
     <button type="button" class="loc-trigger" @click="openModal = true">
       <MapPin :size="16" class="text-primary shrink-0" />
       <span class="loc-trigger-text" :class="displayLabel ? 'text-text-1' : 'text-text-3'">
@@ -394,11 +393,13 @@ onUnmounted(() => {
   gap: 8px;
   width: 100%;
   border: 1px solid var(--color-border);
-  border-radius: var(--r-lg);
-  padding: 9px 12px;
+  border-radius: 9999px;
+  padding: 6px 16px;
   background: #F8FAFC;
   cursor: pointer;
   text-align: left;
+  font-size: 13px;
+  height: 37.5px;
   transition: border-color 0.15s, background 0.15s;
 }
 .loc-trigger:hover {

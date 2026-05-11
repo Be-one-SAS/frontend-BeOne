@@ -5,7 +5,11 @@
       v-for="field in triggerFields"
       :key="field.key"
       class="edp-trigger"
-      :class="{ 'edp-trigger--error': field.hasError, 'edp-trigger--filled': !!field.value }"
+      :class="{ 
+        'edp-trigger--error': field.hasError, 
+        'edp-trigger--filled': !!field.value,
+        'edp-trigger--active': field.isActive
+      }"
       @click="openAt(field.step)"
       role="button"
       tabindex="0"
@@ -17,6 +21,10 @@
         <span class="edp-trigger-label">{{ field.label }}</span>
         <span class="edp-trigger-value" :class="{ 'edp-trigger-value--ph': !field.value }">
           {{ field.value || field.placeholder }}
+        </span>
+        <span v-if="field.referencia" class="edp-trigger-referencia">
+          <span class="edp-trigger-referencia-label">Evento:</span>
+          {{ field.referencia }}
         </span>
       </span>
       <svg class="edp-trigger-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
@@ -34,7 +42,7 @@
           <div class="edp-modal-header">
             <div class="edp-modal-title">
               <span style="font-size:18px">📅</span>
-              <span>Calendario del Evento</span>
+              <span>{{ calendarType === 'montaje' ? 'Operación y Montaje' : 'Calendario del Evento' }}</span>
             </div>
             <button type="button" class="edp-close" @click="cancel" aria-label="Cerrar">×</button>
           </div>
@@ -47,7 +55,7 @@
           <!-- Steps tabs -->
           <div class="edp-tabs">
             <button
-              v-for="s in stepDefs"
+              v-for="(s, idx) in stepDefs"
               :key="s.step"
               type="button"
               class="edp-tab"
@@ -59,6 +67,9 @@
             >
               <span class="edp-tab-icon">{{ s.icon }}</span>
               <span class="edp-tab-label">{{ s.label }}</span>
+              <span v-if="getReferencia(idx)" class="edp-tab-referencia">
+                {{ getReferencia(idx) }}
+              </span>
             </button>
           </div>
 
@@ -68,7 +79,15 @@
 
               <!-- Paso 1: Fecha inicio -->
               <div v-if="currentStep === 1" key="1" class="edp-step">
-                <p class="edp-step-hint">Selecciona la <strong>fecha de inicio</strong> del evento</p>
+                <p class="edp-step-hint">
+                  <span v-if="calendarType === 'montaje'">
+                    Selecciona la <strong>fecha de inicio del montaje</strong>
+                    <span v-if="fechaInicioEvento" class="edp-hint-ref">
+                      · Evento: {{ readableDate(fechaInicioEvento) }}
+                    </span>
+                  </span>
+                  <span v-else>Selecciona la <strong>fecha de inicio</strong> del evento</span>
+                </p>
                 <EventCalendarPicker
                   v-model="lFechaInicio"
                   :highlight-start="lFechaInicio"
@@ -79,13 +98,29 @@
 
               <!-- Paso 2: Hora inicio -->
               <div v-else-if="currentStep === 2" key="2" class="edp-step">
-                <p class="edp-step-hint">Selecciona la <strong>hora de inicio</strong> del evento</p>
+                <p class="edp-step-hint">
+                  <span v-if="calendarType === 'montaje'">
+                    Selecciona la <strong>hora de inicio del montaje</strong>
+                    <span v-if="horaInicioEvento" class="edp-hint-ref">
+                      · Evento: {{ readableTime(horaInicioEvento) }}
+                    </span>
+                  </span>
+                  <span v-else>Selecciona la <strong>hora de inicio</strong> del evento</span>
+                </p>
                 <EventTimeDrum v-model="lHoraInicio" />
               </div>
 
               <!-- Paso 3: Fecha fin -->
               <div v-else-if="currentStep === 3" key="3" class="edp-step">
-                <p class="edp-step-hint">Selecciona la <strong>fecha de fin</strong> del evento</p>
+                <p class="edp-step-hint">
+                  <span v-if="calendarType === 'montaje'">
+                    Selecciona la <strong>fecha de fin del montaje</strong>
+                    <span v-if="fechaFinEvento" class="edp-hint-ref">
+                      · Evento: {{ readableDate(fechaFinEvento) }}
+                    </span>
+                  </span>
+                  <span v-else>Selecciona la <strong>fecha de fin</strong> del evento</span>
+                </p>
                 <EventCalendarPicker
                   v-model="lFechaFin"
                   :highlight-start="lFechaInicio"
@@ -97,7 +132,15 @@
 
               <!-- Paso 4: Hora fin -->
               <div v-else-if="currentStep === 4" key="4" class="edp-step">
-                <p class="edp-step-hint">Selecciona la <strong>hora de fin</strong> del evento</p>
+                <p class="edp-step-hint">
+                  <span v-if="calendarType === 'montaje'">
+                    Selecciona la <strong>hora de fin del montaje</strong>
+                    <span v-if="horaFinEvento" class="edp-hint-ref">
+                      · Evento: {{ readableTime(horaFinEvento) }}
+                    </span>
+                  </span>
+                  <span v-else>Selecciona la <strong>hora de fin</strong> del evento</span>
+                </p>
                 <EventTimeDrum v-model="lHoraFin" />
               </div>
 
@@ -186,6 +229,13 @@ const props = defineProps({
   horaInicio:  { type: String, default: '' },
   fechaFin:    { type: String, default: '' },
   horaFin:     { type: String, default: '' },
+  // Para modo Montaje: mostrar fechas del evento como referencia
+  fechaInicioEvento: { type: String, default: '' },
+  horaInicioEvento:  { type: String, default: '' },
+  fechaFinEvento:    { type: String, default: '' },
+  horaFinEvento:     { type: String, default: '' },
+  // Tipo de calendario: 'evento' o 'montaje'
+  calendarType: { type: String, default: 'evento' },
 })
 
 const emit = defineEmits([
@@ -208,19 +258,31 @@ const lFechaFin    = ref('')
 const lHoraFin     = ref('18:00')
 
 // ── Step definitions ─────────────────────────────────────────
-const stepDefs = [
-  { step: 1, icon: '🟢', label: 'Fecha inicio' },
-  { step: 2, icon: '⏰', label: 'Hora inicio'  },
-  { step: 3, icon: '🔴', label: 'Fecha fin'    },
-  { step: 4, icon: '⏰', label: 'Hora fin'     },
-]
+const stepDefs = computed(() => [
+  { step: 1, icon: '🟢', label: props.calendarType === 'montaje' ? 'Fecha inicio montaje' : 'Fecha inicio' },
+  { step: 2, icon: '⏰', label: props.calendarType === 'montaje' ? 'Hora inicio montaje' : 'Hora inicio' },
+  { step: 3, icon: '🔴', label: props.calendarType === 'montaje' ? 'Fecha fin montaje' : 'Fecha fin' },
+  { step: 4, icon: '⏰', label: props.calendarType === 'montaje' ? 'Hora fin montaje' : 'Hora fin' },
+])
 
 const isStepDone = (s) => {
+  // Solo marca como "done" el paso actual si tiene valor
+  if (s !== currentStep.value) return false
   if (s === 1) return !!lFechaInicio.value
   if (s === 2) return !!lHoraInicio.value
   if (s === 3) return !!lFechaFin.value
   if (s === 4) return !!lHoraFin.value
   return false
+}
+
+// Obtener referencia del evento para cada paso (solo en modo montaje)
+const getReferencia = (idx) => {
+  if (props.calendarType !== 'montaje') return null
+  if (idx === 0 && props.fechaInicioEvento) return `Evento: ${readableDate(props.fechaInicioEvento)}`
+  if (idx === 1 && props.horaInicioEvento) return `Evento: ${readableTime(props.horaInicioEvento)}`
+  if (idx === 2 && props.fechaFinEvento) return `Evento: ${readableDate(props.fechaFinEvento)}`
+  if (idx === 3 && props.horaFinEvento) return `Evento: ${readableTime(props.horaFinEvento)}`
+  return null
 }
 
 // ── Open / close ─────────────────────────────────────────────
@@ -337,36 +399,50 @@ const canConfirm = computed(() => {
 })
 
 // ── Trigger cards ────────────────────────────────────────────
-const triggerFields = computed(() => [
-  {
-    key: 'fi', step: 1, icon: '📅',
-    label: 'Fecha Inicio Evento',
-    placeholder: 'Seleccionar fecha de inicio',
-    value: props.fechaInicio ? readableDate(props.fechaInicio) : '',
-    hasError: false,
-  },
-  {
-    key: 'hi', step: 2, icon: '🕐',
-    label: 'Horario de Inicio',
-    placeholder: 'Seleccionar hora de inicio',
-    value: props.horaInicio ? readableTime(props.horaInicio) : '',
-    hasError: false,
-  },
-  {
-    key: 'ff', step: 3, icon: '📅',
-    label: 'Fecha Fin Evento',
-    placeholder: 'Seleccionar fecha de fin',
-    value: props.fechaFin ? readableDate(props.fechaFin) : '',
-    hasError: false,
-  },
-  {
-    key: 'hf', step: 4, icon: '🕐',
-    label: 'Horario de Finalización',
-    placeholder: 'Seleccionar hora de fin',
-    value: props.horaFin ? readableTime(props.horaFin) : '',
-    hasError: false,
-  },
-])
+const triggerFields = computed(() => {
+  const isMontaje = props.calendarType === 'montaje'
+  const baseLabel = isMontaje ? 'Montaje' : 'Evento'
+  
+  return [
+    {
+      key: 'fi', step: 1, icon: '📅',
+      label: `Fecha Inicio ${baseLabel}`,
+      placeholder: `Seleccionar fecha de inicio`,
+      value: props.fechaInicio ? readableDate(props.fechaInicio) : '',
+      hasError: false,
+      isActive: currentStep.value === 1,
+      // Referencia al evento si es montaje
+      referencia: isMontaje && props.fechaInicioEvento ? readableDate(props.fechaInicioEvento) : null,
+    },
+    {
+      key: 'hi', step: 2, icon: '🕐',
+      label: `Horario de Inicio ${baseLabel}`,
+      placeholder: `Seleccionar hora de inicio`,
+      value: props.horaInicio ? readableTime(props.horaInicio) : '',
+      hasError: false,
+      isActive: currentStep.value === 2,
+      referencia: isMontaje && props.horaInicioEvento ? readableTime(props.horaInicioEvento) : null,
+    },
+    {
+      key: 'ff', step: 3, icon: '📅',
+      label: `Fecha Fin ${baseLabel}`,
+      placeholder: `Seleccionar fecha de fin`,
+      value: props.fechaFin ? readableDate(props.fechaFin) : '',
+      hasError: false,
+      isActive: currentStep.value === 3,
+      referencia: isMontaje && props.fechaFinEvento ? readableDate(props.fechaFinEvento) : null,
+    },
+    {
+      key: 'hf', step: 4, icon: '🕐',
+      label: `Horario de Finalización ${baseLabel}`,
+      placeholder: `Seleccionar hora de fin`,
+      value: props.horaFin ? readableTime(props.horaFin) : '',
+      hasError: false,
+      isActive: currentStep.value === 4,
+      referencia: isMontaje && props.horaFinEvento ? readableTime(props.horaFinEvento) : null,
+    },
+  ]
+})
 </script>
 
 <style scoped>
@@ -408,6 +484,11 @@ const triggerFields = computed(() => [
 .edp-trigger--filled {
   border-color: #BFDBFE;
 }
+.edp-trigger--active {
+  border-color: #054EAF;
+  background: #EBF3FC;
+  box-shadow: 0 2px 8px rgba(5,78,175,0.15);
+}
 
 .edp-trigger-icon {
   font-size: 18px;
@@ -448,6 +529,23 @@ const triggerFields = computed(() => [
   color: #94A3B8;
   font-weight: 400;
   font-style: italic;
+}
+.edp-trigger-referencia {
+  font-size: 10px;
+  color: #64748B;
+  font-family: 'Inter', sans-serif;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.edp-trigger-referencia-label {
+  font-weight: 600;
+  color: #054EAF;
+  text-transform: uppercase;
+  font-size: 9px;
+  letter-spacing: 0.03em;
+  margin-right: 4px;
 }
 
 .edp-trigger-chevron {
@@ -583,6 +681,14 @@ const triggerFields = computed(() => [
 }
 .edp-tab--active .edp-tab-label { color: #054EAF; }
 .edp-tab--done   .edp-tab-label { color: #16A34A; }
+.edp-tab-referencia {
+  font-size: 9px;
+  color: #054EAF;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  margin-top: 2px;
+  white-space: nowrap;
+}
 
 /* ── Step body ────────────────────────────────────────────── */
 .edp-body {
@@ -603,6 +709,11 @@ const triggerFields = computed(() => [
   font-family: 'Inter', sans-serif;
 }
 .edp-step-hint strong { color: #0F1A2E; }
+.edp-hint-ref {
+  color: #054EAF;
+  font-weight: 500;
+  font-size: 12px;
+}
 
 /* ── Feedback ─────────────────────────────────────────────── */
 .edp-feedback {

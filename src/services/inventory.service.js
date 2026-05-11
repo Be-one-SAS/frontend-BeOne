@@ -36,6 +36,25 @@ export const updateItemLocation = async (id, { ubicacion }) => {
   return res.data
 }
 
+/** PATCH /inventory/:id/details — actualizar campos del producto */
+export const updateInventoryDetails = async (id, data) => {
+  const res = await api.patch(`/inventory/${id}/details`, data)
+  return res.data
+}
+
+/** POST /inventory/:id/image — subir y optimizar imagen del producto */
+export const uploadProductImage = async (id, file, onProgress) => {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await api.post(`/inventory/${id}/image`, form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    onUploadProgress: (e) => {
+      if (onProgress && e.total) onProgress(Math.round((e.loaded * 100) / e.total))
+    },
+  })
+  return res.data
+}
+
 /** POST /inventory/:id/generate-qr — generar y asignar código QR */
 export const generateQR = async (id) => {
   const res = await api.post(`/inventory/${id}/generate-qr`)

@@ -1,12 +1,13 @@
 <script setup>
-import { ref, onMounted, computed } from "vue";
-import { getQuotations } from "../../services/quotation.service";
+import { ref, onMounted, computed, nextTick } from "vue";
+import { getQuotations, getQuotationById } from "../../services/quotation.service";
 import Badge from "../../components/badge/Badge.vue";
 import { useRouter } from "vue-router";
 import { cancelReservation, confirmReservation } from "../../services/reservation.service";
 import BaseTable from "../../components/ui/BaseTable.vue";
 import CollaboratorsManager from "./components/CollaboratorsManager.vue";
-import { ChevronDown, Eye, CheckCircle, XCircle, FileText, Inbox, Users } from 'lucide-vue-next';
+import QuotationPDF from "../../components/quotation/QuotationPDF.vue";
+import { ChevronDown, Eye, CheckCircle, XCircle, FileText, Inbox, Users, Download, X, Printer } from 'lucide-vue-next';
 
 const { push } = useRouter();
 
@@ -161,27 +162,102 @@ const closeSuccessModal = () => {
 // ----------------------
 // VISTA CLIENTE + PDF
 // ----------------------
-const openClientPreview = (quotation) => {
-  quotationPreview.value = quotation;
-  isClientPreviewOpen.value = true;
+const isLoadingPreview = ref(false);
+const showPDFFullscreen = ref(false);
+
+const openClientPreview = async (quotation) => {
+  isLoadingPreview.value = true;
+  try {
+    // Obtener detalles completos de la cotización con productos
+    const response = await getQuotationById(quotation.id);
+    quotationPreview.value = response.data;
+    isClientPreviewOpen.value = true;
+  } catch (error) {
+    console.error("Error cargando detalles de cotización:", error);
+  } finally {
+    isLoadingPreview.value = false;
+  }
 };
 
 const closeClientPreview = () => {
   quotationPreview.value = null;
   isClientPreviewOpen.value = false;
+  showPDFFullscreen.value = false;
+};
+
+const openPDFFullscreen = async (quotation) => {
+  isLoadingPreview.value = true;
+  try {
+    const response = await getQuotationById(quotation.id);
+    quotationPreview.value = response.data;
+    showPDFFullscreen.value = true;
+  } catch (error) {
+    console.error("Error cargando cotización para PDF:", error);
+  } finally {
+    isLoadingPreview.value = false;
+  }
 };
 
 const downloadPDF = async () => {
+  if (!quotationPreview.value) return;
+  
   await nextTick();
-  const element = document.getElementById("client-pdf");
-
-  html2pdf().set({
-    margin: 10,
-    filename: `Cotizacion_${quotationPreview.value.numero}.pdf`,
-    image: { type: "jpeg", quality: 0.98 },
-    html2canvas: { scale: 2 },
-    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-  }).from(element).save();
+  
+  // Verificar si html2pdf está disponible
+  if (typeof window.html2pdf === 'undefined') {
+    // Fallback: imprimir
+    const printWindow = window.open('', '_blank');
+    const element = document.getElementById('quotation-pdf-content');
+    if (element) {
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Cotización ${quotationPreview.value.numero}</title>
+            <style>
+              @media print {
+                @page { margin: 10mm; size: A4; }
+                body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+              }
+            </style>
+          </head>
+          <body>${element.outerHTML}</body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
+    return;
+  }
+  
+  const element = document.getElementById('quotation-pdf-content');
+  const filename = `Cotizacion_${quotationPreview.value.numero}_${(quotationPreview.value.empresa || 'Cliente').replace(/[^a-z0-9]/gi, '_')}.pdf`;
+  
+  const opt = {
+    margin: 0,
+    filename: filename,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { 
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      letterRendering: true,
+    },
+    jsPDF: { 
+      unit: 'mm', 
+      format: 'a4', 
+      orientation: 'portrait',
+      compress: true,
+    },
+    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+  };
+  
+  try {
+    await window.html2pdf().set(opt).from(element).save();
+  } catch (error) {
+    console.error('Error generando PDF:', error);
+    alert('Error al generar el PDF. Por favor intenta nuevamente.');
+  }
 };
 
 // ----------------------
@@ -315,12 +391,12 @@ const toggleRow = (id) => {
                 <td class="vc-td" @click.stop>
                   <div class="vc-actions">
 
-                    <!-- Ver -->
+                    <!-- Actualizar -->
                     <button
                       @click.stop="seeTheQuote(q.id)"
                       class="act-btn act-view"
                     >
-                      <Eye :size="12" /> Ver
+                      <Eye :size="12" /> Actualizar
                     </button>
 
                     <!-- Confirmar (lógica original exacta) -->
@@ -341,12 +417,12 @@ const toggleRow = (id) => {
                       <XCircle :size="12" /> Cancelar
                     </button>
 
-                    <!-- Vista cliente -->
+                    <!-- Ver -->
                     <button
                       @click.stop="openClientPreview(q)"
                       class="act-btn act-preview"
                     >
-                      <FileText :size="12" /> Vista cliente
+                      <FileText :size="12" /> Ver
                     </button>
 
                     <!-- Miembros -->
@@ -569,6 +645,86 @@ const toggleRow = (id) => {
           >
             Cerrar
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- MODAL VISTA PREVIA PDF                     -->
+    <!-- ══════════════════════════════════════════ -->
+    <div
+      v-if="isClientPreviewOpen && quotationPreview"
+      class="fixed inset-0 bg-[rgba(15,26,46,0.6)] backdrop-blur-sm flex items-center justify-center z-50 p-4"
+    >
+      <div class="bg-white rounded-[20px] shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        
+        <!-- Header del modal -->
+        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-[#054EAF] to-[#0A3D8F]">
+          <div class="flex items-center gap-3">
+            <FileText class="text-white" :size="20" />
+            <h3 class="text-[16px] font-semibold text-white font-['Plus_Jakarta_Sans',sans-serif]">
+              Cotización #{{ quotationPreview.numero }}-2026
+            </h3>
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              @click="downloadPDF"
+              class="px-4 py-2 text-[13px] font-medium bg-white/20 text-white rounded-[8px] hover:bg-white/30 transition flex items-center gap-2"
+            >
+              <Download :size="14" /> Descargar PDF
+            </button>
+            <button
+              @click="closeClientPreview"
+              class="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-[8px] transition"
+            >
+              <X :size="20" />
+            </button>
+          </div>
+        </div>
+
+        <!-- Contenido del PDF (scrollable) -->
+        <div class="flex-1 overflow-y-auto bg-gray-50 p-6">
+          <div id="quotation-pdf-content" class="max-w-[210mm] mx-auto">
+            <QuotationPDF :quotation="quotationPreview" />
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- MODAL PDF FULLSCREEN (alternative view)    -->
+    <!-- ══════════════════════════════════════════ -->
+    <div
+      v-if="showPDFFullscreen && quotationPreview"
+      class="fixed inset-0 bg-white z-[60] overflow-auto"
+    >
+      <div class="sticky top-0 bg-gradient-to-r from-[#054EAF] to-[#0A3D8F] px-6 py-4 flex items-center justify-between shadow-lg">
+        <div class="flex items-center gap-3">
+          <FileText class="text-white" :size="20" />
+          <h3 class="text-[16px] font-semibold text-white">
+              Cotización #{{ quotationPreview.numero }}-2026
+          </h3>
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            @click="downloadPDF"
+            class="px-4 py-2 text-[13px] font-medium bg-white/20 text-white rounded-[8px] hover:bg-white/30 transition flex items-center gap-2"
+          >
+            <Download :size="14" /> Descargar PDF
+          </button>
+          <button
+            @click="closeClientPreview"
+            class="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-[8px] transition"
+          >
+            <X :size="20" /> Cerrar
+          </button>
+        </div>
+      </div>
+      
+      <div class="p-8 bg-gray-50 min-h-screen">
+        <div id="quotation-pdf-content" class="max-w-[210mm] mx-auto bg-white shadow-xl">
+          <QuotationPDF :quotation="quotationPreview" />
         </div>
       </div>
     </div>

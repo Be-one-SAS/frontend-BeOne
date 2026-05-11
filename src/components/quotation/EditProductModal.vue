@@ -1,14 +1,20 @@
 <script setup>
+import { computed } from 'vue'
 import ModalReutilizable from '@/components/modal/ModalReutilizable.vue'
 import InputLabel from '../input/InputLabel.vue';
 
-defineProps({
+const props = defineProps({
   show: Boolean,
   producto: Object
 })
 
+const emit = defineEmits(['close', 'save', 'update:producto'])
 
-const emit = defineEmits(['close', 'save'])
+// Create computed proxy for two-way binding
+const localProducto = computed({
+  get: () => props.producto,
+  set: (value) => emit('update:producto', value)
+})
 </script>
 
 <template>
@@ -17,11 +23,11 @@ const emit = defineEmits(['close', 'save'])
 
     <form @submit.prevent="emit('save')">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <InputLabel label="Dispositivo" v-model="producto.dispositivo" />
-        <InputLabel label="Descripción" v-model="producto.descripcion" />
-        <InputLabel label="Precio" type="number" v-model="producto.unitPrice" />
-        <InputLabel label="Q Jornada" v-model="producto.cantidadJornada" />
-        <InputLabel label="Q Producto" v-model="producto.cantidadProducto" />
+        <InputLabel label="Dispositivo" v-model="localProducto.dispositivo" />
+        <InputLabel label="Descripción" v-model="localProducto.descripcion" />
+        <InputLabel label="Precio" type="number" v-model="localProducto.unitPrice" />
+        <InputLabel label="Q Jornada" v-model="localProducto.cantidadJornada" />
+        <InputLabel label="Q Producto" v-model="localProducto.cantidadProducto" />
       </div>
 
       <div class="flex justify-end mt-4">

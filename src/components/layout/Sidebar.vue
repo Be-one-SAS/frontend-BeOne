@@ -112,6 +112,7 @@ import {
   Archive, Wrench, Users, BarChart2, PieChart,
   DollarSign, Activity, UserCog, Settings,
   LogOut, CheckSquare, ClipboardCheck, SlidersHorizontal,
+  Landmark, TableProperties, FileBarChart, ShoppingCart,
 } from 'lucide-vue-next'
 import { useAuth }               from '@/composables/useAuth'
 import { useSidebarPermissions, useMobileSidebar } from '@/composables/useSidebarPermissions'
@@ -159,7 +160,7 @@ const ALL_MENU_ITEMS = [
     icon:  LayoutDashboard,
     label: 'Dashboard',
     route: '/dashboard',
-    roles: ['ADMIN', 'COMERCIAL', 'SUPERVISOR', 'LOGISTICA', 'COORDINADOR', 'FINANCIERO', 'SOPORTE'],
+    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'],
   },
 
   // ── Grupo: Comercial ──────────────────────────────────
@@ -167,12 +168,12 @@ const ALL_MENU_ITEMS = [
     separator: true,
     icon:  TrendingUp,
     label: 'Dpto Comercial',
-    roles: ['ADMIN', 'COMERCIAL', 'SUPERVISOR'],
+    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER'],
     children: [
-      { label: 'Nueva cotización',  route: '/admin/cotizar',            icon: FilePlus,   roles: ['ADMIN', 'COMERCIAL'] },
-      { label: 'Cotizaciones',      route: '/admin/ver-cotizaciones',   icon: FileText,   roles: ['ADMIN', 'COMERCIAL', 'SUPERVISOR'] },
-      { label: 'Clientes',          route: '/customer/customer',        icon: Building2,  roles: ['ADMIN', 'COMERCIAL'] },
-      { label: 'Clientes directos', route: '/customer/price',           icon: UserCheck,  roles: ['ADMIN', 'COMERCIAL'] },
+      { label: 'Nueva cotización',  route: '/admin/cotizar',            icon: FilePlus,   roles: ['ADMIN', 'ADMINISTRADOR', 'LIDER'] },
+      { label: 'Cotizaciones',      route: '/admin/ver-cotizaciones',   icon: FileText,   roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR'] },
+      { label: 'Clientes',          route: '/customer/customer',        icon: Building2,  roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER'] },
+      { label: 'Clientes directos', route: '/customer/price',           icon: UserCheck,  roles: ['ADMIN', 'ADMINISTRADOR', 'LIDER'] },
       { label: 'Proveedores',       route: '/suppliers/suppliers',      icon: Handshake,  roles: ['ADMIN'] },
     ],
   },
@@ -180,10 +181,10 @@ const ALL_MENU_ITEMS = [
     separator: false,
     icon:  Boxes,
     label: 'Productos',
-    roles: ['ADMIN', 'COMERCIAL', 'LOGISTICA'],
+    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'],
     children: [
-      { label: 'Productos propios',   route: '/products',           icon: Package,       roles: ['ADMIN', 'LOGISTICA'] },
-      { label: 'Productos externos',  route: '/products/no-propios',icon: PackageSearch, roles: ['ADMIN', 'LOGISTICA'] },
+      { label: 'Productos propios',   route: '/products',            icon: Package,       roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'] },
+      { label: 'Productos externos',  route: '/products/no-propios', icon: PackageSearch, roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'] },
     ],
   },
 
@@ -192,25 +193,38 @@ const ALL_MENU_ITEMS = [
     separator: true,
     icon:  Truck,
     label: 'Dpto Operativo',
-    roles: ['ADMIN', 'COMERCIAL', 'SUPERVISOR', 'LOGISTICA', 'COORDINADOR'],
+    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'],
     children: [
-      { label: 'Control',             route: '/admin/control',        icon: ClipboardCheck, roles: ['ADMIN', 'COMERCIAL', 'SUPERVISOR'] },
-      { label: 'Reporte diario',      route: '/operativa/reporte',    icon: ClipboardList,  roles: ['ADMIN', 'SUPERVISOR', 'LOGISTICA'] },
-      { label: 'Check-ins',           route: '/operativa/checkins',   icon: MapPin,         roles: ['ADMIN', 'LOGISTICA', 'COORDINADOR'] },
-      { label: 'Inventario',          route: '/inventory',            icon: Archive,        roles: ['ADMIN', 'SUPERVISOR', 'LOGISTICA'] },
-      { label: 'Montajes',            route: '/operativa/montajes',   icon: Wrench,         roles: ['ADMIN', 'LOGISTICA', 'COORDINADOR'] },
-      { label: 'Asignación equipos',  route: '/operativa/equipos',    icon: Users,          roles: ['ADMIN', 'SUPERVISOR', 'COORDINADOR'] },
+      { label: 'Control',             route: '/admin/control',        icon: ClipboardCheck, roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
+      { label: 'Reporte diario',      route: '/operativa/reporte',    icon: ClipboardList,  roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
+      { label: 'Check-ins',           route: '/operativa/checkins',   icon: MapPin,         roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
+      { label: 'Inventario',          route: '/inventory',            icon: Archive,        roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'SUPERVISOR'] },
+      { label: 'Montajes',            route: '/operativa/montajes',        icon: Wrench,        roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
+      { label: 'Órdenes de Compra',   route: '/operativa/ordenes-compra',  icon: ShoppingCart,  roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'LIDER'] },
     ],
   },
   {
     separator: false,
     icon:  BarChart2,
     label: 'Reportes',
-    roles: ['ADMIN', 'SUPERVISOR', 'FINANCIERO'],
+    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'],
     children: [
-      { label: 'Resumen general', route: '/reportes/general',     icon: PieChart,    roles: ['ADMIN', 'SUPERVISOR', 'FINANCIERO'] },
-      { label: 'Financiero',      route: '/reportes/financiero',  icon: DollarSign,  roles: ['ADMIN', 'SUPERVISOR', 'FINANCIERO'] },
-      { label: 'Operacional',     route: '/reportes/operacional', icon: Activity,    roles: ['ADMIN', 'SUPERVISOR'] },
+      { label: 'Resumen general', route: '/reportes/general',     icon: PieChart,    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
+      { label: 'Financiero',      route: '/reportes/financiero',  icon: DollarSign,  roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
+      { label: 'Operacional',     route: '/reportes/operacional', icon: Activity,    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
+    ],
+  },
+
+  // ── Grupo: Administración ─────────────────────────────
+  {
+    separator: true,
+    icon:  Landmark,
+    label: 'Administración',
+    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'],
+    children: [
+      { label: 'Cotizaciones',        route: '/administracion/cotizaciones', icon: TableProperties, roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
+      { label: 'Dashboard Financiero', route: '/administracion/dashboard',    icon: BarChart2,       roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
+      { label: 'Reportes',             route: '/administracion/reportes',     icon: FileBarChart,    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
     ],
   },
 
@@ -219,12 +233,12 @@ const ALL_MENU_ITEMS = [
     separator: true,
     icon:  UserCog,
     label: 'Usuarios',
-    roles: ['ADMIN', 'COMERCIAL'],
+    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'],
     children: [
-      { label: 'Gestión de usuarios',     route: '/users/list',              icon: Users,              roles: ['ADMIN'] },
-      { label: 'Usuarios',               route: '/admin/usuarios',          icon: UserCog,            roles: ['ADMIN', 'COMERCIAL'] },
-      { label: 'Tareas',                 route: '/admin/tareas',            icon: CheckSquare,        roles: ['ADMIN', 'COMERCIAL'] },
-      { label: 'Parámetros cotización',  route: '/admin/quotation-params',  icon: SlidersHorizontal,  roles: ['ADMIN'] },
+      { label: 'Gestión de usuarios',    route: '/users/list',             icon: Users,             roles: ['ADMIN'] },
+      { label: 'Usuarios',               route: '/admin/usuarios',         icon: UserCog,           roles: ['ADMIN', 'ADMINISTRADOR'] },
+      { label: 'Tareas',                 route: '/admin/tareas',           icon: CheckSquare,       roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'] },
+      { label: 'Parámetros cotización',  route: '/admin/quotation-params', icon: SlidersHorizontal, roles: ['ADMIN'] },
     ],
   },
   {

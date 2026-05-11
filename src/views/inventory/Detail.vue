@@ -1,10 +1,11 @@
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import QRCode from 'qrcode'
 import {
   getInventoryItem, getItemReservations, getItemHistory,
   updateItemStatus, updateItemCondition, updateItemLocation, generateQR,
+  uploadProductImage, updateInventoryDetails,
 } from '@/services/inventory.service'
 import ModalReutilizable from '@/components/modal/ModalReutilizable.vue'
 import {
@@ -25,6 +26,128 @@ const loading     = ref(false)
 const error       = ref(null)
 const qrDataUrl   = ref(null)
 const qrLoading   = ref(false)
+
+/* ─── imagen ─────────────────────────────────────────────── */
+const imgPreview    = ref(null)
+const imgFile       = ref(null)
+const imgUploading  = ref(false)
+const imgProgress   = ref(0)
+const imgError      = ref('')
+const imgSuccess    = ref(false)
+const fileInputRef  = ref(null)
+
+function onFileChange(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/avif']
+  if (!allowed.includes(file.type)) {
+    imgError.value = 'Formato no permitido. Usa JPG, PNG, WebP o AVIF.'
+    return
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    imgError.value = 'El archivo supera el límite de 10 MB.'
+    return
+  }
+  imgError.value  = ''
+  imgSuccess.value = false
+  imgFile.value   = file
+  imgPreview.value = URL.createObjectURL(file)
+}
+
+function cancelPreview() {
+  imgPreview.value = null
+  imgFile.value    = null
+  imgError.value   = ''
+  if (fileInputRef.value) fileInputRef.value.value = ''
+}
+
+async function confirmUpload() {
+  if (!imgFile.value) return
+  imgUploading.value = true
+  imgProgress.value  = 0
+  imgError.value     = ''
+  try {
+    const res = await uploadProductImage(id, imgFile.value, (p) => { imgProgress.value = p })
+    item.value.imageUrl = res.imageUrl
+    imgSuccess.value    = true
+    cancelPreview()
+  } catch (e) {
+    imgError.value = e?.response?.data?.message || 'Error al subir la imagen.'
+  } finally {
+    imgUploading.value = false
+  }
+}
+
+/* ─── edición inline ─────────────────────────────────────── */
+const editMode    = ref(false)
+const editSaving  = ref(false)
+const editError   = ref('')
+const editSuccess = ref(false)
+const editForm    = ref({})
+
+const EDITABLE_FIELDS = [
+  'nombre', 'dispositivo', 'categoria', 'bodega', 'location',
+  'serialNumber', 'nfcTag', 'notas', 'descripcion', 'medidas',
+  'montacarga', 'incluyeTransporteBogMde',
+  'amperios', 'm2Dispositivo', 'pesoAproxDisp', 'm3Transporte',
+  'qHorasOperacion', 'qHorasMontaje',
+  'qMotores', 'qOperarios', 'qPersonalMontaje', 'anioDispositivo',
+  'qPesosEstacas', 'qExtintores',
+  'availabilityStatus', 'conditionStatus',
+]
+
+function startEdit() {
+  editForm.value = {}
+  EDITABLE_FIELDS.forEach(k => {
+    editForm.value[k] = item.value[k] ?? null
+  })
+  editError.value   = ''
+  editSuccess.value = false
+  editMode.value    = true
+}
+
+function cancelEdit() {
+  editMode.value = false
+  editError.value = ''
+}
+
+const hasUnsavedChanges = computed(() => {
+  if (!editMode.value) return false
+  return EDITABLE_FIELDS.some(k => editForm.value[k] !== (item.value[k] ?? null))
+})
+
+async function saveEdit() {
+  editSaving.value  = true
+  editError.value   = ''
+  editSuccess.value = false
+  try {
+    const payload = {}
+    EDITABLE_FIELDS.forEach(k => {
+      if (editForm.value[k] !== null && editForm.value[k] !== '') {
+        payload[k] = editForm.value[k]
+      } else if (editForm.value[k] === null || editForm.value[k] === '') {
+        payload[k] = null
+      }
+    })
+    const res = await updateInventoryDetails(id, payload)
+    const updated = res.data
+    Object.assign(item.value, updated)
+    editSuccess.value = true
+    editMode.value    = false
+    setTimeout(() => { editSuccess.value = false }, 3000)
+  } catch (e) {
+    editError.value = e?.response?.data?.message || 'Error al guardar los cambios.'
+  } finally {
+    editSaving.value = false
+  }
+}
+
+// Advertencia al salir con cambios sin guardar
+const beforeUnloadHandler = (e) => {
+  if (hasUnsavedChanges.value) { e.preventDefault(); e.returnValue = '' }
+}
+window.addEventListener('beforeunload', beforeUnloadHandler)
+onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnloadHandler))
 
 /* ─── modals ─────────────────────────────────────────────── */
 const statusModal   = ref(false)
@@ -278,47 +401,124 @@ onMounted(fetchAll)
           <div class="inv-card-head">
             <Package :size="16" class="inv-card-ico" />
             <h3 class="inv-card-title">Información del equipo</h3>
+            <div class="inv-edit-head-actions">
+              <transition name="fade">
+                <span v-if="editSuccess" class="inv-edit-saved">✓ Guardado</span>
+              </transition>
+              <template v-if="!editMode">
+                <button class="inv-btn-edit" @click="startEdit">
+                  <Edit :size="13" /> Editar
+                </button>
+              </template>
+              <template v-else>
+                <button class="inv-btn-cancel-edit" @click="cancelEdit" :disabled="editSaving">Cancelar</button>
+                <button class="inv-btn-save-edit" @click="saveEdit" :disabled="editSaving">
+                  <span v-if="editSaving" class="inv-spinner" />
+                  {{ editSaving ? 'Guardando…' : 'Guardar cambios' }}
+                </button>
+              </template>
+            </div>
           </div>
 
+          <!-- Error edición -->
+          <div v-if="editError" class="inv-edit-error">{{ editError }}</div>
+
           <div class="inv-info-body">
-            <img
-              v-if="item.imageUrl"
-              :src="item.imageUrl"
-              :alt="item.nombre"
-              class="inv-info-img"
-            />
-            <div v-else class="inv-info-img-placeholder">
-              <Package :size="32" />
+            <!-- Zona de imagen con upload -->
+            <div class="inv-img-wrap">
+              <input ref="fileInputRef" type="file" accept="image/jpeg,image/png,image/webp,image/avif" class="inv-img-input" @change="onFileChange" />
+              <template v-if="imgPreview">
+                <img :src="imgPreview" alt="Preview" class="inv-info-img inv-info-img--preview" />
+                <div class="inv-img-preview-actions">
+                  <button class="inv-img-btn inv-img-btn--cancel" @click="cancelPreview" :disabled="imgUploading">Cancelar</button>
+                  <button class="inv-img-btn inv-img-btn--confirm" @click="confirmUpload" :disabled="imgUploading">
+                    <span v-if="imgUploading" class="inv-spinner" />
+                    {{ imgUploading ? `${imgProgress}%` : 'Confirmar' }}
+                  </button>
+                </div>
+                <div v-if="imgUploading" class="inv-progress-bar"><div class="inv-progress-fill" :style="{ width: imgProgress + '%' }" /></div>
+              </template>
+              <template v-else>
+                <div class="inv-img-inner">
+                  <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.nombre" class="inv-info-img" />
+                  <div v-else class="inv-info-img-placeholder"><Package :size="32" /></div>
+                  <button class="inv-img-upload-btn" @click="fileInputRef.click()" title="Subir imagen"><Edit :size="12" /></button>
+                </div>
+              </template>
+              <p v-if="imgError" class="inv-img-error">{{ imgError }}</p>
+              <p v-if="imgSuccess" class="inv-img-success">Imagen actualizada</p>
             </div>
 
-            <div class="inv-info-grid">
+            <!-- Grid de campos -->
+            <div class="inv-info-grid inv-info-grid--wide">
+
+              <!-- ── Sección: Identificación ── -->
+              <div class="inv-section-label" style="grid-column:1/-1">Identificación</div>
+
               <div class="inv-info-row">
                 <span class="inv-info-lbl">Nombre</span>
-                <span class="inv-info-val">{{ item.nombre || '—' }}</span>
+                <input v-if="editMode" v-model="editForm.nombre" class="inv-edit-input" placeholder="Nombre" />
+                <span v-else class="inv-info-val">{{ item.nombre || '—' }}</span>
+              </div>
+              <div class="inv-info-row">
+                <span class="inv-info-lbl">Dispositivo</span>
+                <input v-if="editMode" v-model="editForm.dispositivo" class="inv-edit-input" placeholder="Dispositivo" />
+                <span v-else class="inv-info-val">{{ item.dispositivo || '—' }}</span>
               </div>
               <div class="inv-info-row">
                 <span class="inv-info-lbl">Categoría</span>
-                <span class="inv-info-val">{{ item.categoria || '—' }}</span>
-              </div>
-              <div class="inv-info-row">
-                <span class="inv-info-lbl">Disponibilidad</span>
-                <span :class="availClass(item.availabilityStatus)">{{ availLabel(item.availabilityStatus) }}</span>
-              </div>
-              <div class="inv-info-row">
-                <span class="inv-info-lbl">Condición</span>
-                <span :class="condClass(item.conditionStatus)">{{ condLabel(item.conditionStatus) }}</span>
-              </div>
-              <div class="inv-info-row">
-                <span class="inv-info-lbl">Bodega</span>
-                <span class="inv-info-val">{{ item.bodega || '—' }}</span>
-              </div>
-              <div class="inv-info-row">
-                <span class="inv-info-lbl">Ubicación</span>
-                <span class="inv-info-val">{{ item.ubicacion || '—' }}</span>
+                <input v-if="editMode" v-model="editForm.categoria" class="inv-edit-input" placeholder="Categoría" />
+                <span v-else class="inv-info-val">{{ item.categoria || '—' }}</span>
               </div>
               <div class="inv-info-row">
                 <span class="inv-info-lbl">N/S</span>
-                <span class="inv-info-val inv-info-val--mono">{{ item.serialNumber || '—' }}</span>
+                <input v-if="editMode" v-model="editForm.serialNumber" class="inv-edit-input inv-edit-input--mono" placeholder="Serial" />
+                <span v-else class="inv-info-val inv-info-val--mono">{{ item.serialNumber || '—' }}</span>
+              </div>
+              <div class="inv-info-row">
+                <span class="inv-info-lbl">Tag NFC</span>
+                <input v-if="editMode" v-model="editForm.nfcTag" class="inv-edit-input inv-edit-input--mono" placeholder="NFC tag" />
+                <span v-else class="inv-info-val inv-info-val--mono">{{ item.nfcTag || '—' }}</span>
+              </div>
+              <div class="inv-info-row">
+                <span class="inv-info-lbl">Año</span>
+                <input v-if="editMode" v-model.number="editForm.anioDispositivo" type="number" class="inv-edit-input" placeholder="Ej: 2020" />
+                <span v-else class="inv-info-val">{{ item.anioDispositivo ?? '—' }}</span>
+              </div>
+
+              <!-- ── Sección: Estado y ubicación ── -->
+              <div class="inv-section-label" style="grid-column:1/-1">Estado y ubicación</div>
+
+              <div class="inv-info-row">
+                <span class="inv-info-lbl">Disponibilidad</span>
+                <select v-if="editMode" v-model="editForm.availabilityStatus" class="inv-edit-input">
+                  <option value="DISPONIBLE">Disponible</option>
+                  <option value="EN_RESERVA">En reserva</option>
+                  <option value="NO_DISPONIBLE">No disponible</option>
+                </select>
+                <span v-else :class="availClass(item.availabilityStatus)">{{ availLabel(item.availabilityStatus) }}</span>
+              </div>
+              <div class="inv-info-row">
+                <span class="inv-info-lbl">Condición</span>
+                <select v-if="editMode" v-model="editForm.conditionStatus" class="inv-edit-input">
+                  <option value="OPERATIVO_OK">Operativo OK</option>
+                  <option value="OPERATIVO_70">Operativo 70%</option>
+                  <option value="OPERATIVO_50">Operativo 50%</option>
+                  <option value="EN_MANTENIMIENTO">En mantenimiento</option>
+                  <option value="DEFECTUOSO">Defectuoso</option>
+                  <option value="NO_ACTIVO">No activo</option>
+                </select>
+                <span v-else :class="condClass(item.conditionStatus)">{{ condLabel(item.conditionStatus) }}</span>
+              </div>
+              <div class="inv-info-row">
+                <span class="inv-info-lbl">Bodega</span>
+                <input v-if="editMode" v-model="editForm.bodega" class="inv-edit-input" placeholder="Bodega" />
+                <span v-else class="inv-info-val">{{ item.bodega || '—' }}</span>
+              </div>
+              <div class="inv-info-row">
+                <span class="inv-info-lbl">Ubicación</span>
+                <input v-if="editMode" v-model="editForm.location" class="inv-edit-input" placeholder="Ubicación" />
+                <span v-else class="inv-info-val">{{ item.ubicacion || '—' }}</span>
               </div>
               <div class="inv-info-row">
                 <span class="inv-info-lbl">Último escaneo</span>
@@ -328,10 +528,99 @@ onMounted(fetchAll)
                 <span class="inv-info-lbl">Código QR</span>
                 <span class="inv-info-val inv-info-val--mono">{{ item.qrCode }}</span>
               </div>
-              <div v-if="item.nfcTag" class="inv-info-row">
-                <span class="inv-info-lbl">Tag NFC</span>
-                <span class="inv-info-val inv-info-val--mono">{{ item.nfcTag }}</span>
+
+              <!-- ── Sección: Especificaciones técnicas ── -->
+              <div class="inv-section-label" style="grid-column:1/-1">Especificaciones técnicas</div>
+
+              <div class="inv-info-row">
+                <span class="inv-info-lbl">Amperios</span>
+                <input v-if="editMode" v-model.number="editForm.amperios" type="number" class="inv-edit-input" placeholder="A" />
+                <span v-else class="inv-info-val">{{ item.amperios ?? '—' }}</span>
               </div>
+              <div class="inv-info-row">
+                <span class="inv-info-lbl">Medidas</span>
+                <input v-if="editMode" v-model="editForm.medidas" class="inv-edit-input" placeholder="Ej: 2x1x1 m" />
+                <span v-else class="inv-info-val">{{ item.medidas || '—' }}</span>
+              </div>
+              <div class="inv-info-row">
+                <span class="inv-info-lbl">Motores</span>
+                <input v-if="editMode" v-model.number="editForm.qMotores" type="number" class="inv-edit-input" />
+                <span v-else class="inv-info-val">{{ item.qMotores ?? '—' }}</span>
+              </div>
+              <div class="inv-info-row">
+                <span class="inv-info-lbl">Operarios</span>
+                <input v-if="editMode" v-model.number="editForm.qOperarios" type="number" class="inv-edit-input" />
+                <span v-else class="inv-info-val">{{ item.qOperarios ?? '—' }}</span>
+              </div>
+              <div class="inv-info-row">
+                <span class="inv-info-lbl">m²</span>
+                <input v-if="editMode" v-model.number="editForm.m2Dispositivo" type="number" step="0.01" class="inv-edit-input" />
+                <span v-else class="inv-info-val">{{ item.m2Dispositivo ?? '—' }}</span>
+              </div>
+              <div class="inv-info-row">
+                <span class="inv-info-lbl">Peso (kg)</span>
+                <input v-if="editMode" v-model.number="editForm.pesoAproxDisp" type="number" step="0.1" class="inv-edit-input" />
+                <span v-else class="inv-info-val">{{ item.pesoAproxDisp ?? '—' }}</span>
+              </div>
+              <div class="inv-info-row">
+                <span class="inv-info-lbl">m³ Transporte</span>
+                <input v-if="editMode" v-model.number="editForm.m3Transporte" type="number" step="0.01" class="inv-edit-input" />
+                <span v-else class="inv-info-val">{{ item.m3Transporte ?? '—' }}</span>
+              </div>
+              <div class="inv-info-row">
+                <span class="inv-info-lbl">Pesos/Estacas</span>
+                <input v-if="editMode" v-model.number="editForm.qPesosEstacas" type="number" class="inv-edit-input" />
+                <span v-else class="inv-info-val">{{ item.qPesosEstacas ?? '—' }}</span>
+              </div>
+              <div class="inv-info-row">
+                <span class="inv-info-lbl">Extintores</span>
+                <input v-if="editMode" v-model.number="editForm.qExtintores" type="number" class="inv-edit-input" />
+                <span v-else class="inv-info-val">{{ item.qExtintores ?? '—' }}</span>
+              </div>
+              <div class="inv-info-row">
+                <span class="inv-info-lbl">Montacarga</span>
+                <input v-if="editMode" v-model="editForm.montacarga" class="inv-edit-input" />
+                <span v-else class="inv-info-val">{{ item.montacarga || '—' }}</span>
+              </div>
+
+              <!-- ── Sección: Operación y montaje ── -->
+              <div class="inv-section-label" style="grid-column:1/-1">Operación y montaje</div>
+
+              <div class="inv-info-row">
+                <span class="inv-info-lbl">Hrs operación</span>
+                <input v-if="editMode" v-model.number="editForm.qHorasOperacion" type="number" step="0.5" class="inv-edit-input" />
+                <span v-else class="inv-info-val">{{ item.qHorasOperacion ?? '—' }}</span>
+              </div>
+              <div class="inv-info-row">
+                <span class="inv-info-lbl">Hrs montaje</span>
+                <input v-if="editMode" v-model.number="editForm.qHorasMontaje" type="number" step="0.5" class="inv-edit-input" />
+                <span v-else class="inv-info-val">{{ item.qHorasMontaje ?? '—' }}</span>
+              </div>
+              <div class="inv-info-row">
+                <span class="inv-info-lbl">Personal montaje</span>
+                <input v-if="editMode" v-model.number="editForm.qPersonalMontaje" type="number" class="inv-edit-input" />
+                <span v-else class="inv-info-val">{{ item.qPersonalMontaje ?? '—' }}</span>
+              </div>
+              <div class="inv-info-row" style="grid-column: span 2">
+                <span class="inv-info-lbl">Incluye transporte BOG/MDE</span>
+                <input v-if="editMode" v-model="editForm.incluyeTransporteBogMde" class="inv-edit-input" placeholder="Sí / No / Consultar" />
+                <span v-else class="inv-info-val">{{ item.incluyeTransporteBogMde || '—' }}</span>
+              </div>
+
+              <!-- ── Sección: Textos ── -->
+              <div class="inv-section-label" style="grid-column:1/-1">Descripción y notas</div>
+
+              <div class="inv-info-row" style="grid-column:1/-1">
+                <span class="inv-info-lbl">Descripción</span>
+                <textarea v-if="editMode" v-model="editForm.descripcion" class="inv-edit-input inv-edit-textarea" rows="3" placeholder="Descripción del producto…"></textarea>
+                <span v-else class="inv-info-val" style="white-space:pre-wrap">{{ item.descripcion || '—' }}</span>
+              </div>
+              <div class="inv-info-row" style="grid-column:1/-1">
+                <span class="inv-info-lbl">Notas</span>
+                <textarea v-if="editMode" v-model="editForm.notas" class="inv-edit-input inv-edit-textarea" rows="2" placeholder="Notas internas…"></textarea>
+                <span v-else class="inv-info-val" style="white-space:pre-wrap">{{ item.notas || '—' }}</span>
+              </div>
+
             </div>
           </div>
         </div>
@@ -658,7 +947,7 @@ onMounted(fetchAll)
   border-radius: 12px;
   object-fit: cover;
   border: 1px solid #E2EBF6;
-  flex-shrink: 0;
+  display: block;
 }
 .inv-info-img-placeholder {
   width: 120px;
@@ -670,7 +959,6 @@ onMounted(fetchAll)
   align-items: center;
   justify-content: center;
   color: #CBD5E1;
-  flex-shrink: 0;
 }
 .inv-info-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; }
 @media (max-width: 600px) { .inv-info-grid { grid-template-columns: 1fr; } }
@@ -972,4 +1260,232 @@ onMounted(fetchAll)
 :deep(.badge--blue)   { background: #DBEAFE; color: #1D4ED8; }
 :deep(.badge--red)    { background: #FEE2E2; color: #B91C1C; }
 :deep(.badge--slate)  { background: #F1F5F9; color: #64748B; }
+
+/* ─── Edit mode ───────────────────────────────────────────── */
+.inv-info-grid--wide {
+  grid-template-columns: repeat(3, 1fr);
+}
+@media (max-width: 900px) { .inv-info-grid--wide { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .inv-info-grid--wide { grid-template-columns: 1fr; } }
+
+.inv-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #054EAF;
+  font-family: 'Inter', sans-serif;
+  padding: 10px 0 2px;
+  border-bottom: 1px solid #EBF3FC;
+  margin-bottom: 2px;
+}
+
+.inv-edit-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.inv-edit-saved {
+  font-size: 12px;
+  font-weight: 600;
+  color: #16A34A;
+  font-family: 'Inter', sans-serif;
+}
+
+.inv-btn-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  border-radius: 8px;
+  border: 1px solid #BFDBFE;
+  background: #EFF6FF;
+  color: #054EAF;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.inv-btn-edit:hover { background: #DBEAFE; }
+
+.inv-btn-cancel-edit {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  border-radius: 8px;
+  border: 1px solid #E2EBF6;
+  background: #F1F5F9;
+  color: #64748B;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.inv-btn-cancel-edit:hover:not(:disabled) { background: #E2EBF6; }
+.inv-btn-cancel-edit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.inv-btn-save-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  border-radius: 8px;
+  border: none;
+  background: #054EAF;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s;
+  box-shadow: 0 1px 3px rgba(5,78,175,.2);
+}
+.inv-btn-save-edit:hover:not(:disabled) { background: #03368A; }
+.inv-btn-save-edit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.inv-edit-error {
+  background: #FEE2E2;
+  color: #B91C1C;
+  border: 1px solid #FECACA;
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  margin-bottom: 12px;
+}
+
+.inv-edit-input {
+  width: 100%;
+  background: #F8FAFC;
+  border: 1px solid #BFDBFE;
+  border-radius: 6px;
+  padding: 5px 9px;
+  font-size: 13px;
+  color: #0F1A2E;
+  font-family: 'Inter', sans-serif;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  appearance: auto;
+  box-sizing: border-box;
+}
+.inv-edit-input:focus {
+  border-color: #054EAF;
+  box-shadow: 0 0 0 3px rgba(5,78,175,.1);
+}
+.inv-edit-input::placeholder { color: #94A3B8; }
+.inv-edit-input--mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.inv-edit-textarea { resize: vertical; min-height: 60px; border-radius: 6px; }
+
+.fade-enter-active, .fade-leave-active { transition: opacity 0.4s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+
+/* ─── Image upload ────────────────────────────────────────── */
+.inv-img-wrap {
+  width: 120px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.inv-img-inner {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  flex-shrink: 0;
+}
+
+.inv-img-input { display: none; }
+
+.inv-info-img--preview { opacity: 0.85; }
+
+.inv-img-upload-btn {
+  position: absolute;
+  bottom: -8px;
+  right: -8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: #054EAF;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,.2);
+  transition: background 0.15s;
+  padding: 0;
+}
+.inv-img-upload-btn:hover { background: #03368A; }
+
+.inv-img-preview-actions {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+}
+
+.inv-img-btn {
+  flex: 1;
+  padding: 5px 0;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: background 0.15s;
+}
+.inv-img-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.inv-img-btn--cancel  { background: #F1F5F9; color: #64748B; }
+.inv-img-btn--cancel:hover:not(:disabled)  { background: #E2EBF6; }
+.inv-img-btn--confirm { background: #054EAF; color: #fff; }
+.inv-img-btn--confirm:hover:not(:disabled) { background: #03368A; }
+
+.inv-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: #E2EBF6;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.inv-progress-fill {
+  height: 100%;
+  background: #054EAF;
+  border-radius: 999px;
+  transition: width 0.2s ease;
+}
+
+.inv-spinner {
+  width: 10px;
+  height: 10px;
+  border: 2px solid rgba(255,255,255,.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.inv-img-error {
+  font-size: 10px;
+  color: #B91C1C;
+  font-family: 'Inter', sans-serif;
+  text-align: center;
+  margin: 0;
+  line-height: 1.3;
+}
+.inv-img-success {
+  font-size: 10px;
+  color: #16A34A;
+  font-family: 'Inter', sans-serif;
+  text-align: center;
+  margin: 0;
+}
 </style>

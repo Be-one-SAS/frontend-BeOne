@@ -12,6 +12,10 @@ export function useControl() {
     loading.value = true
     try {
       const { data } = await api.get('/quotations/control')
+      console.log('[useControl] Eventos cargados:', data)
+      if (data?.length > 0) {
+        console.log('[useControl] Primer evento thirdPartyItems:', data[0].thirdPartyItems)
+      }
       eventos.value = data
     } catch (e) {
       console.error('[useControl] Error cargando eventos:', e)

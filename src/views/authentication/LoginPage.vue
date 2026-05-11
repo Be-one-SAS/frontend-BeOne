@@ -95,6 +95,7 @@
             label="Correo electrónico"
             type="email"
             placeholder="tu@beone.co"
+            autocomplete="email"
             required
           />
 
@@ -104,6 +105,7 @@
               label="Contraseña"
               :type="showPassword ? 'text' : 'password'"
               placeholder="••••••••"
+              autocomplete="current-password"
               required
             />
             <button
@@ -169,10 +171,10 @@ const handleLogin = () => {
 }
 
 const login = async () => {
-  try {
-    isLoading.value = true
-    loginError.value = ""
+  isLoading.value = true
+  loginError.value = ""
 
+  try {
     const response = await auth({
       email:    email.value,
       password: password.value,
@@ -185,14 +187,27 @@ const login = async () => {
   } catch (error) {
     const status = error?.response?.status
     const serverMsg = (error?.response?.data?.message ?? '').toLowerCase()
-    if (status === 404 || serverMsg.includes('not found') || serverMsg.includes('no encontrado')) {
-      loginError.value = 'El usuario no fue encontrado.'
+    const serverError = (error?.response?.data?.error ?? '').toLowerCase()
+
+    if (status === 404 || serverMsg.includes('not found') || serverMsg.includes('no encontrado') || serverError.includes('not found')) {
+      loginError.value = 'El usuario no fue encontrado en el sistema.'
+    } else if (status === 401 || serverMsg.includes('unauthorized') || serverMsg.includes('credenciales') || serverMsg.includes('incorrect')) {
+      loginError.value = 'Credenciales incorrectas. Por favor verifica tu correo y contraseña.'
+    } else if (status === 403) {
+      loginError.value = 'Acceso denegado. Tu cuenta puede estar desactivada.'
+    } else if (status === 429) {
+      loginError.value = 'Demasiados intentos. Por favor espera unos minutos y vuelve a intentar.'
+    } else if (error.code === 'ECONNABORTED' || error.code === 'ERR_CANCELED') {
+      loginError.value = 'La solicitud tardó demasiado. Verifica tu conexión e intenta nuevamente.'
+    } else if (!error.response && error.message !== 'Network Error') {
+      loginError.value = 'Error de conexión. Verifica tu acceso a internet.'
     } else {
-      loginError.value = 'Credenciales incorrectas. Inténtalo de nuevo.'
+      loginError.value = 'Error al iniciar sesión. Por favor intenta nuevamente.'
     }
-  } finally {
-    isLoading.value = false
+    
   }
+  
+  isLoading.value = false
 }
 
 /* ================= MOSAICO PERFECTO FULLSCREEN ================= */

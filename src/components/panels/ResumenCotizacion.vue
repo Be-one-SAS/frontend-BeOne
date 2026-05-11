@@ -36,6 +36,7 @@
             <input
               :value="descuentoPct"
               @input="onDescuentoInput"
+              @focus="onFocusSelect"
               type="number"
               min="0"
               max="100"
@@ -88,6 +89,11 @@ const onDescuentoInput = (e) => {
   if (isNaN(v) || v < 0) v = 0
   if (v > 100) v = 100
   emit('update:descuentoPct', v)
+}
+
+const onFocusSelect = (e) => {
+  e.target.select()
+  e.target.value = ''
 }
 
 const fmt = (val) =>

@@ -292,6 +292,7 @@ export function useQuotation() {
             unitPrice:        it.unitPrice        ?? 0,
             cantidadJornada:  it.cantidadJornada  ?? 1,
             cantidadProducto: it.cantidadProducto ?? 1,
+            descuentoPct:     it.descuentoPct     ?? 0,
           }))
         if (ownItems.length > 0) {
           await addQuotationItems(quotationId.value, ownItems)
@@ -314,6 +315,7 @@ export function useQuotation() {
             unitPrice:        it.unitPrice        ?? 0,
             cantidadJornada:  it.cantidadJornada  ?? 1,
             cantidadProducto: it.cantidadProducto ?? 1,
+            descuentoPct:     it.descuentoPct     ?? 0,
           }))
         if (ownItems.length > 0) {
           await addQuotationItems(data.id, ownItems)

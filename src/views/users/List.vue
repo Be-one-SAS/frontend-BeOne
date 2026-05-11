@@ -20,7 +20,7 @@
         <h1 class="page-title">Gestión de Usuarios</h1>
         <p class="page-sub">{{ filteredUsers.length }} usuarios encontrados</p>
       </div>
-      <button class="btn-primary" @click="abrirModalCrear">
+      <button v-if="canCreate('usuarios')" class="btn-primary" @click="abrirModalCrear">
         <UserPlus :size="15" />
         Nuevo usuario
       </button>
@@ -166,6 +166,7 @@
                   <Eye :size="15" />
                 </button>
                 <button
+                  v-if="canEdit('usuarios')"
                   class="action-btn"
                   title="Editar usuario"
                   style="--hbg:#FEF3C7; --hc:#B45309"
@@ -174,6 +175,7 @@
                   <Pencil :size="15" />
                 </button>
                 <button
+                  v-if="canEdit('usuarios')"
                   class="action-btn"
                   title="Cambiar rol"
                   style="--hbg:#EDE9FE; --hc:#7C3AED"
@@ -192,9 +194,8 @@
                   <ToggleRight v-if="u.status === 'Activo'" :size="15" />
                   <ToggleLeft v-else :size="15" />
                 </button>
-                <!-- Solo visible para ADMIN -->
                 <button
-                  v-if="currentUserRole === 'ADMIN'"
+                  v-if="canDelete('usuarios')"
                   class="action-btn"
                   title="Eliminar usuario"
                   style="--hbg:#FEE2E2; --hc:#B91C1C"
@@ -321,10 +322,10 @@
           <span class="td-meta">{{ getTimeAgo(u.lastLogin) }}</span>
         </div>
         <div class="mc-actions">
-          <button class="action-btn" title="Editar" style="--hbg:#FEF3C7; --hc:#B45309" @click="abrirModalEditar(u)">
+          <button v-if="canEdit('usuarios')" class="action-btn" title="Editar" style="--hbg:#FEF3C7; --hc:#B45309" @click="abrirModalEditar(u)">
             <Pencil :size="15" />
           </button>
-          <button class="action-btn" title="Cambiar rol" style="--hbg:#EDE9FE; --hc:#7C3AED" @click="abrirModalRol(u)">
+          <button v-if="canEdit('usuarios')" class="action-btn" title="Cambiar rol" style="--hbg:#EDE9FE; --hc:#7C3AED" @click="abrirModalRol(u)">
             <Shield :size="15" />
           </button>
           <button
@@ -337,7 +338,7 @@
             <ToggleLeft v-else :size="15" />
           </button>
           <button
-            v-if="currentUserRole === 'ADMIN'"
+            v-if="canDelete('usuarios')"
             class="action-btn"
             title="Eliminar"
             style="--hbg:#FEE2E2; --hc:#B91C1C"
@@ -390,12 +391,15 @@ import {
 } from 'lucide-vue-next'
 import { useUsers, rolePermissions } from '@/composables/useUsers'
 import { useAuth } from '@/composables/useAuth'
+import { usePermissions } from '@/composables/usePermissions'
+import { updateUserRole } from '@/services/users.service'
 import UserFormModal  from './components/UserFormModal.vue'
 import UserRoleModal  from './components/UserRoleModal.vue'
 import UserDeleteModal from './components/UserDeleteModal.vue'
 
-// ── Auth — conectar API aquí para role real ───────────
+// ── Auth & permisos ───────────────────────────────────
 const { user } = useAuth()
+const { canCreate, canEdit, canDelete } = usePermissions()
 const currentUserRole = computed(() => user.value?.roles?.[0] ?? 'ADMIN')
 
 // ── Composable ────────────────────────────────────────
@@ -427,18 +431,18 @@ watch([search, rolFiltro, statusFiltro], () => {
 })
 
 // ── Config ────────────────────────────────────────────
-const ROLES = ['ADMIN', 'COMERCIAL', 'SUPERVISOR', 'LOGISTICA', 'COORDINADOR', 'FINANCIERO', 'SOPORTE']
+const ROLES = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO']
 const TABLE_COLS = ['Usuario', 'Username', 'Rol', 'Estado', 'Último acceso', 'Creado', 'Acciones']
 
 // ── Badge maps ────────────────────────────────────────
 const ROLE_BADGE = {
-  ADMIN:       'bg-[#FEE2E2] text-[#B91C1C]',
-  COMERCIAL:   'bg-[#DBEAFE] text-[#1D4ED8]',
-  SUPERVISOR:  'bg-[#EDE9FE] text-[#7C3AED]',
-  LOGISTICA:   'bg-[#DCFCE7] text-[#16A34A]',
-  COORDINADOR: 'bg-[#FEF3C7] text-[#B45309]',
-  FINANCIERO:  'bg-[#FFEDD5] text-[#C2410C]',
-  SOPORTE:     'bg-[#F1F5F9] text-[#64748B]',
+  ADMIN:         'bg-[#FEE2E2] text-[#B91C1C]',
+  ADMINISTRADOR: 'bg-[#DBEAFE] text-[#1D4ED8]',
+  DIRECCION:     'bg-[#EDE9FE] text-[#7C3AED]',
+  LIDER:         'bg-[#DCFCE7] text-[#16A34A]',
+  SUPERVISOR:    'bg-[#FEF3C7] text-[#B45309]',
+  COORDINADOR:   'bg-[#FFEDD5] text-[#C2410C]',
+  LOGISTICO:     'bg-[#F1F5F9] text-[#64748B]',
 }
 const STATUS_BADGE = {
   Activo:     'bg-[#DCFCE7] text-[#16A34A]',
@@ -502,7 +506,8 @@ const abrirModalRol = (u) => { usuarioRol.value = { ...u }; showRoleModal.value 
 const handleSaveRole = async ({ usuario, nuevoRol }) => {
   actionError.value = ''
   try {
-    await upsertUser({ ...usuario, role: nuevoRol })
+    await updateUserRole(usuario.id, nuevoRol)
+    await loadUsers()
     showRoleModal.value = false
   } catch (e) {
     actionError.value = e?.message ?? 'Error al cambiar el rol'
