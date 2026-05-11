@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { getThirdPartyCatalog } from '@/services/products.service'
+import { getThirdPartyCatalog, updateThirdPartyCatalog } from '@/services/products.service'
 import ModalReutilizable from '@/components/modal/ModalReutilizable.vue'
 import {
   Search, RefreshCw, ChevronUp, ChevronDown, Inbox,
@@ -34,6 +34,38 @@ const toggleRow   = (id) => { expandedRow.value = expandedRow.value === id ? nul
 
 const deleteModal     = ref(false)
 const productToDelete = ref(null)
+
+// modal editar
+const editModal   = ref(false)
+const editLoading = ref(false)
+const editError   = ref('')
+const editForm    = ref({
+  dispositivo:             '',
+  nombre:                  '',
+  categoria:               '',
+  bodega:                  '',
+  conditionStatus:         '',
+  availabilityStatus:      '',
+  valorBase:               null,
+  amperios:                null,
+  medidas:                 '',
+  qMotores:                null,
+  qOperarios:              null,
+  m2Dispositivo:           null,
+  pesoAproxDisp:           null,
+  m3Transporte:            null,
+  qHorasOperacion:         null,
+  qHorasMontaje:           null,
+  qPersonalMontaje:        null,
+  anioDispositivo:         null,
+  montacarga:              '',
+  qPesosEstacas:           null,
+  qExtintores:             null,
+  incluyeTransporteBogMde: '',
+  descripcion:             '',
+  notas:                   '',
+})
+const productToEdit = ref(null)
 
 /* ─── options ────────────────────────────────────────────── */
 const categorias = computed(() => {
@@ -160,6 +192,36 @@ function executeDelete() {
   products.value = products.value.filter(p => p.id !== productToDelete.value.id)
   deleteModal.value = false
   productToDelete.value = null
+}
+
+/* ─── editar producto ────────────────────────────────────── */
+function openEdit(product) {
+  productToEdit.value = product
+  editError.value     = ''
+  Object.keys(editForm.value).forEach(k => {
+    editForm.value[k] = product[k] ?? (typeof editForm.value[k] === 'string' ? '' : null)
+  })
+  editModal.value = true
+}
+
+async function saveEdit() {
+  if (!editForm.value.dispositivo?.trim()) {
+    editError.value = 'El nombre del dispositivo es obligatorio.'
+    return
+  }
+  editLoading.value = true
+  editError.value   = ''
+  try {
+    const res = await updateThirdPartyCatalog(productToEdit.value.id, editForm.value)
+    const updated = res.data
+    const idx = products.value.findIndex(p => p.id === productToEdit.value.id)
+    if (idx !== -1) products.value[idx] = { ...products.value[idx], ...updated }
+    editModal.value = false
+  } catch (e) {
+    editError.value = e?.response?.data?.message || 'Error al guardar. Intenta de nuevo.'
+  } finally {
+    editLoading.value = false
+  }
 }
 
 onMounted(fetchProducts)
@@ -327,7 +389,7 @@ onMounted(fetchProducts)
 
                   <td class="np-td" @click.stop>
                     <div class="np-actions">
-                      <button class="act-btn act-edit" title="Editar">
+                      <button class="act-btn act-edit" title="Editar" @click.stop="openEdit(row)">
                         <Pencil :size="12" />
                       </button>
                       <button class="act-btn act-del" title="Eliminar" @click.stop="confirmDelete(row)">
@@ -450,6 +512,152 @@ onMounted(fetchProducts)
         </div>
       </div>
     </div>
+
+    <!-- ── MODAL: Editar producto ────────────────────────── -->
+    <ModalReutilizable :show="editModal" @close="editModal = false">
+      <div class="edit-modal-wrap">
+        <h2 class="modal-title mb-1">Editar producto de terceros</h2>
+        <p class="edit-modal-sub">{{ productToEdit?.dispositivo }}</p>
+
+        <div v-if="editError" class="edit-error">{{ editError }}</div>
+
+        <div class="edit-form-grid">
+
+          <p class="edit-section-label" style="grid-column: 1/-1">Identificación</p>
+
+          <div class="edit-field">
+            <label class="edit-label">Dispositivo *</label>
+            <input v-model="editForm.dispositivo" class="edit-input" placeholder="Nombre del dispositivo" />
+          </div>
+          <div class="edit-field">
+            <label class="edit-label">Nombre interno</label>
+            <input v-model="editForm.nombre" class="edit-input" placeholder="Nombre interno" />
+          </div>
+          <div class="edit-field">
+            <label class="edit-label">Categoría</label>
+            <input v-model="editForm.categoria" class="edit-input" placeholder="Ej: Iluminación, Audio…" />
+          </div>
+          <div class="edit-field">
+            <label class="edit-label">Bodega</label>
+            <input v-model="editForm.bodega" class="edit-input" placeholder="Bodega" />
+          </div>
+
+          <p class="edit-section-label" style="grid-column: 1/-1">Estado y precio</p>
+
+          <div class="edit-field">
+            <label class="edit-label">Condición</label>
+            <select v-model="editForm.conditionStatus" class="edit-input">
+              <option value="">— Seleccionar —</option>
+              <option value="OPERATIVO_OK">Operativo OK</option>
+              <option value="OPERATIVO_70">Operativo 70%</option>
+              <option value="OPERATIVO_50">Operativo 50%</option>
+              <option value="EN_MANTENIMIENTO">En mantenimiento</option>
+              <option value="DEFECTUOSO">Defectuoso</option>
+              <option value="NO_ACTIVO">No activo</option>
+            </select>
+          </div>
+          <div class="edit-field">
+            <label class="edit-label">Disponibilidad</label>
+            <select v-model="editForm.availabilityStatus" class="edit-input">
+              <option value="">— Seleccionar —</option>
+              <option value="DISPONIBLE">Disponible</option>
+              <option value="EN_RESERVA">En reserva</option>
+              <option value="NO_DISPONIBLE">No disponible</option>
+            </select>
+          </div>
+          <div class="edit-field">
+            <label class="edit-label">Valor base (COP)</label>
+            <input v-model.number="editForm.valorBase" type="number" step="1000" class="edit-input" placeholder="0" />
+          </div>
+          <div class="edit-field">
+            <label class="edit-label">Año del dispositivo</label>
+            <input v-model.number="editForm.anioDispositivo" type="number" class="edit-input" placeholder="Ej: 2020" />
+          </div>
+
+          <p class="edit-section-label" style="grid-column: 1/-1">Especificaciones técnicas</p>
+
+          <div class="edit-field">
+            <label class="edit-label">Amperios</label>
+            <input v-model.number="editForm.amperios" type="number" class="edit-input" placeholder="A" />
+          </div>
+          <div class="edit-field">
+            <label class="edit-label">Medidas</label>
+            <input v-model="editForm.medidas" class="edit-input" placeholder="Ej: 2x1x1 m" />
+          </div>
+          <div class="edit-field">
+            <label class="edit-label">Motores</label>
+            <input v-model.number="editForm.qMotores" type="number" class="edit-input" placeholder="Cantidad" />
+          </div>
+          <div class="edit-field">
+            <label class="edit-label">Operarios</label>
+            <input v-model.number="editForm.qOperarios" type="number" class="edit-input" placeholder="Cantidad" />
+          </div>
+          <div class="edit-field">
+            <label class="edit-label">m²</label>
+            <input v-model.number="editForm.m2Dispositivo" type="number" step="0.01" class="edit-input" placeholder="m²" />
+          </div>
+          <div class="edit-field">
+            <label class="edit-label">Peso aprox. (kg)</label>
+            <input v-model.number="editForm.pesoAproxDisp" type="number" step="0.1" class="edit-input" placeholder="kg" />
+          </div>
+          <div class="edit-field">
+            <label class="edit-label">m³ Transporte</label>
+            <input v-model.number="editForm.m3Transporte" type="number" step="0.01" class="edit-input" placeholder="m³" />
+          </div>
+          <div class="edit-field">
+            <label class="edit-label">Pesos / Estacas</label>
+            <input v-model.number="editForm.qPesosEstacas" type="number" class="edit-input" placeholder="Cantidad" />
+          </div>
+          <div class="edit-field">
+            <label class="edit-label">Extintores</label>
+            <input v-model.number="editForm.qExtintores" type="number" class="edit-input" placeholder="Cantidad" />
+          </div>
+          <div class="edit-field">
+            <label class="edit-label">Montacarga</label>
+            <input v-model="editForm.montacarga" class="edit-input" placeholder="Tipo de montacarga" />
+          </div>
+
+          <p class="edit-section-label" style="grid-column: 1/-1">Operación y montaje</p>
+
+          <div class="edit-field">
+            <label class="edit-label">Horas de operación</label>
+            <input v-model.number="editForm.qHorasOperacion" type="number" step="0.5" class="edit-input" placeholder="h" />
+          </div>
+          <div class="edit-field">
+            <label class="edit-label">Horas de montaje</label>
+            <input v-model.number="editForm.qHorasMontaje" type="number" step="0.5" class="edit-input" placeholder="h" />
+          </div>
+          <div class="edit-field">
+            <label class="edit-label">Personal de montaje</label>
+            <input v-model.number="editForm.qPersonalMontaje" type="number" class="edit-input" placeholder="Cantidad" />
+          </div>
+          <div class="edit-field" style="grid-column: span 2">
+            <label class="edit-label">Incluye transporte BOG/MDE</label>
+            <input v-model="editForm.incluyeTransporteBogMde" class="edit-input" placeholder="Ej: Sí, No, Consultar…" />
+          </div>
+
+          <p class="edit-section-label" style="grid-column: 1/-1">Descripción y notas</p>
+
+          <div class="edit-field" style="grid-column: 1/-1">
+            <label class="edit-label">Descripción</label>
+            <textarea v-model="editForm.descripcion" class="edit-input edit-textarea" rows="3" placeholder="Descripción del producto…"></textarea>
+          </div>
+          <div class="edit-field" style="grid-column: 1/-1">
+            <label class="edit-label">Notas</label>
+            <textarea v-model="editForm.notas" class="edit-input edit-textarea" rows="2" placeholder="Notas internas…"></textarea>
+          </div>
+
+        </div>
+
+        <div class="edit-footer">
+          <button @click="editModal = false" class="btn-cancel" :disabled="editLoading">Cancelar</button>
+          <button @click="saveEdit" class="btn-save" :disabled="editLoading">
+            <span v-if="editLoading" class="edit-spinner"></span>
+            {{ editLoading ? 'Guardando…' : 'Guardar cambios' }}
+          </button>
+        </div>
+      </div>
+    </ModalReutilizable>
 
     <!-- ── MODAL: Confirmar eliminación ──────────────────── -->
     <ModalReutilizable :show="deleteModal" @close="deleteModal = false">
@@ -765,4 +973,135 @@ onMounted(fetchProducts)
   color: #0F1A2E;
   margin: 0;
 }
+
+/* ─── Edit modal ─────────────────────────────────────────── */
+.edit-modal-wrap { display: flex; flex-direction: column; gap: 16px; }
+
+.edit-modal-sub {
+  font-size: 13px;
+  color: #64748B;
+  font-family: 'Inter', sans-serif;
+  margin: -10px 0 0;
+}
+
+.edit-error {
+  background: #FEE2E2;
+  color: #B91C1C;
+  border: 1px solid #FECACA;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+}
+
+.edit-form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px 16px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+@media (max-width: 768px) { .edit-form-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.edit-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #054EAF;
+  font-family: 'Inter', sans-serif;
+  padding: 6px 0 2px;
+  border-bottom: 1px solid #EBF3FC;
+  margin-bottom: 2px;
+}
+
+.edit-field { display: flex; flex-direction: column; gap: 5px; }
+
+.edit-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-family: 'Inter', sans-serif;
+}
+
+.edit-input {
+  background: #F8FAFC;
+  border: 1px solid #E2EBF6;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #0F1A2E;
+  font-family: 'Inter', sans-serif;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  appearance: auto;
+}
+.edit-input:focus {
+  border-color: #054EAF;
+  box-shadow: 0 0 0 3px rgba(5,78,175,.1);
+}
+.edit-input::placeholder { color: #94A3B8; }
+
+.edit-textarea {
+  resize: vertical;
+  border-radius: 8px;
+  min-height: 60px;
+}
+
+.edit-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #EBF3FC;
+}
+
+.btn-cancel {
+  padding: 9px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  border-radius: 8px;
+  border: 1px solid #E2EBF6;
+  background: #F1F5F9;
+  color: #64748B;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-cancel:hover:not(:disabled) { background: #E2EBF6; }
+.btn-cancel:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 22px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  border-radius: 8px;
+  border: none;
+  background: #054EAF;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(5,78,175,.25);
+  transition: background 0.15s;
+}
+.btn-save:hover:not(:disabled) { background: #03368A; }
+.btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.edit-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>

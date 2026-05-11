@@ -39,7 +39,17 @@ export const getByName = async (name: string) => {
     }
 };
 
-// TERCEROS 
+export const updateProduct = async (id: number | string, data: object) => {
+    try {
+        const response = await api.patch(`/producto/${id}`, data);
+        return response;
+    } catch (error) {
+        console.error("Fallo el servicio para actualizar el producto", error);
+        throw error;
+    }
+};
+
+// TERCEROS
 export const getThirdPartyCatalog = async () => {
     try {
         const response = await api.get(
@@ -56,6 +66,17 @@ export const getThirdPartyCatalog = async () => {
     } catch (error) {
         console.error("Fallo el servicio para obtener los productos del terceros", error);
         throw error; // Lanza el error para manejarlo donde se use
+    }
+};
+
+// TERCEROS - PATCH
+export const updateThirdPartyCatalog = async (id: number | string, data: object) => {
+    try {
+        const response = await api.patch(`/third-party-catalog/${id}`, data);
+        return response;
+    } catch (error) {
+        console.error("Fallo el servicio para actualizar el producto de terceros", error);
+        throw error;
     }
 };
 

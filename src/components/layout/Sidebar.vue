@@ -112,6 +112,7 @@ import {
   Archive, Wrench, Users, BarChart2, PieChart,
   DollarSign, Activity, UserCog, Settings,
   LogOut, CheckSquare, ClipboardCheck, SlidersHorizontal,
+  Landmark, TableProperties, FileBarChart, ShoppingCart,
 } from 'lucide-vue-next'
 import { useAuth }               from '@/composables/useAuth'
 import { useSidebarPermissions, useMobileSidebar } from '@/composables/useSidebarPermissions'
@@ -198,7 +199,8 @@ const ALL_MENU_ITEMS = [
       { label: 'Reporte diario',      route: '/operativa/reporte',    icon: ClipboardList,  roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
       { label: 'Check-ins',           route: '/operativa/checkins',   icon: MapPin,         roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
       { label: 'Inventario',          route: '/inventory',            icon: Archive,        roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'SUPERVISOR'] },
-      { label: 'Montajes',            route: '/operativa/montajes',   icon: Wrench,         roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
+      { label: 'Montajes',            route: '/operativa/montajes',        icon: Wrench,        roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
+      { label: 'Órdenes de Compra',   route: '/operativa/ordenes-compra',  icon: ShoppingCart,  roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'LIDER'] },
     ],
   },
   {
@@ -210,6 +212,19 @@ const ALL_MENU_ITEMS = [
       { label: 'Resumen general', route: '/reportes/general',     icon: PieChart,    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
       { label: 'Financiero',      route: '/reportes/financiero',  icon: DollarSign,  roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
       { label: 'Operacional',     route: '/reportes/operacional', icon: Activity,    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
+    ],
+  },
+
+  // ── Grupo: Administración ─────────────────────────────
+  {
+    separator: true,
+    icon:  Landmark,
+    label: 'Administración',
+    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'],
+    children: [
+      { label: 'Cotizaciones',        route: '/administracion/cotizaciones', icon: TableProperties, roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
+      { label: 'Dashboard Financiero', route: '/administracion/dashboard',    icon: BarChart2,       roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
+      { label: 'Reportes',             route: '/administracion/reportes',     icon: FileBarChart,    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
     ],
   },
 

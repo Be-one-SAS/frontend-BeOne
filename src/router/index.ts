@@ -162,6 +162,12 @@ const routes = [
         meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
       },
       {
+        path: 'operativa/ordenes-compra',
+        name: 'OrdenesCompra',
+        component: () => import('../views/operativa/OrdenesCompra.vue'),
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'LIDER'] },
+      },
+      {
         path: 'operativa/equipos',
         redirect: '/admin/control',
       },
@@ -183,6 +189,26 @@ const routes = [
         path: 'reportes/operacional',
         name: 'ReporteOperacional',
         component: () => import('../views/reportes/ReporteOperacional.vue'),
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
+      },
+
+      // ── Administración ─────────────────────────────────
+      {
+        path: 'administracion/cotizaciones',
+        name: 'AdminCotizaciones',
+        component: () => import('../views/administracion/AdminCotizaciones.vue'),
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
+      },
+      {
+        path: 'administracion/dashboard',
+        name: 'AdminDashboard',
+        component: () => import('../views/administracion/AdminDashboard.vue'),
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
+      },
+      {
+        path: 'administracion/reportes',
+        name: 'AdminReportes',
+        component: () => import('../views/administracion/AdminReportes.vue'),
         meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
       },
 

@@ -67,6 +67,18 @@
                         {{ item.isThird ? 'Tercero' : 'Propio' }}
                       </span>
                     </div>
+                    <div v-if="item.isThird" class="p-card-oc">
+                      <template v-if="ocsByItem[item.id]">
+                        <span class="oc-number">{{ ocsByItem[item.id].numero }}</span>
+                        <span class="oc-badge" :class="`oc-badge--${ocsByItem[item.id].estado.toLowerCase()}`">
+                          {{ ocsByItem[item.id].estado }}
+                        </span>
+                      </template>
+                      <button v-else class="p-card-oc-btn" @click="openOCModal(item)">
+                        <ShoppingCart :size="11" />
+                        Emitir OC
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -380,6 +392,101 @@
             </div>
           </Transition>
 
+          <!-- ══════════ SUB-MODAL: EMITIR OC ══════════ -->
+          <Transition name="fade">
+            <div v-if="showOCModal" class="sub-modal-overlay" @click.self="closeOCModal">
+              <div class="sub-modal-card oc-modal-card">
+                <h4 class="sub-modal-title">
+                  <ShoppingCart :size="16" style="display:inline;vertical-align:middle;margin-right:6px" />
+                  Emitir Orden de Compra
+                </h4>
+                <p class="oc-product-label">{{ ocFormItem ? getProductName(ocFormItem) : '' }}</p>
+
+                <!-- Estado éxito -->
+                <div v-if="ocResult" class="oc-success">
+                  <CheckCircle2 :size="40" class="oc-success-icon" />
+                  <p class="oc-success-title">¡OC Emitida!</p>
+                  <p class="oc-success-number">{{ ocResult.numero }}</p>
+                  <button class="sm-btn-pri" style="flex:none;width:100%;margin-top:16px" @click="closeOCModal">Cerrar</button>
+                </div>
+
+                <!-- Formulario -->
+                <div v-else class="sub-modal-form">
+                  <p class="oc-section-label">Proveedor</p>
+                  <div class="sm-field">
+                    <label>Nombre Proveedor <span class="req">*</span></label>
+                    <input v-model="ocForm.proveedorNombre" type="text" placeholder="Ej: Distribuidora ABC" />
+                  </div>
+                  <div class="sm-grid">
+                    <div class="sm-field">
+                      <label>Contacto</label>
+                      <input v-model="ocForm.proveedorContacto" type="text" placeholder="Nombre contacto" />
+                    </div>
+                    <div class="sm-field">
+                      <label>Teléfono</label>
+                      <input v-model="ocForm.proveedorTelefono" type="tel" placeholder="+54 9..." />
+                    </div>
+                  </div>
+                  <div class="sm-field">
+                    <label>Email Proveedor</label>
+                    <input v-model="ocForm.proveedorEmail" type="email" placeholder="proveedor@ejemplo.com" />
+                  </div>
+
+                  <p class="oc-section-label">Detalle del Pedido</p>
+                  <div class="sm-field">
+                    <label>Descripción <span class="req">*</span></label>
+                    <input v-model="ocForm.descripcion" type="text" placeholder="Descripción del pedido" />
+                  </div>
+                  <div class="sm-grid">
+                    <div class="sm-field">
+                      <label>Cantidad <span class="req">*</span></label>
+                      <input v-model.number="ocForm.cantidad" type="number" min="1" />
+                    </div>
+                    <div class="sm-field">
+                      <label>Precio Unitario <span class="req">*</span></label>
+                      <input v-model.number="ocForm.precioUnitario" type="number" min="0" step="0.01" />
+                    </div>
+                  </div>
+                  <div class="sm-field">
+                    <label>Condiciones de Pago</label>
+                    <input v-model="ocForm.condicionesPago" type="text" placeholder="Ej: 30 días, contado" />
+                  </div>
+
+                  <p class="oc-section-label">Entrega</p>
+                  <div class="sm-field">
+                    <label>Fecha de Entrega</label>
+                    <input v-model="ocForm.fechaEntrega" type="date" />
+                  </div>
+                  <div class="sm-field">
+                    <label>Dirección de Entrega</label>
+                    <input v-model="ocForm.direccionEntrega" type="text" placeholder="Dirección..." />
+                  </div>
+                  <div class="sm-field">
+                    <label>Responsable de Recepción</label>
+                    <input v-model="ocForm.responsableRecepcion" type="text" placeholder="Nombre del responsable" />
+                  </div>
+                  <div class="sm-field">
+                    <label>Notas</label>
+                    <input v-model="ocForm.notas" type="text" placeholder="Observaciones adicionales" />
+                  </div>
+
+                  <div class="sub-modal-actions">
+                    <button class="sm-btn-sec" @click="closeOCModal">Cancelar</button>
+                    <button
+                      class="sm-btn-pri"
+                      :disabled="!ocForm.proveedorNombre || !ocForm.descripcion || !ocForm.cantidad || !ocForm.precioUnitario || ocSaving"
+                      @click="submitOC"
+                    >
+                      <Loader2 v-if="ocSaving" :size="13" class="spin" />
+                      <ShoppingCart v-else :size="13" />
+                      Emitir OC
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Transition>
+
           <!-- ══════════ DELETE CONFIRM ══════════ -->
           <Transition name="fade">
             <div v-if="pendingDelete" class="confirm-overlay" @click.self="pendingDelete = null">
@@ -430,7 +537,7 @@ import { ref, computed, watch } from 'vue'
 import {
   X, Package, ClipboardCheck, CheckCircle2, MessageSquare,
   Plus, Trash2, Check, AlertCircle, Loader2,
-  BookOpen, PlusCircle,
+  BookOpen, PlusCircle, ShoppingCart,
 } from 'lucide-vue-next'
 import {
   getCotizacionMateriales,
@@ -442,6 +549,7 @@ import {
   validarTodosMateriales,
   syncProductosMateriales,
 } from '@/services/materiales.service'
+import { getOrdenesCompra, createOrdenCompra } from '@/services/ordenes-compra.service'
 
 const props = defineProps({ show: Boolean, event: Object })
 const emit = defineEmits(['close', 'complete'])
@@ -475,18 +583,38 @@ const newMat = ref({ nombre: '', cantidad: 1, unidad: 'unidad', categoriaId: und
 // Delete confirm
 const pendingDelete = ref(null)
 
+// ── OC state ──────────────────────────────────────────────────
+const ocsByItem   = ref({})   // { [thirdPartyItemId]: OrdenCompra }
+const showOCModal = ref(false)
+const ocFormItem  = ref(null)
+const ocSaving    = ref(false)
+const ocResult    = ref(null)
+const ocForm = ref({
+  proveedorNombre: '', proveedorContacto: '', proveedorTelefono: '', proveedorEmail: '',
+  descripcion: '', cantidad: 1, precioUnitario: 0,
+  condicionesPago: '', fechaEntrega: '', direccionEntrega: '', responsableRecepcion: '', notas: '',
+})
+
 // ── Load data ─────────────────────────────────────────────────
 watch(() => props.show, async (val) => {
   if (val && props.event?.id) {
     loading.value = true
     materiales.value = []
+    ocsByItem.value = {}
     try {
-      const [mats, cats] = await Promise.all([
+      const [mats, cats, ocs] = await Promise.all([
         getCotizacionMateriales(props.event.id),
         getMaterialCategorias(),
+        getOrdenesCompra({ quotationId: props.event.id }),
       ])
       materiales.value = mats
       categorias.value = cats
+      const ocList = Array.isArray(ocs) ? ocs : (ocs?.data ?? [])
+      const map = {}
+      for (const oc of ocList) {
+        if (oc.thirdPartyItemId) map[oc.thirdPartyItemId] = oc
+      }
+      ocsByItem.value = map
     } catch (e) {
       console.error('[OperationalListModal] Error cargando datos:', e)
     } finally {
@@ -713,6 +841,48 @@ function handleComplete() {
   emit('complete', { eventId: props.event.id, notes: notes.value })
   emit('close')
   showConfirm.value = false
+}
+
+// ── OC actions ────────────────────────────────────────────────
+function openOCModal(item) {
+  ocFormItem.value = item
+  ocResult.value   = null
+  ocForm.value = {
+    proveedorNombre: '', proveedorContacto: '', proveedorTelefono: '', proveedorEmail: '',
+    descripcion: getProductName(item),
+    cantidad: getProductQty(item),
+    precioUnitario: item.precioUnitario ?? item.costoUnitario ?? 0,
+    condicionesPago: '', fechaEntrega: '', direccionEntrega: '', responsableRecepcion: '', notas: '',
+  }
+  showOCModal.value = true
+}
+
+function closeOCModal() {
+  showOCModal.value = false
+  ocFormItem.value  = null
+  ocResult.value    = null
+}
+
+async function submitOC() {
+  const f = ocForm.value
+  if (!f.proveedorNombre || !f.descripcion || !f.cantidad || !f.precioUnitario) return
+  ocSaving.value = true
+  try {
+    const dto = {
+      ...f,
+      quotationId:      props.event.id,
+      thirdPartyItemId: ocFormItem.value.id,
+      fechaEntrega:     f.fechaEntrega || undefined,
+    }
+    const oc = await createOrdenCompra(dto)
+    ocResult.value = oc
+    ocsByItem.value = { ...ocsByItem.value, [ocFormItem.value.id]: oc }
+  } catch (e) {
+    const msg = e?.response?.data?.message || 'Error al emitir la OC'
+    alert(msg)
+  } finally {
+    ocSaving.value = false
+  }
 }
 </script>
 
@@ -1111,4 +1281,28 @@ function handleComplete() {
 .modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; transform: scale(0.95); }
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
+
+/* ── Orden de Compra ────────────────────────────────── */
+.p-card-oc { margin-top: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.p-card-oc-btn {
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 9px; background: #FFF7ED; color: #B45309;
+  border: 1px solid #FDE68A; border-radius: 6px;
+  font-size: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+}
+.p-card-oc-btn:hover { background: #FFEDD5; border-color: #F59E0B; }
+.oc-number { font-size: 10px; font-weight: 700; color: #0F1A2E; }
+.oc-badge { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+.oc-badge--emitida  { background: #EFF6FF; color: #1D4ED8; }
+.oc-badge--aprobada { background: #F0FDF4; color: #16A34A; }
+.oc-badge--recibida { background: #1E293B; color: #F8FAFC; }
+.oc-badge--cancelada{ background: #FEF2F2; color: #DC2626; }
+
+.oc-modal-card { max-width: 520px; }
+.oc-product-label { font-size: 12px; color: #64748B; margin: -14px 0 16px; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.oc-section-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #94A3B8; margin: 4px 0 -4px; }
+.oc-success { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 20px 0; text-align: center; }
+.oc-success-icon { color: #22C55E; }
+.oc-success-title  { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; color: #0F1A2E; margin: 0; }
+.oc-success-number { font-size: 24px; font-weight: 800; color: #054EAF; margin: 0; }
 </style>
