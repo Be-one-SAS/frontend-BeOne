@@ -30,9 +30,9 @@
           >
             <Loader2 v-if="isUpdating" :size="16" class="spin" />
             <CheckCircle2 v-else-if="updateSuccess" :size="16" />
-            <span v-else>Actualizar cotización</span>
-            <span v-if="isUpdating">Actualizando...</span>
-            <span v-else-if="updateSuccess">¡Actualizado!</span>
+            <span v-else>{{ id ? 'Actualizar cotización' : 'Crear cotización' }}</span>
+            <span v-if="isUpdating">{{ id ? 'Actualizando...' : 'Creando...' }}</span>
+            <span v-else-if="updateSuccess">¡{{ id ? 'Actualizado' : 'Creada' }}!</span>
           </button>
         </div>
       </div>
@@ -749,9 +749,9 @@
                   >
                     <Loader2 v-if="isUpdating" :size="16" class="spin" />
                     <CheckCircle2 v-else-if="updateSuccess" :size="16" />
-                    <span v-else>Actualizar cotización</span>
-                    <span v-if="isUpdating">Actualizando...</span>
-                    <span v-else-if="updateSuccess">¡Actualizado!</span>
+                    <span v-else>{{ id ? 'Actualizar cotización' : 'Crear cotización' }}</span>
+                    <span v-if="isUpdating">{{ id ? 'Actualizando...' : 'Creando...' }}</span>
+                    <span v-else-if="updateSuccess">¡{{ id ? 'Actualizado' : 'Creada' }}!</span>
                   </button>
                 </div>
               </div>
@@ -809,9 +809,9 @@
           >
             <Loader2 v-if="isUpdating" :size="16" class="spin" />
             <CheckCircle2 v-else-if="updateSuccess" :size="16" />
-            <span v-else>Actualizar cotización</span>
-            <span v-if="isUpdating">Actualizando...</span>
-            <span v-else-if="updateSuccess">¡Actualizado!</span>
+            <span v-else>{{ id ? 'Actualizar cotización' : 'Crear cotización' }}</span>
+            <span v-if="isUpdating">{{ id ? 'Actualizando...' : 'Creando...' }}</span>
+            <span v-else-if="updateSuccess">¡{{ id ? 'Actualizado' : 'Creada' }}!</span>
           </button>
         </template>
       </div>
