@@ -75,10 +75,13 @@ const onTeamUpdated = async () => {
 
 // ── Flujo modal ────────────────────────────────────────
 const showFlujoModal   = ref(false)
-const selectedFlujoEvent = ref(null)
+const selectedFlujoEventId = ref<number | null>(null)
+const selectedFlujoEvent = computed(() =>
+  eventos.value.find(e => e.id === selectedFlujoEventId.value) ?? null
+)
 
 const openFlujoModal = (evento) => {
-  selectedFlujoEvent.value = evento
+  selectedFlujoEventId.value = evento.id
   showFlujoModal.value = true
 }
 

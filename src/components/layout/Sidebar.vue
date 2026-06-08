@@ -197,7 +197,8 @@ const ALL_MENU_ITEMS = [
     children: [
       { label: 'Control',             route: '/admin/control',        icon: ClipboardCheck, roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
       { label: 'Reporte diario',      route: '/operativa/reporte',    icon: ClipboardList,  roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
-      { label: 'Check-ins',           route: '/operativa/checkins',   icon: MapPin,         roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
+      { label: 'Check-ins',           route: '/operativa/checkins',        icon: MapPin,    roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
+      { label: 'Aspectos Check-in',  route: '/operativa/checkins/admin',  icon: Settings,  roles: ['ADMIN', 'ADMINISTRADOR'] },
       { label: 'Inventario',          route: '/inventory',            icon: Archive,        roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'SUPERVISOR'] },
       { label: 'Montajes',            route: '/operativa/montajes',        icon: Wrench,        roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
       { label: 'Órdenes de Compra',   route: '/operativa/ordenes-compra',  icon: ShoppingCart,  roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'LIDER'] },

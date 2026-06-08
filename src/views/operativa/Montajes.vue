@@ -72,6 +72,15 @@
               />
             </div>
             <span class="mont-progress-label">{{ ev.progress.completados }}/{{ ev.progress.total }}</span>
+            <button
+              class="mont-pdf-btn"
+              :disabled="pdfGenerating === ev.id"
+              :title="pdfGenerating === ev.id ? 'Generando...' : 'Descargar lista de materiales'"
+              @click.stop="downloadMaterialsPDF(ev)"
+            >
+              <Download v-if="pdfGenerating !== ev.id" :size="14" />
+              <div v-else class="mont-pdf-spinner" />
+            </button>
             <ChevronDown
               :size="16"
               class="mont-chevron"
@@ -261,9 +270,10 @@ import { ref, computed, onMounted } from 'vue'
 import {
   RefreshCw, Search, AlertCircle, PackageCheck, ChevronDown,
   Calendar, FileText, Package, Truck, Layers, Check, MessageSquare,
-  Users,
+  Users, Download,
 } from 'lucide-vue-next'
 import { getMontajes, upsertCheck } from '@/services/montajes.service.js'
+import { patchQuotation } from '@/services/quotation.service.ts'
 
 const TABS = [
   { value: 'all',       label: 'Todos' },
@@ -285,6 +295,8 @@ const noteModal = ref({
   text: '',
   saving: false,
 })
+
+const pdfGenerating = ref(null)
 
 async function load() {
   loading.value = true
@@ -379,6 +391,9 @@ async function toggleCheck(quotationId, item) {
       completado: newVal,
       nota:       target.check.nota,
     })
+    if (ev.progress.total > 0 && ev.progress.completados === ev.progress.total) {
+      try { await patchQuotation(quotationId, { listadoMaterial: true }) } catch { /* non-critical */ }
+    }
   } catch {
     target.check.completado = !newVal
     updateProgress(ev)
@@ -428,6 +443,179 @@ async function saveNote() {
     // keep modal open
   } finally {
     noteModal.value.saving = false
+  }
+}
+
+function buildMaterialsPDFHTML(ev) {
+  const nombre = ev.empresa || ev.contacto || ev.cliente?.name || '—'
+  const fecha  = ev.operationWindow ? fmtDate(ev.operationWindow.eventStartAt) : ''
+  const pct    = progressPct(ev)
+
+  const statusBadge = (completado) =>
+    `<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:${completado ? '#DCFCE7' : '#F1F5F9'};color:${completado ? '#16A34A' : '#64748B'};">${completado ? 'Completado' : 'Pendiente'}</span>`
+
+  const tableHeader = (cols) =>
+    `<thead><tr style="background:#F8FAFC;">${cols.map(c =>
+      `<th style="text-align:${c.align || 'left'};padding:8px 10px;font-size:11px;font-weight:600;color:#64748B;border-bottom:1.5px solid #E2E8F0;">${c.label}</th>`
+    ).join('')}</tr></thead>`
+
+  const productsRows = ev.products.map(item => `
+    <tr style="border-bottom:1px solid #F1F5F9;">
+      <td style="padding:8px 10px;font-size:12px;font-weight:600;color:#0F172A;">${item.nombre}</td>
+      <td style="padding:8px 10px;font-size:12px;color:#64748B;">${item.dispositivo || item.categoria || '—'}</td>
+      <td style="padding:8px 10px;font-size:12px;text-align:center;font-weight:700;color:#054EAF;">${item.cantidad}</td>
+      ${item.qPersonalMontaje ? `<td style="padding:8px 10px;font-size:12px;text-align:center;color:#6D28D9;">${item.qPersonalMontaje}</td>` : '<td style="padding:8px 10px;font-size:12px;text-align:center;color:#94A3B8;">—</td>'}
+      <td style="padding:8px 10px;text-align:center;">${statusBadge(item.check.completado)}</td>
+    </tr>
+  `).join('')
+
+  const thirdPartyRows = ev.thirdPartyItems.map(item => `
+    <tr style="border-bottom:1px solid #F1F5F9;">
+      <td style="padding:8px 10px;font-size:12px;font-weight:600;color:#0F172A;">${item.nombre}</td>
+      <td style="padding:8px 10px;font-size:12px;color:#64748B;">${item.categoria || '—'}</td>
+      <td style="padding:8px 10px;font-size:12px;text-align:center;font-weight:700;color:#054EAF;">${item.cantidad}</td>
+      <td style="padding:8px 10px;text-align:center;">${statusBadge(item.check.completado)}</td>
+    </tr>
+  `).join('')
+
+  const materialsRows = ev.materials.map(item => `
+    <tr style="border-bottom:1px solid #F1F5F9;">
+      <td style="padding:8px 10px;font-size:12px;font-weight:600;color:#0F172A;">${item.nombre}</td>
+      <td style="padding:8px 10px;font-size:12px;color:#64748B;">${item.categoria?.nombre || '—'}</td>
+      <td style="padding:8px 10px;font-size:12px;text-align:center;font-weight:700;color:#054EAF;">${item.cantidad}</td>
+      <td style="padding:8px 10px;font-size:12px;text-align:center;color:#64748B;">${item.unidad || '—'}</td>
+      <td style="padding:8px 10px;text-align:center;">${statusBadge(item.check.completado)}</td>
+    </tr>
+  `).join('')
+
+  const sectionLabel = (icon, text) =>
+    `<div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.6px;margin:20px 0 8px;padding-bottom:6px;border-bottom:1px solid #E2E8F0;">${icon} ${text}</div>`
+
+  const productsSection = ev.products.length ? `
+    ${sectionLabel('📦', 'Equipos Propios')}
+    <table style="width:100%;border-collapse:collapse;">
+      ${tableHeader([
+        { label: 'Nombre' },
+        { label: 'Tipo' },
+        { label: 'Cant.', align: 'center' },
+        { label: 'Personal', align: 'center' },
+        { label: 'Estado', align: 'center' },
+      ])}
+      <tbody>${productsRows}</tbody>
+    </table>
+  ` : ''
+
+  const thirdPartySection = ev.thirdPartyItems.length ? `
+    ${sectionLabel('🚚', 'Equipos de Terceros')}
+    <table style="width:100%;border-collapse:collapse;">
+      ${tableHeader([
+        { label: 'Nombre' },
+        { label: 'Categoría' },
+        { label: 'Cant.', align: 'center' },
+        { label: 'Estado', align: 'center' },
+      ])}
+      <tbody>${thirdPartyRows}</tbody>
+    </table>
+  ` : ''
+
+  const materialsSection = ev.materials.length ? `
+    ${sectionLabel('🔧', 'Materiales')}
+    <table style="width:100%;border-collapse:collapse;">
+      ${tableHeader([
+        { label: 'Nombre' },
+        { label: 'Categoría' },
+        { label: 'Cant.', align: 'center' },
+        { label: 'Unidad', align: 'center' },
+        { label: 'Estado', align: 'center' },
+      ])}
+      <tbody>${materialsRows}</tbody>
+    </table>
+  ` : ''
+
+  const notasSection = ev.notasOperativas ? `
+    <div style="margin-top:20px;padding:12px;background:#FFF9F0;border:1px solid #FDE68A;border-radius:8px;font-size:12px;color:#92400E;line-height:1.6;">
+      <strong>Notas operativas:</strong> ${ev.notasOperativas}
+    </div>
+  ` : ''
+
+  return `
+    <div style="font-family:Arial,Helvetica,sans-serif;padding:24px;color:#0F172A;max-width:780px;">
+      <table style="width:100%;border-collapse:collapse;padding-bottom:16px;border-bottom:2.5px solid #054EAF;margin-bottom:12px;">
+        <tr>
+          <td style="vertical-align:top;padding:0;">
+            <div style="font-size:22px;font-weight:800;color:#054EAF;letter-spacing:-0.5px;">Lista de Materiales</div>
+            <div style="font-size:16px;font-weight:700;color:#0F172A;margin-top:4px;">${nombre}</div>
+            <div style="font-size:12px;color:#64748B;margin-top:3px;">
+              #${ev.numero}${fecha ? ' &middot; ' + fecha : ''}${ev.ubicacion ? ' &middot; ' + ev.ubicacion : ''}
+            </div>
+          </td>
+          <td style="vertical-align:top;text-align:right;padding:0;white-space:nowrap;">
+            <div style="font-size:24px;font-weight:800;color:${pct === 100 ? '#16A34A' : '#054EAF'};">${pct}%</div>
+            <div style="font-size:11px;color:#64748B;">${ev.progress.completados} / ${ev.progress.total} completados</div>
+          </td>
+        </tr>
+      </table>
+      ${notasSection}
+      ${productsSection}
+      ${thirdPartySection}
+      ${materialsSection}
+      <div style="margin-top:28px;padding-top:12px;border-top:1px solid #E2E8F0;font-size:10px;color:#94A3B8;text-align:center;">
+        Generado el ${new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}
+      </div>
+    </div>
+  `
+}
+
+async function downloadMaterialsPDF(ev) {
+  if (pdfGenerating.value) return
+  pdfGenerating.value = ev.id
+
+  const nombre   = ev.empresa || ev.contacto || ev.cliente?.name || 'evento'
+  const filename = `Materiales_${ev.numero}_${nombre.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]/g, '').trim().replace(/\s+/g, '_')}.pdf`
+
+  // Renderizar en un iframe aislado: html2canvas no puede capturar elementos
+  // dentro de la misma página Vue (fixed/z-index/-offset todos fallan)
+  const iframe = document.createElement('iframe')
+  iframe.style.cssText = 'position:fixed;top:0;left:0;width:820px;height:100vh;border:none;opacity:0;pointer-events:none;'
+  document.body.appendChild(iframe)
+
+  const doc = iframe.contentDocument || iframe.contentWindow.document
+  doc.open()
+  doc.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 0; background: #fff; font-family: Arial, Helvetica, sans-serif; }
+  </style>
+</head>
+<body>${buildMaterialsPDFHTML(ev)}</body>
+</html>`)
+  doc.close()
+
+  // Esperar a que el browser renderice el contenido del iframe
+  await new Promise(resolve => setTimeout(resolve, 600))
+
+  try {
+    await window.html2pdf().set({
+      margin:      [10, 10, 10, 10],
+      filename,
+      image:       { type: 'jpeg', quality: 0.98 },
+      html2canvas: {
+        scale:       2,
+        useCORS:     true,
+        allowTaint:  true,
+        logging:     false,
+        windowWidth: 820,
+      },
+      jsPDF:     { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+    }).from(doc.body).save()
+    try { await patchQuotation(ev.id, { planillaEjecucion: true }) } catch { /* non-critical */ }
+  } finally {
+    document.body.removeChild(iframe)
+    pdfGenerating.value = null
   }
 }
 </script>
@@ -868,6 +1056,35 @@ async function saveNote() {
   cursor: pointer;
 }
 .mont-modal-save:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.mont-pdf-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1.5px solid #E2E8F0;
+  background: #fff;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.mont-pdf-btn:hover:not(:disabled) {
+  border-color: #054EAF;
+  color: #054EAF;
+  background: #EFF6FF;
+}
+.mont-pdf-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.mont-pdf-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #CBD5E1;
+  border-top-color: #054EAF;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
 
 /* Transitions */
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }

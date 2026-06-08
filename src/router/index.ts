@@ -138,6 +138,12 @@ const routes = [
         meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
       },
       {
+        path: 'operativa/checkins/admin',
+        name: 'AspectosAdmin',
+        component: () => import('../views/operativa/AspectosAdmin.vue'),
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR'] },
+      },
+      {
         path: 'operativa/inventario',
         name: 'Inventario',
         component: () => import('../views/operativa/Inventario.vue'),

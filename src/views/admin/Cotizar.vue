@@ -912,7 +912,7 @@
           </button>
           <button
             class="px-[18px] py-[9px] text-[13px] font-semibold bg-primary text-white rounded-[8px] shadow-[var(--shadow-btn)] hover:bg-primary-dark transition"
-            @click="push('/admin/ver-cotizaciones')"
+            @click="push({ path: '/admin/ver-cotizaciones', query: { id: quotationId } })"
           >
             Ver cotizaciones
           </button>

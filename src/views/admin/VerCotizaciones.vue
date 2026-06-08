@@ -2,7 +2,7 @@
 import { ref, onMounted, computed, nextTick } from "vue";
 import { getQuotations, getQuotationById } from "../../services/quotation.service";
 import Badge from "../../components/badge/Badge.vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { cancelReservation, confirmReservation } from "../../services/reservation.service";
 import BaseTable from "../../components/ui/BaseTable.vue";
 import CollaboratorsManager from "./components/CollaboratorsManager.vue";
@@ -10,6 +10,7 @@ import QuotationPDF from "../../components/quotation/QuotationPDF.vue";
 import { ChevronDown, Eye, CheckCircle, XCircle, FileText, Inbox, Users, Download, X, Printer } from 'lucide-vue-next';
 
 const { push } = useRouter();
+const route    = useRoute();
 
 const quotations = ref([]);
 const isModalOpen = ref(false);
@@ -96,8 +97,14 @@ const loadQuotations = async () => {
   }
 };
 
-onMounted(() => {
-  loadQuotations();
+onMounted(async () => {
+  await loadQuotations();
+  const targetId = route.query.id;
+  if (targetId) {
+    expandedRow.value = targetId;
+    await nextTick();
+    document.getElementById(`row-${targetId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 });
 
 // ----------------------
@@ -341,7 +348,7 @@ const toggleRow = (id) => {
             <template v-for="(q, index) in filteredQuotations" :key="q.id">
 
               <!-- ── Fila principal ── -->
-              <tr class="vc-row" @click="toggleRow(q.id)">
+              <tr :id="`row-${q.id}`" class="vc-row" @click="toggleRow(q.id)">
 
                 <!-- Toggle chevron -->
                 <td class="vc-td vc-td-center">
