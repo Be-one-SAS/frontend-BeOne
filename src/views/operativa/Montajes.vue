@@ -72,6 +72,9 @@
               />
             </div>
             <span class="mont-progress-label">{{ ev.progress.completados }}/{{ ev.progress.total }}</span>
+            <span v-if="ev.despachado" class="mont-dispatched-badge">
+              <Truck :size="11" /> Despachado
+            </span>
             <button
               class="mont-pdf-btn"
               :disabled="pdfGenerating === ev.id"
@@ -235,6 +238,17 @@
           >
             No hay items en esta categoría
           </div>
+
+          <!-- Dispatch action -->
+          <button
+            :class="['mont-dispatch-btn', { dispatched: ev.despachado }]"
+            :disabled="dispatchSaving.has(ev.id)"
+            @click.stop="toggleDispatch(ev)"
+          >
+            <Truck :size="15" />
+            <span>{{ ev.despachado ? 'Despachado en vehículo' : 'Despachar en vehículo' }}</span>
+            <Check v-if="ev.despachado" :size="13" class="mont-dispatch-check" />
+          </button>
         </div>
       </div>
     </div>
@@ -296,7 +310,8 @@ const noteModal = ref({
   saving: false,
 })
 
-const pdfGenerating = ref(null)
+const pdfGenerating  = ref(null)
+const dispatchSaving = ref(new Set())
 
 async function load() {
   loading.value = true
@@ -443,6 +458,24 @@ async function saveNote() {
     // keep modal open
   } finally {
     noteModal.value.saving = false
+  }
+}
+
+async function toggleDispatch(ev) {
+  if (dispatchSaving.value.has(ev.id)) return
+  const newVal = !ev.despachado
+  ev.despachado = newVal
+  const s = new Set(dispatchSaving.value)
+  s.add(ev.id)
+  dispatchSaving.value = s
+  try {
+    await patchQuotation(ev.id, { despachado: newVal })
+  } catch {
+    ev.despachado = !newVal
+  } finally {
+    const s2 = new Set(dispatchSaving.value)
+    s2.delete(ev.id)
+    dispatchSaving.value = s2
   }
 }
 
@@ -1084,6 +1117,58 @@ async function downloadMaterialsPDF(ev) {
   border-top-color: #054EAF;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
+}
+
+/* Dispatch button */
+.mont-dispatch-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 11px 16px;
+  border-radius: 12px;
+  border: 1.5px solid #CBD5E1;
+  background: #F8FAFC;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+.mont-dispatch-btn:hover:not(:disabled) {
+  border-color: #0EA5E9;
+  color: #0369A1;
+  background: #F0F9FF;
+}
+.mont-dispatch-btn.dispatched {
+  background: #F0FDF4;
+  border-color: #86EFAC;
+  color: #16A34A;
+}
+.mont-dispatch-btn.dispatched:hover:not(:disabled) {
+  background: #DCFCE7;
+  border-color: #4ADE80;
+}
+.mont-dispatch-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.mont-dispatch-check { margin-left: auto; }
+
+/* Dispatched badge in event header */
+.mont-dispatched-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #16A34A;
+  background: #F0FDF4;
+  border: 1px solid #86EFAC;
+  padding: 3px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
 }
 
 /* Transitions */

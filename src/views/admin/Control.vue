@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import {
   ClipboardCheck, ClipboardX, ChevronDown, Search,
-  Loader2, CheckCircle2, Users, Activity
+  Loader2, CheckCircle2, Users, Activity, Truck
 } from 'lucide-vue-next'
 import { useControl } from '@/composables/useControl'
 import OperationalListModal from '@/components/quotation/OperationalListModal.vue'
@@ -278,6 +278,7 @@ onMounted(async () => {
               <th class="vc-th vc-th-center" style="width:52px" title="Encuesta">Enc.</th>
               <th class="vc-th vc-th-center" style="width:52px" title="Registro Fotográfico">Foto</th>
               <th class="vc-th vc-th-center" style="width:52px" title="Listado de Material">Mat.</th>
+              <th class="vc-th vc-th-center" style="width:52px" title="Despachado en vehículo">Desp.</th>
               <th class="vc-th vc-th-center" style="width:52px" title="Planilla de Ejecución">Plan.</th>
               <th class="vc-th vc-th-center" style="width:62px" title="Evento Finalizado">Final.</th>
               <th class="vc-th vc-th-center" style="width:40px" title="Lista Operativa">
@@ -431,6 +432,14 @@ onMounted(async () => {
                   </button>
                 </td>
 
+                <!-- Despachado -->
+                <td class="vc-td vc-td-center" @click.stop>
+                  <span v-if="ev.despachado" class="ctrl-dispatch-badge">
+                    <Truck :size="11" />
+                  </span>
+                  <span v-else class="ctrl-dispatch-empty">—</span>
+                </td>
+
                 <!-- Planilla -->
                 <td class="vc-td vc-td-center" @click.stop>
                   <button
@@ -480,7 +489,7 @@ onMounted(async () => {
 
               <!-- ── Fila expandida ── -->
               <tr class="vc-exp-tr">
-                <td :colspan="17" class="vc-exp-td">
+                <td :colspan="18" class="vc-exp-td">
                   <div
                     class="vc-exp-panel"
                     :class="{ 'vc-exp-open': expandedRow === ev.id }"
@@ -950,6 +959,24 @@ onMounted(async () => {
 
 /* Dense table override */
 .ctrl-table .vc-td { padding: 9px 12px; }
+
+/* Dispatch badge */
+.ctrl-dispatch-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: #F0FDF4;
+  color: #16A34A;
+  border: 1.5px solid #86EFAC;
+}
+.ctrl-dispatch-empty {
+  font-size: 13px;
+  color: #CBD5E1;
+  font-weight: 400;
+}
 
 /* Third-party item pill */
 .ctrl-item-pill--third {
