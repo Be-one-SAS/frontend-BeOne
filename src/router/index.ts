@@ -217,6 +217,12 @@ const routes = [
         component: () => import('../views/administracion/AdminReportes.vue'),
         meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
       },
+      {
+        path: 'administracion/ordenes-compra',
+        name: 'AdminOrdenesCompra',
+        component: () => import('../views/administracion/AdminOrdenesCompra.vue'),
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
+      },
 
       // ── Usuarios ───────────────────────────────────────
       {

@@ -72,7 +72,10 @@
               />
             </div>
             <span class="mont-progress-label">{{ ev.progress.completados }}/{{ ev.progress.total }}</span>
-            <span v-if="ev.despachado" class="mont-dispatched-badge">
+            <span v-if="ev.retorno" class="mont-dispatched-badge mont-dispatched-badge--retorno">
+              <CornerDownLeft :size="11" /> Retorno
+            </span>
+            <span v-else-if="ev.despachado" class="mont-dispatched-badge">
               <Truck :size="11" /> Despachado
             </span>
             <button
@@ -239,16 +242,90 @@
             No hay items en esta categoría
           </div>
 
-          <!-- Dispatch action -->
-          <button
-            :class="['mont-dispatch-btn', { dispatched: ev.despachado }]"
-            :disabled="dispatchSaving.has(ev.id)"
-            @click.stop="toggleDispatch(ev)"
-          >
-            <Truck :size="15" />
-            <span>{{ ev.despachado ? 'Despachado en vehículo' : 'Despachar en vehículo' }}</span>
-            <Check v-if="ev.despachado" :size="13" class="mont-dispatch-check" />
-          </button>
+          <!-- Notas Operativo + Logístico -->
+          <NotasCotizacionPanel
+            :quotationId="ev.id"
+            :areasFiltro="['Operativo', 'Logístico']"
+          />
+
+          <!-- Despacho / Retorno -->
+          <div class="mont-vehicle-row">
+
+            <!-- PASO 1: Despacho -->
+            <div class="mont-vstep" :class="{ 'mont-vstep--done': ev.despachado }">
+              <!-- Estado: HECHO -->
+              <div v-if="ev.despachado" class="mont-vstep-done">
+                <span class="mont-vstep-done-icon"><Check :size="13" stroke-width="3" /></span>
+                <div class="mont-vstep-done-text">
+                  <span class="mont-vstep-done-label">Despachado</span>
+                  <span class="mont-vstep-done-sub">Vehículo en camino</span>
+                </div>
+                <button
+                  class="mont-vstep-undo"
+                  :disabled="vehicleSaving.has(ev.id)"
+                  @click.stop="toggleVehicleField(ev, 'despachado')"
+                  title="Deshacer despacho"
+                >
+                  <CornerUpLeft :size="12" />
+                </button>
+              </div>
+
+              <!-- Estado: PENDIENTE -->
+              <button
+                v-else
+                class="mont-vstep-action"
+                :disabled="vehicleSaving.has(ev.id)"
+                @click.stop="toggleVehicleField(ev, 'despachado')"
+              >
+                <Truck :size="15" />
+                <span>Registrar despacho</span>
+              </button>
+            </div>
+
+            <!-- Conector -->
+            <ChevronRight :size="16" class="mont-vconnector" :class="{ active: ev.despachado }" />
+
+            <!-- PASO 2: Retorno -->
+            <div class="mont-vstep" :class="{
+              'mont-vstep--done':   ev.retorno,
+              'mont-vstep--locked': !ev.despachado,
+            }">
+              <!-- Estado: HECHO -->
+              <div v-if="ev.retorno" class="mont-vstep-done mont-vstep-done--green">
+                <span class="mont-vstep-done-icon"><Check :size="13" stroke-width="3" /></span>
+                <div class="mont-vstep-done-text">
+                  <span class="mont-vstep-done-label">Retornado</span>
+                  <span class="mont-vstep-done-sub">Vehículo de regreso</span>
+                </div>
+                <button
+                  class="mont-vstep-undo"
+                  :disabled="vehicleSaving.has(ev.id)"
+                  @click.stop="toggleVehicleField(ev, 'retorno')"
+                  title="Deshacer retorno"
+                >
+                  <CornerUpLeft :size="12" />
+                </button>
+              </div>
+
+              <!-- Estado: PENDIENTE (habilitado) -->
+              <button
+                v-else-if="ev.despachado"
+                class="mont-vstep-action mont-vstep-action--retorno"
+                :disabled="vehicleSaving.has(ev.id)"
+                @click.stop="toggleVehicleField(ev, 'retorno')"
+              >
+                <CornerDownLeft :size="15" />
+                <span>Registrar retorno</span>
+              </button>
+
+              <!-- Estado: BLOQUEADO -->
+              <div v-else class="mont-vstep-blocked">
+                <CornerDownLeft :size="14" />
+                <span>Retorno</span>
+              </div>
+            </div>
+
+          </div>
         </div>
       </div>
     </div>
@@ -282,12 +359,13 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import {
-  RefreshCw, Search, AlertCircle, PackageCheck, ChevronDown,
+  RefreshCw, Search, AlertCircle, PackageCheck, ChevronDown, ChevronRight,
   Calendar, FileText, Package, Truck, Layers, Check, MessageSquare,
-  Users, Download,
+  Users, Download, CornerDownLeft, CornerUpLeft,
 } from 'lucide-vue-next'
 import { getMontajes, upsertCheck } from '@/services/montajes.service.js'
 import { patchQuotation } from '@/services/quotation.service.ts'
+import NotasCotizacionPanel from '@/components/quotation/NotasCotizacionPanel.vue'
 
 const TABS = [
   { value: 'all',       label: 'Todos' },
@@ -311,7 +389,7 @@ const noteModal = ref({
 })
 
 const pdfGenerating  = ref(null)
-const dispatchSaving = ref(new Set())
+const vehicleSaving  = ref(new Set())
 
 async function load() {
   loading.value = true
@@ -461,21 +539,34 @@ async function saveNote() {
   }
 }
 
-async function toggleDispatch(ev) {
-  if (dispatchSaving.value.has(ev.id)) return
-  const newVal = !ev.despachado
-  ev.despachado = newVal
-  const s = new Set(dispatchSaving.value)
+async function toggleVehicleField(ev, field) {
+  if (vehicleSaving.value.has(ev.id)) return
+  // Retorno requiere despacho previo
+  if (field === 'retorno' && !ev.despachado) return
+
+  const newVal = !ev[field]
+  const patch  = { [field]: newVal }
+
+  // Si se des-activa despacho, también se limpia retorno
+  if (field === 'despachado' && !newVal && ev.retorno) {
+    ev.retorno = false
+    patch.retorno = false
+  }
+
+  ev[field] = newVal
+
+  const s = new Set(vehicleSaving.value)
   s.add(ev.id)
-  dispatchSaving.value = s
+  vehicleSaving.value = s
   try {
-    await patchQuotation(ev.id, { despachado: newVal })
+    await patchQuotation(ev.id, patch)
   } catch {
-    ev.despachado = !newVal
+    ev[field] = !newVal
+    if (patch.retorno === false) ev.retorno = true
   } finally {
-    const s2 = new Set(dispatchSaving.value)
+    const s2 = new Set(vehicleSaving.value)
     s2.delete(ev.id)
-    dispatchSaving.value = s2
+    vehicleSaving.value = s2
   }
 }
 
@@ -1120,40 +1211,154 @@ async function downloadMaterialsPDF(ev) {
 }
 
 /* Dispatch button */
-.mont-dispatch-btn {
+/* ── Fila de vehículo — sistema de pasos ── */
+.mont-vehicle-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+/* Cada paso ocupa la mitad disponible */
+.mont-vstep {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Conector entre pasos */
+.mont-vconnector {
+  color: #D1D5DB;
+  flex-shrink: 0;
+  align-self: center;
+  transition: color 0.2s;
+}
+.mont-vconnector.active { color: #3B82F6; }
+
+/* ── Botón de acción (estado pendiente) ── */
+.mont-vstep-action {
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 7px;
-  width: 100%;
-  margin-top: 14px;
-  padding: 11px 16px;
+  padding: 11px 14px;
   border-radius: 12px;
-  border: 1.5px solid #CBD5E1;
-  background: #F8FAFC;
+  border: 1.5px dashed #D1D5DB;
+  background: #FAFAFA;
   font-size: 13px;
   font-weight: 600;
-  color: #64748B;
+  color: #6B7280;
   cursor: pointer;
-  transition: all 0.2s;
   font-family: 'Inter', sans-serif;
+  transition: all 0.18s ease;
 }
-.mont-dispatch-btn:hover:not(:disabled) {
-  border-color: #0EA5E9;
-  color: #0369A1;
-  background: #F0F9FF;
+.mont-vstep-action:hover:not(:disabled) {
+  border-color: #3B82F6;
+  border-style: solid;
+  background: #EFF6FF;
+  color: #1D4ED8;
 }
-.mont-dispatch-btn.dispatched {
+.mont-vstep-action:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Variante retorno (verde) */
+.mont-vstep-action--retorno:hover:not(:disabled) {
+  border-color: #22C55E;
+  background: #F0FDF4;
+  color: #15803D;
+}
+
+/* ── Estado HECHO ── */
+.mont-vstep-done {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #EFF6FF;
+  border: 1.5px solid #93C5FD;
+}
+/* Variante verde para retorno */
+.mont-vstep-done--green {
   background: #F0FDF4;
   border-color: #86EFAC;
-  color: #16A34A;
 }
-.mont-dispatch-btn.dispatched:hover:not(:disabled) {
-  background: #DCFCE7;
-  border-color: #4ADE80;
+
+.mont-vstep-done-icon {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: #3B82F6;
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
 }
-.mont-dispatch-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-.mont-dispatch-check { margin-left: auto; }
+.mont-vstep-done--green .mont-vstep-done-icon {
+  background: #22C55E;
+}
+
+.mont-vstep-done-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.mont-vstep-done-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1D4ED8;
+  font-family: 'Inter', sans-serif;
+  white-space: nowrap;
+}
+.mont-vstep-done--green .mont-vstep-done-label { color: #15803D; }
+
+.mont-vstep-done-sub {
+  font-size: 10px;
+  font-weight: 500;
+  color: #60A5FA;
+  font-family: 'Inter', sans-serif;
+  white-space: nowrap;
+}
+.mont-vstep-done--green .mont-vstep-done-sub { color: #4ADE80; }
+
+/* Botón de deshacer (pequeño, discreto) */
+.mont-vstep-undo {
+  width: 26px; height: 26px;
+  border-radius: 8px;
+  border: 1px solid #BFDBFE;
+  background: transparent;
+  color: #93C5FD;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.mont-vstep-undo:hover:not(:disabled) {
+  background: #DBEAFE;
+  color: #1D4ED8;
+  border-color: #93C5FD;
+}
+.mont-vstep-done--green .mont-vstep-undo { border-color: #86EFAC; color: #4ADE80; }
+.mont-vstep-done--green .mont-vstep-undo:hover:not(:disabled) {
+  background: #DCFCE7; color: #15803D; border-color: #4ADE80;
+}
+.mont-vstep-undo:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Estado BLOQUEADO ── */
+.mont-vstep-blocked {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1.5px dashed #E5E7EB;
+  background: #F9FAFB;
+  font-size: 13px;
+  font-weight: 600;
+  color: #D1D5DB;
+  font-family: 'Inter', sans-serif;
+  cursor: not-allowed;
+}
 
 /* Dispatched badge in event header */
 .mont-dispatched-badge {
@@ -1162,13 +1367,18 @@ async function downloadMaterialsPDF(ev) {
   gap: 4px;
   font-size: 10px;
   font-weight: 700;
-  color: #16A34A;
-  background: #F0FDF4;
-  border: 1px solid #86EFAC;
+  color: #1D4ED8;
+  background: #EFF6FF;
+  border: 1px solid #93C5FD;
   padding: 3px 8px;
   border-radius: 20px;
   white-space: nowrap;
   letter-spacing: 0.2px;
+}
+.mont-dispatched-badge--retorno {
+  color: #15803D;
+  background: #F0FDF4;
+  border-color: #86EFAC;
 }
 
 /* Transitions */

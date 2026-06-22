@@ -702,6 +702,71 @@
                 @update:descuentoPct="cotizacion.descuentoPct = $event"
               />
 
+              <!-- Card: Notas de la cotización -->
+              <div class="form-card">
+                <div class="section-header">
+                  <StickyNote :size="18" class="icon-primary" />
+                  <span>Notas</span>
+                  <span v-if="notas.length" class="item-count-badge">{{ notas.length }}</span>
+                </div>
+
+                <!-- Lista de notas existentes (solo en modo edición) -->
+                <div v-if="id && notas.length" class="notas-list">
+                  <div v-for="nota in notas" :key="nota.id" class="nota-row">
+                    <div class="nota-area-badge" :data-area="nota.area">{{ nota.area }}</div>
+                    <p class="nota-contenido">{{ nota.contenido }}</p>
+                    <div class="nota-meta">
+                      <span class="nota-fecha">{{ formatDate(nota.createdAt) }}</span>
+                      <button class="nota-delete-btn" @click="eliminarNota(nota.id)" title="Eliminar nota">
+                        <Trash2 :size="13" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-else-if="id && !notas.length" class="notas-empty">
+                  <StickyNote :size="28" class="notas-empty-ico" />
+                  <p>Sin notas registradas</p>
+                </div>
+
+                <div v-if="!id" class="notas-empty">
+                  <StickyNote :size="28" class="notas-empty-ico" />
+                  <p>Guarda primero la cotización para agregar notas</p>
+                </div>
+
+                <!-- Formulario para agregar nota (solo en modo edición) -->
+                <div v-if="id" class="nota-form">
+                  <div class="nota-form-row">
+                    <div class="field-wrap" style="flex: 1;">
+                      <label class="field-lbl">Área</label>
+                      <select v-model="notaNueva.area" class="field-sel">
+                        <option value="" disabled>Seleccionar área…</option>
+                        <option v-for="area in AREAS_NOTA" :key="area" :value="area">{{ area }}</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="nota-form-row">
+                    <div class="field-wrap" style="flex: 1;">
+                      <label class="field-lbl">Contenido</label>
+                      <textarea
+                        v-model="notaNueva.contenido"
+                        class="nota-textarea"
+                        placeholder="Escribe una nota…"
+                        rows="3"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    class="nota-add-btn"
+                    @click="agregarNota"
+                    :disabled="!notaNueva.contenido.trim() || !notaNueva.area || notaGuardando"
+                  >
+                    <Plus :size="14" />
+                    {{ notaGuardando ? 'Guardando…' : 'Agregar nota' }}
+                  </button>
+                </div>
+              </div>
+
             </div>
 
             <!-- Columna derecha sticky (40%) -->
@@ -896,16 +961,57 @@
 
     <!-- Modal: cotización creada exitosamente -->
     <ModalReutilizable :show="modalCotizacionExitosa" @close="modalCotizacionExitosa = false">
-      <div class="text-center p-6">
-        <h2 class="text-[16px] font-bold text-[#16A34A] mb-4 font-['Plus_Jakarta_Sans',sans-serif]">
-          Cotización creada exitosamente
-        </h2>
-        <p class="text-[13px] text-text-2 mb-6">
-          La cotización se creó de manera exitosa.
-        </p>
-        <div class="flex justify-center gap-4">
+      <div class="modal-exitosa">
+        <!-- Encabezado -->
+        <div class="modal-exitosa-header">
+          <div class="modal-exitosa-icon">
+            <CheckCircle2 :size="28" />
+          </div>
+          <h2 class="modal-exitosa-title">Cotización creada exitosamente</h2>
+          <p class="modal-exitosa-sub">Puedes agregar notas antes de continuar.</p>
+        </div>
+
+        <!-- Lista de notas agregadas en el modal -->
+        <div v-if="notasModal.length" class="modal-notas-list">
+          <div v-for="n in notasModal" :key="n.id" class="nota-row">
+            <div class="nota-area-badge" :data-area="n.area">{{ n.area }}</div>
+            <p class="nota-contenido">{{ n.contenido }}</p>
+          </div>
+        </div>
+
+        <!-- Formulario de nota -->
+        <div class="modal-nota-form">
+          <div class="field-wrap">
+            <label class="field-lbl">Área</label>
+            <select v-model="notaModal.area" class="field-sel">
+              <option value="" disabled>Seleccionar área…</option>
+              <option v-for="area in AREAS_NOTA" :key="area" :value="area">{{ area }}</option>
+            </select>
+          </div>
+          <div class="field-wrap">
+            <label class="field-lbl">Nota</label>
+            <textarea
+              v-model="notaModal.contenido"
+              class="nota-textarea"
+              placeholder="Escribe una nota…"
+              rows="3"
+            />
+          </div>
           <button
-            class="px-[18px] py-[9px] text-[13px] font-semibold bg-primary-light text-primary border border-[#BFDBFE] rounded-[8px] hover:bg-[#DBEAFE] transition"
+            class="nota-add-btn"
+            style="width: 100%;"
+            @click="agregarNotaModal"
+            :disabled="!notaModal.contenido.trim() || !notaModal.area || notaModalGuardando"
+          >
+            <Plus :size="14" />
+            {{ notaModalGuardando ? 'Guardando…' : 'Agregar nota' }}
+          </button>
+        </div>
+
+        <!-- Acciones -->
+        <div class="modal-exitosa-actions">
+          <button
+            class="px-[18px] py-[9px] text-[13px] font-semibold bg-[#F1F5F9] text-[#64748B] border border-[#E5EAF0] rounded-[8px] hover:bg-[#E5EAF0] transition"
             @click="modalCotizacionExitosa = false"
           >
             Cerrar
@@ -979,7 +1085,15 @@ import {
   ReceiptText,
   Loader2,
   CheckCircle2,
+  StickyNote,
 } from 'lucide-vue-next'
+
+import {
+  AREAS_NOTA,
+  createNotaCotizacion,
+  getNotasByCotizacion,
+  deleteNotaCotizacion,
+} from '../../services/nota-cotizacion.service'
 
 // ── Lógica original — NO modificar ─────────────────────────────────────────
 const route = useRoute();
@@ -1511,6 +1625,81 @@ const duracionMontaje = computed(() => {
   ) + 1
   if (isNaN(diff) || diff < 1) return null
   return `${diff} ${diff === 1 ? 'día' : 'días'}`
+})
+
+// ── Notas de la cotización ──────────────────────────────────────────────────
+const notas = ref([])
+const notaGuardando = ref(false)
+const notaNueva = ref({ contenido: '', area: '' })
+
+const cargarNotas = async () => {
+  if (!id) return
+  try {
+    notas.value = await getNotasByCotizacion(Number(id))
+  } catch (e) {
+    console.error('[Cotizar] Error cargando notas:', e)
+  }
+}
+
+const agregarNota = async () => {
+  if (!notaNueva.value.contenido.trim() || !notaNueva.value.area) return
+  notaGuardando.value = true
+  try {
+    await createNotaCotizacion({
+      contenido: notaNueva.value.contenido.trim(),
+      area: notaNueva.value.area,
+      cotizacionId: Number(id),
+    })
+    notaNueva.value = { contenido: '', area: '' }
+    await cargarNotas()
+  } catch (e) {
+    console.error('[Cotizar] Error al agregar nota:', e)
+  } finally {
+    notaGuardando.value = false
+  }
+}
+
+const eliminarNota = async (notaId) => {
+  if (!confirm('¿Eliminar esta nota?')) return
+  try {
+    await deleteNotaCotizacion(notaId)
+    notas.value = notas.value.filter((n) => n.id !== notaId)
+  } catch (e) {
+    console.error('[Cotizar] Error al eliminar nota:', e)
+  }
+}
+
+onMounted(cargarNotas)
+
+// ── Notas dentro del modal de creación exitosa ──────────────────────────────
+const notasModal = ref([])
+const notaModalGuardando = ref(false)
+const notaModal = ref({ contenido: '', area: '' })
+
+const agregarNotaModal = async () => {
+  if (!notaModal.value.contenido.trim() || !notaModal.value.area) return
+  notaModalGuardando.value = true
+  try {
+    const creada = await createNotaCotizacion({
+      contenido: notaModal.value.contenido.trim(),
+      area: notaModal.value.area,
+      cotizacionId: Number(quotationId.value),
+    })
+    notasModal.value.push(creada)
+    notaModal.value = { contenido: '', area: '' }
+  } catch (e) {
+    console.error('[Cotizar] Error al agregar nota en modal:', e)
+  } finally {
+    notaModalGuardando.value = false
+  }
+}
+
+// Limpia el estado del modal de notas cuando se abre
+watch(modalCotizacionExitosa, (val) => {
+  if (val) {
+    notasModal.value = []
+    notaModal.value = { contenido: '', area: '' }
+  }
 })
 </script>
 
@@ -2961,5 +3150,216 @@ const duracionMontaje = computed(() => {
   text-align: right;
   font-family: 'Inter', sans-serif;
   white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NOTAS DE COTIZACIÓN
+═══════════════════════════════════════════════════════════ */
+.notas-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.nota-row {
+  background: #F8FAFC;
+  border: 1px solid #E5EAF0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nota-area-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 10px;
+  border-radius: 99px;
+  width: fit-content;
+  font-family: 'Inter', sans-serif;
+}
+.nota-area-badge[data-area="Comercial"]       { background: #DBEAFE; color: #1D4ED8; }
+.nota-area-badge[data-area="Operativo"]       { background: #D1FAE5; color: #065F46; }
+.nota-area-badge[data-area="Administrativo"]  { background: #FEF3C7; color: #92400E; }
+.nota-area-badge[data-area="Logístico"]       { background: #EDE9FE; color: #5B21B6; }
+
+.nota-contenido {
+  font-size: 13px;
+  color: #374151;
+  font-family: 'Inter', sans-serif;
+  line-height: 1.5;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.nota-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.nota-fecha {
+  font-size: 11px;
+  color: #94A3B8;
+  font-family: 'Inter', sans-serif;
+}
+
+.nota-delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #CBD5E1;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+.nota-delete-btn:hover {
+  color: #B91C1C;
+  background: #FEE2E2;
+}
+
+.notas-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 24px 0 16px;
+  color: #94A3B8;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+}
+.notas-empty-ico { color: #CBD5E1; }
+
+.nota-form {
+  border-top: 1px solid #EEF1F7;
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.nota-form-row {
+  display: flex;
+  gap: 10px;
+}
+
+.nota-textarea {
+  width: 100%;
+  background: #F8FAFC;
+  border: 1px solid #E5EAF0;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #0F1A2E;
+  font-family: 'Inter', sans-serif;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  line-height: 1.5;
+}
+.nota-textarea:focus {
+  border-color: #054EAF;
+  box-shadow: 0 0 0 2px rgba(5, 78, 175, 0.12);
+}
+.nota-textarea::placeholder { color: #94A3B8; }
+
+.nota-add-btn {
+  align-self: flex-end;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  background: #054EAF;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+.nota-add-btn:hover:not(:disabled) { background: #03368A; }
+.nota-add-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ═══════════════════════════════════════════════════════════
+   MODAL COTIZACIÓN EXITOSA
+═══════════════════════════════════════════════════════════ */
+.modal-exitosa {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 8px;
+  min-width: 360px;
+  max-width: 480px;
+}
+
+.modal-exitosa-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.modal-exitosa-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #DCFCE7;
+  color: #16A34A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-exitosa-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #16A34A;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  margin: 0;
+}
+
+.modal-exitosa-sub {
+  font-size: 13px;
+  color: #64748B;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+}
+
+.modal-notas-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.modal-nota-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #F8FAFC;
+  border: 1px solid #E5EAF0;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.modal-exitosa-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+  border-top: 1px solid #EEF1F7;
 }
 </style>

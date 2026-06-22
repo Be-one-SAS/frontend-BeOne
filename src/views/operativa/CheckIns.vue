@@ -11,6 +11,10 @@
           <button class="chk-refresh-btn" :disabled="loading" @click="loadCheckins">
             <RefreshCw :size="16" :class="{ spin: loading }" />
           </button>
+          <button class="chk-checklists-btn" @click="openChecklistsView">
+            <ClipboardList :size="16" />
+            Checklists
+          </button>
           <button class="chk-new-btn" @click="openQuotationPicker">
             <Plus :size="16" />
             Nuevo check-in
@@ -177,6 +181,31 @@
           </div>
         </div>
 
+        <!-- ── Lista de chequeo por juego (solo lectura) ── -->
+        <div v-if="detailChecklistJuegos.length > 0" class="chk-card chk-checklist-section">
+          <div class="chk-section-header"><ClipboardList :size="15" /> Lista de chequeo por juego</div>
+          <div class="chk-juegos-grid">
+            <div v-for="juego in detailChecklistJuegos" :key="juego.id" class="chk-juego-card chk-juego-card--readonly">
+              <div class="chk-juego-header">
+                <div class="chk-juego-icon">
+                  <Package :size="14" />
+                </div>
+                <div class="chk-juego-meta">
+                  <span class="chk-juego-name">{{ juego.nombre }}</span>
+                  <span v-if="juego.qty > 1" class="chk-juego-qty">x{{ juego.qty }}</span>
+                </div>
+                <span class="chk-juego-required-badge">Requerido</span>
+              </div>
+              <div class="chk-puntos-list chk-puntos-readonly">
+                <div v-for="asp in aspectosChecklist" :key="asp.id" class="chk-punto-row-ro">
+                  <span class="chk-punto-ro-dot" />
+                  <span class="chk-punto-ro-label">{{ asp.texto }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- ── Aspectos de inspección ── -->
         <div v-if="selected.aspectosInspeccion?.length" class="chk-card">
           <div class="chk-section-header"><ClipboardList :size="15" /> Aspectos de inspección</div>
@@ -236,6 +265,179 @@
         </div>
 
       </template>
+    </template>
+
+    <!-- ══════════════════════════════════════════
+         MODO: CHECKLISTS POR EVENTO
+    ══════════════════════════════════════════ -->
+    <template v-else-if="view === 'checklists'">
+      <!-- Header fijo tipo app móvil -->
+      <div class="ckv-header">
+        <button class="ckv-back" @click="view = 'list'">
+          <ArrowLeft :size="18" />
+        </button>
+        <div class="ckv-header-text">
+          <span class="ckv-header-title">Checklists</span>
+          <span class="ckv-header-sub">por evento</span>
+        </div>
+        <div class="ckv-legend">
+          <span class="ckv-dot ckv-dot--blue" />
+          <span class="ckv-dot ckv-dot--green" />
+          <span class="ckv-dot ckv-dot--gray" />
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div v-if="quotationsLoading" class="ckv-empty">
+        <div class="chk-spinner" />
+        <span>Cargando eventos...</span>
+      </div>
+
+      <!-- Vacío -->
+      <div v-else-if="filteredApprovedQuotations.length === 0" class="ckv-empty">
+        <ClipboardList :size="48" color="#CBD5E1" />
+        <p>No hay eventos aprobados disponibles</p>
+      </div>
+
+      <!-- Lista de eventos -->
+      <div v-else class="ckv-list">
+        <div
+          v-for="qt in filteredApprovedQuotations"
+          :key="qt.id"
+          class="ckv-card"
+        >
+          <!-- Cabecera del evento con barra de progreso -->
+          <div class="ckv-card-header">
+            <div class="ckv-card-info">
+              <span class="ckv-card-num">COT-{{ qt.numero }}</span>
+              <span class="ckv-card-empresa">{{ qt.empresa }}</span>
+            </div>
+            <div class="ckv-card-stats">
+              <!-- Cuenta cuántos juegos con checklist están completos -->
+              <span class="ckv-stat-done">
+                {{ getAllJuegosForQt(qt).filter(j => j.requiereChecklist && isChecklistDone(j.id)).length }}
+              </span>
+              <span class="ckv-stat-sep">/</span>
+              <span class="ckv-stat-total">
+                {{ getAllJuegosForQt(qt).filter(j => j.requiereChecklist).length }}
+              </span>
+              <span class="ckv-stat-label">listos</span>
+            </div>
+          </div>
+
+          <!-- Barra de progreso del evento -->
+          <div class="ckv-evt-bar-bg">
+            <div
+              class="ckv-evt-bar-fill"
+              :style="{
+                width: getAllJuegosForQt(qt).filter(j => j.requiereChecklist).length > 0
+                  ? (getAllJuegosForQt(qt).filter(j => j.requiereChecklist && isChecklistDone(j.id)).length /
+                     getAllJuegosForQt(qt).filter(j => j.requiereChecklist).length * 100) + '%'
+                  : '0%'
+              }"
+            />
+          </div>
+
+          <!-- Filas de juegos -->
+          <div class="ckv-juegos">
+            <div
+              v-for="juego in getAllJuegosForQt(qt)"
+              :key="juego.id"
+              class="ckv-jrow"
+              :class="{
+                'ckv-jrow--blue':  juego.requiereChecklist && !isChecklistDone(juego.id),
+                'ckv-jrow--green': juego.requiereChecklist && isChecklistDone(juego.id),
+                'ckv-jrow--gray':  !juego.requiereChecklist,
+              }"
+            >
+              <!-- Fila principal: toca para expandir -->
+              <component
+                :is="juego.requiereChecklist ? 'button' : 'div'"
+                class="ckv-jrow-main"
+                v-bind="juego.requiereChecklist ? { type: 'button' } : {}"
+                @click="juego.requiereChecklist && toggleJuegoChecklist(juego.id)"
+              >
+                <!-- Icono de estado -->
+                <div class="ckv-jrow-icon">
+                  <Check v-if="juego.requiereChecklist && isChecklistDone(juego.id)" :size="16" stroke-width="3" />
+                  <ClipboardList v-else-if="juego.requiereChecklist" :size="16" />
+                  <Package v-else :size="16" />
+                </div>
+
+                <!-- Nombre del juego -->
+                <div class="ckv-jrow-body">
+                  <span class="ckv-jrow-nombre">{{ juego.nombre }}</span>
+                  <span v-if="juego.qty > 1" class="ckv-jrow-qty">× {{ juego.qty }} unidades</span>
+                </div>
+
+                <!-- Estado / Progreso -->
+                <div class="ckv-jrow-end">
+                  <template v-if="juego.requiereChecklist">
+                    <span
+                      class="ckv-jrow-badge"
+                      :class="isChecklistDone(juego.id) ? 'ckv-badge--green' : 'ckv-badge--blue'"
+                    >
+                      {{ isChecklistDone(juego.id)
+                        ? 'Listo'
+                        : `${getChecklistViewCount(juego.id)}/${aspectosChecklist.length}` }}
+                    </span>
+                    <ChevronRight
+                      :size="16"
+                      class="ckv-jrow-arrow"
+                      :class="{ open: activeJuegoId === juego.id }"
+                    />
+                  </template>
+                  <span v-else class="ckv-jrow-badge ckv-badge--gray">Sin lista</span>
+                </div>
+              </component>
+
+              <!-- Minibarra de progreso del juego (solo si requiere) -->
+              <div v-if="juego.requiereChecklist && !isChecklistDone(juego.id) && getChecklistViewCount(juego.id) > 0" class="ckv-jrow-minibar-bg">
+                <div
+                  class="ckv-jrow-minibar-fill"
+                  :style="{ width: (getChecklistViewCount(juego.id) / aspectosChecklist.length * 100) + '%' }"
+                />
+              </div>
+
+              <!-- Panel expandido del checklist -->
+              <div
+                v-if="juego.requiereChecklist && activeJuegoId === juego.id"
+                class="ckv-panel"
+              >
+                <div class="ckv-panel-header">
+                  <ClipboardList :size="14" />
+                  Aspectos a inspeccionar
+                  <span class="ckv-panel-count">
+                    {{ getChecklistViewCount(juego.id) }}/{{ aspectosChecklist.length }}
+                  </span>
+                </div>
+
+                <label
+                  v-for="(asp, idx) in aspectosChecklist"
+                  :key="asp.id"
+                  class="ckv-item"
+                  :class="{ 'ckv-item--checked': checklistViewState[juego.id]?.[idx] }"
+                >
+                  <span class="ckv-item-cb-wrap">
+                    <input
+                      type="checkbox"
+                      :checked="checklistViewState[juego.id]?.[idx]"
+                      @change="setChecklistPoint(juego.id, idx, $event.target.checked)"
+                      class="ckv-item-native"
+                    />
+                    <span class="ckv-item-cb" />
+                  </span>
+                  <span class="ckv-item-label">{{ asp.texto }}</span>
+                  <Check v-if="checklistViewState[juego.id]?.[idx]" :size="14" class="ckv-item-check-icon" />
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Espacio seguro al final para móvil -->
+      <div class="ckv-safe-bottom" />
     </template>
 
     <!-- ══════════════════════════════════════════
@@ -359,9 +561,12 @@
                 v-model="form.nombreCoordinador"
                 class="chk-select"
                 :class="{ 'chk-input-error': errors.nombreCoordinador }"
+                :disabled="coordsLoading"
               >
-                <option value="" disabled>Seleccionar coordinador</option>
-                <option v-for="c in COORDINADORES" :key="c" :value="c">{{ c }}</option>
+                <option value="" disabled>
+                  {{ coordsLoading ? 'Cargando coordinadores...' : 'Seleccionar coordinador' }}
+                </option>
+                <option v-for="c in coordOptions" :key="c" :value="c">{{ c }}</option>
               </select>
               <span v-if="errors.nombreCoordinador" class="chk-error-msg">{{ errors.nombreCoordinador }}</span>
             </div>
@@ -478,7 +683,68 @@
           </div>
         </div>
 
-        <!-- ── Sección 3: Aspectos a inspeccionar ── -->
+        <!-- ── Sección 3: Lista de chequeo por juego ── -->
+        <div v-if="checklistJuegos.length > 0" class="chk-card chk-checklist-section">
+          <div class="chk-section-header">
+            <ClipboardList :size="15" /> Lista de chequeo por juego
+          </div>
+
+          <div class="chk-juegos-grid">
+            <div
+              v-for="juego in checklistJuegos"
+              :key="juego.id"
+              class="chk-juego-card"
+              :class="{ 'chk-juego-card--done': isJuegoComplete(juego.id) }"
+            >
+              <!-- Cabecera del juego -->
+              <div class="chk-juego-header">
+                <div class="chk-juego-icon">
+                  <Package :size="14" />
+                </div>
+                <div class="chk-juego-meta">
+                  <span class="chk-juego-name">{{ juego.nombre }}</span>
+                  <span v-if="juego.qty > 1" class="chk-juego-qty">x{{ juego.qty }}</span>
+                </div>
+                <span class="chk-juego-count" :class="{ done: isJuegoComplete(juego.id) }">
+                  <Check v-if="isJuegoComplete(juego.id)" :size="11" stroke-width="3" />
+                  <template v-else>{{ getCheckedCount(juego.id) }}/{{ aspectosChecklist.length }}</template>
+                </span>
+              </div>
+
+              <!-- Barra de progreso -->
+              <div class="chk-juego-bar-bg">
+                <div
+                  class="chk-juego-bar-fill"
+                  :style="{ width: checklistProgress(juego.id) + '%' }"
+                  :class="{ full: isJuegoComplete(juego.id) }"
+                />
+              </div>
+
+              <!-- Puntos a verificar -->
+              <div class="chk-puntos-list">
+                <label
+                  v-for="(asp, idx) in aspectosChecklist"
+                  :key="asp.id"
+                  class="chk-punto-row"
+                  :class="{ checked: checklistItems[juego.id]?.[idx] }"
+                >
+                  <span class="chk-punto-cb-wrap">
+                    <input
+                      type="checkbox"
+                      :checked="checklistItems[juego.id]?.[idx]"
+                      @change="checklistItems[juego.id][idx] = $event.target.checked"
+                      class="chk-punto-native-cb"
+                    />
+                    <span class="chk-punto-cb" />
+                  </span>
+                  <span class="chk-punto-label">{{ asp.texto }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Sección 4: Aspectos a inspeccionar ── -->
         <div class="chk-card">
           <div class="chk-section-header">
             <ClipboardList :size="15" /> Aspectos a inspeccionar
@@ -913,7 +1179,7 @@ import { ref, reactive, computed } from 'vue'
 import {
   RefreshCw, Search, AlertCircle, ClipboardList, Plus, ChevronRight,
   User, Calendar, Cpu, ArrowLeft, FileText, MessageSquare, Camera,
-  X, Loader2, CheckCircle2, Check,
+  X, Loader2, CheckCircle2, Check, Package,
   Play, Clock, Timer, Flag, Zap, Lock, Building2,
 } from 'lucide-vue-next'
 import ModalReutilizable from '../../components/modal/ModalReutilizable.vue'
@@ -923,7 +1189,7 @@ import {
 } from '../../constants/checkin.constants.js'
 import { getCheckins, getCheckinById, createCheckin } from '../../services/checkins.service.js'
 import { getAspectos } from '../../services/aspectos.service.js'
-import { getQuotations, patchQuotation } from '../../services/quotation.service.ts'
+import { getQuotations, getQuotationById, getCoordinadores, patchQuotation } from '../../services/quotation.service.ts'
 
 // ─── Estado global de la vista ───────────────────────────────────────────────
 const view = ref('list') // 'list' | 'picker' | 'form' | 'flow'
@@ -960,6 +1226,166 @@ async function openQuotationPicker() {
   }
 }
 
+// ── Vista de checklists por evento ────────────────────────────
+const STORAGE_KEY = 'be1_chk_v1'
+
+const loadStoredState = () => {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') } catch { return {} }
+}
+const saveStoredState = (state) => {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)) } catch { /* */ }
+}
+
+const checklistViewState = ref({})
+const activeJuegoId      = ref(null)
+
+const getAllJuegosForQt = (qt) => {
+  const all = [...(qt.items ?? []), ...(qt.thirdPartyItems ?? [])]
+  const seenIds = new Set()
+  return all
+    .map(i => ({
+      id:               i.id,
+      nombre:           i.product?.dispositivo || i.product?.nombre
+                        || i.catalogProduct?.dispositivo || i.catalogProduct?.nombre || '—',
+      qty:              i.cantidadProducto || i.cantidad || 1,
+      requiereChecklist: !!i.requiereChecklist,
+    }))
+    .filter(j => { if (seenIds.has(j.id)) return false; seenIds.add(j.id); return true })
+}
+
+const ensureChecklistState = (juegoId) => {
+  if (!checklistViewState.value[juegoId]) {
+    checklistViewState.value = {
+      ...checklistViewState.value,
+      [juegoId]: aspectosChecklist.value.map(() => false),
+    }
+  }
+}
+
+const getChecklistViewCount = (juegoId) => {
+  ensureChecklistState(juegoId)
+  return (checklistViewState.value[juegoId] || []).filter(Boolean).length
+}
+
+const isChecklistDone = (juegoId) =>
+  aspectosChecklist.value.length > 0 &&
+  getChecklistViewCount(juegoId) === aspectosChecklist.value.length
+
+const setChecklistPoint = (juegoId, idx, val) => {
+  ensureChecklistState(juegoId)
+  const copy = [...checklistViewState.value[juegoId]]
+  copy[idx] = val
+  checklistViewState.value = { ...checklistViewState.value, [juegoId]: copy }
+  saveStoredState(checklistViewState.value)
+}
+
+const toggleJuegoChecklist = (juegoId) => {
+  ensureChecklistState(juegoId)
+  activeJuegoId.value = activeJuegoId.value === juegoId ? null : juegoId
+}
+
+async function openChecklistsView() {
+  view.value          = 'checklists'
+  activeJuegoId.value = null
+  checklistViewState.value = loadStoredState()
+  const loads = []
+  if (!quotations.value.length) {
+    quotationsLoading.value = true
+    loads.push(
+      getQuotations()
+        .then(res => { quotations.value = res.data ?? res })
+        .catch(() => {})
+        .finally(() => { quotationsLoading.value = false })
+    )
+  }
+  if (!aspectosChecklist.value.length) {
+    loads.push(
+      getAspectos()
+        .then(data => { aspectosChecklist.value = data.map(a => ({ id: a.id, texto: a.texto })) })
+        .catch(() => {})
+    )
+  }
+  await Promise.all(loads)
+}
+
+// ─── Coordinadores y dispositivos del evento ─────────────────────────────────
+const quotationCoordinadores = ref([])
+const quotationDevices       = ref([])
+const coordsLoading          = ref(false)
+
+const coordOptions = computed(() =>
+  quotationCoordinadores.value.length
+    ? [...quotationCoordinadores.value, 'Otro']
+    : COORDINADORES
+)
+
+const deviceList = computed(() =>
+  quotationDevices.value.length ? quotationDevices.value : DISPOSITIVOS
+)
+
+async function loadQuotationCoordinadores(quotationId) {
+  coordsLoading.value = true
+  quotationCoordinadores.value = []
+  try {
+    const res = await getCoordinadores(quotationId)
+    const data = Array.isArray(res.data) ? res.data : []
+    quotationCoordinadores.value = data
+      .map(c => c.user?.fullName || c.fullName || c.nombre || '')
+      .filter(Boolean)
+  } catch { /* silently */ } finally {
+    coordsLoading.value = false
+  }
+}
+
+async function loadQuotationDevices(quotationId) {
+  quotationDevices.value = []
+  checklistJuegos.value  = []
+  checklistItems.value   = {}
+  try {
+    const res = await getQuotationById(quotationId)
+    const qt  = res.data ?? res
+    const all = [...(qt.items ?? []), ...(qt.thirdPartyItems ?? [])]
+    const seen = new Set()
+    quotationDevices.value = all
+      .map(i => i.product?.dispositivo || i.product?.nombre || i.dispositivo || i.nombre)
+      .filter(name => name && !seen.has(name) && seen.add(name))
+
+    // Juegos que requieren lista de chequeo
+    const seenChecklist = new Set()
+    checklistJuegos.value = all
+      .filter(i => i.requiereChecklist)
+      .map(i => ({
+        id:     i.id,
+        nombre: i.product?.dispositivo || i.product?.nombre
+                || i.catalogProduct?.dispositivo || i.catalogProduct?.nombre
+                || i.dispositivo || i.nombre || '—',
+        qty:    i.cantidadProducto || i.cantidad || 1,
+      }))
+      .filter(j => {
+        if (seenChecklist.has(j.nombre)) return false
+        seenChecklist.add(j.nombre)
+        return true
+      })
+
+    // Inicializar estado de cada punto por juego
+    for (const j of checklistJuegos.value) {
+      checklistItems.value[j.id] = aspectosChecklist.value.map(() => false)
+    }
+  } catch { /* silently */ }
+}
+
+// ── Lista de chequeo por juego ────────────────────────────────
+const aspectosChecklist = ref([])  // [{ id, texto }] — cargados dinámicamente
+
+const checklistJuegos = ref([])
+const checklistItems  = ref({})
+
+const getCheckedCount   = (id) => (checklistItems.value[id] || []).filter(Boolean).length
+const isJuegoComplete   = (id) => aspectosChecklist.value.length > 0 && getCheckedCount(id) === aspectosChecklist.value.length
+const checklistProgress = (id) => aspectosChecklist.value.length
+  ? Math.round((getCheckedCount(id) / aspectosChecklist.value.length) * 100)
+  : 0
+
 async function selectQuotation(qt) {
   selectedQuotation.value = qt
   Object.assign(form, initialForm())
@@ -974,7 +1400,18 @@ async function selectQuotation(qt) {
     : new Date().toISOString().split('T')[0]
   form.nombreRepresentanteCliente = qt.cliente?.name || qt.contacto || ''
   view.value = 'form'
-  await loadAspectos()
+  await Promise.all([
+    loadAspectos(),
+    loadQuotationCoordinadores(qt.id),
+    loadQuotationDevices(qt.id),
+  ])
+  // Auto-selección cuando hay un único valor disponible
+  if (!form.nombreCoordinador && quotationCoordinadores.value.length === 1) {
+    form.nombreCoordinador = quotationCoordinadores.value[0]
+  }
+  if (!form.nombreDispositivo && quotationDevices.value.length === 1) {
+    form.nombreDispositivo = quotationDevices.value[0]
+  }
 }
 
 // ─── Lista ───────────────────────────────────────────────────────────────────
@@ -1007,8 +1444,9 @@ async function loadCheckins() {
 }
 
 // ─── Flujo del evento ────────────────────────────────────────────────────────
-const selected      = ref(null)
-const detailLoading = ref(false)
+const selected               = ref(null)
+const detailLoading          = ref(false)
+const detailChecklistJuegos  = ref([])   // juegos con requiereChecklist en la cotización del detalle
 
 const FIXED_STAGES = [
   { id: 'inicio',  label: 'Inicio del evento',    color: '#16A34A', iconComp: Play  },
@@ -1158,11 +1596,34 @@ async function goToFlow(id) {
 }
 
 async function goToDetail(id) {
-  view.value          = 'detail'
-  detailLoading.value = true
-  selected.value      = null
+  view.value               = 'detail'
+  detailLoading.value      = true
+  selected.value           = null
+  detailChecklistJuegos.value = []
   try {
     selected.value = await getCheckinById(id)
+    const quotationId = selected.value?.quotation?.id ?? selected.value?.quotationId
+    if (quotationId) {
+      try {
+        const res = await getQuotationById(quotationId)
+        const qt  = res.data ?? res
+        const all = [...(qt.items ?? []), ...(qt.thirdPartyItems ?? [])]
+        const seen = new Set()
+        detailChecklistJuegos.value = all
+          .filter(i => i.requiereChecklist)
+          .map(i => ({
+            id:     i.id,
+            nombre: i.product?.dispositivo || i.product?.nombre
+                    || i.catalogProduct?.dispositivo || i.catalogProduct?.nombre || '—',
+            qty:    i.cantidadProducto || i.cantidad || 1,
+          }))
+          .filter(j => {
+            if (seen.has(j.nombre)) return false
+            seen.add(j.nombre)
+            return true
+          })
+      } catch { /* silently */ }
+    }
   } catch {
     view.value = 'list'
   } finally {
@@ -1231,6 +1692,7 @@ async function loadAspectos() {
   aspectosError.value   = null
   try {
     const data = await getAspectos()
+    aspectosChecklist.value = data.map(a => ({ id: a.id, texto: a.texto }))
     form.aspectosInspeccion = data.map(a => ({
       aspectoId: a.id,
       pregunta:  a.texto,
@@ -1284,7 +1746,9 @@ function addFotoSlot() {
 }
 
 async function goToForm() {
-  selectedQuotation.value = null
+  selectedQuotation.value      = null
+  quotationCoordinadores.value = []
+  quotationDevices.value       = []
   Object.assign(form, initialForm())
   Object.keys(errors).forEach(k => delete errors[k])
   submitError.value   = null
@@ -1380,9 +1844,9 @@ const showDevicePicker = ref(false)
 const deviceSearch     = ref('')
 
 const filteredDevices = computed(() => {
-  if (!deviceSearch.value.trim()) return DISPOSITIVOS
+  if (!deviceSearch.value.trim()) return deviceList.value
   const q = deviceSearch.value.toLowerCase()
-  return DISPOSITIVOS.filter(d => d.toLowerCase().includes(q))
+  return deviceList.value.filter(d => d.toLowerCase().includes(q))
 })
 
 function selectDevice(dev) {
@@ -2704,5 +3168,599 @@ loadCheckins()
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid rgba(255,255,255,.06);
+}
+
+/* ════════════════════════════════════════════════
+   LISTA DE CHEQUEO POR JUEGO
+   ════════════════════════════════════════════════ */
+.chk-checklist-section { background: #F8FAFC; }
+
+.chk-juegos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 600px) {
+  .chk-juegos-grid { grid-template-columns: 1fr; }
+}
+
+/* Tarjeta por juego */
+.chk-juego-card {
+  background: #fff;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.chk-juego-card--done {
+  border-color: #6EE7B7;
+  background: #F0FDF4;
+}
+
+/* Cabecera */
+.chk-juego-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chk-juego-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #F1F5F9;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s, color 0.2s;
+}
+
+.chk-juego-card--done .chk-juego-icon {
+  background: #D1FAE5;
+  color: #059669;
+}
+
+.chk-juego-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.chk-juego-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0F1A2E;
+  font-family: 'Inter', sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chk-juego-qty {
+  font-size: 10px;
+  font-weight: 600;
+  color: #94A3B8;
+  font-family: 'Inter', sans-serif;
+  flex-shrink: 0;
+}
+
+.chk-juego-count {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94A3B8;
+  font-family: 'Inter', sans-serif;
+  background: #F1F5F9;
+  border-radius: 99px;
+  padding: 2px 8px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.chk-juego-count.done {
+  background: #D1FAE5;
+  color: #059669;
+}
+
+/* Barra de progreso */
+.chk-juego-bar-bg {
+  height: 4px;
+  background: #E2E8F0;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.chk-juego-bar-fill {
+  height: 100%;
+  background: #38BDF8;
+  border-radius: 99px;
+  transition: width 0.3s ease, background 0.3s;
+}
+
+.chk-juego-bar-fill.full {
+  background: #10B981;
+}
+
+/* Puntos de verificación */
+.chk-puntos-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.chk-punto-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+  user-select: none;
+}
+
+.chk-punto-row:hover { background: #F8FAFC; }
+.chk-punto-row.checked { background: #F0FDF4; }
+
+/* Checkbox custom */
+.chk-punto-cb-wrap {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.chk-punto-native-cb {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.chk-punto-cb {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 2px solid #CBD5E1;
+  background: #fff;
+  transition: border-color 0.18s, background 0.18s;
+}
+
+.chk-punto-native-cb:checked + .chk-punto-cb {
+  background: #10B981;
+  border-color: #10B981;
+}
+
+.chk-punto-native-cb:checked + .chk-punto-cb::after {
+  content: '';
+  display: block;
+  width: 10px;
+  height: 6px;
+  border-left: 2.5px solid #fff;
+  border-bottom: 2.5px solid #fff;
+  transform: rotate(-45deg) translate(2px, 1px);
+}
+
+.chk-punto-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #475569;
+  font-family: 'Inter', sans-serif;
+  transition: color 0.15s, text-decoration 0.15s;
+  line-height: 1.4;
+}
+
+.chk-punto-row.checked .chk-punto-label {
+  color: #059669;
+  text-decoration: line-through;
+  text-decoration-color: #A7F3D0;
+}
+
+/* ── Detalle: solo lectura ── */
+.chk-juego-card--readonly {
+  background: #FAFAFA;
+  cursor: default;
+}
+
+.chk-juego-required-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: #EFF6FF;
+  color: #1D4ED8;
+  flex-shrink: 0;
+  font-family: 'Inter', sans-serif;
+}
+
+.chk-puntos-readonly { gap: 0; }
+
+.chk-punto-row-ro {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 7px;
+}
+
+.chk-punto-row-ro:nth-child(even) { background: #F1F5F9; }
+
+.chk-punto-ro-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #CBD5E1;
+  flex-shrink: 0;
+}
+
+.chk-punto-ro-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748B;
+  font-family: 'Inter', sans-serif;
+  line-height: 1.4;
+}
+
+/* ════════════════════════════════════════════════
+   VISTA: CHECKLISTS POR EVENTO
+   ════════════════════════════════════════════════ */
+.chk-checklists-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 9px;
+  border: 1.5px solid #E2E8F0;
+  background: #F8FAFC;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.chk-checklists-btn:hover { border-color: #6EE7B7; background: #F0FDF4; color: #059669; }
+
+/* Lista de eventos */
+/* ══════════════════════════════════════════════════════
+   CHECKLIST VIEW — Mobile-first
+══════════════════════════════════════════════════════ */
+
+/* Header fijo */
+.ckv-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid #E2E8F0;
+  background: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.ckv-back {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  border: 1.5px solid #E2E8F0;
+  background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  color: #374151;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.ckv-back:hover { background: #F1F5F9; }
+
+.ckv-header-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.ckv-header-title {
+  font-size: 17px; font-weight: 800; color: #0F1A2E;
+  font-family: 'Inter', sans-serif; line-height: 1;
+}
+.ckv-header-sub {
+  font-size: 11px; font-weight: 500; color: #94A3B8;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Leyenda compacta en header */
+.ckv-legend {
+  display: flex; align-items: center; gap: 5px; flex-shrink: 0;
+}
+.ckv-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+}
+.ckv-dot--blue  { background: #3B82F6; }
+.ckv-dot--green { background: #10B981; }
+.ckv-dot--gray  { background: #CBD5E1; }
+
+/* Estado vacío/cargando */
+.ckv-empty {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 12px; padding: 64px 24px; color: #94A3B8;
+  font-family: 'Inter', sans-serif; font-size: 14px; text-align: center;
+}
+
+/* Lista de eventos */
+.ckv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+/* Tarjeta de evento */
+.ckv-card {
+  border-radius: 16px;
+  border: 1.5px solid #E2E8F0;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+/* Header de la tarjeta */
+.ckv-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px 10px;
+  background: #F8FAFC;
+}
+
+.ckv-card-info {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.ckv-card-num {
+  font-size: 10px; font-weight: 700; color: #94A3B8;
+  font-family: 'Inter', sans-serif; letter-spacing: 0.06em; text-transform: uppercase;
+}
+.ckv-card-empresa {
+  font-size: 15px; font-weight: 800; color: #0F1A2E;
+  font-family: 'Inter', sans-serif;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Estadística de checklists completados */
+.ckv-card-stats {
+  display: flex; align-items: baseline; gap: 2px; flex-shrink: 0;
+}
+.ckv-stat-done {
+  font-size: 20px; font-weight: 800; color: #10B981;
+  font-family: 'Inter', sans-serif; line-height: 1;
+}
+.ckv-stat-sep {
+  font-size: 14px; font-weight: 600; color: #CBD5E1;
+  font-family: 'Inter', sans-serif;
+}
+.ckv-stat-total {
+  font-size: 14px; font-weight: 700; color: #64748B;
+  font-family: 'Inter', sans-serif;
+}
+.ckv-stat-label {
+  font-size: 10px; font-weight: 600; color: #94A3B8;
+  font-family: 'Inter', sans-serif; margin-left: 3px;
+}
+
+/* Barra de progreso del evento */
+.ckv-evt-bar-bg {
+  height: 4px; background: #E2E8F0;
+}
+.ckv-evt-bar-fill {
+  height: 100%; background: #10B981;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 0 2px 2px 0;
+}
+
+/* Contenedor de juegos */
+.ckv-juegos { display: flex; flex-direction: column; }
+
+/* Fila de juego */
+.ckv-jrow {
+  border-bottom: 1px solid #F1F5F9;
+  position: relative;
+}
+.ckv-jrow:last-child { border-bottom: none; }
+
+/* Colores por estado */
+.ckv-jrow--blue  { background: #fff; }
+.ckv-jrow--green { background: #F0FDF4; }
+.ckv-jrow--gray  { background: #FAFAFA; }
+
+/* Botón / div principal del juego */
+.ckv-jrow-main {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 64px;
+}
+button.ckv-jrow-main {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+button.ckv-jrow-main:active { background: rgba(0,0,0,0.03); }
+
+/* Icono de estado circular */
+.ckv-jrow-icon {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.ckv-jrow--blue  .ckv-jrow-icon { background: #EFF6FF; color: #3B82F6; }
+.ckv-jrow--green .ckv-jrow-icon { background: #D1FAE5; color: #059669; }
+.ckv-jrow--gray  .ckv-jrow-icon { background: #F1F5F9; color: #CBD5E1; }
+
+/* Cuerpo del texto */
+.ckv-jrow-body {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.ckv-jrow-nombre {
+  font-size: 14px; font-weight: 700; color: #0F1A2E;
+  font-family: 'Inter', sans-serif;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ckv-jrow--gray .ckv-jrow-nombre { color: #94A3B8; }
+.ckv-jrow-qty {
+  font-size: 11px; font-weight: 500; color: #94A3B8;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Extremo derecho: badge + flecha */
+.ckv-jrow-end {
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+}
+
+.ckv-jrow-badge {
+  font-size: 12px; font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-family: 'Inter', sans-serif;
+  white-space: nowrap;
+}
+.ckv-badge--blue  { background: #EFF6FF; color: #1D4ED8; }
+.ckv-badge--green { background: #D1FAE5; color: #059669; }
+.ckv-badge--gray  { background: #F1F5F9; color: #94A3B8; }
+
+.ckv-jrow-arrow {
+  color: #CBD5E1;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), color 0.15s;
+  flex-shrink: 0;
+}
+.ckv-jrow-arrow.open {
+  transform: rotate(90deg);
+  color: #10B981;
+}
+
+/* Minibarra de progreso del juego */
+.ckv-jrow-minibar-bg {
+  height: 3px;
+  background: #E0E7FF;
+  margin: 0 16px 8px;
+  border-radius: 99px;
+}
+.ckv-jrow-minibar-fill {
+  height: 100%;
+  background: #3B82F6;
+  border-radius: 99px;
+  transition: width 0.3s ease;
+}
+
+/* Panel expandido del checklist */
+.ckv-panel {
+  border-top: 1.5px solid #EEF2FF;
+  background: #FAFBFF;
+  padding: 4px 12px 12px;
+}
+
+.ckv-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 4px 6px;
+  font-size: 11px; font-weight: 700; color: #6366F1;
+  font-family: 'Inter', sans-serif; letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.ckv-panel-count {
+  margin-left: auto;
+  font-size: 12px; font-weight: 700; color: #94A3B8;
+  font-family: 'Inter', sans-serif; letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Item de checklist */
+.ckv-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 6px;
+  min-height: 52px;
+  border-radius: 12px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.12s;
+}
+.ckv-item:active { background: rgba(0,0,0,0.03); }
+.ckv-item--checked { background: #F0FDF4; }
+
+/* Checkbox personalizado grande para móvil */
+.ckv-item-cb-wrap {
+  position: relative;
+  width: 26px; height: 26px;
+  flex-shrink: 0;
+}
+.ckv-item-native {
+  position: absolute; opacity: 0; width: 0; height: 0;
+}
+.ckv-item-cb {
+  display: block;
+  width: 26px; height: 26px;
+  border-radius: 8px;
+  border: 2.5px solid #D1D5DB;
+  background: #fff;
+  transition: border-color 0.15s, background 0.15s;
+}
+.ckv-item-native:checked + .ckv-item-cb {
+  background: #10B981;
+  border-color: #10B981;
+}
+.ckv-item-native:checked + .ckv-item-cb::after {
+  content: '';
+  display: block;
+  width: 13px; height: 7px;
+  border-left: 3px solid #fff;
+  border-bottom: 3px solid #fff;
+  transform: rotate(-45deg) translate(3px, 1px);
+}
+
+/* Texto del aspecto */
+.ckv-item-label {
+  flex: 1;
+  font-size: 14px; font-weight: 500; color: #374151;
+  font-family: 'Inter', sans-serif; line-height: 1.4;
+  transition: color 0.15s;
+}
+.ckv-item--checked .ckv-item-label {
+  color: #059669;
+}
+
+/* Ícono check al final cuando está marcado */
+.ckv-item-check-icon {
+  color: #10B981;
+  flex-shrink: 0;
+}
+
+/* Espacio seguro al final (notch móvil) */
+.ckv-safe-bottom {
+  height: calc(24px + env(safe-area-inset-bottom, 0px));
 }
 </style>

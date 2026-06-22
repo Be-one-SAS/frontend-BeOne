@@ -2,13 +2,14 @@
 import { ref, computed, onMounted } from 'vue'
 import {
   ClipboardCheck, ClipboardX, ChevronDown, Search,
-  Loader2, CheckCircle2, Users, Activity, Truck
+  Loader2, CheckCircle2, Users, Activity, Truck, CornerDownLeft
 } from 'lucide-vue-next'
 import { useControl } from '@/composables/useControl'
 import OperationalListModal from '@/components/quotation/OperationalListModal.vue'
 import TeamModal from '@/components/quotation/TeamModal.vue'
 import ModalFlujoEvento from '@/components/quotation/ModalFlujoEvento.vue'
 import AsignacionEquipos from '@/views/operativa/AsignacionEquipos.vue'
+import NotasCotizacionPanel from '@/components/quotation/NotasCotizacionPanel.vue'
 
 const activeTab = ref<'control' | 'equipo'>('control')
 
@@ -138,6 +139,37 @@ const estadoAdminCls = (e) => ({
   'Facturada':  'badge-blue',
 }[e] ?? 'badge-gray')
 
+// ── % Ejecución ───────────────────────────────────────
+const calcEjec = (ev) => {
+  const flags = [ev.planillaEjecucion, ev.listadoMaterial, ev.registroFotografico, ev.despachado, ev.retorno, ev.eventoFinalizado]
+  return Math.round((flags.filter(Boolean).length / flags.length) * 100)
+}
+
+// ── LQ: estado del checklist desde localStorage ───────
+const CHECKLIST_STORAGE_KEY = 'be1_chk_v1'
+const checklistState = ref<Record<string, boolean[]>>({})
+
+const loadChecklistState = () => {
+  try {
+    checklistState.value = JSON.parse(localStorage.getItem(CHECKLIST_STORAGE_KEY) || '{}')
+  } catch {
+    checklistState.value = {}
+  }
+}
+
+// Retorna: null = sin items con checklist | true = todos completos | { done, total } = parcial
+const lqStatus = (ev) => {
+  const all = [...(ev.items ?? []), ...(ev.thirdPartyItems ?? [])]
+  const needed = all.filter(i => i.requiereChecklist)
+  if (needed.length === 0) return null
+  const done = needed.filter(i => {
+    const arr = checklistState.value[i.id]
+    return arr && arr.length > 0 && arr.every(v => v === true)
+  }).length
+  if (done === needed.length) return true
+  return { done, total: needed.length }
+}
+
 // ── Modal Lista Operativa ──────────────────────────────
 const showOpListModal = ref(false)
 const selectedEvent   = ref(null)
@@ -155,6 +187,7 @@ const onOpListComplete = async ({ eventId, notes }) => {
 }
 
 onMounted(async () => {
+  loadChecklistState()
   await fetchEventos()
 })
 </script>
@@ -264,7 +297,7 @@ onMounted(async () => {
             <tr class="vc-head-row">
               <th class="vc-th" style="width:28px"></th>
               <th class="vc-th" style="width:68px">N° Evento</th>
-              <th class="vc-th" style="width:110px">Agente</th>
+              <th class="vc-th" style="width:110px">LQ</th>
               <th class="vc-th" style="width:100px">Unidad</th>
               <th class="vc-th" style="min-width:160px">Evento</th>
               <th class="vc-th" style="width:100px">Estado Op.</th>
@@ -275,16 +308,18 @@ onMounted(async () => {
               <th class="vc-th" style="width:130px">Cliente</th>
               <th class="vc-th" style="width:90px">F. Inicio</th>
               <th class="vc-th" style="width:90px">F. Fin</th>
-              <th class="vc-th vc-th-center" style="width:52px" title="Encuesta">Enc.</th>
+              <th class="vc-th vc-th-center" style="width:52px" title="Encuesta">LQ</th>
               <th class="vc-th vc-th-center" style="width:52px" title="Registro Fotográfico">Foto</th>
               <th class="vc-th vc-th-center" style="width:52px" title="Listado de Material">Mat.</th>
-              <th class="vc-th vc-th-center" style="width:52px" title="Despachado en vehículo">Desp.</th>
+              <th class="vc-th vc-th-center" style="width:90px" title="Despacho y Retorno de vehículo">Vehículo</th>
               <th class="vc-th vc-th-center" style="width:52px" title="Planilla de Ejecución">Plan.</th>
               <th class="vc-th vc-th-center" style="width:62px" title="Evento Finalizado">Final.</th>
               <th class="vc-th vc-th-center" style="width:40px" title="Lista Operativa">
                 <ClipboardCheck :size="12" />
               </th>
               <th class="vc-th" style="width:90px">Est. Admin.</th>
+              <th class="vc-th vc-th-center" style="width:72px" title="Validación Administrativa">VAL ADM</th>
+              <th class="vc-th vc-th-center" style="width:80px">% Ejec.</th>
             </tr>
           </thead>
 
@@ -386,17 +421,24 @@ onMounted(async () => {
                   {{ formatDate(ev.operationWindow?.eventEndAt) }}
                 </td>
 
-                <!-- Encuesta -->
+                <!-- LQ — Lista de chequeo (estado desde checklist view) -->
                 <td class="vc-td vc-td-center" @click.stop>
-                  <button
-                    class="ctrl-check"
-                    :class="ev.encuesta ? 'ctrl-check-on' : 'ctrl-check-off'"
-                    :disabled="isSaving(ev.id, 'encuesta')"
-                    @click="handleCheck(ev, 'encuesta')"
-                  >
-                    <Loader2 v-if="isSaving(ev.id, 'encuesta')" :size="12" class="spin" />
-                    <span v-else>{{ ev.encuesta ? '✓' : '✗' }}</span>
-                  </button>
+                  <span
+                    v-if="lqStatus(ev) === null"
+                    class="ctrl-check ctrl-check-off"
+                    style="cursor:default"
+                  >✗</span>
+                  <span
+                    v-else-if="lqStatus(ev) === true"
+                    class="ctrl-check ctrl-check-on"
+                    style="cursor:default"
+                  >✓</span>
+                  <span
+                    v-else
+                    class="ctrl-check ctrl-check-done"
+                    style="cursor:default"
+                    :title="`${lqStatus(ev).done}/${lqStatus(ev).total} completos`"
+                  >{{ lqStatus(ev).done }}/{{ lqStatus(ev).total }}</span>
                 </td>
 
                 <!-- Foto -->
@@ -432,12 +474,26 @@ onMounted(async () => {
                   </button>
                 </td>
 
-                <!-- Despachado -->
+                <!-- Vehículo: Despacho + Retorno -->
                 <td class="vc-td vc-td-center" @click.stop>
-                  <span v-if="ev.despachado" class="ctrl-dispatch-badge">
-                    <Truck :size="11" />
-                  </span>
-                  <span v-else class="ctrl-dispatch-empty">—</span>
+                  <div v-if="!ev.despachado && !ev.retorno" class="ctrl-dispatch-empty">—</div>
+                  <div v-else class="ctrl-vehicle-steps">
+                    <span
+                      class="ctrl-vstep"
+                      :class="ev.despachado ? 'ctrl-vstep--desp' : 'ctrl-vstep--off'"
+                      title="Despacho"
+                    >
+                      <Truck :size="10" />
+                    </span>
+                    <span class="ctrl-vstep-sep">›</span>
+                    <span
+                      class="ctrl-vstep"
+                      :class="ev.retorno ? 'ctrl-vstep--ret' : 'ctrl-vstep--off'"
+                      title="Retorno"
+                    >
+                      <CornerDownLeft :size="10" />
+                    </span>
+                  </div>
                 </td>
 
                 <!-- Planilla -->
@@ -485,11 +541,29 @@ onMounted(async () => {
                   <span v-else class="ctrl-badge badge-gray">—</span>
                 </td>
 
+                <!-- VAL ADM -->
+                <td class="vc-td vc-td-center" @click.stop>
+                  <span class="ctrl-valadm-badge" :class="ev.validadoAdministrativamente ? 'valadm-ok' : 'valadm-no'">
+                    {{ ev.validadoAdministrativamente ? 'OK' : 'Pdte.' }}
+                  </span>
+                </td>
+
+                <!-- % Ejecución -->
+                <td class="vc-td vc-td-center" @click.stop>
+                  <div class="ctrl-ejec-wrap">
+                    <div class="ctrl-ejec-bar">
+                      <div class="ctrl-ejec-fill" :style="{ width: calcEjec(ev) + '%' }"
+                        :class="{ 'ctrl-ejec-full': calcEjec(ev) === 100 }" />
+                    </div>
+                    <span class="ctrl-ejec-pct">{{ calcEjec(ev) }}%</span>
+                  </div>
+                </td>
+
               </tr>
 
               <!-- ── Fila expandida ── -->
               <tr class="vc-exp-tr">
-                <td :colspan="18" class="vc-exp-td">
+                <td :colspan="20" class="vc-exp-td">
                   <div
                     class="vc-exp-panel"
                     :class="{ 'vc-exp-open': expandedRow === ev.id }"
@@ -609,6 +683,13 @@ onMounted(async () => {
                         </div>
 
                       </div>
+
+                      <!-- Notas Operativo + Logístico -->
+                      <NotasCotizacionPanel
+                        :quotationId="ev.id"
+                        :areasFiltro="['Operativo', 'Logístico']"
+                      />
+
                     </div>
                   </div>
                 </td>
@@ -787,7 +868,7 @@ onMounted(async () => {
   overflow: hidden;
   transition: max-height 0.25s ease;
 }
-.vc-exp-open { max-height: 500px; }
+.vc-exp-open { max-height: 900px; }
 
 .vc-exp-inner {
   background: #F8FBFF;
@@ -898,6 +979,22 @@ onMounted(async () => {
 .ctrl-check:hover:not(:disabled) { opacity: 0.75; }
 .ctrl-check:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* LQ — indicador de lista de chequeo */
+.ctrl-lq-empty {
+  color: #CBD5E1; font-size: 12px; font-family: 'Inter', sans-serif;
+}
+.ctrl-lq-done {
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #16A34A;
+}
+.ctrl-lq-pending {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+  background: #EFF6FF; color: #1D4ED8;
+  border-radius: 99px; padding: 2px 7px;
+  font-family: 'Inter', sans-serif;
+}
+
 /* Spinner */
 .spin {
   animation: spin-anim 0.7s linear infinite;
@@ -961,22 +1058,61 @@ onMounted(async () => {
 .ctrl-table .vc-td { padding: 9px 12px; }
 
 /* Dispatch badge */
-.ctrl-dispatch-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
-  background: #F0FDF4;
-  color: #16A34A;
-  border: 1.5px solid #86EFAC;
-}
 .ctrl-dispatch-empty {
   font-size: 13px;
   color: #CBD5E1;
   font-weight: 400;
 }
+
+/* Vehículo: pasos despacho + retorno */
+.ctrl-vehicle-steps {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.ctrl-vstep {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px; height: 22px;
+  border-radius: 6px;
+  border: 1.5px solid transparent;
+}
+.ctrl-vstep--desp {
+  background: #EFF6FF;
+  border-color: #93C5FD;
+  color: #1D4ED8;
+}
+.ctrl-vstep--ret {
+  background: #F0FDF4;
+  border-color: #86EFAC;
+  color: #15803D;
+}
+.ctrl-vstep--off {
+  background: #F8FAFC;
+  border-color: #E2E8F0;
+  color: #CBD5E1;
+}
+.ctrl-vstep-sep {
+  font-size: 10px;
+  color: #D1D5DB;
+  line-height: 1;
+}
+
+/* VAL ADM badge */
+.ctrl-valadm-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 11px; font-weight: 700; padding: 3px 7px; border-radius: 6px; white-space: nowrap;
+}
+.valadm-ok { background: #F0FDF4; color: #166534; }
+.valadm-no { background: #FEF2F2; color: #991B1B; }
+
+/* % Ejecución */
+.ctrl-ejec-wrap { display: flex; align-items: center; gap: 5px; }
+.ctrl-ejec-bar  { width: 40px; height: 5px; background: #E2E8F0; border-radius: 99px; overflow: hidden; }
+.ctrl-ejec-fill { height: 100%; background: #054EAF; border-radius: 99px; transition: width 0.3s; }
+.ctrl-ejec-full { background: #16A34A; }
+.ctrl-ejec-pct  { font-size: 11px; color: #64748B; white-space: nowrap; }
 
 /* Third-party item pill */
 .ctrl-item-pill--third {
