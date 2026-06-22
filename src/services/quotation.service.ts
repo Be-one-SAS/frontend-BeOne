@@ -226,6 +226,17 @@ export const removeQuotationMember = async (quotationId: number, userId: number)
 };
 
 // Reemplaza la lista completa de coordinadores de una cotización (M2M)
+export const patchQuotation = async (id: number, fields: Record<string, any>) => {
+    try {
+        const response = await api.patch(`/quotations/${id}`, fields, {
+            headers: { 'Content-Type': 'application/json' },
+        });
+        return response;
+    } catch (error) {
+        throw error;
+    }
+};
+
 export const setCoordinadores = async (quotationId: number, coordinadorIds: number[]) => {
     try {
         const response = await api.patch(

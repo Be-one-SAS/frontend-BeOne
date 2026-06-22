@@ -29,3 +29,18 @@ export const getReportePorCliente = async (params = {}) => {
   const res = await api.get('/administracion/reportes/por-cliente', { params })
   return res.data
 }
+
+export const updateResponsables = async (id, dto) => {
+  const res = await api.patch(`/administracion/cotizaciones/${id}/responsables`, dto)
+  return res.data
+}
+
+export const toggleValidacionAdmin = async (id) => {
+  const res = await api.patch(`/administracion/cotizaciones/${id}/validar-admin`)
+  return res.data
+}
+
+export const updateDatosFinancieros = async (id, dto) => {
+  const res = await api.patch(`/administracion/cotizaciones/${id}/datos-financieros`, dto)
+  return res.data
+}

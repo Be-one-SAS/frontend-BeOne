@@ -20,15 +20,16 @@ export default defineConfig({
         },
     },
   server: {
-  proxy: {
-    '/api': {
-      target: 'http://localhost:3000',
-      changeOrigin: true,
-      rewrite: path => path.replace(/^\/api/, ''),
+    port: 3001,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/api/, ''),
+      },
     },
   },
-   optimizeDeps: {
+  optimizeDeps: {
     include: ['vue-leaflet', 'leaflet'],
   },
-}
 })

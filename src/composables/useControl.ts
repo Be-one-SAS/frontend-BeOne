@@ -11,12 +11,37 @@ export function useControl() {
   const fetchEventos = async () => {
     loading.value = true
     try {
-      const { data } = await api.get('/quotations/control')
-      console.log('[useControl] Eventos cargados:', data)
-      if (data?.length > 0) {
-        console.log('[useControl] Primer evento thirdPartyItems:', data[0].thirdPartyItems)
+      const [eventosRes, checkinsRes] = await Promise.all([
+        api.get('/quotations/control'),
+        api.get('/checkins').catch(() => ({ data: [] })),
+      ])
+
+      eventos.value = eventosRes.data
+
+      // Sincronizar encuesta: si existe un check-in vinculado a la cotización
+      // y encuesta aún no está marcada, actualizarla automáticamente.
+      const checkins: any[] = checkinsRes.data ?? []
+
+      // Indexar check-ins por quotationId
+      const checkinPorQuotation = new Map<number, any>()
+      checkins.forEach((c: any) => {
+        if (c.quotationId) checkinPorQuotation.set(c.quotationId, c)
+      })
+
+      const hasPhotos = (c: any): boolean => {
+        const urls = c.fotosUrl ?? (c.fotoUrl ? [c.fotoUrl] : [])
+        return (Array.isArray(urls) ? urls : [urls]).filter(Boolean).length > 0
       }
-      eventos.value = data
+
+      const syncOps: Promise<any>[] = []
+      eventos.value.forEach((ev: any) => {
+        const checkin = checkinPorQuotation.get(ev.id)
+        if (!checkin) return
+        if (!ev.encuesta)              syncOps.push(updateEvento(ev.id, 'encuesta',              true).catch(() => {}))
+        if (!ev.registroFotografico && hasPhotos(checkin))
+                                       syncOps.push(updateEvento(ev.id, 'registroFotografico',   true).catch(() => {}))
+      })
+      await Promise.all(syncOps)
     } catch (e) {
       console.error('[useControl] Error cargando eventos:', e)
     } finally {

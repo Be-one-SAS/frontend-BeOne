@@ -138,6 +138,12 @@ const routes = [
         meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
       },
       {
+        path: 'operativa/checkins/admin',
+        name: 'AspectosAdmin',
+        component: () => import('../views/operativa/AspectosAdmin.vue'),
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR'] },
+      },
+      {
         path: 'operativa/inventario',
         name: 'Inventario',
         component: () => import('../views/operativa/Inventario.vue'),
@@ -209,6 +215,12 @@ const routes = [
         path: 'administracion/reportes',
         name: 'AdminReportes',
         component: () => import('../views/administracion/AdminReportes.vue'),
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
+      },
+      {
+        path: 'administracion/ordenes-compra',
+        name: 'AdminOrdenesCompra',
+        component: () => import('../views/administracion/AdminOrdenesCompra.vue'),
         meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
       },
 

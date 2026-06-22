@@ -57,7 +57,12 @@
             <section class="op-section">
               <h3 class="section-title">Equipos / Juegos Solicitados</h3>
               <div class="product-grid-layout">
-                <div v-for="item in allItems" :key="item.id" class="p-card">
+                <div
+                  v-for="item in allItems"
+                  :key="item.id"
+                  class="p-card"
+                  :class="{ 'p-card--checklist-on': getChecklistState(item) }"
+                >
                   <div class="p-card-icon"><Package :size="20" /></div>
                   <div class="p-card-body">
                     <p class="p-card-name">{{ getProductName(item) }}</p>
@@ -79,6 +84,19 @@
                         Emitir OC
                       </button>
                     </div>
+
+                    <!-- Checklist chip -->
+                    <button
+                      class="p-checklist-chip"
+                      :class="{ active: getChecklistState(item), saving: checklistSaving[getItemKey(item)] }"
+                      :disabled="!!checklistSaving[getItemKey(item)]"
+                      :title="getChecklistState(item) ? 'Desactivar lista de chequeo' : 'Activar lista de chequeo'"
+                      @click.stop="toggleChecklist(item)"
+                    >
+                      <ClipboardList :size="11" />
+                      <span>Checklist</span>
+                      <span v-if="getChecklistState(item)" class="p-checklist-chip-dot" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -537,7 +555,7 @@ import { ref, computed, watch } from 'vue'
 import {
   X, Package, ClipboardCheck, CheckCircle2, MessageSquare,
   Plus, Trash2, Check, AlertCircle, Loader2,
-  BookOpen, PlusCircle, ShoppingCart,
+  BookOpen, PlusCircle, ShoppingCart, ClipboardList,
 } from 'lucide-vue-next'
 import {
   getCotizacionMateriales,
@@ -550,6 +568,7 @@ import {
   syncProductosMateriales,
 } from '@/services/materiales.service'
 import { getOrdenesCompra, createOrdenCompra } from '@/services/ordenes-compra.service'
+import api from '@/services/api'
 
 const props = defineProps({ show: Boolean, event: Object })
 const emit = defineEmits(['close', 'complete'])
@@ -583,6 +602,10 @@ const newMat = ref({ nombre: '', cantidad: 1, unidad: 'unidad', categoriaId: und
 // Delete confirm
 const pendingDelete = ref(null)
 
+// ── Checklist state ───────────────────────────────────────────
+const checklistOverrides = ref({})  // { 'own-5': true, 'third-3': false }
+const checklistSaving    = ref({})  // { 'own-5': true }
+
 // ── OC state ──────────────────────────────────────────────────
 const ocsByItem   = ref({})   // { [thirdPartyItemId]: OrdenCompra }
 const showOCModal = ref(false)
@@ -601,6 +624,8 @@ watch(() => props.show, async (val) => {
     loading.value = true
     materiales.value = []
     ocsByItem.value = {}
+    checklistOverrides.value = {}
+    checklistSaving.value = {}
     try {
       const [mats, cats, ocs] = await Promise.all([
         getCotizacionMateriales(props.event.id),
@@ -714,6 +739,35 @@ const getProductName = (item) =>
 
 const getProductQty = (item) =>
   item.isThird ? (item.cantidad || 1) : (item.cantidadProducto || item.quantity || 1)
+
+// ── Checklist helpers ─────────────────────────────────────────
+const getItemKey = (item) => `${item.isThird ? 'third' : 'own'}-${item.id}`
+
+const getChecklistState = (item) => {
+  const key = getItemKey(item)
+  return checklistOverrides.value[key] ?? item.requiereChecklist ?? false
+}
+
+async function toggleChecklist(item) {
+  const key = getItemKey(item)
+  if (checklistSaving.value[key]) return
+  const newVal = !getChecklistState(item)
+  checklistOverrides.value = { ...checklistOverrides.value, [key]: newVal }
+  checklistSaving.value = { ...checklistSaving.value, [key]: true }
+  try {
+    const endpoint = item.isThird
+      ? `/third-party-quotation-item/${item.id}`
+      : `/quotation-items/${item.id}`
+    await api.patch(endpoint, { requiereChecklist: newVal })
+  } catch (e) {
+    checklistOverrides.value = { ...checklistOverrides.value, [key]: !newVal }
+    console.error('[OperationalListModal] Error toggling checklist:', e)
+  } finally {
+    const s = { ...checklistSaving.value }
+    delete s[key]
+    checklistSaving.value = s
+  }
+}
 
 // ── Actions ───────────────────────────────────────────────────
 async function toggleValidar(mat) {
@@ -1291,6 +1345,58 @@ async function submitOC() {
   font-size: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s;
 }
 .p-card-oc-btn:hover { background: #FFEDD5; border-color: #F59E0B; }
+
+/* ── Checklist chip ── */
+.p-checklist-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  border: 1.5px solid #E2E8F0;
+  background: #F8FAFC;
+  color: #94A3B8;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: border-color 0.18s, background 0.18s, color 0.18s;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  width: 100%;
+  justify-content: center;
+}
+
+.p-checklist-chip:hover:not(:disabled):not(.active) {
+  border-color: #86EFAC;
+  color: #16A34A;
+  background: #F0FDF4;
+}
+
+.p-checklist-chip.active {
+  border-color: #6EE7B7;
+  background: #DCFCE7;
+  color: #059669;
+}
+
+.p-checklist-chip.saving {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.p-checklist-chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10B981;
+  flex-shrink: 0;
+}
+
+.p-card--checklist-on {
+  border-left: 3px solid #10B981;
+}
+
 .oc-number { font-size: 10px; font-weight: 700; color: #0F1A2E; }
 .oc-badge { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
 .oc-badge--emitida  { background: #EFF6FF; color: #1D4ED8; }

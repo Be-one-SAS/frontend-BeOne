@@ -2,14 +2,21 @@
 import { ref, onMounted, computed, nextTick } from "vue";
 import { getQuotations, getQuotationById } from "../../services/quotation.service";
 import Badge from "../../components/badge/Badge.vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { cancelReservation, confirmReservation } from "../../services/reservation.service";
 import BaseTable from "../../components/ui/BaseTable.vue";
 import CollaboratorsManager from "./components/CollaboratorsManager.vue";
 import QuotationPDF from "../../components/quotation/QuotationPDF.vue";
-import { ChevronDown, Eye, CheckCircle, XCircle, FileText, Inbox, Users, Download, X, Printer } from 'lucide-vue-next';
+import { ChevronDown, Eye, CheckCircle, XCircle, FileText, Inbox, Users, Download, X, Printer, StickyNote, Plus, Trash2 } from 'lucide-vue-next';
+import {
+  AREAS_NOTA,
+  createNotaCotizacion,
+  getNotasByCotizacion,
+  deleteNotaCotizacion,
+} from "../../services/nota-cotizacion.service";
 
 const { push } = useRouter();
+const route    = useRoute();
 
 const quotations = ref([]);
 const isModalOpen = ref(false);
@@ -96,8 +103,14 @@ const loadQuotations = async () => {
   }
 };
 
-onMounted(() => {
-  loadQuotations();
+onMounted(async () => {
+  await loadQuotations();
+  const targetId = route.query.id;
+  if (targetId) {
+    expandedRow.value = targetId;
+    await nextTick();
+    document.getElementById(`row-${targetId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 });
 
 // ----------------------
@@ -276,6 +289,67 @@ const expandedRow = ref(null);
 const toggleRow = (id) => {
   expandedRow.value = expandedRow.value === id ? null : id;
 };
+
+// ----------------------
+// MODAL NOTAS
+// ----------------------
+const isNotasModalOpen = ref(false);
+const selectedQuotationForNotas = ref(null);
+const notasDeCotizacion = ref([]);
+const notaCargando = ref(false);
+const notaGuardando = ref(false);
+const notaNueva = ref({ contenido: '', area: '' });
+
+const openNotasModal = async (quotation) => {
+  selectedQuotationForNotas.value = quotation;
+  notaNueva.value = { contenido: '', area: '' };
+  notaCargando.value = true;
+  isNotasModalOpen.value = true;
+  try {
+    notasDeCotizacion.value = await getNotasByCotizacion(quotation.id);
+  } catch (e) {
+    console.error('[VerCotizaciones] Error cargando notas:', e);
+  } finally {
+    notaCargando.value = false;
+  }
+};
+
+const closeNotasModal = () => {
+  isNotasModalOpen.value = false;
+  selectedQuotationForNotas.value = null;
+  notasDeCotizacion.value = [];
+};
+
+const agregarNota = async () => {
+  if (!notaNueva.value.contenido.trim() || !notaNueva.value.area) return;
+  notaGuardando.value = true;
+  try {
+    const creada = await createNotaCotizacion({
+      contenido: notaNueva.value.contenido.trim(),
+      area: notaNueva.value.area,
+      cotizacionId: selectedQuotationForNotas.value.id,
+    });
+    notasDeCotizacion.value.unshift(creada);
+    notaNueva.value = { contenido: '', area: '' };
+  } catch (e) {
+    console.error('[VerCotizaciones] Error al agregar nota:', e);
+  } finally {
+    notaGuardando.value = false;
+  }
+};
+
+const eliminarNota = async (notaId) => {
+  if (!confirm('¿Eliminar esta nota?')) return;
+  try {
+    await deleteNotaCotizacion(notaId);
+    notasDeCotizacion.value = notasDeCotizacion.value.filter((n) => n.id !== notaId);
+  } catch (e) {
+    console.error('[VerCotizaciones] Error al eliminar nota:', e);
+  }
+};
+
+const formatDateTime = (iso) =>
+  iso ? new Date(iso).toLocaleString('es-CO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 </script>
 
 <template>
@@ -341,7 +415,7 @@ const toggleRow = (id) => {
             <template v-for="(q, index) in filteredQuotations" :key="q.id">
 
               <!-- ── Fila principal ── -->
-              <tr class="vc-row" @click="toggleRow(q.id)">
+              <tr :id="`row-${q.id}`" class="vc-row" @click="toggleRow(q.id)">
 
                 <!-- Toggle chevron -->
                 <td class="vc-td vc-td-center">
@@ -431,6 +505,14 @@ const toggleRow = (id) => {
                       class="act-btn act-collab"
                     >
                       <Users :size="12" /> Miembros
+                    </button>
+
+                    <!-- Notas -->
+                    <button
+                      @click.stop="openNotasModal(q)"
+                      class="act-btn act-notas"
+                    >
+                      <StickyNote :size="12" /> Notas
                     </button>
 
                   </div>
@@ -729,6 +811,86 @@ const toggleRow = (id) => {
       </div>
     </div>
 
+    <!-- ══════════════════════════════════════════ -->
+    <!-- MODAL NOTAS                                -->
+    <!-- ══════════════════════════════════════════ -->
+    <div
+      v-if="isNotasModalOpen"
+      class="fixed inset-0 bg-[rgba(15,26,46,0.4)] backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      @click.self="closeNotasModal"
+    >
+      <div class="vc-notas-modal">
+
+        <!-- Header -->
+        <div class="vc-notas-header">
+          <div class="flex items-center gap-2">
+            <StickyNote :size="18" class="text-[#054EAF]" />
+            <div>
+              <h3 class="vc-notas-title">Notas de cotización</h3>
+              <p class="vc-notas-sub">#{{ selectedQuotationForNotas?.numero }}-2026 · {{ selectedQuotationForNotas?.empresa || '—' }}</p>
+            </div>
+          </div>
+          <button class="vc-notas-close" @click="closeNotasModal">
+            <X :size="18" />
+          </button>
+        </div>
+
+        <!-- Lista de notas -->
+        <div class="vc-notas-list-wrap">
+          <div v-if="notaCargando" class="vc-notas-empty">Cargando notas…</div>
+          <div v-else-if="!notasDeCotizacion.length" class="vc-notas-empty">
+            <StickyNote :size="32" class="vc-notas-empty-ico" />
+            <p>Sin notas registradas</p>
+          </div>
+          <div v-else class="vc-notas-list">
+            <div v-for="nota in notasDeCotizacion" :key="nota.id" class="vc-nota-row">
+              <div class="nota-area-badge" :data-area="nota.area">{{ nota.area }}</div>
+              <p class="vc-nota-contenido">{{ nota.contenido }}</p>
+              <div class="vc-nota-meta">
+                <span class="vc-nota-fecha">{{ formatDateTime(nota.createdAt) }}</span>
+                <button class="vc-nota-del" @click="eliminarNota(nota.id)" title="Eliminar">
+                  <Trash2 :size="13" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulario -->
+        <div class="vc-notas-form">
+          <div class="vc-notas-form-row">
+            <div class="vc-field-wrap">
+              <label class="vc-field-lbl">Área</label>
+              <select v-model="notaNueva.area" class="vc-field-sel">
+                <option value="" disabled>Seleccionar área…</option>
+                <option v-for="area in AREAS_NOTA" :key="area" :value="area">{{ area }}</option>
+              </select>
+            </div>
+          </div>
+          <div class="vc-field-wrap">
+            <label class="vc-field-lbl">Nota</label>
+            <textarea
+              v-model="notaNueva.contenido"
+              class="vc-nota-textarea"
+              placeholder="Escribe una nota…"
+              rows="3"
+            />
+          </div>
+          <div class="flex justify-end">
+            <button
+              class="vc-nota-add-btn"
+              @click="agregarNota"
+              :disabled="!notaNueva.contenido.trim() || !notaNueva.area || notaGuardando"
+            >
+              <Plus :size="14" />
+              {{ notaGuardando ? 'Guardando…' : 'Agregar nota' }}
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -998,4 +1160,229 @@ const toggleRow = (id) => {
 }
 
 .vc-link:hover { color: #0342A0; }
+
+/* ─── Botón Notas ───────────────────────────────────── */
+.act-notas          { background: #FEF9C3; color: #854D0E; }
+.act-notas:hover    { background: #FEF08A; }
+
+/* ─── Modal Notas ───────────────────────────────────── */
+.vc-notas-modal {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(15, 26, 46, 0.18);
+  width: 100%;
+  max-width: 520px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.vc-notas-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #EEF1F7;
+}
+
+.vc-notas-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0F1A2E;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.vc-notas-sub {
+  font-size: 12px;
+  color: #94A3B8;
+  font-family: 'Inter', sans-serif;
+  margin: 2px 0 0;
+}
+
+.vc-notas-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #94A3B8;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+.vc-notas-close:hover { color: #0F1A2E; background: #F1F5F9; }
+
+.vc-notas-list-wrap {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.vc-notas-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 0;
+  color: #94A3B8;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+}
+.vc-notas-empty-ico { color: #CBD5E1; }
+
+.vc-notas-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.vc-nota-row {
+  background: #F8FAFC;
+  border: 1px solid #E5EAF0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nota-area-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 10px;
+  border-radius: 99px;
+  width: fit-content;
+  font-family: 'Inter', sans-serif;
+}
+.nota-area-badge[data-area="Comercial"]       { background: #DBEAFE; color: #1D4ED8; }
+.nota-area-badge[data-area="Operativo"]       { background: #D1FAE5; color: #065F46; }
+.nota-area-badge[data-area="Administrativo"]  { background: #FEF3C7; color: #92400E; }
+.nota-area-badge[data-area="Logístico"]       { background: #EDE9FE; color: #5B21B6; }
+
+.vc-nota-contenido {
+  font-size: 13px;
+  color: #374151;
+  font-family: 'Inter', sans-serif;
+  line-height: 1.5;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.vc-nota-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.vc-nota-fecha {
+  font-size: 11px;
+  color: #94A3B8;
+  font-family: 'Inter', sans-serif;
+}
+
+.vc-nota-del {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #CBD5E1;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+.vc-nota-del:hover { color: #B91C1C; background: #FEE2E2; }
+
+.vc-notas-form {
+  border-top: 1px solid #EEF1F7;
+  padding: 16px 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #FAFBFD;
+}
+
+.vc-notas-form-row {
+  display: flex;
+  gap: 10px;
+}
+
+.vc-field-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.vc-field-lbl {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  font-family: 'Inter', sans-serif;
+}
+
+.vc-field-sel {
+  width: 100%;
+  background: #F8FAFC;
+  border: 1px solid #E5EAF0;
+  border-radius: 99px;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: #0F1A2E;
+  font-family: 'Inter', sans-serif;
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.vc-field-sel:focus { border-color: #054EAF; box-shadow: 0 0 0 2px rgba(5,78,175,.12); }
+
+.vc-nota-textarea {
+  width: 100%;
+  background: #F8FAFC;
+  border: 1px solid #E5EAF0;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #0F1A2E;
+  font-family: 'Inter', sans-serif;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+.vc-nota-textarea:focus { border-color: #054EAF; box-shadow: 0 0 0 2px rgba(5,78,175,.12); }
+.vc-nota-textarea::placeholder { color: #94A3B8; }
+
+.vc-nota-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  background: #054EAF;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+.vc-nota-add-btn:hover:not(:disabled) { background: #03368A; }
+.vc-nota-add-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 </style>
