@@ -35,13 +35,26 @@
 </template>
 
 <script setup>
+import { onMounted, onBeforeUnmount } from 'vue'
 import { Menu, X } from 'lucide-vue-next'
 import Sidebar      from './Sidebar.vue'
 import Topbar       from './Topbar.vue'
 import GlobalLoader from '@/components/ui/GlobalLoader.vue'
 import { useMobileSidebar } from '@/composables/useSidebarPermissions'
+import { useNotifications } from '@/composables/useNotifications'
+import { useAuth } from '@/composables/useAuth'
 
 const { showMobile, toggle: toggleMobile } = useMobileSidebar()
+const { connect, disconnect } = useNotifications()
+const { token } = useAuth()
+
+onMounted(() => {
+  if (token.value) connect(token.value)
+})
+
+onBeforeUnmount(() => {
+  disconnect()
+})
 </script>
 
 <style scoped>

@@ -161,6 +161,7 @@ export function useQuotationProducts({
 
         items.value.push({
             productId: selectedProduct.value.id,
+            nombre: selectedProduct.value.nombre,
             category: selectedProduct.value.categoria,
             dispositivo: selectedProduct.value.dispositivo,
             descripcion: selectedProduct.value.descripcion,

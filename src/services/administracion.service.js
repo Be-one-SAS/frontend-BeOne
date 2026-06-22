@@ -44,3 +44,13 @@ export const updateDatosFinancieros = async (id, dto) => {
   const res = await api.patch(`/administracion/cotizaciones/${id}/datos-financieros`, dto)
   return res.data
 }
+
+export const updateInfoGeneral = async (id, dto) => {
+  const res = await api.patch(`/administracion/cotizaciones/${id}/info-general`, dto)
+  return res.data
+}
+
+export const getAdminCotizacionDetail = async (id) => {
+  const res = await api.get(`/administracion/cotizaciones/${id}`)
+  return res.data
+}

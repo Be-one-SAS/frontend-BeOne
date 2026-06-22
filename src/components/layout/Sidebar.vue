@@ -112,7 +112,7 @@ import {
   Archive, Wrench, Users, BarChart2, PieChart,
   DollarSign, Activity, UserCog, Settings,
   LogOut, CheckSquare, ClipboardCheck, SlidersHorizontal,
-  Landmark, TableProperties, FileBarChart, ShoppingCart,
+  Landmark, TableProperties, FileBarChart, ShoppingCart, Layers,
 } from 'lucide-vue-next'
 import { useAuth }               from '@/composables/useAuth'
 import { useSidebarPermissions, useMobileSidebar } from '@/composables/useSidebarPermissions'
@@ -185,6 +185,7 @@ const ALL_MENU_ITEMS = [
     children: [
       { label: 'Productos propios',   route: '/products',            icon: Package,       roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'] },
       { label: 'Productos externos',  route: '/products/no-propios', icon: PackageSearch, roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'] },
+      { label: 'Materiales',          route: '/materiales',          icon: Layers,        roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR'] },
     ],
   },
 
@@ -223,7 +224,7 @@ const ALL_MENU_ITEMS = [
     label: 'Administración',
     roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'],
     children: [
-      { label: 'Cotizaciones',        route: '/administracion/cotizaciones',   icon: TableProperties, roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
+      { label: 'Eventos',              route: '/administracion/cotizaciones',   icon: TableProperties, roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
       { label: 'Dashboard Financiero', route: '/administracion/dashboard',     icon: BarChart2,       roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
       { label: 'Reportes',             route: '/administracion/reportes',      icon: FileBarChart,    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
       { label: 'Órdenes de Compra',    route: '/administracion/ordenes-compra', icon: ShoppingCart,    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },

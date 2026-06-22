@@ -146,7 +146,7 @@
               <td class="td-q-jornada">{{ item.cantidadJornada || item.quantity || 1 }}</td>
               <td class="td-cantidad">{{ item.cantidadProducto || 1 }}</td>
               <td class="td-descripcion">
-                {{ item.producto?.nombre || item.product?.dispositivo || item.descripcion || 'Producto' }}
+                {{ item.producto?.nombre || item.product?.nombre || item.nombre || item.dispositivo || item.descripcion || 'Producto' }}
               </td>
               <td class="td-precio">{{ formatCurrency(item.unitPrice || 0) }}</td>
               <td class="td-subtotal">{{ formatCurrency((item.unitPrice || 0) * (item.cantidadProducto || item.quantity || 1)) }}</td>

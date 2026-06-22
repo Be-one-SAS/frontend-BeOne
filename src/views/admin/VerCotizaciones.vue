@@ -653,6 +653,38 @@ const formatDateTime = (iso) =>
                         </div>
 
                       </div>
+
+                      <!-- ── Productos ── -->
+                      <div v-if="(q.items?.length || q.thirdPartyItems?.length)" class="vc-products-section">
+                        <div class="vc-products-title">Productos</div>
+                        <div class="vc-products-list">
+                          <div
+                            v-for="item in q.items"
+                            :key="'p' + item.id"
+                            class="vc-product-row"
+                          >
+                            <span class="vc-product-badge vc-badge-own">Propio</span>
+                            <span class="vc-product-name">{{ item.product?.dispositivo || item.product?.nombre }}</span>
+                            <span class="vc-product-qty">× {{ item.cantidadProducto ?? item.quantity ?? 1 }}</span>
+                            <span v-if="item.product?.categoria" class="vc-product-cat">{{ item.product.categoria }}</span>
+                          </div>
+                          <div
+                            v-for="item in q.thirdPartyItems"
+                            :key="'tp' + item.id"
+                            class="vc-product-row"
+                          >
+                            <span class="vc-product-badge vc-badge-tp">Tercero</span>
+                            <span class="vc-product-name">{{ item.catalogProduct?.nombre }}</span>
+                            <span class="vc-product-qty">× {{ item.cantidad ?? 1 }}</span>
+                            <span v-if="item.catalogProduct?.categoria" class="vc-product-cat">{{ item.catalogProduct.categoria }}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div v-else class="vc-products-section">
+                        <div class="vc-products-title">Productos</div>
+                        <span class="vc-exp-val" style="font-size:12px;color:#94A3B8">Sin productos agregados</span>
+                      </div>
+
                     </div>
                   </div>
                 </td>
@@ -1110,7 +1142,7 @@ const formatDateTime = (iso) =>
   transition: max-height 0.25s ease;
 }
 
-.vc-exp-open { max-height: 600px; }
+.vc-exp-open { max-height: 1200px; }
 
 .vc-exp-inner {
   background: #F8FBFF;
@@ -1151,6 +1183,39 @@ const formatDateTime = (iso) =>
   white-space: normal;
   word-break: break-word;
 }
+
+/* ─── Productos en panel expandido ─────────────────── */
+.vc-products-section {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #E2EDF8;
+}
+.vc-products-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.05em; color: #94A3B8; margin-bottom: 8px;
+}
+.vc-products-list { display: flex; flex-direction: column; gap: 5px; }
+.vc-product-row {
+  display: flex; align-items: center; gap: 8px;
+  background: #fff; border: 1px solid #E2E8F0; border-radius: 7px;
+  padding: 6px 10px;
+}
+.vc-product-name {
+  flex: 1; font-size: 13px; font-weight: 500; color: #0F172A;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.vc-product-qty {
+  font-size: 12px; color: #64748B; font-weight: 600; white-space: nowrap;
+}
+.vc-product-cat {
+  font-size: 11px; color: #64748B; background: #F1F5F9;
+  padding: 1px 7px; border-radius: 99px; white-space: nowrap;
+}
+.vc-product-badge {
+  font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 5px; white-space: nowrap;
+}
+.vc-badge-own { background: #EFF6FF; color: #1D4ED8; }
+.vc-badge-tp  { background: #FFF7ED; color: #C2410C; }
 
 .vc-link {
   color: #054EAF;

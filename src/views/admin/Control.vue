@@ -2,7 +2,8 @@
 import { ref, computed, onMounted } from 'vue'
 import {
   ClipboardCheck, ClipboardX, ChevronDown, Search,
-  Loader2, CheckCircle2, Users, Activity, Truck, CornerDownLeft
+  Loader2, CheckCircle2, Users, Activity, Truck, CornerDownLeft,
+  ClipboardList, Link2, Copy, Check
 } from 'lucide-vue-next'
 import { useControl } from '@/composables/useControl'
 import OperationalListModal from '@/components/quotation/OperationalListModal.vue'
@@ -10,6 +11,7 @@ import TeamModal from '@/components/quotation/TeamModal.vue'
 import ModalFlujoEvento from '@/components/quotation/ModalFlujoEvento.vue'
 import AsignacionEquipos from '@/views/operativa/AsignacionEquipos.vue'
 import NotasCotizacionPanel from '@/components/quotation/NotasCotizacionPanel.vue'
+import { createEncuesta, getEncuestas } from '@/services/encuestas.service'
 
 const activeTab = ref<'control' | 'equipo'>('control')
 
@@ -109,6 +111,50 @@ const handleCheck = async (evento, campo) => {
 
 const isSaving = (id, campo) => !!saving.value[`${id}-${campo}`]
 
+// ── Encuestas ──────────────────────────────────────────
+const encuestasMap  = ref<Record<number, any>>({})  // quotationId → encuesta
+const copiedId      = ref<number | null>(null)
+
+const loadEncuestas = async () => {
+  try {
+    const res = await getEncuestas()
+    const list = res.data ?? []
+    encuestasMap.value = Object.fromEntries(list.map((e: any) => [e.quotationId, e]))
+  } catch (_) {}
+}
+
+const encuestaUrl = (token: string) => {
+  const base = window.location.origin
+  return `${base}/encuesta/${token}`
+}
+
+const copyLink = async (token: string, id: number) => {
+  await navigator.clipboard.writeText(encuestaUrl(token))
+  copiedId.value = id
+  setTimeout(() => { copiedId.value = null }, 2000)
+}
+
+const handleEncuesta = async (ev: any) => {
+  const key = `${ev.id}-encuesta`
+  saving.value = { ...saving.value, [key]: true }
+  try {
+    if (ev.encuesta && encuestasMap.value[ev.id]) {
+      // Ya tiene encuesta → desactivar/activar toggle en panel de reporte
+      // Desde control solo habilitamos; la gestión completa es en Reporte
+    } else if (!ev.encuesta) {
+      // Crear encuesta y marcar flag
+      const res = await createEncuesta(ev.id, ev.empresa ?? ev.cliente?.name)
+      encuestasMap.value[ev.id] = res.data
+      await updateEvento(ev.id, 'encuesta', true)
+      ev.encuesta = true
+    }
+  } finally {
+    const next = { ...saving.value }
+    delete next[key]
+    saving.value = next
+  }
+}
+
 // ── Helpers de formato ─────────────────────────────────
 const formatDate = (iso) =>
   iso ? new Date(iso).toLocaleDateString('es-CO', {
@@ -141,7 +187,7 @@ const estadoAdminCls = (e) => ({
 
 // ── % Ejecución ───────────────────────────────────────
 const calcEjec = (ev) => {
-  const flags = [ev.planillaEjecucion, ev.listadoMaterial, ev.registroFotografico, ev.despachado, ev.retorno, ev.eventoFinalizado]
+  const flags = [ev.planillaEjecucion, ev.listadoMaterial, ev.registroFotografico, ev.despachado, ev.retorno, ev.eventoFinalizado, ev.validadoAdministrativamente]
   return Math.round((flags.filter(Boolean).length / flags.length) * 100)
 }
 
@@ -189,6 +235,7 @@ const onOpListComplete = async ({ eventId, notes }) => {
 onMounted(async () => {
   loadChecklistState()
   await fetchEventos()
+  await loadEncuestas()
 })
 </script>
 
@@ -308,7 +355,7 @@ onMounted(async () => {
               <th class="vc-th" style="width:130px">Cliente</th>
               <th class="vc-th" style="width:90px">F. Inicio</th>
               <th class="vc-th" style="width:90px">F. Fin</th>
-              <th class="vc-th vc-th-center" style="width:52px" title="Encuesta">LQ</th>
+              <th class="vc-th vc-th-center" style="width:60px" title="Encuesta de satisfacción"><ClipboardList :size="12" /></th>
               <th class="vc-th vc-th-center" style="width:52px" title="Registro Fotográfico">Foto</th>
               <th class="vc-th vc-th-center" style="width:52px" title="Listado de Material">Mat.</th>
               <th class="vc-th vc-th-center" style="width:90px" title="Despacho y Retorno de vehículo">Vehículo</th>
@@ -421,24 +468,32 @@ onMounted(async () => {
                   {{ formatDate(ev.operationWindow?.eventEndAt) }}
                 </td>
 
-                <!-- LQ — Lista de chequeo (estado desde checklist view) -->
-                <td class="vc-td vc-td-center" @click.stop>
-                  <span
-                    v-if="lqStatus(ev) === null"
-                    class="ctrl-check ctrl-check-off"
-                    style="cursor:default"
-                  >✗</span>
-                  <span
-                    v-else-if="lqStatus(ev) === true"
-                    class="ctrl-check ctrl-check-on"
-                    style="cursor:default"
-                  >✓</span>
-                  <span
-                    v-else
-                    class="ctrl-check ctrl-check-done"
-                    style="cursor:default"
-                    :title="`${lqStatus(ev).done}/${lqStatus(ev).total} completos`"
-                  >{{ lqStatus(ev).done }}/{{ lqStatus(ev).total }}</span>
+                <!-- Encuesta de satisfacción -->
+                <td class="vc-td vc-td-center enc-cell" @click.stop>
+                  <Loader2 v-if="isSaving(ev.id, 'encuesta')" :size="12" class="spin" />
+                  <template v-else>
+                    <!-- Sin encuesta: botón crear -->
+                    <button
+                      v-if="!ev.encuesta"
+                      class="ctrl-check ctrl-check-off enc-btn"
+                      title="Crear encuesta de satisfacción"
+                      @click="handleEncuesta(ev)"
+                    >
+                      <ClipboardList :size="12" />
+                    </button>
+                    <!-- Con encuesta: badge + copiar link -->
+                    <div v-else class="enc-active-wrap">
+                      <span class="enc-active-dot" title="Encuesta activa" />
+                      <button
+                        class="enc-copy-btn"
+                        :title="copiedId === ev.id ? 'Link copiado!' : 'Copiar link de encuesta'"
+                        @click="encuestasMap[ev.id] && copyLink(encuestasMap[ev.id].token, ev.id)"
+                      >
+                        <Check v-if="copiedId === ev.id" :size="11" style="color:#16a34a" />
+                        <Copy v-else :size="11" />
+                      </button>
+                    </div>
+                  </template>
                 </td>
 
                 <!-- Foto -->
@@ -1195,5 +1250,18 @@ onMounted(async () => {
   border-color: #054EAF;
   color: #054EAF;
 }
+
+/* ── Encuesta ────────────────────────────────────────── */
+.enc-cell { min-width: 60px; }
+.enc-btn { width: 28px; height: 28px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; }
+.enc-active-wrap { display: flex; align-items: center; justify-content: center; gap: 4px; }
+.enc-active-dot { width: 8px; height: 8px; border-radius: 50%; background: #16a34a; flex-shrink: 0; }
+.enc-copy-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 5px; border: 1px solid #e2e8f0;
+  background: #f8faff; color: #64748b; cursor: pointer;
+  transition: background 0.13s, color 0.13s;
+}
+.enc-copy-btn:hover { background: #eff6ff; color: #054EAF; }
 
 </style>

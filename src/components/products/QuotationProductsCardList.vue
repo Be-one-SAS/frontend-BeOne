@@ -46,7 +46,7 @@
 
               <!-- Producto -->
               <td class="td-name">
-                <p class="prd-nombre">{{ item.dispositivo || item.descripcion || '—' }}</p>
+                <p class="prd-nombre">{{ item.nombre || item.dispositivo || item.descripcion || '—' }}</p>
                 <p v-if="item.category" class="prd-cat">{{ item.category }}</p>
               </td>
 
