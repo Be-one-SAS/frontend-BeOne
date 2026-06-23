@@ -647,7 +647,7 @@ onMounted(fetchData)
 </template>
 
 <style scoped>
-.mat-page { padding: 20px 24px; max-width: 1300px; font-family: 'Inter', sans-serif; }
+.mat-page { padding: 20px 24px; width: 100%; box-sizing: border-box; font-family: 'Inter', sans-serif; }
 
 .mat-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
 .mat-title  { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 22px; font-weight: 700; color: #0F1A2E; margin: 0 0 4px; }

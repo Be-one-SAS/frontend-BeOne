@@ -305,7 +305,8 @@ function openDetail(oc) { detailOC.value = oc }
 <style scoped>
 .oc-page {
   padding: 16px 20px;
-  max-width: 960px;
+  width: 100%;
+  box-sizing: border-box;
   font-family: 'Inter', sans-serif;
 }
 

@@ -1010,14 +1010,11 @@
 
         <!-- Acciones -->
         <div class="modal-exitosa-actions">
-          <button
-            class="px-[18px] py-[9px] text-[13px] font-semibold bg-[#F1F5F9] text-[#64748B] border border-[#E5EAF0] rounded-[8px] hover:bg-[#E5EAF0] transition"
-            @click="modalCotizacionExitosa = false"
-          >
+          <button class="modal-btn modal-btn--secondary" @click="modalCotizacionExitosa = false">
             Cerrar
           </button>
           <button
-            class="px-[18px] py-[9px] text-[13px] font-semibold bg-primary text-white rounded-[8px] shadow-[var(--shadow-btn)] hover:bg-primary-dark transition"
+            class="modal-btn modal-btn--primary"
             @click="push({ path: '/admin/ver-cotizaciones', query: { id: quotationId } })"
           >
             Ver cotizaciones
@@ -1045,7 +1042,7 @@ import BarraInfo from '../../components/panels/BarraInfo.vue';
 import { useAuth } from '../../composables/useAuth';
 import MapSelector from '../../components/map/MapSelector.vue';
 
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 import ClientsSelector from '../suppliers/ClientsSelector.vue';
 import ProductPickerModal from '../../components/products/ProductPickerModal.vue';
@@ -1097,6 +1094,7 @@ import {
 
 // ── Lógica original — NO modificar ─────────────────────────────────────────
 const route = useRoute();
+const { push } = useRouter();
 
 const id          = route.params.id || null;
 const isEditMode  = ref(!!id);
@@ -3299,36 +3297,36 @@ watch(modalCotizacionExitosa, (val) => {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding: 8px;
   min-width: 360px;
-  max-width: 480px;
 }
 
 .modal-exitosa-header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   text-align: center;
 }
 
 .modal-exitosa-icon {
-  width: 52px;
-  height: 52px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   background: #DCFCE7;
   color: #16A34A;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .modal-exitosa-title {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
-  color: #16A34A;
+  color: #0F1A2E;
   font-family: 'Plus Jakarta Sans', sans-serif;
   margin: 0;
+  line-height: 1.3;
 }
 
 .modal-exitosa-sub {
@@ -3344,6 +3342,7 @@ watch(modalCotizacionExitosa, (val) => {
   gap: 8px;
   max-height: 180px;
   overflow-y: auto;
+  padding-right: 4px;
 }
 
 .modal-nota-form {
@@ -3360,7 +3359,39 @@ watch(modalCotizacionExitosa, (val) => {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  padding-top: 4px;
+  padding-top: 16px;
   border-top: 1px solid #EEF1F7;
+}
+
+.modal-btn {
+  padding: 9px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: 'Inter', sans-serif;
+  line-height: 1.4;
+}
+
+.modal-btn--secondary {
+  background: #F1F5F9;
+  color: #64748B;
+  border: 1px solid #E5EAF0;
+}
+
+.modal-btn--secondary:hover {
+  background: #E5EAF0;
+}
+
+.modal-btn--primary {
+  background: #054EAF;
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(5, 78, 175, 0.18);
+}
+
+.modal-btn--primary:hover {
+  background: #03368A;
 }
 </style>

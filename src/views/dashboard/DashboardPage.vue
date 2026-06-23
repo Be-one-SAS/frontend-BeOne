@@ -1,19 +1,9 @@
 <template>
-  <div class="dp">
+  <div class="dp" style="position: relative;">
 
-    <!-- SKELETON LOADER -->
-    <div v-if="isLoading" class="dp-loading">
-      <div class="dp-kpi-grid">
-        <div class="skeleton-card" v-for="i in 4" :key="i"></div>
-      </div>
-      <div class="dp-mid-grid" style="margin-top: 16px;">
-        <div class="skeleton-card large" style="height: 400px;"></div>
-        <div class="skeleton-card split" style="height: 400px;"></div>
-      </div>
-    </div>
+    <Loader :visible="isLoading" message="Cargando dashboard…" />
 
-    <!-- MAIN DASHBOARD -->
-    <template v-else>
+    <template v-if="!isLoading">
       <!-- ══════════════════════════════════════════════════════
            FILA 1 — KPI CARDS
       ══════════════════════════════════════════════════════ -->
@@ -177,6 +167,7 @@ import {
   DollarSign
 } from 'lucide-vue-next'
 import Calendar from '@/components/calendar/Calendar.vue'
+import Loader from '@/components/ui/Loader.vue'
 import Chart from 'chart.js/auto'
 import { useRouter } from 'vue-router'
 
@@ -322,24 +313,6 @@ onMounted(async () => {
   flex-direction: column;
   gap: 20px;
   width: 100%;
-}
-
-/* Skeleton Loaders */
-.dp-loading {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-.skeleton-card {
-  background: #E2E8F0;
-  border-radius: 18px;
-  height: 120px;
-  animation: pulse 1.5s infinite;
-}
-@keyframes pulse {
-  0% { opacity: 0.6; }
-  50% { opacity: 0.3; }
-  100% { opacity: 0.6; }
 }
 
 /* Grid: 4 columnas iguales para KPIs */

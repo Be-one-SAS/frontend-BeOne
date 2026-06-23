@@ -3,8 +3,10 @@ import api from './api'
 const BASE = '/encuestas'
 
 // ── Encuesta CRUD ──────────────────────────────────────────────────
-export const getEncuestas     = () => api.get(BASE)
-export const getEncuesta      = (id) => api.get(`${BASE}/${id}`)
+export const getEncuestas        = () => api.get(BASE)
+export const getEncuestasGlobal  = () => api.get(`${BASE}/global`)
+export const createEncuestaGlobal = (titulo) => api.post(`${BASE}/global`, { titulo })
+export const getEncuesta         = (id) => api.get(`${BASE}/${id}`)
 export const createEncuesta   = (quotationId, titulo) => api.post(BASE, { quotationId, titulo })
 export const updateEncuesta   = (id, data) => api.patch(`${BASE}/${id}`, data)
 export const toggleEncuesta   = (id) => api.patch(`${BASE}/${id}/toggle`)

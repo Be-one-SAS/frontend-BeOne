@@ -195,8 +195,13 @@
                             <span class="exp-val">{{ u.telefono || '—' }}</span>
                           </div>
                           <div class="exp-field">
-                            <span class="exp-lbl">Ciudad</span>
-                            <span class="exp-val">{{ u.ciudad || '—' }}</span>
+                            <span class="exp-lbl">Sede</span>
+                            <span class="exp-val">
+                              <template v-if="u.sede">
+                                {{ u.sede.nombre }} · {{ u.sede.ciudad }}
+                              </template>
+                              <template v-else>—</template>
+                            </span>
                           </div>
                           <div class="exp-field">
                             <span class="exp-lbl">Documento</span>

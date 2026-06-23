@@ -7,7 +7,7 @@
     <template v-if="view === 'list'">
       <div class="chk-header">
         <h1 class="chk-title">Check-ins</h1>
-        <div class="chk-header-actions">
+        <div v-if="!canManageAspectos || activeTab === 'checkins'" class="chk-header-actions">
           <button class="chk-refresh-btn" :disabled="loading" @click="loadCheckins">
             <RefreshCw :size="16" :class="{ spin: loading }" />
           </button>
@@ -15,12 +15,30 @@
             <ClipboardList :size="16" />
             Checklists
           </button>
-          <button class="chk-new-btn" @click="openQuotationPicker">
-            <Plus :size="16" />
-            Nuevo check-in
-          </button>
         </div>
       </div>
+
+      <!-- Tabs (solo admin) -->
+      <div v-if="canManageAspectos" class="chk-tabs">
+        <button
+          :class="['chk-tab', activeTab === 'checkins' && 'chk-tab--active']"
+          @click="activeTab = 'checkins'"
+        >Check-ins</button>
+        <button
+          :class="['chk-tab', activeTab === 'gestion' && 'chk-tab--active']"
+          @click="activeTab = 'gestion'"
+        >Gestión</button>
+      </div>
+
+      <!-- Contenido tab Gestión -->
+      <template v-if="canManageAspectos && activeTab === 'gestion'">
+        <AspectosAdmin :embedded="true" />
+        <div class="chk-gestion-divider" />
+        <ChecklistObsConfigAdmin />
+      </template>
+
+      <!-- Contenido tab Check-ins (default) -->
+      <template v-else>
 
       <!-- Buscador -->
       <div class="chk-search-wrap">
@@ -89,7 +107,8 @@
           </div>
         </div>
       </div>
-    </template>
+      </template><!-- /v-else checkins tab -->
+    </template><!-- /view list -->
 
     <!-- ══════════════════════════════════════════
          MODO: DETALLE DEL CHECK-IN
@@ -194,11 +213,18 @@
                   <span class="chk-juego-name">{{ juego.nombre }}</span>
                   <span v-if="juego.qty > 1" class="chk-juego-qty">x{{ juego.qty }}</span>
                 </div>
-                <span class="chk-juego-required-badge">Requerido</span>
+                <span
+                  class="chk-juego-required-badge"
+                  :class="Object.values(detailChecklistState[juego.id] ?? {}).every(Boolean) && aspectosChecklist.length > 0 ? 'chk-badge-done' : ''"
+                >
+                  {{ Object.values(detailChecklistState[juego.id] ?? {}).filter(Boolean).length }}/{{ aspectosChecklist.length }}
+                </span>
               </div>
               <div class="chk-puntos-list chk-puntos-readonly">
-                <div v-for="asp in aspectosChecklist" :key="asp.id" class="chk-punto-row-ro">
-                  <span class="chk-punto-ro-dot" />
+                <div v-for="asp in aspectosChecklist" :key="asp.id" class="chk-punto-row-ro"
+                  :class="detailChecklistState[juego.id]?.[asp.id] ? 'chk-punto-ro--done' : ''">
+                  <Check v-if="detailChecklistState[juego.id]?.[asp.id]" :size="13" class="chk-punto-ro-check" />
+                  <span v-else class="chk-punto-ro-dot" />
                   <span class="chk-punto-ro-label">{{ asp.texto }}</span>
                 </div>
               </div>
@@ -452,485 +478,8 @@
     </template>
 
     <!-- ══════════════════════════════════════════
-         MODO: SELECTOR DE COTIZACIÓN
-    ══════════════════════════════════════════ -->
-    <template v-else-if="view === 'picker'">
-      <div class="chk-header">
-        <button class="chk-back-btn" @click="view = 'list'">
-          <ArrowLeft :size="16" /> Volver
-        </button>
-        <h1 class="chk-title">Seleccionar cotización</h1>
-      </div>
-
-      <div class="chk-search-wrap">
-        <Search :size="15" class="chk-search-icon" />
-        <input
-          v-model="quotationSearch"
-          class="chk-search"
-          placeholder="Buscar por empresa, número o cliente..."
-          type="search"
-          autofocus
-        />
-      </div>
-
-      <div v-if="quotationsLoading" class="chk-state">
-        <div class="chk-spinner" />
-        <span>Cargando cotizaciones...</span>
-      </div>
-
-      <div v-else-if="filteredApprovedQuotations.length === 0" class="chk-state">
-        <ClipboardList :size="40" color="#CBD5E1" />
-        <p>{{ quotationSearch ? 'Sin resultados' : 'No hay cotizaciones aprobadas disponibles' }}</p>
-      </div>
-
-      <div v-else class="chk-list">
-        <div
-          v-for="qt in filteredApprovedQuotations"
-          :key="qt.id"
-          class="chk-qt-card"
-          @click="selectQuotation(qt)"
-        >
-          <div class="chk-qt-card-main">
-            <div class="chk-qt-num">COT-{{ qt.numero }}</div>
-            <div class="chk-qt-company">{{ qt.empresa }}</div>
-            <div v-if="qt.cliente?.name" class="chk-qt-client">
-              <User :size="11" /> {{ qt.cliente.name }}
-            </div>
-          </div>
-          <div class="chk-qt-card-right">
-            <span class="chk-qt-status-badge">Aprobada</span>
-            <span class="chk-qt-date">
-              <Calendar :size="11" />
-              {{ fmtDate(qt.fechaCotizacion) }}
-            </span>
-            <ChevronRight :size="16" class="chk-card-arrow" />
-          </div>
-        </div>
-      </div>
-    </template>
-
-    <!-- ══════════════════════════════════════════
          MODO: FORMULARIO
     ══════════════════════════════════════════ -->
-    <template v-else-if="view === 'form'">
-      <div class="chk-header">
-        <button class="chk-back-btn" @click="selectedQuotation ? view = 'picker' : view = 'list'">
-          <ArrowLeft :size="16" /> Volver
-        </button>
-        <h1 class="chk-title">Nuevo check-in</h1>
-      </div>
-
-      <!-- Banner de cotización vinculada -->
-      <div v-if="selectedQuotation" class="chk-qt-banner">
-        <Building2 :size="15" class="chk-qt-banner-icon" />
-        <div class="chk-qt-banner-info">
-          <span class="chk-qt-banner-tag">Cotización vinculada</span>
-          <span class="chk-qt-banner-detail">
-            COT-{{ selectedQuotation.numero }} · {{ selectedQuotation.empresa }}
-          </span>
-        </div>
-        <button type="button" class="chk-qt-banner-change" @click="openQuotationPicker">
-          Cambiar
-        </button>
-      </div>
-
-      <form class="chk-form" @submit.prevent="submitForm">
-
-        <!-- ── Sección 1: Datos generales ── -->
-        <div class="chk-card">
-          <div class="chk-section-header">
-            <FileText :size="15" /> Datos generales
-          </div>
-
-          <div class="chk-field-grid">
-            <div class="chk-field">
-              <label class="chk-label">Correo <span class="chk-req">*</span></label>
-              <input
-                v-model="form.correo"
-                type="email"
-                class="chk-input"
-                :class="{ 'chk-input-error': errors.correo }"
-                placeholder="correo@ejemplo.com"
-              />
-              <span v-if="errors.correo" class="chk-error-msg">{{ errors.correo }}</span>
-            </div>
-
-            <div class="chk-field">
-              <label class="chk-label">Fecha <span class="chk-req">*</span></label>
-              <input
-                v-model="form.fecha"
-                type="date"
-                class="chk-input"
-                :class="{ 'chk-input-error': errors.fecha }"
-              />
-              <span v-if="errors.fecha" class="chk-error-msg">{{ errors.fecha }}</span>
-            </div>
-
-            <div class="chk-field">
-              <label class="chk-label">Coordinador <span class="chk-req">*</span></label>
-              <select
-                v-model="form.nombreCoordinador"
-                class="chk-select"
-                :class="{ 'chk-input-error': errors.nombreCoordinador }"
-                :disabled="coordsLoading"
-              >
-                <option value="" disabled>
-                  {{ coordsLoading ? 'Cargando coordinadores...' : 'Seleccionar coordinador' }}
-                </option>
-                <option v-for="c in coordOptions" :key="c" :value="c">{{ c }}</option>
-              </select>
-              <span v-if="errors.nombreCoordinador" class="chk-error-msg">{{ errors.nombreCoordinador }}</span>
-            </div>
-
-            <div v-if="form.nombreCoordinador === 'Otro'" class="chk-field">
-              <label class="chk-label">Otro coordinador <span class="chk-req">*</span></label>
-              <input
-                v-model="form.otroCoordinador"
-                type="text"
-                class="chk-input"
-                :class="{ 'chk-input-error': errors.otroCoordinador }"
-                placeholder="Nombre del coordinador"
-              />
-              <span v-if="errors.otroCoordinador" class="chk-error-msg">{{ errors.otroCoordinador }}</span>
-            </div>
-
-            <div class="chk-field">
-              <label class="chk-label">Nombre del dinamizador <span class="chk-req">*</span></label>
-              <input
-                v-model="form.nombreDinamizador"
-                type="text"
-                class="chk-input"
-                :class="{ 'chk-input-error': errors.nombreDinamizador }"
-                placeholder="Nombre completo"
-              />
-              <span v-if="errors.nombreDinamizador" class="chk-error-msg">{{ errors.nombreDinamizador }}</span>
-            </div>
-
-            <div class="chk-field">
-              <label class="chk-label">Nombre del evento <span class="chk-req">*</span></label>
-              <input
-                v-model="form.nombreEvento"
-                type="text"
-                class="chk-input"
-                :class="{ 'chk-input-error': errors.nombreEvento }"
-                placeholder="Nombre del evento"
-              />
-              <span v-if="errors.nombreEvento" class="chk-error-msg">{{ errors.nombreEvento }}</span>
-            </div>
-
-            <div class="chk-field">
-              <label class="chk-label">Número de evento <span class="chk-req">*</span></label>
-              <input
-                v-model.number="form.numeroEvento"
-                type="number"
-                class="chk-input"
-                :class="{ 'chk-input-error': errors.numeroEvento }"
-                placeholder="0"
-                min="0"
-              />
-              <span v-if="errors.numeroEvento" class="chk-error-msg">{{ errors.numeroEvento }}</span>
-            </div>
-
-            <!-- Selector de dispositivo con búsqueda -->
-            <div class="chk-field">
-              <label class="chk-label">Dispositivo <span class="chk-req">*</span></label>
-              <button
-                type="button"
-                class="chk-device-btn"
-                :class="{ 'chk-input-error': errors.nombreDispositivo }"
-                @click="showDevicePicker = true"
-              >
-                <span :class="form.nombreDispositivo ? 'chk-device-selected' : 'chk-device-placeholder'">
-                  {{ form.nombreDispositivo || 'Seleccionar dispositivo...' }}
-                </span>
-                <Search :size="14" />
-              </button>
-              <span v-if="errors.nombreDispositivo" class="chk-error-msg">{{ errors.nombreDispositivo }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── Sección 2: Datos del cliente ── -->
-        <div class="chk-card">
-          <div class="chk-section-header">
-            <User :size="15" /> Datos del cliente
-          </div>
-
-          <div class="chk-field-grid">
-            <div class="chk-field">
-              <label class="chk-label">Representante del cliente <span class="chk-req">*</span></label>
-              <input
-                v-model="form.nombreRepresentanteCliente"
-                type="text"
-                class="chk-input"
-                :class="{ 'chk-input-error': errors.nombreRepresentanteCliente }"
-                placeholder="Nombre del representante"
-              />
-              <span v-if="errors.nombreRepresentanteCliente" class="chk-error-msg">{{ errors.nombreRepresentanteCliente }}</span>
-            </div>
-
-            <div class="chk-field">
-              <label class="chk-label">Teléfono del cliente <span class="chk-req">*</span></label>
-              <input
-                v-model="form.telefonoCliente"
-                type="text"
-                class="chk-input"
-                :class="{ 'chk-input-error': errors.telefonoCliente }"
-                placeholder="Número de contacto"
-              />
-              <span v-if="errors.telefonoCliente" class="chk-error-msg">{{ errors.telefonoCliente }}</span>
-            </div>
-
-            <div class="chk-field">
-              <label class="chk-label">Cremalleras</label>
-              <input
-                v-model.number="form.cremalleras"
-                type="number"
-                class="chk-input"
-                placeholder="0"
-                min="0"
-              />
-            </div>
-          </div>
-        </div>
-
-        <!-- ── Sección 3: Lista de chequeo por juego ── -->
-        <div v-if="checklistJuegos.length > 0" class="chk-card chk-checklist-section">
-          <div class="chk-section-header">
-            <ClipboardList :size="15" /> Lista de chequeo por juego
-          </div>
-
-          <div class="chk-juegos-grid">
-            <div
-              v-for="juego in checklistJuegos"
-              :key="juego.id"
-              class="chk-juego-card"
-              :class="{ 'chk-juego-card--done': isJuegoComplete(juego.id) }"
-            >
-              <!-- Cabecera del juego -->
-              <div class="chk-juego-header">
-                <div class="chk-juego-icon">
-                  <Package :size="14" />
-                </div>
-                <div class="chk-juego-meta">
-                  <span class="chk-juego-name">{{ juego.nombre }}</span>
-                  <span v-if="juego.qty > 1" class="chk-juego-qty">x{{ juego.qty }}</span>
-                </div>
-                <span class="chk-juego-count" :class="{ done: isJuegoComplete(juego.id) }">
-                  <Check v-if="isJuegoComplete(juego.id)" :size="11" stroke-width="3" />
-                  <template v-else>{{ getCheckedCount(juego.id) }}/{{ aspectosChecklist.length }}</template>
-                </span>
-              </div>
-
-              <!-- Barra de progreso -->
-              <div class="chk-juego-bar-bg">
-                <div
-                  class="chk-juego-bar-fill"
-                  :style="{ width: checklistProgress(juego.id) + '%' }"
-                  :class="{ full: isJuegoComplete(juego.id) }"
-                />
-              </div>
-
-              <!-- Puntos a verificar -->
-              <div class="chk-puntos-list">
-                <label
-                  v-for="(asp, idx) in aspectosChecklist"
-                  :key="asp.id"
-                  class="chk-punto-row"
-                  :class="{ checked: checklistItems[juego.id]?.[idx] }"
-                >
-                  <span class="chk-punto-cb-wrap">
-                    <input
-                      type="checkbox"
-                      :checked="checklistItems[juego.id]?.[idx]"
-                      @change="checklistItems[juego.id][idx] = $event.target.checked"
-                      class="chk-punto-native-cb"
-                    />
-                    <span class="chk-punto-cb" />
-                  </span>
-                  <span class="chk-punto-label">{{ asp.texto }}</span>
-                </label>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── Sección 4: Aspectos a inspeccionar ── -->
-        <div class="chk-card">
-          <div class="chk-section-header">
-            <ClipboardList :size="15" /> Aspectos a inspeccionar
-          </div>
-
-          <!-- Skeleton mientras cargan los aspectos -->
-          <div v-if="aspectosLoading" class="chk-aspectos-skeleton">
-            <div v-for="n in 6" :key="n" class="chk-skeleton-row">
-              <div class="chk-skeleton-text" />
-              <div class="chk-skeleton-btns">
-                <div class="chk-skeleton-btn" />
-                <div class="chk-skeleton-btn" />
-                <div class="chk-skeleton-btn" />
-              </div>
-            </div>
-          </div>
-
-          <div v-else-if="aspectosError" class="chk-aspectos-empty">
-            <span>{{ aspectosError }}</span>
-          </div>
-
-          <div v-else-if="form.aspectosInspeccion.length === 0" class="chk-aspectos-empty">
-            <span>No hay aspectos activos. Configúralos en el panel de administración.</span>
-          </div>
-
-          <div v-else class="chk-aspectos-list">
-            <span v-if="errors.aspectos" class="chk-error-msg chk-aspectos-error">{{ errors.aspectos }}</span>
-            <!-- Cabecera de columnas -->
-            <div class="chk-aspecto-row chk-aspecto-head">
-              <span class="chk-aspecto-pregunta">Aspecto</span>
-              <div class="chk-aspecto-btns">
-                <span>SI</span>
-                <span>NO</span>
-                <span>N/A</span>
-              </div>
-            </div>
-
-            <div
-              v-for="(aspecto, idx) in form.aspectosInspeccion"
-              :key="aspecto.aspectoId"
-              class="chk-aspecto-row"
-              :class="{ 'chk-aspecto-row-alt': idx % 2 === 1, 'chk-aspecto-unanswered': errors.aspectos && aspecto.respuesta === null }"
-            >
-              <span class="chk-aspecto-pregunta">{{ aspecto.pregunta }}</span>
-              <div class="chk-aspecto-btns">
-                <button
-                  v-for="resp in RESPUESTAS"
-                  :key="resp"
-                  type="button"
-                  class="chk-resp-btn"
-                  :class="{ active: aspecto.respuesta === resp, [`resp-${resp.toLowerCase()}`]: aspecto.respuesta === resp }"
-                  @click="aspecto.respuesta = aspecto.respuesta === resp ? null : resp"
-                >
-                  {{ RESPUESTA_LABEL[resp] }}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── Sección 4: Observaciones y anclajes ── -->
-        <div class="chk-card">
-          <div class="chk-section-header">
-            <MessageSquare :size="15" /> Observaciones y anclajes
-          </div>
-
-          <div class="chk-field-grid">
-            <div class="chk-field chk-field-full">
-              <label class="chk-label">Observaciones del dinamizador</label>
-              <textarea
-                v-model="form.observacionesDinamizador"
-                class="chk-textarea"
-                rows="3"
-                placeholder="Escribe las observaciones del dinamizador..."
-              />
-            </div>
-
-            <div class="chk-field">
-              <label class="chk-label">Total de puntos de anclaje</label>
-              <input
-                v-model.number="form.puntosAnclajeTotal"
-                type="number"
-                class="chk-input"
-                placeholder="0"
-                min="0"
-              />
-            </div>
-
-            <div class="chk-field">
-              <label class="chk-label">Puntos sin anclar</label>
-              <input
-                v-model.number="form.puntosAnclajeSinAnclar"
-                type="number"
-                class="chk-input"
-                placeholder="0"
-                min="0"
-              />
-            </div>
-
-            <div class="chk-field chk-field-full">
-              <label class="chk-label">Observaciones del cliente</label>
-              <textarea
-                v-model="form.observacionesCliente"
-                class="chk-textarea"
-                rows="3"
-                placeholder="Escribe las observaciones del cliente..."
-              />
-            </div>
-          </div>
-        </div>
-
-        <!-- ── Sección 5: Fotos de evidencia ── -->
-        <div class="chk-card">
-          <div class="chk-section-header">
-            <Camera :size="15" /> Fotos de evidencia
-          </div>
-
-          <div class="chk-foto-area">
-            <div class="chk-foto-grid">
-              <div v-for="(slot, idx) in fotoSlots" :key="idx" class="chk-foto-slot">
-                <div v-if="slot.preview" class="chk-foto-preview-wrap">
-                  <img :src="slot.preview" class="chk-foto-preview" alt="Preview" />
-                  <button type="button" class="chk-foto-remove" @click="removeFoto(idx)">
-                    <X :size="14" />
-                  </button>
-                </div>
-                <label v-else class="chk-foto-drop">
-                  <Camera :size="24" color="#94A3B8" />
-                  <span class="chk-foto-label">Foto {{ idx + 1 }}</span>
-                  <span class="chk-foto-hint">JPG o PNG · máx. 10 MB</span>
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png"
-                    class="chk-foto-input"
-                    @change="onFotoChange($event, idx)"
-                  />
-                </label>
-              </div>
-
-              <button type="button" class="chk-foto-add-btn" @click="addFotoSlot">
-                <Plus :size="22" />
-                <span>Agregar foto</span>
-              </button>
-            </div>
-            <span v-if="errors.foto" class="chk-error-msg">{{ errors.foto }}</span>
-          </div>
-        </div>
-
-        <!-- ── Error de envío ── -->
-        <div v-if="submitError" class="chk-submit-error">
-          <AlertCircle :size="16" />
-          {{ submitError }}
-        </div>
-
-        <!-- ── Barra de progreso de upload ── -->
-        <div v-if="uploadProgress !== null" class="chk-upload-wrap">
-          <div class="chk-upload-bar" :style="{ width: uploadProgress + '%' }" />
-          <span class="chk-upload-label">Subiendo {{ uploadProgress }}%</span>
-        </div>
-
-        <!-- ── Acciones ── -->
-        <div class="chk-form-actions">
-          <button type="button" class="chk-btn-cancel" @click="view = 'list'">
-            Cancelar
-          </button>
-          <button type="submit" class="chk-btn-submit" :disabled="submitting">
-            <Loader2 v-if="submitting" :size="16" class="spin" />
-            <CheckCircle2 v-else-if="submitSuccess" :size="16" />
-            <span v-if="submitting">Guardando...</span>
-            <span v-else-if="submitSuccess">¡Guardado!</span>
-            <span v-else>Guardar check-in</span>
-          </button>
-        </div>
-      </form>
-    </template>
 
     <!-- ══════════════════════════════════════════
          MODO: FLUJO DEL EVENTO
@@ -1182,6 +731,7 @@
       </div>
     </ModalReutilizable>
 
+
   </div>
 </template>
 
@@ -1194,23 +744,32 @@ import {
   Play, Clock, Timer, Flag, Zap, Lock, Building2, Link2,
 } from 'lucide-vue-next'
 import ModalReutilizable from '../../components/modal/ModalReutilizable.vue'
+import AspectosAdmin from './AspectosAdmin.vue'
+import ChecklistObsConfigAdmin from './ChecklistObsConfigAdmin.vue'
+import { useAuth } from '../../composables/useAuth.ts'
 import {
-  COORDINADORES, DISPOSITIVOS,
   RESPUESTAS, RESPUESTA_LABEL, RESPUESTA_COLOR,
 } from '../../constants/checkin.constants.js'
-import { getCheckins, getCheckinById, createCheckin } from '../../services/checkins.service.js'
+import { getCheckins, getCheckinById } from '../../services/checkins.service.js'
 import { getAspectos } from '../../services/aspectos.service.js'
-import { getQuotations, getQuotationById, getCoordinadores, patchQuotation } from '../../services/quotation.service.ts'
+import { getQuotations } from '../../services/quotation.service.ts'
+import { getChecklistEvento } from '../../services/checklist-evento.service.js'
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+const { user } = useAuth()
+const canManageAspectos = computed(() => {
+  const roles = user.value?.roles ?? []
+  return roles.includes('ADMIN') || roles.includes('ADMINISTRADOR')
+})
 
 // ─── Estado global de la vista ───────────────────────────────────────────────
-const view = ref('list') // 'list' | 'picker' | 'form' | 'flow'
+const view      = ref('list') // 'list' | 'detail' | 'checklists' | 'flow'
+const activeTab = ref('checkins') // 'checkins' | 'gestion'
 
 // ─── Cotización vinculada ─────────────────────────────────────────────────────
 const quotations        = ref([])
 const quotationsLoading = ref(false)
 const quotationSearch   = ref('')
-const selectedQuotation = ref(null)
-
 const filteredApprovedQuotations = computed(() => {
   const approved = quotations.value.filter(q => q.quotationStatus?.name === 'Aprobada')
   if (!quotationSearch.value.trim()) return approved
@@ -1221,21 +780,6 @@ const filteredApprovedQuotations = computed(() => {
     (qt.cliente?.name || '').toLowerCase().includes(q)
   )
 })
-
-async function openQuotationPicker() {
-  quotationSearch.value = ''
-  view.value = 'picker'
-  if (quotations.value.length) return
-  quotationsLoading.value = true
-  try {
-    const res = await getQuotations()
-    quotations.value = res.data ?? res
-  } catch {
-    // keep empty; user sees empty state
-  } finally {
-    quotationsLoading.value = false
-  }
-}
 
 // ── Vista de checklists por evento ────────────────────────────
 const STORAGE_KEY = 'be1_chk_v1'
@@ -1308,6 +852,8 @@ const toggleJuegoChecklist = (juegoId) => {
   activeJuegoId.value = activeJuegoId.value === juegoId ? null : juegoId
 }
 
+const aspectosChecklist = ref([])
+
 async function openChecklistsView() {
   view.value          = 'checklists'
   activeJuegoId.value = null
@@ -1330,112 +876,6 @@ async function openChecklistsView() {
     )
   }
   await Promise.all(loads)
-}
-
-// ─── Coordinadores y dispositivos del evento ─────────────────────────────────
-const quotationCoordinadores = ref([])
-const quotationDevices       = ref([])
-const coordsLoading          = ref(false)
-
-const coordOptions = computed(() =>
-  quotationCoordinadores.value.length
-    ? [...quotationCoordinadores.value, 'Otro']
-    : COORDINADORES
-)
-
-const deviceList = computed(() =>
-  quotationDevices.value.length ? quotationDevices.value : DISPOSITIVOS
-)
-
-async function loadQuotationCoordinadores(quotationId) {
-  coordsLoading.value = true
-  quotationCoordinadores.value = []
-  try {
-    const res = await getCoordinadores(quotationId)
-    const data = Array.isArray(res.data) ? res.data : []
-    quotationCoordinadores.value = data
-      .map(c => c.user?.fullName || c.fullName || c.nombre || '')
-      .filter(Boolean)
-  } catch { /* silently */ } finally {
-    coordsLoading.value = false
-  }
-}
-
-async function loadQuotationDevices(quotationId) {
-  quotationDevices.value = []
-  checklistJuegos.value  = []
-  checklistItems.value   = {}
-  try {
-    const res = await getQuotationById(quotationId)
-    const qt  = res.data ?? res
-    const all = [...(qt.items ?? []), ...(qt.thirdPartyItems ?? [])]
-    const seen = new Set()
-    quotationDevices.value = all
-      .map(i => i.product?.dispositivo || i.product?.nombre || i.dispositivo || i.nombre)
-      .filter(name => name && !seen.has(name) && seen.add(name))
-
-    // Juegos que requieren lista de chequeo
-    const seenChecklist = new Set()
-    checklistJuegos.value = all
-      .filter(i => i.requiereChecklist)
-      .map(i => ({
-        id:     i.id,
-        nombre: i.product?.dispositivo || i.product?.nombre
-                || i.catalogProduct?.dispositivo || i.catalogProduct?.nombre
-                || i.dispositivo || i.nombre || '—',
-        qty:    i.cantidadProducto || i.cantidad || 1,
-      }))
-      .filter(j => {
-        if (seenChecklist.has(j.nombre)) return false
-        seenChecklist.add(j.nombre)
-        return true
-      })
-
-    // Inicializar estado de cada punto por juego
-    for (const j of checklistJuegos.value) {
-      checklistItems.value[j.id] = aspectosChecklist.value.map(() => false)
-    }
-  } catch { /* silently */ }
-}
-
-// ── Lista de chequeo por juego ────────────────────────────────
-const aspectosChecklist = ref([])  // [{ id, texto }] — cargados dinámicamente
-
-const checklistJuegos = ref([])
-const checklistItems  = ref({})
-
-const getCheckedCount   = (id) => (checklistItems.value[id] || []).filter(Boolean).length
-const isJuegoComplete   = (id) => aspectosChecklist.value.length > 0 && getCheckedCount(id) === aspectosChecklist.value.length
-const checklistProgress = (id) => aspectosChecklist.value.length
-  ? Math.round((getCheckedCount(id) / aspectosChecklist.value.length) * 100)
-  : 0
-
-async function selectQuotation(qt) {
-  selectedQuotation.value = qt
-  Object.assign(form, initialForm())
-  Object.keys(errors).forEach(k => delete errors[k])
-  submitError.value   = null
-  submitSuccess.value = false
-  fotoSlots.value = INITIAL_SLOTS()
-  form.nombreEvento   = qt.empresa   || ''
-  form.numeroEvento   = qt.numero    ?? null
-  form.fecha          = qt.fechaCotizacion
-    ? qt.fechaCotizacion.split('T')[0]
-    : new Date().toISOString().split('T')[0]
-  form.nombreRepresentanteCliente = qt.cliente?.name || qt.contacto || ''
-  view.value = 'form'
-  await Promise.all([
-    loadAspectos(),
-    loadQuotationCoordinadores(qt.id),
-    loadQuotationDevices(qt.id),
-  ])
-  // Auto-selección cuando hay un único valor disponible
-  if (!form.nombreCoordinador && quotationCoordinadores.value.length === 1) {
-    form.nombreCoordinador = quotationCoordinadores.value[0]
-  }
-  if (!form.nombreDispositivo && quotationDevices.value.length === 1) {
-    form.nombreDispositivo = quotationDevices.value[0]
-  }
 }
 
 // ─── Lista ───────────────────────────────────────────────────────────────────
@@ -1470,7 +910,8 @@ async function loadCheckins() {
 // ─── Flujo del evento ────────────────────────────────────────────────────────
 const selected               = ref(null)
 const detailLoading          = ref(false)
-const detailChecklistJuegos  = ref([])   // juegos con requiereChecklist en la cotización del detalle
+const detailChecklistJuegos  = ref([])
+const detailChecklistState   = ref({})   // { [juegoId]: { [aspectoId]: boolean } }
 
 const FIXED_STAGES = [
   { id: 'inicio',  label: 'Inicio del evento',    color: '#16A34A', iconComp: Play  },
@@ -1620,32 +1061,27 @@ async function goToFlow(id) {
 }
 
 async function goToDetail(id) {
-  view.value               = 'detail'
-  detailLoading.value      = true
-  selected.value           = null
+  view.value                  = 'detail'
+  detailLoading.value         = true
+  selected.value              = null
   detailChecklistJuegos.value = []
+  detailChecklistState.value  = {}
   try {
     selected.value = await getCheckinById(id)
     const quotationId = selected.value?.quotation?.id ?? selected.value?.quotationId
     if (quotationId) {
       try {
-        const res = await getQuotationById(quotationId)
-        const qt  = res.data ?? res
-        const all = [...(qt.items ?? []), ...(qt.thirdPartyItems ?? [])]
-        const seen = new Set()
-        detailChecklistJuegos.value = all
-          .filter(i => i.requiereChecklist)
-          .map(i => ({
-            id:     i.id,
-            nombre: i.product?.dispositivo || i.product?.nombre
-                    || i.catalogProduct?.dispositivo || i.catalogProduct?.nombre || '—',
-            qty:    i.cantidadProducto || i.cantidad || 1,
-          }))
-          .filter(j => {
-            if (seen.has(j.nombre)) return false
-            seen.add(j.nombre)
-            return true
-          })
+        const clData = await getChecklistEvento(quotationId)
+        detailChecklistJuegos.value = (clData.juegos ?? []).filter(j => j.requiereChecklist)
+        // state: { [juegoId]: { [aspectoId]: boolean } }
+        const stateMap = {}
+        for (const j of detailChecklistJuegos.value) {
+          stateMap[j.id] = j.state ?? {}
+        }
+        detailChecklistState.value = stateMap
+        if (!aspectosChecklist.value.length && clData.aspectos?.length) {
+          aspectosChecklist.value = clData.aspectos.map(a => ({ id: a.id, texto: a.texto }))
+        }
       } catch { /* silently */ }
     }
   } catch {
@@ -1687,197 +1123,6 @@ const detailPhotoUrls = computed(() => {
   return (Array.isArray(raw) ? raw : [raw]).filter(Boolean)
 })
 
-// ─── Formulario ──────────────────────────────────────────────────────────────
-const initialForm = () => ({
-  quotationId:                 null,
-  correo:                      '',
-  fecha:                       new Date().toISOString().split('T')[0],
-  nombreCoordinador:           '',
-  otroCoordinador:             '',
-  nombreDinamizador:           '',
-  nombreEvento:                '',
-  numeroEvento:                null,
-  nombreDispositivo:           '',
-  nombreRepresentanteCliente:  '',
-  telefonoCliente:             '',
-  cremalleras:                 null,
-  aspectosInspeccion:          [],
-  observacionesDinamizador:    '',
-  puntosAnclajeTotal:          null,
-  puntosAnclajeSinAnclar:      null,
-  observacionesCliente:        '',
-})
-
-const aspectosLoading = ref(false)
-const aspectosError   = ref(null)
-
-async function loadAspectos() {
-  aspectosLoading.value = true
-  aspectosError.value   = null
-  try {
-    const data = await getAspectos()
-    aspectosChecklist.value = data.map(a => ({ id: a.id, texto: a.texto }))
-    form.aspectosInspeccion = data.map(a => ({
-      aspectoId: a.id,
-      pregunta:  a.texto,
-      respuesta: null,
-    }))
-  } catch {
-    aspectosError.value = 'Error al cargar aspectos. Intenta de nuevo.'
-  } finally {
-    aspectosLoading.value = false
-  }
-}
-
-const form          = reactive(initialForm())
-const errors        = reactive({})
-const submitting    = ref(false)
-const submitSuccess = ref(false)
-const submitError   = ref(null)
-const uploadProgress = ref(null)
-
-// Fotos
-const INITIAL_SLOTS = () => [
-  { file: null, preview: null },
-  { file: null, preview: null },
-  { file: null, preview: null },
-]
-const fotoSlots = ref(INITIAL_SLOTS())
-
-function onFotoChange(e, idx) {
-  const file = e.target.files?.[0]
-  if (!file) return
-  if (!['image/jpeg', 'image/png'].includes(file.type)) {
-    errors.foto = 'Solo se aceptan imágenes JPG o PNG'
-    return
-  }
-  if (file.size > 10 * 1024 * 1024) {
-    errors.foto = 'La imagen no puede superar 10 MB'
-    return
-  }
-  errors.foto = ''
-  fotoSlots.value[idx].file    = file
-  fotoSlots.value[idx].preview = URL.createObjectURL(file)
-}
-
-function removeFoto(idx) {
-  fotoSlots.value[idx].file    = null
-  fotoSlots.value[idx].preview = null
-}
-
-function addFotoSlot() {
-  fotoSlots.value.push({ file: null, preview: null })
-}
-
-async function goToForm() {
-  selectedQuotation.value      = null
-  quotationCoordinadores.value = []
-  quotationDevices.value       = []
-  Object.assign(form, initialForm())
-  Object.keys(errors).forEach(k => delete errors[k])
-  submitError.value   = null
-  submitSuccess.value = false
-  fotoSlots.value = INITIAL_SLOTS()
-  view.value = 'form'
-  await loadAspectos()
-}
-
-// Validación
-function validate() {
-  Object.keys(errors).forEach(k => delete errors[k])
-  let valid = true
-
-  const req = (field, label) => {
-    const val = form[field]
-    if (!val && val !== 0) { errors[field] = `${label} es requerido`; valid = false }
-  }
-
-  req('correo',                     'El correo')
-  req('fecha',                      'La fecha')
-  req('nombreCoordinador',          'El coordinador')
-  req('nombreDinamizador',          'El dinamizador')
-  req('nombreEvento',               'El nombre del evento')
-  req('numeroEvento',               'El número de evento')
-  req('nombreDispositivo',          'El dispositivo')
-  req('nombreRepresentanteCliente', 'El representante')
-  req('telefonoCliente',            'El teléfono')
-
-  if (form.nombreCoordinador === 'Otro' && !form.otroCoordinador) {
-    errors.otroCoordinador = 'Especifica el coordinador'; valid = false
-  }
-
-  const unanswered = form.aspectosInspeccion.filter(a => a.respuesta === null)
-  if (unanswered.length > 0) {
-    errors.aspectos = `Todos los aspectos son obligatorios. Faltan ${unanswered.length} por responder.`
-    valid = false
-  }
-
-  return valid
-}
-
-async function submitForm() {
-  if (!validate()) return
-
-  submitting.value    = true
-  submitError.value   = null
-  uploadProgress.value = null
-
-  const payload = {
-    ...(selectedQuotation.value?.id ? { quotationId: selectedQuotation.value.id } : {}),
-    correo:                      form.correo,
-    fecha:                       form.fecha,
-    nombreCoordinador:           form.nombreCoordinador,
-    otroCoordinador:             form.otroCoordinador || null,
-    nombreDinamizador:           form.nombreDinamizador,
-    nombreEvento:                form.nombreEvento,
-    numeroEvento:                form.numeroEvento,
-    nombreDispositivo:           form.nombreDispositivo,
-    nombreRepresentanteCliente:  form.nombreRepresentanteCliente,
-    telefonoCliente:             form.telefonoCliente,
-    cremalleras:                 form.cremalleras,
-    aspectosInspeccion:          form.aspectosInspeccion,
-    observacionesDinamizador:    form.observacionesDinamizador || null,
-    puntosAnclajeTotal:          form.puntosAnclajeTotal,
-    puntosAnclajeSinAnclar:      form.puntosAnclajeSinAnclar,
-    observacionesCliente:        form.observacionesCliente || null,
-  }
-
-  const fotos = fotoSlots.value.map(s => s.file).filter(Boolean)
-
-  try {
-    await createCheckin(payload, fotos, (pct) => {
-      uploadProgress.value = pct
-    })
-    submitSuccess.value = true
-    if (selectedQuotation.value?.id) {
-      const fields = { encuesta: true, ...(fotos.length > 0 ? { registroFotografico: true } : {}) }
-      try { await patchQuotation(selectedQuotation.value.id, fields) } catch { /* non-critical */ }
-    }
-    await loadCheckins()
-    setTimeout(() => { view.value = 'list'; submitSuccess.value = false }, 1200)
-  } catch (e) {
-    submitError.value = e?.response?.data?.message || 'Error al guardar el check-in'
-  } finally {
-    submitting.value     = false
-    uploadProgress.value = null
-  }
-}
-
-// ─── Selector de dispositivo ──────────────────────────────────────────────────
-const showDevicePicker = ref(false)
-const deviceSearch     = ref('')
-
-const filteredDevices = computed(() => {
-  if (!deviceSearch.value.trim()) return deviceList.value
-  const q = deviceSearch.value.toLowerCase()
-  return deviceList.value.filter(d => d.toLowerCase().includes(q))
-})
-
-function selectDevice(dev) {
-  form.nombreDispositivo = dev
-  showDevicePicker.value = false
-  deviceSearch.value     = ''
-}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function fmtDate(d) {
@@ -1918,6 +1163,32 @@ loadCheckins()
   align-items: center;
   gap: 8px;
 }
+.chk-gestion-divider {
+  height: 1px;
+  background: #E2E8F0;
+  margin: 24px 0;
+}
+.chk-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid #E2E8F0;
+  margin-top: 16px;
+  margin-bottom: 4px;
+}
+.chk-tab {
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748B;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.chk-tab:hover { color: #334155; }
+.chk-tab--active { color: #0F172A; border-bottom-color: #0F172A; font-weight: 600; }
 .chk-refresh-btn {
   display: flex;
   align-items: center;
@@ -3430,6 +2701,10 @@ loadCheckins()
   background: #CBD5E1;
   flex-shrink: 0;
 }
+.chk-punto-ro--done { background: #F0FDF4; }
+.chk-punto-ro--done .chk-punto-ro-label { color: #15803D; }
+.chk-punto-ro-check { color: #16A34A; flex-shrink: 0; }
+.chk-badge-done { background: #DCFCE7 !important; color: #15803D !important; }
 
 .chk-punto-ro-label {
   font-size: 12px;

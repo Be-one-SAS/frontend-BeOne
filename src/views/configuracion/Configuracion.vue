@@ -3,9 +3,22 @@
 
     <div class="cfg-header">
       <h1 class="cfg-title">Configuración</h1>
-      <p class="cfg-subtitle">Importación masiva de datos desde Excel</p>
+      <p class="cfg-subtitle">Gestión de la organización e importación masiva de datos</p>
     </div>
 
+    <!-- Módulos de configuración -->
+    <div class="cfg-modules">
+      <RouterLink to="/configuracion/sedes" class="cfg-module-card">
+        <div class="cfg-module-icon">🏢</div>
+        <div>
+          <p class="cfg-module-title">Sedes</p>
+          <p class="cfg-module-desc">Unidades de ejecución, equipos y visibilidad financiera</p>
+        </div>
+        <span class="cfg-module-arrow">→</span>
+      </RouterLink>
+    </div>
+
+    <div class="cfg-section-label">Importación masiva</div>
     <div class="cfg-grid">
       <ImportCard
         title="Clientes"
@@ -45,6 +58,7 @@
 
 <script setup>
 import { reactive } from 'vue'
+import { RouterLink } from 'vue-router'
 import ImportCard from '@/components/configuracion/ImportCard.vue'
 import api from '@/services/api'
 
@@ -143,9 +157,27 @@ async function runImport(mod, file) {
 </script>
 
 <style scoped>
-.cfg-page    { padding: 20px 24px; max-width: 1200px; font-family: 'Inter', sans-serif; }
-.cfg-header  { margin-bottom: 24px; }
-.cfg-title   { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 22px; font-weight: 700; color: #0F172A; margin: 0; }
-.cfg-subtitle{ font-size: 13px; color: #64748B; margin: 3px 0 0; }
-.cfg-grid    { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
+.cfg-page     { padding: 20px 24px; width: 100%; box-sizing: border-box; font-family: 'Inter', sans-serif; display: flex; flex-direction: column; gap: 20px; }
+.cfg-header   { }
+.cfg-title    { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 22px; font-weight: 700; color: #0F172A; margin: 0; }
+.cfg-subtitle { font-size: 13px; color: #64748B; margin: 3px 0 0; }
+.cfg-grid     { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
+
+.cfg-section-label { font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: .06em; }
+
+.cfg-modules { display: flex; flex-direction: column; gap: 10px; }
+.cfg-module-card {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 20px; background: #fff;
+  border: 1.5px solid #E2E8F0; border-radius: 14px;
+  text-decoration: none; color: inherit;
+  transition: border-color .15s, box-shadow .15s;
+  max-width: 500px;
+}
+.cfg-module-card:hover { border-color: #054EAF; box-shadow: 0 2px 10px rgba(5,78,175,.1); }
+.cfg-module-icon { font-size: 24px; flex-shrink: 0; }
+.cfg-module-title { font-size: 14px; font-weight: 700; color: #0F172A; margin: 0 0 2px; }
+.cfg-module-desc { font-size: 12px; color: #64748B; margin: 0; }
+.cfg-module-arrow { font-size: 18px; color: #CBD5E1; margin-left: auto; }
+.cfg-module-card:hover .cfg-module-arrow { color: #054EAF; }
 </style>

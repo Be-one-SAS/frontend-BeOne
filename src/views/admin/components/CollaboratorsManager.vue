@@ -126,9 +126,9 @@ const loadAllUsers = async () => {
   if (allUsers.value.length > 0) return;
   loadingUsers.value = true;
   try {
-    const rawUsers = await getUsers()
-    // Filtramos solo usuarios activos
-    allUsers.value = rawUsers?.filter(u => u.status !== 'Inactivo' && u.status !== 'Suspendido') || []
+    const raw = await getUsers()
+    const users = Array.isArray(raw) ? raw : (raw?.data ?? [])
+    allUsers.value = users.filter(u => u.status !== 'Inactivo' && u.status !== 'Suspendido')
   } catch (error) {
     console.error("No se pudieron cargar usuarios para asignar", error)
   } finally {
@@ -161,7 +161,6 @@ const filteredAvailableUsers = computed(() => {
 
 // ─ Acciones de API (`id` requerido de Cotización)
 const agregarMiembro = async (userData) => {
-  // Optimizacion visual local
   const newMemberObj = {
     userId: userData.id,
     user: {
@@ -171,18 +170,15 @@ const agregarMiembro = async (userData) => {
       role: userData.role
     }
   }
-  
-  // Guardamos en servidor (si ya está creada la cotización)
+
   if (props.quotationId) {
     try {
       await addQuotationMember(props.quotationId, userData.id)
     } catch (e) {
       console.error("Error al añadir en bd", e)
-      return
     }
   }
-  
-  // Reflejamos localmente
+
   members.value.push(newMemberObj)
   emit('update-members', members.value)
   showSelector.value = false
