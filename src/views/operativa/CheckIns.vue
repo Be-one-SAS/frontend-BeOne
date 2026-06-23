@@ -312,16 +312,27 @@
               <span class="ckv-card-num">COT-{{ qt.numero }}</span>
               <span class="ckv-card-empresa">{{ qt.empresa }}</span>
             </div>
-            <div class="ckv-card-stats">
-              <!-- Cuenta cuántos juegos con checklist están completos -->
-              <span class="ckv-stat-done">
-                {{ getAllJuegosForQt(qt).filter(j => j.requiereChecklist && isChecklistDone(j.id)).length }}
-              </span>
-              <span class="ckv-stat-sep">/</span>
-              <span class="ckv-stat-total">
-                {{ getAllJuegosForQt(qt).filter(j => j.requiereChecklist).length }}
-              </span>
-              <span class="ckv-stat-label">listos</span>
+            <div class="ckv-card-right">
+              <button
+                class="ckv-share-btn"
+                :class="{ 'ckv-share-copied': copiedLinkId === qt.id }"
+                @click.stop="copyChecklistUrl(qt.id)"
+                :title="copiedLinkId === qt.id ? 'Enlace copiado' : 'Copiar enlace del checklist público'"
+              >
+                <Check v-if="copiedLinkId === qt.id" :size="13" />
+                <Link2 v-else :size="13" />
+                {{ copiedLinkId === qt.id ? 'Copiado' : 'Checklist' }}
+              </button>
+              <div class="ckv-card-stats">
+                <span class="ckv-stat-done">
+                  {{ getAllJuegosForQt(qt).filter(j => j.requiereChecklist && isChecklistDone(j.id)).length }}
+                </span>
+                <span class="ckv-stat-sep">/</span>
+                <span class="ckv-stat-total">
+                  {{ getAllJuegosForQt(qt).filter(j => j.requiereChecklist).length }}
+                </span>
+                <span class="ckv-stat-label">listos</span>
+              </div>
             </div>
           </div>
 
@@ -1180,7 +1191,7 @@ import {
   RefreshCw, Search, AlertCircle, ClipboardList, Plus, ChevronRight,
   User, Calendar, Cpu, ArrowLeft, FileText, MessageSquare, Camera,
   X, Loader2, CheckCircle2, Check, Package,
-  Play, Clock, Timer, Flag, Zap, Lock, Building2,
+  Play, Clock, Timer, Flag, Zap, Lock, Building2, Link2,
 } from 'lucide-vue-next'
 import ModalReutilizable from '../../components/modal/ModalReutilizable.vue'
 import {
@@ -1238,6 +1249,19 @@ const saveStoredState = (state) => {
 
 const checklistViewState = ref({})
 const activeJuegoId      = ref(null)
+const copiedLinkId       = ref(null)
+
+async function copyChecklistUrl(qtId) {
+  const url = `${window.location.origin}/checklist/evento/${qtId}`
+  try {
+    await navigator.clipboard.writeText(url)
+  } catch {
+    prompt('Copia este enlace:', url)
+    return
+  }
+  copiedLinkId.value = qtId
+  setTimeout(() => { copiedLinkId.value = null }, 2500)
+}
 
 const getAllJuegosForQt = (qt) => {
   const all = [...(qt.items ?? []), ...(qt.thirdPartyItems ?? [])]
@@ -3537,6 +3561,24 @@ loadCheckins()
   font-size: 15px; font-weight: 800; color: #0F1A2E;
   font-family: 'Inter', sans-serif;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Lado derecho de la cabecera */
+.ckv-card-right {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0;
+}
+
+/* Botón compartir enlace */
+.ckv-share-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 99px;
+  font-size: 11px; font-weight: 600; cursor: pointer;
+  border: 1.5px solid #BFDBFE; background: #EFF6FF; color: #1D4ED8;
+  transition: all 0.18s; white-space: nowrap;
+}
+.ckv-share-btn:hover { background: #DBEAFE; border-color: #93C5FD; }
+.ckv-share-copied {
+  background: #F0FDF4 !important; border-color: #BBF7D0 !important; color: #166534 !important;
 }
 
 /* Estadística de checklists completados */

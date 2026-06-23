@@ -15,7 +15,7 @@
     </div>
 
     <!-- Contenido -->
-    <template v-else-if="evento">
+    <template v-else-if="data">
 
       <!-- Header -->
       <div class="cl-header">
@@ -24,35 +24,29 @@
           <div class="cl-logo-sub">Lista de chequeo</div>
         </div>
         <div class="cl-event-info">
-          <div class="cl-event-num">COT-{{ evento.numero }}</div>
-          <h1 class="cl-event-name">{{ evento.description || evento.empresa || 'Evento' }}</h1>
+          <div class="cl-event-num">COT-{{ data.quotation.numero }}</div>
+          <h1 class="cl-event-name">{{ data.quotation.description || data.quotation.empresa || 'Evento' }}</h1>
           <div class="cl-event-meta">
-            <span v-if="evento.cliente?.name || evento.empresa">
-              {{ evento.cliente?.name || evento.empresa }}
-            </span>
-            <span v-if="evento.operationWindow?.eventStartAt" class="cl-meta-dot">·</span>
-            <span v-if="evento.operationWindow?.eventStartAt">
-              {{ fmtDate(evento.operationWindow.eventStartAt) }}
-            </span>
-            <span v-if="evento.ubicacion" class="cl-meta-dot">·</span>
-            <span v-if="evento.ubicacion">{{ evento.ubicacion }}</span>
+            <span v-if="data.quotation.empresa">{{ data.quotation.empresa }}</span>
+            <span v-if="data.quotation.eventStartAt" class="cl-meta-dot">·</span>
+            <span v-if="data.quotation.eventStartAt">{{ fmtDate(data.quotation.eventStartAt) }}</span>
+            <span v-if="data.quotation.ubicacion" class="cl-meta-dot">·</span>
+            <span v-if="data.quotation.ubicacion">{{ data.quotation.ubicacion }}</span>
           </div>
         </div>
 
-        <!-- Progreso -->
+        <!-- Progreso global -->
         <div class="cl-progress-wrap">
           <div class="cl-progress-bar">
             <div
               class="cl-progress-fill"
-              :style="{ width: progressPct + '%' }"
-              :class="{ 'cl-progress-done': progressPct === 100 }"
+              :style="{ width: globalPct + '%' }"
+              :class="{ 'cl-progress-done': globalPct === 100 }"
             />
           </div>
           <div class="cl-progress-label">
-            <span class="cl-progress-count">{{ completados }} de {{ totalItems }}</span>
-            <span class="cl-progress-pct" :class="{ 'cl-pct-done': progressPct === 100 }">
-              {{ progressPct }}%
-            </span>
+            <span class="cl-progress-count">{{ globalChecked }} de {{ globalTotal }} aspectos</span>
+            <span class="cl-progress-pct" :class="{ 'cl-pct-done': globalPct === 100 }">{{ globalPct }}%</span>
           </div>
         </div>
       </div>
@@ -60,112 +54,72 @@
       <!-- Body -->
       <div class="cl-body">
 
-        <!-- ── Dispositivos ── -->
-        <section v-if="evento.products?.length" class="cl-section">
-          <div class="cl-sec-title">
-            <span class="cl-sec-icon">📦</span>
-            Dispositivos
-            <span class="cl-sec-count">{{ evento.products.length }}</span>
+        <!-- Sin juegos con checklist -->
+        <div v-if="juegosList.length === 0" class="cl-empty">
+          <p>Este evento no tiene dispositivos con lista de chequeo configurada.</p>
+        </div>
+
+        <!-- Juegos con checklist -->
+        <div
+          v-for="juego in juegosList"
+          :key="juego.id"
+          class="cl-juego"
+        >
+          <!-- Cabecera del juego -->
+          <div class="cl-juego-header" @click="toggleJuego(juego.id)">
+            <div class="cl-juego-icon" :class="juegoPct(juego) === 100 ? 'cl-jicon-done' : 'cl-jicon-pending'">
+              <svg v-if="juegoPct(juego) === 100" viewBox="0 0 14 14" fill="none" width="16" height="16">
+                <path d="M2 7l3.5 3.5L12 3.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span v-else class="cl-jicon-num">{{ juegoChecked(juego) }}</span>
+            </div>
+            <div class="cl-juego-info">
+              <span class="cl-juego-nombre">{{ juego.nombre }}</span>
+              <span v-if="juego.qty > 1" class="cl-juego-qty">× {{ juego.qty }}</span>
+            </div>
+            <div class="cl-juego-right">
+              <span class="cl-juego-badge" :class="juegoPct(juego) === 100 ? 'cl-badge-green' : 'cl-badge-blue'">
+                {{ juegoPct(juego) === 100 ? 'Listo' : `${juegoChecked(juego)}/${data.aspectos.length}` }}
+              </span>
+              <svg class="cl-juego-chevron" :class="{ open: openJuego === juego.id }"
+                viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                <path fill-rule="evenodd" d="M7.293 4.707a1 1 0 010 1.414L4.414 9H15a1 1 0 110 2H4.414l2.879 2.879a1 1 0 01-1.414 1.414l-4.586-4.586a1 1 0 010-1.414l4.586-4.586a1 1 0 011.414 0z" clip-rule="evenodd" transform="rotate(270, 10, 10)"/>
+              </svg>
+            </div>
           </div>
-          <div class="cl-items">
-            <button
-              v-for="item in evento.products"
-              :key="'p' + item.id"
-              class="cl-item"
-              :class="{ 'cl-item-done': item.check.completado, 'cl-item-saving': saving[itemKey('PRODUCT', item.id)] }"
-              @click="toggleCheck(item, 'PRODUCT')"
-              type="button"
+
+          <!-- Mini barra -->
+          <div class="cl-juego-bar-bg" v-if="juegoChecked(juego) > 0 && juegoPct(juego) < 100">
+            <div class="cl-juego-bar-fill" :style="{ width: juegoPct(juego) + '%' }" />
+          </div>
+
+          <!-- Panel de aspectos -->
+          <div v-if="openJuego === juego.id" class="cl-aspectos">
+            <label
+              v-for="asp in data.aspectos"
+              :key="asp.id"
+              class="cl-asp-row"
+              :class="{ 'cl-asp-done': getState(juego.id, asp.id) }"
             >
-              <div class="cl-item-check">
-                <div class="cl-check-circle" :class="{ 'cl-check-on': item.check.completado }">
-                  <svg v-if="item.check.completado" viewBox="0 0 14 14" fill="none">
+              <span class="cl-asp-cb-wrap">
+                <input
+                  type="checkbox"
+                  :checked="getState(juego.id, asp.id)"
+                  @change="toggleAspecto(juego.id, asp.id, $event.target.checked)"
+                  class="cl-asp-native"
+                />
+                <span class="cl-asp-cb">
+                  <svg v-if="getState(juego.id, asp.id)" viewBox="0 0 14 14" fill="none" width="12" height="12">
                     <path d="M2 7l3.5 3.5L12 3.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
-                  <div v-else-if="saving[itemKey('PRODUCT', item.id)]" class="cl-spin-sm" />
-                </div>
-              </div>
-              <div class="cl-item-body">
-                <span class="cl-item-name" :class="{ 'cl-name-done': item.check.completado }">
-                  {{ item.dispositivo || item.nombre }}
+                  <span v-else-if="saving[`${juego.id}:${asp.id}`]" class="cl-spin-sm" />
                 </span>
-                <span v-if="item.cantidad > 1" class="cl-item-qty">× {{ item.cantidad }}</span>
-              </div>
-              <span v-if="item.categoria" class="cl-item-cat">{{ item.categoria }}</span>
-            </button>
+              </span>
+              <span class="cl-asp-texto" :class="{ 'cl-asp-texto-done': getState(juego.id, asp.id) }">
+                {{ asp.texto }}
+              </span>
+            </label>
           </div>
-        </section>
-
-        <!-- ── Terceros ── -->
-        <section v-if="evento.thirdPartyItems?.length" class="cl-section">
-          <div class="cl-sec-title">
-            <span class="cl-sec-icon">🔗</span>
-            Terceros
-            <span class="cl-sec-count">{{ evento.thirdPartyItems.length }}</span>
-          </div>
-          <div class="cl-items">
-            <button
-              v-for="item in evento.thirdPartyItems"
-              :key="'tp' + item.id"
-              class="cl-item"
-              :class="{ 'cl-item-done': item.check.completado, 'cl-item-saving': saving[itemKey('THIRD_PARTY', item.id)] }"
-              @click="toggleCheck(item, 'THIRD_PARTY')"
-              type="button"
-            >
-              <div class="cl-item-check">
-                <div class="cl-check-circle" :class="{ 'cl-check-on': item.check.completado }">
-                  <svg v-if="item.check.completado" viewBox="0 0 14 14" fill="none">
-                    <path d="M2 7l3.5 3.5L12 3.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                  <div v-else-if="saving[itemKey('THIRD_PARTY', item.id)]" class="cl-spin-sm" />
-                </div>
-              </div>
-              <div class="cl-item-body">
-                <span class="cl-item-name" :class="{ 'cl-name-done': item.check.completado }">{{ item.nombre }}</span>
-                <span v-if="item.cantidad > 1" class="cl-item-qty">× {{ item.cantidad }}</span>
-              </div>
-              <span v-if="item.categoria" class="cl-item-cat">{{ item.categoria }}</span>
-            </button>
-          </div>
-        </section>
-
-        <!-- ── Materiales ── -->
-        <section v-if="evento.materials?.length" class="cl-section">
-          <div class="cl-sec-title">
-            <span class="cl-sec-icon">🔧</span>
-            Materiales
-            <span class="cl-sec-count">{{ evento.materials.length }}</span>
-          </div>
-          <div class="cl-items">
-            <button
-              v-for="(item, idx) in evento.materials"
-              :key="'m' + (item.id ?? idx)"
-              class="cl-item"
-              :class="{ 'cl-item-done': item.check.completado, 'cl-item-saving': saving[matKey(item, idx)] }"
-              @click="item.id ? toggleCheck(item, 'MATERIAL') : null"
-              :disabled="!item.id"
-              type="button"
-            >
-              <div class="cl-item-check">
-                <div class="cl-check-circle"
-                  :class="{ 'cl-check-on': item.check.completado, 'cl-check-disabled': !item.id }">
-                  <svg v-if="item.check.completado" viewBox="0 0 14 14" fill="none">
-                    <path d="M2 7l3.5 3.5L12 3.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                  <div v-else-if="saving[matKey(item, idx)]" class="cl-spin-sm" />
-                </div>
-              </div>
-              <div class="cl-item-body">
-                <span class="cl-item-name" :class="{ 'cl-name-done': item.check.completado }">{{ item.nombre }}</span>
-                <span class="cl-item-qty">{{ item.cantidad }} {{ item.unidad || '' }}</span>
-              </div>
-              <span v-if="item.categoria?.nombre" class="cl-item-cat">{{ item.categoria.nombre }}</span>
-            </button>
-          </div>
-        </section>
-
-        <!-- Sin items -->
-        <div v-if="!evento.products?.length && !evento.thirdPartyItems?.length && !evento.materials?.length" class="cl-empty">
-          <p>Este evento no tiene items en la lista de chequeo.</p>
         </div>
 
         <!-- Footer -->
@@ -173,11 +127,10 @@
           <div class="cl-footer-brand">BeOne Entretenimiento</div>
           <div v-if="lastSaved" class="cl-footer-saved">✓ Guardado</div>
         </div>
-
       </div>
     </template>
 
-    <!-- Toast de error al guardar -->
+    <!-- Toast de error -->
     <div v-if="saveError" class="cl-toast cl-toast-err">
       Error al guardar — intenta de nuevo
     </div>
@@ -187,39 +140,44 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { getMontajePublic, upsertCheckPublic } from '@/services/montajes.service.js'
+import { getChecklistEvento, toggleChecklistItem } from '@/services/checklist-evento.service.js'
 
 const route = useRoute()
 
 const loading   = ref(true)
 const error     = ref(null)
-const evento    = ref(null)
+const data      = ref(null)        // { quotation, aspectos, juegos }
+const state     = ref({})          // { [juegoId]: { [aspectoId]: boolean } }
 const saving    = ref({})
 const saveError = ref(false)
 const lastSaved = ref(false)
+const openJuego = ref(null)
 
-const itemKey = (type, id) => `${type}:${id}`
-const matKey  = (item, idx) => item.id ? `MATERIAL:${item.id}` : `MATERIAL_d:${idx}`
+const juegosList = computed(() =>
+  (data.value?.juegos ?? []).filter(j => j.requiereChecklist)
+)
 
-const totalItems  = computed(() => {
-  if (!evento.value) return 0
-  return (evento.value.products?.length ?? 0) +
-         (evento.value.thirdPartyItems?.length ?? 0) +
-         (evento.value.materials?.length ?? 0)
-})
+const getState = (juegoId, aspectoId) =>
+  !!(state.value[juegoId]?.[aspectoId])
 
-const completados = computed(() => {
-  if (!evento.value) return 0
-  const all = [
-    ...(evento.value.products ?? []),
-    ...(evento.value.thirdPartyItems ?? []),
-    ...(evento.value.materials ?? []),
-  ]
-  return all.filter(i => i.check.completado).length
-})
+const juegoChecked = (juego) => {
+  if (!data.value?.aspectos) return 0
+  return data.value.aspectos.filter(a => getState(juego.id, a.id)).length
+}
 
-const progressPct = computed(() =>
-  totalItems.value === 0 ? 0 : Math.round((completados.value / totalItems.value) * 100)
+const juegoPct = (juego) => {
+  if (!data.value?.aspectos?.length) return 0
+  return Math.round((juegoChecked(juego) / data.value.aspectos.length) * 100)
+}
+
+const globalTotal   = computed(() =>
+  juegosList.value.length * (data.value?.aspectos?.length ?? 0)
+)
+const globalChecked = computed(() =>
+  juegosList.value.reduce((acc, j) => acc + juegoChecked(j), 0)
+)
+const globalPct = computed(() =>
+  globalTotal.value === 0 ? 0 : Math.round((globalChecked.value / globalTotal.value) * 100)
 )
 
 function fmtDate(d) {
@@ -227,23 +185,26 @@ function fmtDate(d) {
   return new Date(d).toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })
 }
 
-async function toggleCheck(item, type) {
-  const key = itemKey(type, item.id)
+function toggleJuego(juegoId) {
+  openJuego.value = openJuego.value === juegoId ? null : juegoId
+}
+
+async function toggleAspecto(juegoId, aspectoId, newVal) {
+  const key = `${juegoId}:${aspectoId}`
   if (saving.value[key]) return
-  const newVal = !item.check.completado
-  item.check.completado = newVal
+
+  // Optimistic update
+  if (!state.value[juegoId]) state.value[juegoId] = {}
+  state.value[juegoId][aspectoId] = newVal
   saving.value[key] = true
+
   try {
-    await upsertCheckPublic({
-      quotationId: evento.value.id,
-      itemType:    type,
-      itemId:      item.id,
-      completado:  newVal,
-    })
+    await toggleChecklistItem(data.value.quotation.id, juegoId, aspectoId, newVal)
     lastSaved.value = true
-    setTimeout(() => { lastSaved.value = false }, 3000)
+    setTimeout(() => { lastSaved.value = false }, 2500)
   } catch {
-    item.check.completado = !newVal
+    // Revert
+    state.value[juegoId][aspectoId] = !newVal
     saveError.value = true
     setTimeout(() => { saveError.value = false }, 3000)
   } finally {
@@ -255,7 +216,23 @@ onMounted(async () => {
   try {
     const id = Number(route.params.id)
     if (isNaN(id)) throw new Error('ID inválido')
-    evento.value = await getMontajePublic(id)
+    const res = await getChecklistEvento(id)
+    data.value = res
+
+    // Build reactive state from saved backend data
+    const initialState = {}
+    for (const juego of res.juegos ?? []) {
+      initialState[juego.id] = {}
+      for (const [aspectoId, completado] of Object.entries(juego.state ?? {})) {
+        initialState[juego.id][Number(aspectoId)] = completado
+      }
+    }
+    state.value = initialState
+
+    // Auto-open first juego if only one
+    if (juegosList.value.length === 1) {
+      openJuego.value = juegosList.value[0].id
+    }
   } catch (e) {
     error.value = e?.response?.data?.message ?? 'Este evento no está disponible'
   } finally {
@@ -307,7 +284,7 @@ onMounted(async () => {
 .cl-event-num  { font-size: 11px; font-weight: 600; color: #93C5FD; letter-spacing: 0.5px; margin-bottom: 4px; }
 .cl-event-name {
   font-size: 20px; font-weight: 800; color: #fff; margin: 0 0 6px;
-  line-height: 1.3; font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  line-height: 1.3;
 }
 .cl-event-meta { font-size: 12px; color: #BFDBFE; display: flex; flex-wrap: wrap; gap: 4px; }
 .cl-meta-dot   { color: #60A5FA; }
@@ -328,65 +305,88 @@ onMounted(async () => {
 .cl-pct-done       { color: #34D399; }
 
 /* Body */
-.cl-body { padding: 16px; max-width: 600px; margin: 0 auto; }
+.cl-body { padding: 16px; max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
 
-/* Section */
-.cl-section  { margin-bottom: 16px; }
-.cl-sec-title {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 12px; font-weight: 700; color: #475569;
-  text-transform: uppercase; letter-spacing: 0.6px;
-  margin-bottom: 8px; padding: 0 4px;
+/* Juego card */
+.cl-juego {
+  background: #fff; border-radius: 14px; border: 1.5px solid #E2E8F0;
+  overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
-.cl-sec-icon  { font-size: 14px; }
-.cl-sec-count {
-  margin-left: auto; background: #E2E8F0; color: #64748B;
-  font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 99px;
-}
-
-/* Items */
-.cl-items { display: flex; flex-direction: column; gap: 6px; }
-.cl-item {
-  display: flex; align-items: center; gap: 12px;
-  background: #fff; border-radius: 12px; padding: 12px 14px;
-  border: 1.5px solid #E2E8F0; cursor: pointer; text-align: left; width: 100%;
-  transition: all 0.15s; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+.cl-juego-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 13px 14px; cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
-.cl-item:active { transform: scale(0.98); }
-.cl-item-done { background: #F0FDF4; border-color: #BBF7D0; }
-.cl-item:disabled { cursor: default; opacity: 0.6; }
+.cl-juego-header:active { background: #F8FAFC; }
 
-/* Check circle */
-.cl-item-check { flex-shrink: 0; }
-.cl-check-circle {
-  width: 26px; height: 26px; border-radius: 50%;
-  border: 2px solid #CBD5E1; background: #F8FAFC;
+.cl-jicon-done, .cl-jicon-pending {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
-  transition: all 0.18s;
 }
-.cl-check-on { background: #16A34A; border-color: #16A34A; }
-.cl-check-on svg { display: block; width: 14px; height: 14px; }
-.cl-check-disabled { border-color: #E2E8F0; background: #F1F5F9; }
+.cl-jicon-done    { background: #16A34A; }
+.cl-jicon-pending { background: #EFF6FF; }
+.cl-jicon-num     { font-size: 11px; font-weight: 700; color: #054EAF; }
 
-/* Item body */
-.cl-item-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.cl-item-name {
-  font-size: 14px; font-weight: 500; color: #0F172A;
+.cl-juego-info { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px; }
+.cl-juego-nombre {
+  font-size: 14px; font-weight: 600; color: #0F172A;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.cl-name-done { text-decoration: line-through; color: #94A3B8; }
-.cl-item-qty  { font-size: 11px; color: #64748B; }
-.cl-item-cat  {
-  font-size: 10px; font-weight: 600; color: #64748B;
-  background: #F1F5F9; padding: 2px 7px; border-radius: 99px;
-  white-space: nowrap; flex-shrink: 0;
+.cl-juego-qty { font-size: 11px; color: #64748B; white-space: nowrap; }
+
+.cl-juego-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.cl-juego-badge {
+  font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px;
+}
+.cl-badge-green { background: #DCFCE7; color: #16A34A; }
+.cl-badge-blue  { background: #DBEAFE; color: #1D4ED8; }
+
+.cl-juego-chevron {
+  color: #94A3B8; transition: transform 0.2s;
+}
+.cl-juego-chevron.open { transform: rotate(90deg); }
+
+/* Mini progress bar */
+.cl-juego-bar-bg {
+  height: 3px; background: #F1F5F9; margin: 0 14px 2px;
+}
+.cl-juego-bar-fill {
+  height: 100%; background: #60A5FA; border-radius: 99px;
+  transition: width 0.3s ease;
 }
 
-/* Saving spinner */
+/* Aspectos panel */
+.cl-aspectos { border-top: 1px solid #F1F5F9; padding: 8px 0; }
+
+.cl-asp-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 14px; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.1s;
+}
+.cl-asp-row:active { background: #F8FAFC; }
+.cl-asp-done { background: #F0FDF4; }
+
+.cl-asp-cb-wrap { flex-shrink: 0; padding-top: 1px; }
+.cl-asp-native  { position: absolute; opacity: 0; width: 0; height: 0; }
+.cl-asp-cb {
+  width: 22px; height: 22px; border-radius: 6px;
+  border: 1.5px solid #CBD5E1; background: #F8FAFC;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.cl-asp-done .cl-asp-cb { background: #16A34A; border-color: #16A34A; }
+
+.cl-asp-texto {
+  font-size: 13px; color: #0F172A; line-height: 1.45; flex: 1;
+}
+.cl-asp-texto-done { text-decoration: line-through; color: #94A3B8; }
+
+/* Save spinner */
 .cl-spin-sm {
-  width: 12px; height: 12px; border-radius: 50%;
-  border: 2px solid rgba(0,0,0,0.15); border-top-color: #054EAF;
+  width: 10px; height: 10px; border-radius: 50%;
+  border: 1.5px solid rgba(0,0,0,0.15); border-top-color: #054EAF;
   animation: spin 0.7s linear infinite;
 }
 
@@ -396,7 +396,7 @@ onMounted(async () => {
 /* Footer */
 .cl-footer {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 20px 4px 8px; font-size: 11px; color: #94A3B8;
+  padding: 12px 4px 8px; font-size: 11px; color: #94A3B8;
 }
 .cl-footer-brand { font-weight: 700; color: #054EAF; }
 .cl-footer-saved { color: #16A34A; font-weight: 600; }
@@ -409,5 +409,8 @@ onMounted(async () => {
   animation: slideUp 0.2s ease;
 }
 .cl-toast-err { background: #FEF2F2; color: #991B1B; border: 1px solid #FECACA; }
-@keyframes slideUp { from { opacity: 0; transform: translateX(-50%) translateY(10px) } to { opacity: 1; transform: translateX(-50%) translateY(0) } }
+@keyframes slideUp {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px) }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0) }
+}
 </style>

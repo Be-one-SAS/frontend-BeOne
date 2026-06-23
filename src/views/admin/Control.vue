@@ -12,10 +12,11 @@ import ModalFlujoEvento from '@/components/quotation/ModalFlujoEvento.vue'
 import AsignacionEquipos from '@/views/operativa/AsignacionEquipos.vue'
 import NotasCotizacionPanel from '@/components/quotation/NotasCotizacionPanel.vue'
 import { createEncuesta, getEncuestas } from '@/services/encuestas.service'
+import { uploadPlanimetria, deletePlanimetria } from '@/services/administracion.service.js'
 
 const activeTab = ref<'control' | 'equipo'>('control')
 
-const { eventos, loading, fetchEventos, updateEvento, refreshEventTeam } = useControl()
+const { eventos, loading, fetchEventos, updateEvento, refreshEventTeam, patchEventLocal } = useControl()
 
 // ── Filtros ────────────────────────────────────────────
 const search        = ref('')
@@ -70,8 +71,11 @@ const openTeamModal = (evento) => {
   showTeamModal.value = true
 }
 
-const onTeamUpdated = async () => {
-  if (selectedTeamEvent.value?.id) {
+const onTeamUpdated = async (payload?: any) => {
+  if (!selectedTeamEvent.value?.id) return
+  if (payload?.type === 'responsables' && payload.users) {
+    patchEventLocal(selectedTeamEvent.value.id, payload.users)
+  } else {
     await refreshEventTeam(selectedTeamEvent.value.id)
   }
 }
@@ -237,6 +241,75 @@ onMounted(async () => {
   await fetchEventos()
   await loadEncuestas()
 })
+
+// ── Modal Planimetría ────────────────────────────────────
+const showPlanModal    = ref(false)
+const planModalEvento  = ref<any>(null)
+const planReplacing    = ref(false)
+const planDragOver     = ref(false)
+const planUploading    = ref(false)
+const planDeleting     = ref(false)
+const planUploadError  = ref<string | null>(null)
+const planFileInput    = ref<HTMLInputElement | null>(null)
+
+const openPlanimetriaModal = (ev: any) => {
+  planModalEvento.value = ev
+  planReplacing.value   = false
+  planUploadError.value = null
+  showPlanModal.value   = true
+}
+const closePlanModal = () => { showPlanModal.value = false }
+
+const isPlanImage = (url: string) => /\.(jpg|jpeg|png|webp)(\?|$)/i.test(url)
+
+const handlePlanUpload = async (file: File) => {
+  planUploadError.value = null
+  planUploading.value   = true
+  try {
+    const res = await uploadPlanimetria(planModalEvento.value.id, file)
+    // Update local event
+    const ev = eventos.value.find((e: any) => e.id === planModalEvento.value.id)
+    if (ev) {
+      (ev as any).planimetriaUrl = res.planimetriaUrl
+      ;(ev as any).planimetriaKey = res.planimetriaKey
+      planModalEvento.value = { ...planModalEvento.value, planimetriaUrl: res.planimetriaUrl }
+    }
+    planReplacing.value = false
+  } catch (e: any) {
+    planUploadError.value = e?.response?.data?.message ?? 'Error al subir el archivo'
+  } finally {
+    planUploading.value = false
+  }
+}
+
+const onPlanFileChange = (e: Event) => {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (file) handlePlanUpload(file)
+}
+
+const onPlanDrop = (e: DragEvent) => {
+  planDragOver.value = false
+  const file = e.dataTransfer?.files?.[0]
+  if (file) handlePlanUpload(file)
+}
+
+const handleDeletePlan = async () => {
+  planDeleting.value = true
+  try {
+    await deletePlanimetria(planModalEvento.value.id)
+    const ev = eventos.value.find((e: any) => e.id === planModalEvento.value.id)
+    if (ev) {
+      (ev as any).planimetriaUrl = null
+      ;(ev as any).planimetriaKey = null
+    }
+    planModalEvento.value = { ...planModalEvento.value, planimetriaUrl: null }
+    closePlanModal()
+  } catch {
+    planUploadError.value = 'Error al eliminar'
+  } finally {
+    planDeleting.value = false
+  }
+}
 </script>
 
 <template>
@@ -347,7 +420,6 @@ onMounted(async () => {
               <th class="vc-th" style="width:110px">LQ</th>
               <th class="vc-th" style="width:100px">Unidad</th>
               <th class="vc-th" style="min-width:160px">Evento</th>
-              <th class="vc-th" style="width:100px">Estado Op.</th>
               <th class="vc-th" style="width:140px">Equipo</th>
               <th class="vc-th vc-th-center" style="width:40px" title="Flujo del Evento">
                 <Activity :size="12" />
@@ -359,6 +431,7 @@ onMounted(async () => {
               <th class="vc-th vc-th-center" style="width:52px" title="Registro Fotográfico">Foto</th>
               <th class="vc-th vc-th-center" style="width:52px" title="Listado de Material">Mat.</th>
               <th class="vc-th vc-th-center" style="width:90px" title="Despacho y Retorno de vehículo">Vehículo</th>
+              <th class="vc-th vc-th-center" style="width:52px" title="Planimetría">Plani.</th>
               <th class="vc-th vc-th-center" style="width:52px" title="Planilla de Ejecución">Plan.</th>
               <th class="vc-th vc-th-center" style="width:62px" title="Evento Finalizado">Final.</th>
               <th class="vc-th vc-th-center" style="width:40px" title="Lista Operativa">
@@ -408,13 +481,6 @@ onMounted(async () => {
                   <span>{{ ev.description ?? ev.ubicacion ?? '—' }}</span>
                 </td>
 
-                <!-- Estado Operativo -->
-                <td class="vc-td" @click.stop>
-                  <span class="ctrl-badge" :class="estadoOpCls(ev.estadoOperativo)">
-                    {{ ev.estadoOperativo ?? 'Sin asignar' }}
-                  </span>
-                </td>
-
                 <!-- Equipo -->
                 <td class="vc-td" @click.stop>
                   <div class="equipo-cell">
@@ -428,6 +494,9 @@ onMounted(async () => {
                         </span>
                       </template>
                       <span v-else class="equipo-empty">Sin coord.</span>
+                      <span v-if="ev.responsableOperativo" class="equipo-resp-op-badge" :title="`Resp. Operativo: ${ev.responsableOperativo.fullName}`">
+                        Op: {{ ev.responsableOperativo.fullName.split(' ')[0] }}
+                      </span>
                       <span v-if="ev.members?.length" class="equipo-members-badge">
                         {{ ev.members.length }} logístico
                       </span>
@@ -549,6 +618,18 @@ onMounted(async () => {
                       <CornerDownLeft :size="10" />
                     </span>
                   </div>
+                </td>
+
+                <!-- Planimetría -->
+                <td class="vc-td vc-td-center" @click.stop>
+                  <button
+                    class="ctrl-check"
+                    :class="ev.planimetriaUrl ? 'ctrl-check-on' : 'ctrl-check-off'"
+                    @click="openPlanimetriaModal(ev)"
+                    :title="ev.planimetriaUrl ? 'Ver / reemplazar planimetría' : 'Subir planimetría'"
+                  >
+                    <span>{{ ev.planimetriaUrl ? '✓' : '✗' }}</span>
+                  </button>
                 </td>
 
                 <!-- Planilla -->
@@ -785,6 +866,94 @@ onMounted(async () => {
       @close="showFlujoModal = false"
       @open-team="onFlujoOpenTeam"
     />
+
+    <!-- ── Modal Planimetría ── -->
+    <Teleport to="body">
+      <div v-if="showPlanModal" class="plani-overlay" @click.self="closePlanModal">
+        <div class="plani-modal">
+          <!-- Header -->
+          <div class="plani-header">
+            <div class="plani-header-info">
+              <span class="plani-header-label">Planimetría</span>
+              <span class="plani-header-sub">COT-{{ planModalEvento?.numero }} · {{ planModalEvento?.empresa }}</span>
+            </div>
+            <button class="plani-close" @click="closePlanModal">✕</button>
+          </div>
+
+          <!-- Body -->
+          <div class="plani-body">
+
+            <!-- Archivo actual -->
+            <template v-if="planModalEvento?.planimetriaUrl && !planReplacing">
+              <div class="plani-current">
+                <!-- Preview imagen -->
+                <div v-if="isPlanImage(planModalEvento.planimetriaUrl)" class="plani-img-wrap">
+                  <img :src="planModalEvento.planimetriaUrl" class="plani-img" alt="Planimetría" />
+                </div>
+                <!-- Preview PDF -->
+                <div v-else class="plani-pdf-wrap">
+                  <div class="plani-pdf-icon">PDF</div>
+                  <span class="plani-pdf-name">Planimetría adjunta</span>
+                </div>
+
+                <a :href="planModalEvento.planimetriaUrl" target="_blank" class="plani-view-btn">
+                  Abrir archivo
+                </a>
+              </div>
+
+              <div class="plani-actions">
+                <button class="plani-btn plani-btn-sec" @click="planReplacing = true">Reemplazar</button>
+                <button class="plani-btn plani-btn-del" :disabled="planDeleting" @click="handleDeletePlan">
+                  <span v-if="planDeleting" class="plani-spin" />
+                  <span v-else>Eliminar</span>
+                </button>
+              </div>
+            </template>
+
+            <!-- Drop zone de upload -->
+            <template v-else>
+              <div
+                class="plani-drop"
+                :class="{ 'plani-drop-over': planDragOver, 'plani-drop-uploading': planUploading }"
+                @dragover.prevent="planDragOver = true"
+                @dragleave="planDragOver = false"
+                @drop.prevent="onPlanDrop"
+                @click="$refs.planFileInput.click()"
+              >
+                <input
+                  ref="planFileInput"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                  class="plani-file-input"
+                  @change="onPlanFileChange"
+                />
+                <template v-if="planUploading">
+                  <div class="plani-spin plani-spin-lg" />
+                  <p class="plani-drop-text">Subiendo archivo…</p>
+                </template>
+                <template v-else>
+                  <div class="plani-drop-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40">
+                      <path d="M12 16V8m0 0l-3 3m3-3l3 3" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                  <p class="plani-drop-text">Arrastra aquí o toca para seleccionar</p>
+                  <p class="plani-drop-hint">Imagen (JPG, PNG, WEBP) o PDF · máx 20 MB</p>
+                </template>
+              </div>
+
+              <div v-if="planReplacing" class="plani-cancel-replace">
+                <button class="plani-btn plani-btn-sec" @click="planReplacing = false">Cancelar</button>
+              </div>
+
+              <div v-if="planUploadError" class="plani-error">{{ planUploadError }}</div>
+            </template>
+
+          </div>
+        </div>
+      </div>
+    </Teleport>
 
   </div>
 </template>
@@ -1231,6 +1400,18 @@ onMounted(async () => {
   white-space: nowrap;
 }
 
+.equipo-resp-op-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  background: #D1FAE5;
+  color: #065F46;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
 .equipo-edit-btn {
   flex-shrink: 0;
   width: 24px;
@@ -1263,5 +1444,105 @@ onMounted(async () => {
   transition: background 0.13s, color 0.13s;
 }
 .enc-copy-btn:hover { background: #eff6ff; color: #054EAF; }
+
+/* ── Modal Planimetría ─────────────────────────────────── */
+.plani-overlay {
+  position: fixed; inset: 0; z-index: 1200;
+  background: rgba(15,23,42,0.55); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.plani-modal {
+  background: #fff; border-radius: 18px; width: 100%; max-width: 480px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.22); overflow: hidden;
+  animation: planiIn 0.18s ease;
+}
+@keyframes planiIn {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.plani-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid #F1F5F9;
+}
+.plani-header-label { font-size: 16px; font-weight: 700; color: #0F172A; display: block; }
+.plani-header-sub   { font-size: 12px; color: #64748B; }
+.plani-close {
+  width: 30px; height: 30px; border-radius: 50%; border: none;
+  background: #F1F5F9; color: #64748B; cursor: pointer; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.plani-close:hover { background: #E2E8F0; }
+
+.plani-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+
+/* Archivo actual */
+.plani-current { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.plani-img-wrap { width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid #E2E8F0; }
+.plani-img      { width: 100%; max-height: 300px; object-fit: contain; display: block; }
+.plani-pdf-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 32px 20px; background: #F8FAFC; border-radius: 12px;
+  border: 1.5px dashed #CBD5E1; width: 100%;
+}
+.plani-pdf-icon {
+  width: 56px; height: 56px; border-radius: 12px; background: #EF4444;
+  color: #fff; font-size: 13px; font-weight: 800; letter-spacing: 0.5px;
+  display: flex; align-items: center; justify-content: center;
+}
+.plani-pdf-name { font-size: 13px; color: #475569; font-weight: 500; }
+.plani-view-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #EFF6FF; color: #1D4ED8; border-radius: 8px;
+  padding: 8px 18px; font-size: 13px; font-weight: 600;
+  text-decoration: none; transition: background 0.15s;
+}
+.plani-view-btn:hover { background: #DBEAFE; }
+
+.plani-actions { display: flex; gap: 8px; width: 100%; }
+.plani-btn {
+  flex: 1; padding: 9px 14px; border-radius: 9px; border: none;
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.plani-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.plani-btn-sec { background: #F1F5F9; color: #475569; }
+.plani-btn-sec:hover:not(:disabled) { background: #E2E8F0; }
+.plani-btn-del { background: #FEF2F2; color: #DC2626; }
+.plani-btn-del:hover:not(:disabled) { background: #FEE2E2; }
+
+/* Drop zone */
+.plani-drop {
+  border: 2px dashed #CBD5E1; border-radius: 14px;
+  padding: 40px 20px; display: flex; flex-direction: column; align-items: center;
+  gap: 10px; cursor: pointer; transition: all 0.18s; background: #F8FAFC;
+  -webkit-tap-highlight-color: transparent;
+}
+.plani-drop:hover, .plani-drop-over { border-color: #054EAF; background: #EFF6FF; }
+.plani-drop-uploading { border-color: #054EAF; background: #EFF6FF; pointer-events: none; }
+.plani-drop-icon { color: #94A3B8; }
+.plani-drop:hover .plani-drop-icon, .plani-drop-over .plani-drop-icon { color: #054EAF; }
+.plani-drop-text { font-size: 14px; font-weight: 600; color: #334155; margin: 0; }
+.plani-drop-hint { font-size: 12px; color: #94A3B8; margin: 0; }
+.plani-file-input { display: none; }
+
+.plani-cancel-replace { display: flex; justify-content: center; }
+
+.plani-error {
+  background: #FEF2F2; border: 1px solid #FECACA;
+  color: #DC2626; border-radius: 8px; padding: 10px 14px;
+  font-size: 13px; text-align: center;
+}
+
+/* Spinner */
+.plani-spin {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid rgba(0,0,0,0.15); border-top-color: currentColor;
+  animation: plani-rot 0.7s linear infinite; display: inline-block;
+}
+.plani-spin-lg { width: 32px; height: 32px; border-width: 3px; color: #054EAF; }
+@keyframes plani-rot { to { transform: rotate(360deg); } }
 
 </style>

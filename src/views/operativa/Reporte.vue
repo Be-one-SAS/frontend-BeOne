@@ -160,6 +160,168 @@
 
 
     <!-- ═══════════════════════════════════════
+         REGISTRO DE TURNO
+    ═══════════════════════════════════════ -->
+    <section class="rt-section">
+      <div class="rt-section-header">
+        <div>
+          <h2 class="ops-title">Registro de Turno</h2>
+          <p class="rpt-sub">Entrada, salida y notas del equipo logístico y operativo</p>
+        </div>
+        <div class="rt-header-actions">
+          <!-- Selector de evento -->
+          <select v-model="rtQuotationId" class="rt-select" @change="loadRegistros">
+            <option :value="null" disabled>Seleccionar evento…</option>
+            <option v-for="q in rtQuotations" :key="q.id" :value="q.id">
+              #{{ q.numero }} — {{ q.cliente?.name ?? q.empresa ?? '—' }}
+            </option>
+          </select>
+          <button v-if="rtQuotationId" class="rt-btn-link" :class="{ 'rt-btn-link--copied': rtLinkCopied }" @click="copyTurnoLink" :title="rtLinkCopied ? 'Link copiado' : 'Copiar link de turno'">
+            <Check v-if="rtLinkCopied" :size="13" />
+            <Copy v-else :size="13" />
+            {{ rtLinkCopied ? 'Copiado' : 'Link turno' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div v-if="rtLoading" class="rpt-loading"><div class="rpt-spinner" /><p>Cargando registros…</p></div>
+
+      <!-- Sin evento seleccionado -->
+      <div v-else-if="!rtQuotationId" class="rt-empty">
+        <ClockIcon :size="36" class="rt-empty-icon" />
+        <p>Selecciona un evento para ver o registrar turnos</p>
+      </div>
+
+      <!-- Sin equipo logístico/operativo en el evento -->
+      <div v-else-if="!rtRoster.length" class="rt-empty">
+        <ClockIcon :size="36" class="rt-empty-icon" />
+        <p>Este evento no tiene personal logístico u operativo asignado</p>
+      </div>
+
+      <!-- Tabla roster -->
+      <div v-else class="rt-table-wrap">
+        <table class="rt-table">
+          <thead>
+            <tr>
+              <th>Persona</th>
+              <th>Rol</th>
+              <th>Ingreso</th>
+              <th>Salida</th>
+              <th>Horas</th>
+              <th>Notas</th>
+              <th v-if="canManageTurnos"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in rtRoster" :key="row.user.id" :class="{ 'rt-row--pending': !row.registro }">
+              <td>
+                <div class="rt-user-cell">
+                  <div class="rt-avatar" :class="row.registro ? 'rt-avatar--active' : ''">{{ initials(row.user.fullName) }}</div>
+                  <span>{{ row.user.fullName }}</span>
+                </div>
+              </td>
+              <td><span class="rt-role-badge" :class="rtRoleClass(row.user.role)">{{ row.user.role }}</span></td>
+              <td class="rt-time">
+                <span v-if="row.registro?.horaIngreso">{{ formatTime(row.registro.horaIngreso) }}</span>
+                <span v-else class="rt-pending-text">Aún no inicia</span>
+              </td>
+              <td class="rt-time">
+                <span v-if="row.registro?.horaSalida">{{ formatTime(row.registro.horaSalida) }}</span>
+                <span v-else class="rt-pending-text">—</span>
+              </td>
+              <td class="rt-hours">
+                <span v-if="row.registro?.horaIngreso && row.registro?.horaSalida">{{ calcHours(row.registro.horaIngreso, row.registro.horaSalida) }}</span>
+                <span v-else class="rt-pending-text">—</span>
+              </td>
+              <td class="rt-notas">{{ row.registro?.notas ?? '—' }}</td>
+              <td v-if="canManageTurnos" class="rt-actions-cell">
+                <button v-if="!row.registro" class="rt-btn-registrar" @click="openRtModalForUser(row.user)" title="Registrar turno">
+                  <Plus :size="11" /> Registrar
+                </button>
+                <template v-else>
+                  <button class="rt-action-btn" title="Editar" @click="openRtModal(row.registro)"><Pencil :size="12" /></button>
+                  <button class="rt-action-btn rt-action-btn--danger" title="Eliminar" @click="confirmDeleteRegistro(row.registro)"><Trash2 :size="12" /></button>
+                </template>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Resumen horas -->
+      <div v-if="rtRoster.length && rtRegistros.length" class="rt-summary">
+        <span>{{ rtRegistros.length }} de {{ rtRoster.length }} registrado{{ rtRegistros.length !== 1 ? 's' : '' }}</span>
+        <span>·</span>
+        <span>{{ rtTotalHoras }}h totales</span>
+      </div>
+    </section>
+
+    <!-- Modal Registro de Turno -->
+    <Transition name="modal-fade">
+      <div v-if="rtModalOpen" class="rpt-modal-overlay" @click.self="closeRtModal">
+        <div class="rpt-modal rt-modal">
+          <div class="ed-modal-header">
+            <h2 class="ed-modal-title">{{ rtEditing ? 'Editar turno' : 'Nuevo turno' }}</h2>
+            <button class="ed-close" @click="closeRtModal">✕</button>
+          </div>
+
+          <div class="rt-form">
+            <!-- Persona -->
+            <div class="rt-form-group">
+              <label class="rt-label">Persona <span class="rt-required">*</span></label>
+              <select v-model="rtForm.userId" class="rt-input">
+                <option :value="null" disabled>Seleccionar…</option>
+                <option v-for="u in rtEligibleUsers" :key="u.id" :value="u.id">
+                  {{ u.fullName }} — {{ u.role }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Fecha -->
+            <div class="rt-form-group">
+              <label class="rt-label">Fecha <span class="rt-required">*</span></label>
+              <input v-model="rtForm.fecha" type="date" class="rt-input" />
+            </div>
+
+            <!-- Ingreso / Salida -->
+            <div class="rt-form-row">
+              <div class="rt-form-group">
+                <label class="rt-label">Hora de ingreso</label>
+                <input v-model="rtForm.horaIngreso" type="time" class="rt-input" />
+              </div>
+              <div class="rt-form-group">
+                <label class="rt-label">Hora de salida</label>
+                <input v-model="rtForm.horaSalida" type="time" class="rt-input" />
+              </div>
+            </div>
+
+            <!-- Preview horas -->
+            <div v-if="rtForm.horaIngreso && rtForm.horaSalida" class="rt-hours-preview">
+              <ClockIcon :size="12" />
+              {{ calcHoursFromTimes(rtForm.horaIngreso, rtForm.horaSalida) }} horas de trabajo
+            </div>
+
+            <!-- Notas -->
+            <div class="rt-form-group">
+              <label class="rt-label">Notas</label>
+              <textarea v-model="rtForm.notas" class="rt-input rt-textarea" rows="3" placeholder="Observaciones del turno…" />
+            </div>
+
+            <!-- Footer -->
+            <div class="rt-form-footer">
+              <button class="rpt-btn rpt-btn-ghost" @click="closeRtModal">Cancelar</button>
+              <button class="rpt-btn rpt-btn-primary" :disabled="rtSaving || !rtForm.userId || !rtForm.fecha" @click="saveRegistro">
+                <Loader2 v-if="rtSaving" :size="12" class="spin" />
+                {{ rtEditing ? 'Guardar cambios' : 'Registrar turno' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- ═══════════════════════════════════════
          MODAL EDITOR
     ═══════════════════════════════════════ -->
     <Transition name="modal-fade">
@@ -392,7 +554,7 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import {
   ClipboardList, Copy, Check, Eye, ToggleLeft, ToggleRight,
   BarChart2, Calendar, Pencil, Upload, ListChecks, Plus, Trash2,
-  ImageIcon,
+  ImageIcon, Clock as ClockIcon, Loader2,
 } from 'lucide-vue-next'
 import {
   getEncuestas, getEncuesta, toggleEncuesta,
@@ -401,6 +563,13 @@ import {
   uploadImagen,
 } from '@/services/encuestas.service'
 import { getTasks } from '@/services/task.service'
+import { getQuotations } from '@/services/quotation.service'
+import {
+  getRegistrosByQuotation, createRegistro, updateRegistro, deleteRegistro, getTurnoToken,
+} from '@/services/registros-turno.service'
+import { useAuth } from '@/composables/useAuth'
+
+const { user } = useAuth()
 
 // ── Tipos de pregunta ────────────────────────────────────────────
 const tipoOptions = [
@@ -480,9 +649,191 @@ const formatDateFull = (iso) =>
 
 const encuestaUrl = (token) => `${window.location.origin}/encuesta/${token}`
 
+// ── Registro de Turno — Estado ──────────────────────────────────
+const RT_MANAGER_ROLES = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR']
+const canManageTurnos = computed(() =>
+  (user.value?.roles ?? []).some(r => RT_MANAGER_ROLES.includes(r))
+)
+
+const rtQuotations  = ref([])
+const rtQuotationId = ref(null)
+const rtRegistros   = ref([])
+const rtLoading     = ref(false)
+const rtModalOpen   = ref(false)
+const rtEditing     = ref(null)
+const rtSaving      = ref(false)
+const rtEligibleUsers = ref([])
+
+const rtLinkCopied = ref(false)
+
+const copyTurnoLink = async () => {
+  if (!rtQuotationId.value) return
+  try {
+    const { token } = await getTurnoToken(rtQuotationId.value)
+    const url = `${window.location.origin}/turno/${token}`
+    await navigator.clipboard.writeText(url)
+    rtLinkCopied.value = true
+    setTimeout(() => { rtLinkCopied.value = false }, 2500)
+  } catch (_) {}
+}
+
+const rtFormDefault = () => ({ userId: null, fecha: '', horaIngreso: '', horaSalida: '', notas: '' })
+const rtForm = ref(rtFormDefault())
+
+// Roster: one row per LOGISTICA/OPERATIVO member, with their registro merged in
+const RT_OP_ROLES = ['LOGISTICA', 'OPERATIVO']
+const rtRoster = computed(() => {
+  const registrosByUser = new Map(rtRegistros.value.map(r => [r.userId, r]))
+  return rtEligibleUsers.value
+    .filter(u => RT_OP_ROLES.includes(u.role))
+    .map(u => ({ user: u, registro: registrosByUser.get(u.id) ?? null }))
+})
+
+const rtTotalHoras = computed(() =>
+  rtRegistros.value.reduce((sum, r) => {
+    if (!r.horaIngreso || !r.horaSalida) return sum
+    const h = (new Date(r.horaSalida) - new Date(r.horaIngreso)) / 3600000
+    return sum + (h > 0 ? h : 0)
+  }, 0).toFixed(1)
+)
+
+// ── Registro de Turno — Helpers ─────────────────────────────────
+const initials = (name) => {
+  if (!name) return '?'
+  return name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
+}
+
+const formatDateShort = (iso) => {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
+}
+
+const formatTime = (iso) => {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false })
+}
+
+const calcHours = (inIso, outIso) => {
+  if (!inIso || !outIso) return '—'
+  const h = (new Date(outIso) - new Date(inIso)) / 3600000
+  return h > 0 ? h.toFixed(1) + 'h' : '—'
+}
+
+const calcHoursFromTimes = (inTime, outTime) => {
+  if (!inTime || !outTime) return '0'
+  const [ih, im] = inTime.split(':').map(Number)
+  const [oh, om] = outTime.split(':').map(Number)
+  const h = (oh * 60 + om - (ih * 60 + im)) / 60
+  return h > 0 ? h.toFixed(1) : '0'
+}
+
+const rtRoleClass = (role) => {
+  const map = { LOGISTICA: 'rt-role--blue', OPERATIVO: 'rt-role--green', SUPERVISOR: 'rt-role--purple', COORDINADOR: 'rt-role--orange' }
+  return map[role] ?? 'rt-role--gray'
+}
+
+// ── Registro de Turno — Acciones ─────────────────────────────────
+const loadRtQuotations = async () => {
+  try {
+    const res = await getQuotations()
+    const all = res.data ?? []
+    rtQuotations.value = all.filter(q =>
+      ['Aprobada', 'Pendiente'].includes(q.quotationStatus?.name ?? '')
+    )
+    if (rtQuotations.value.length && !rtQuotationId.value) {
+      rtQuotationId.value = rtQuotations.value[rtQuotations.value.length - 1].id
+      await loadRegistros()
+    }
+  } catch (_) {}
+}
+
+const loadRegistros = async () => {
+  if (!rtQuotationId.value) return
+  rtLoading.value = true
+  try {
+    const res = await getRegistrosByQuotation(rtQuotationId.value)
+    rtRegistros.value = res ?? []
+    // members and coordinadores are pivot arrays: { user: {...} }
+    const q = rtQuotations.value.find(q => q.id === rtQuotationId.value)
+    const memberUsers = (q?.members ?? []).map(m => m.user ?? m).filter(Boolean)
+    const coordUsers  = (q?.coordinadores ?? []).map(c => c.user ?? c).filter(Boolean)
+    const seen = new Set()
+    rtEligibleUsers.value = [...memberUsers, ...coordUsers].filter(u => {
+      if (!u?.id || seen.has(u.id)) return false
+      seen.add(u.id); return true
+    })
+  } catch (_) { rtRegistros.value = [] }
+  finally { rtLoading.value = false }
+}
+
+const openRtModalForUser = (u) => {
+  rtEditing.value = null
+  rtForm.value = { ...rtFormDefault(), userId: u.id }
+  rtModalOpen.value = true
+}
+
+const openRtModal = (registro) => {
+  rtEditing.value = registro
+  if (registro) {
+    const toDateInput = (iso) => iso ? new Date(iso).toISOString().slice(0, 10) : ''
+    const toTimeInput = (iso) => iso ? new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : ''
+    rtForm.value = {
+      userId:      registro.userId,
+      fecha:       toDateInput(registro.fecha),
+      horaIngreso: toTimeInput(registro.horaIngreso),
+      horaSalida:  toTimeInput(registro.horaSalida),
+      notas:       registro.notas ?? '',
+    }
+  } else {
+    rtForm.value = rtFormDefault()
+  }
+  rtModalOpen.value = true
+}
+
+const closeRtModal = () => {
+  rtModalOpen.value = false
+  rtEditing.value = null
+}
+
+const buildDateTime = (dateStr, timeStr) => {
+  if (!dateStr || !timeStr) return null
+  return new Date(`${dateStr}T${timeStr}:00`).toISOString()
+}
+
+const saveRegistro = async () => {
+  if (!rtForm.value.userId || !rtForm.value.fecha) return
+  rtSaving.value = true
+  try {
+    const payload = {
+      quotationId: rtQuotationId.value,
+      userId:      rtForm.value.userId,
+      fecha:       new Date(`${rtForm.value.fecha}T00:00:00`).toISOString(),
+      horaIngreso: buildDateTime(rtForm.value.fecha, rtForm.value.horaIngreso),
+      horaSalida:  buildDateTime(rtForm.value.fecha, rtForm.value.horaSalida),
+      notas:       rtForm.value.notas || null,
+    }
+    if (rtEditing.value) {
+      await updateRegistro(rtEditing.value.id, payload)
+    } else {
+      await createRegistro(payload)
+    }
+    closeRtModal()
+    await loadRegistros()
+  } catch (_) {}
+  finally { rtSaving.value = false }
+}
+
+const confirmDeleteRegistro = async (r) => {
+  if (!confirm(`¿Eliminar el registro de turno de ${r.user?.fullName}?`)) return
+  try {
+    await deleteRegistro(r.id)
+    rtRegistros.value = rtRegistros.value.filter(x => x.id !== r.id)
+  } catch (_) {}
+}
+
 // ── Mount ────────────────────────────────────────────────────────
 onMounted(async () => {
-  await Promise.all([loadEncuestas(), loadOps()])
+  await Promise.all([loadEncuestas(), loadOps(), loadRtQuotations()])
 })
 
 const loadEncuestas = async () => {
@@ -962,4 +1313,204 @@ const openDetail = async (enc) => {
 .slide-down-leave-active { transition: all 0.15s ease; }
 .slide-down-enter-from   { opacity: 0; transform: translateY(-8px); }
 .slide-down-leave-to     { opacity: 0; transform: translateY(-4px); }
+
+/* ═══ Registro de Turno ═══════════════════════════════════════ */
+.rt-section {
+  background: white;
+  border-radius: 14px;
+  border: 1px solid #E8EDF5;
+  padding: 24px 28px;
+  margin-bottom: 24px;
+}
+.rt-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.rt-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.rt-select {
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 13px;
+  color: #0F1A2E;
+  background: white;
+  cursor: pointer;
+  min-width: 200px;
+}
+.rt-btn-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: white;
+  color: #6366F1;
+  border: 1px solid #C7D2FE;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+}
+.rt-btn-link:hover { background: #EEF2FF; }
+.rt-btn-link--copied { color: #059669; border-color: #A7F3D0; background: #ECFDF5; }
+.rt-btn-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #0F1A2E;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.rt-empty {
+  text-align: center;
+  padding: 40px 0;
+  color: #94A3B8;
+  font-size: 13px;
+}
+.rt-empty-icon { margin: 0 auto 10px; display: block; opacity: 0.4; }
+.rt-table-wrap { overflow-x: auto; }
+.rt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.rt-table th {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  border-bottom: 1px solid #F1F5F9;
+}
+.rt-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #F8FAFC;
+  color: #1E293B;
+  vertical-align: middle;
+}
+.rt-table tr:last-child td { border-bottom: none; }
+.rt-user-cell { display: flex; align-items: center; gap: 8px; }
+.rt-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #EFF6FF;
+  color: #2563EB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.rt-role-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 600;
+}
+.rt-role--blue   { background: #DBEAFE; color: #1D4ED8; }
+.rt-role--green  { background: #D1FAE5; color: #065F46; }
+.rt-role--purple { background: #EDE9FE; color: #6D28D9; }
+.rt-role--orange { background: #FEF3C7; color: #92400E; }
+.rt-role--gray   { background: #F1F5F9; color: #475569; }
+.rt-time  { font-family: monospace; font-size: 12px; color: #334155; }
+.rt-hours { font-weight: 700; color: #0F1A2E; }
+.rt-notas { color: #64748B; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rt-actions-cell { display: flex; align-items: center; gap: 4px; }
+.rt-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px; height: 26px;
+  border-radius: 6px;
+  border: 1px solid #E2E8F0;
+  background: white;
+  color: #64748B;
+  cursor: pointer;
+  transition: all .15s;
+}
+.rt-action-btn:hover { background: #F8FAFC; color: #0F1A2E; }
+.rt-action-btn--danger:hover { background: #FEF2F2; color: #DC2626; border-color: #FECACA; }
+.rt-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #F1F5F9;
+  font-size: 12px;
+  color: #64748B;
+}
+
+/* Modal RT */
+.rt-modal { max-width: 480px; }
+.rt-form { padding: 0 24px 24px; display: flex; flex-direction: column; gap: 14px; }
+.rt-form-group { display: flex; flex-direction: column; gap: 5px; }
+.rt-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.rt-label { font-size: 12px; font-weight: 600; color: #374151; }
+.rt-required { color: #EF4444; }
+.rt-input {
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: #0F1A2E;
+  background: white;
+  width: 100%;
+  box-sizing: border-box;
+}
+.rt-input:focus { outline: none; border-color: #6366F1; box-shadow: 0 0 0 3px #EEF2FF; }
+.rt-textarea { resize: vertical; min-height: 72px; }
+.rt-hours-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #F0FDF4;
+  color: #166534;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+.rt-form-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+.rt-pending-text { color: #CBD5E1; font-style: italic; font-size: 11px; }
+.rt-row--pending td { opacity: 0.75; }
+.rt-avatar--active { background: #D1FAE5; color: #065F46; }
+.rt-btn-registrar {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #EFF6FF;
+  color: #2563EB;
+  border: 1px solid #BFDBFE;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.rt-btn-registrar:hover { background: #DBEAFE; }
 </style>

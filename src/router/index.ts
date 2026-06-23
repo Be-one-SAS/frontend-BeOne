@@ -46,6 +46,14 @@ const routes = [
     meta: { public: true },
   },
 
+  // ── Registro de turno (pública, sin auth) ─────────────
+  {
+    path: '/turno/:token',
+    name: 'TurnoPublico',
+    component: () => import('../views/operativa/TurnoPublico.vue'),
+    meta: { public: true },
+  },
+
   // ── Checklist de evento (pública, sin auth) ───────────
   {
     path: '/checklist/evento/:id',

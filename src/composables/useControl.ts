@@ -97,5 +97,12 @@ export function useControl() {
     }
   }
 
-  return { eventos, loading, coordinadores, fetchEventos, fetchCoordinadores, updateEvento, updateCoordinadores, refreshEventTeam }
+  const patchEventLocal = (eventId: number, patch: Record<string, any>) => {
+    const idx = eventos.value.findIndex(e => e.id === eventId)
+    if (idx !== -1) {
+      eventos.value[idx] = { ...eventos.value[idx], ...patch }
+    }
+  }
+
+  return { eventos, loading, coordinadores, fetchEventos, fetchCoordinadores, updateEvento, updateCoordinadores, refreshEventTeam, patchEventLocal }
 }

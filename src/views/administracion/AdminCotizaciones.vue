@@ -281,12 +281,36 @@
 
           <!-- Edit mode -->
           <div v-else class="evt-fields evt-info-fields">
-            <div class="evt-field evt-field-full">
+            <div class="evt-field evt-field-full" style="position:relative">
               <label class="evt-fl">Cliente</label>
-              <select class="dso-select" v-model="infoForm[drawerRow.id].clienteId" @change="saveInfoGeneral(drawerRow)">
-                <option :value="null">— Sin cliente vinculado —</option>
-                <option v-for="c in clientes" :key="c.id" :value="c.id">{{ c.name }}</option>
-              </select>
+              <div class="ss-wrap" :class="{ 'ss-open': clienteOpen[drawerRow.id] }">
+                <input
+                  class="dso-input ss-input"
+                  :value="clienteOpen[drawerRow.id]
+                    ? clienteQuery[drawerRow.id]
+                    : (clientes.find(c => c.id === infoForm[drawerRow.id]?.clienteId)?.name || '')"
+                  :placeholder="infoForm[drawerRow.id]?.clienteId ? '' : '— Sin cliente vinculado —'"
+                  @focus="openClienteSearch(drawerRow.id)"
+                  @blur="closeClienteSearch(drawerRow.id)"
+                  @input="e => clienteQuery[drawerRow.id] = e.target.value"
+                  autocomplete="off"
+                />
+                <span v-if="infoForm[drawerRow.id]?.clienteId" class="ss-clear" @mousedown.prevent="selectCliente(drawerRow, null)">✕</span>
+                <div v-if="clienteOpen[drawerRow.id]" class="ss-dropdown">
+                  <div
+                    class="ss-option ss-option-none"
+                    @mousedown.prevent="selectCliente(drawerRow, null)"
+                  >— Sin cliente vinculado —</div>
+                  <div
+                    v-for="c in filteredClientes(drawerRow.id)"
+                    :key="c.id"
+                    class="ss-option"
+                    :class="{ 'ss-option-active': c.id === infoForm[drawerRow.id]?.clienteId }"
+                    @mousedown.prevent="selectCliente(drawerRow, c)"
+                  >{{ c.name }}</div>
+                  <div v-if="filteredClientes(drawerRow.id).length === 0" class="ss-option ss-no-results">Sin resultados</div>
+                </div>
+              </div>
             </div>
             <div class="evt-field">
               <label class="evt-fl">Empresa</label>
@@ -326,127 +350,91 @@
         <section class="evt-sec">
           <div class="evt-sec-head">
             <h3 class="evt-sec-title"><Users :size="14" /> Responsables</h3>
-            <button class="evt-edit-btn" @click="toggleDsoEdit(drawerRow.id)">
-              <template v-if="!dsoEditMode[drawerRow.id]"><Pencil :size="11" /> Editar</template>
-              <template v-else><Check :size="11" /> Listo</template>
-            </button>
           </div>
-          <div v-if="!dsoEditMode[drawerRow.id]" class="evt-kv-grid">
+          <div class="evt-kv-grid">
             <div class="evt-kv">
               <span class="evt-k">Comercial</span>
-              <span class="evt-v" :class="{ 'evt-v-empty': !resolveUser(dsoForm[drawerRow.id]?.responsableComercialId, drawerRow.responsableComercial) }">
-                {{ resolveUser(dsoForm[drawerRow.id]?.responsableComercialId, drawerRow.responsableComercial) || '— Sin asignar' }}
+              <span class="evt-v" :class="{ 'evt-v-empty': !drawerRow.responsableComercial && !drawerRow.agenteComercial }">
+                {{ drawerRow.responsableComercial?.fullName || drawerRow.agenteComercial || '— Sin asignar' }}
               </span>
             </div>
             <div class="evt-kv">
               <span class="evt-k">Administrativo</span>
-              <span class="evt-v" :class="{ 'evt-v-empty': !resolveUser(dsoForm[drawerRow.id]?.responsableAdministrativoId, drawerRow.responsableAdministrativo) }">
-                {{ resolveUser(dsoForm[drawerRow.id]?.responsableAdministrativoId, drawerRow.responsableAdministrativo) || '— Sin asignar' }}
+              <span class="evt-v" :class="{ 'evt-v-empty': !drawerRow.responsableAdministrativo }">
+                {{ drawerRow.responsableAdministrativo?.fullName || '— Sin asignar' }}
               </span>
             </div>
             <div class="evt-kv">
               <span class="evt-k">Operativo</span>
-              <span class="evt-v" :class="{ 'evt-v-empty': !resolveUser(dsoForm[drawerRow.id]?.responsableOperativoId, drawerRow.responsableOperativo) }">
-                {{ resolveUser(dsoForm[drawerRow.id]?.responsableOperativoId, drawerRow.responsableOperativo) || '— Sin asignar' }}
+              <span class="evt-v" :class="{ 'evt-v-empty': !drawerRow.responsableOperativo }">
+                {{ drawerRow.responsableOperativo?.fullName || '— Sin asignar' }}
               </span>
             </div>
-          </div>
-          <div v-else class="evt-fields">
-            <div class="evt-field">
-              <label class="evt-fl">Comercial</label>
-              <select class="dso-select" v-model="dsoForm[drawerRow.id].responsableComercialId" @change="saveResponsables(drawerRow)">
-                <option :value="null">— Sin asignar —</option>
-                <option v-for="u in usuarios" :key="u.id" :value="u.id">{{ u.fullName }}</option>
-              </select>
-            </div>
-            <div class="evt-field">
-              <label class="evt-fl">Administrativo</label>
-              <select class="dso-select" v-model="dsoForm[drawerRow.id].responsableAdministrativoId" @change="saveResponsables(drawerRow)">
-                <option :value="null">— Sin asignar —</option>
-                <option v-for="u in usuarios" :key="u.id" :value="u.id">{{ u.fullName }}</option>
-              </select>
-            </div>
-            <div class="evt-field">
-              <label class="evt-fl">Operativo</label>
-              <select class="dso-select" v-model="dsoForm[drawerRow.id].responsableOperativoId" @change="saveResponsables(drawerRow)">
-                <option :value="null">— Sin asignar —</option>
-                <option v-for="u in usuarios" :key="u.id" :value="u.id">{{ u.fullName }}</option>
-              </select>
+            <div class="evt-kv">
+              <span class="evt-k">Coordinador</span>
+              <span class="evt-v" :class="{ 'evt-v-empty': !drawerRow.coordinadores?.length && !drawerRow.coordinador }">
+                {{ drawerRow.coordinadores?.length
+                    ? drawerRow.coordinadores.map(c => c.user?.fullName).filter(Boolean).join(', ')
+                    : drawerRow.coordinador || '— Sin asignar' }}
+              </span>
             </div>
           </div>
         </section>
 
-        <!-- ── Financiero ──────────────────────────────────── -->
+        <!-- ── Financiero detallado ────────────────────────── -->
         <section class="evt-sec">
           <div class="evt-sec-head">
-            <h3 class="evt-sec-title"><DollarSign :size="14" /> Financiero</h3>
-            <button class="evt-edit-btn" @click="toggleDsoEdit(drawerRow.id)">
-              <template v-if="!dsoEditMode[drawerRow.id]"><Pencil :size="11" /> Editar</template>
-              <template v-else><Check :size="11" /> Listo</template>
-            </button>
+            <h3 class="evt-sec-title"><DollarSign :size="14" /> Financiero detallado</h3>
           </div>
-          <!-- Vista -->
-          <div v-if="!dsoEditMode[drawerRow.id]" class="evt-kv-grid">
-            <div class="evt-kv"><span class="evt-k">Valor OC</span><span class="evt-v evt-money">{{ fmtMoney(drawerRow.ordenCompraValor) }}</span></div>
-            <div class="evt-kv"><span class="evt-k">Dept. servicio</span><span class="evt-v">{{ drawerRow.departamentoServicio || '—' }}</span></div>
-            <div class="evt-kv"><span class="evt-k">No. Factura</span><span class="evt-v">{{ drawerRow.noFactura || '—' }}</span></div>
-            <div class="evt-kv"><span class="evt-k">Fecha factura</span><span class="evt-v">{{ fmtDisplayDate(drawerRow.fechaFactura) }}</span></div>
-            <div class="evt-kv"><span class="evt-k">Retención</span><span class="evt-v evt-money">{{ fmtMoney(drawerRow.retencion) }}</span></div>
-            <div class="evt-kv"><span class="evt-k">Fecha venc.</span><span class="evt-v">{{ fmtDisplayDate(drawerRow.fechaVencimiento) }}</span></div>
-            <div class="evt-kv"><span class="evt-k">Anticipo</span><span class="evt-v evt-money">{{ fmtMoney(drawerRow.anticipo) }}</span></div>
-            <div class="evt-kv"><span class="evt-k">Tipo saldo</span><span class="evt-v">{{ drawerRow.tipoSaldo || '—' }}</span></div>
-            <div class="evt-kv"><span class="evt-k">IVA total</span><span class="evt-v evt-money">{{ fmtMoney(drawerRow.ivaTotal) }}</span></div>
+          <FinancieroPanel :quotationId="drawerRow.id" :key="drawerRow.id" />
+        </section>
+
+        <!-- ── Documentos ─────────────────────────────────── -->
+        <section class="evt-sec">
+          <div class="docs-header">
+            <h3 class="evt-sec-title" style="margin:0"><Paperclip :size="14" /> Documentos</h3>
+            <div class="docs-header-actions">
+              <button class="docs-refresh-btn" @click="loadDocumentos(drawerRow.id)" :disabled="docsLoading" title="Recargar">
+                <RefreshCw :size="11" :class="docsLoading ? 'spin' : ''" />
+              </button>
+              <button
+                v-if="docs[drawerRow.id]?.length"
+                class="docs-zip-btn"
+                @click="handleDownloadZip(drawerRow)"
+                :disabled="docsZipping"
+              >
+                <Download :size="11" />
+                {{ docsZipping ? 'Generando…' : 'ZIP' }}
+              </button>
+            </div>
           </div>
-          <!-- Edición -->
-          <div v-else class="evt-fields evt-fin-fields">
-            <div class="evt-field">
-              <label class="evt-fl">Dept. servicio</label>
-              <select class="dso-select" v-model="dsoForm[drawerRow.id].departamentoServicio" @change="saveDatosFinancieros(drawerRow)">
-                <option value="">—</option>
-                <option value="TODOS">Todos</option>
-                <option value="ADMINISTRATIVO">Administrativo</option>
-              </select>
+
+          <div class="docs-box">
+            <template v-if="docsLoading">
+              <div class="adm-sk-row" style="height:28px;border-radius:7px" v-for="n in 3" :key="n" />
+            </template>
+            <div v-else-if="!docs[drawerRow.id]?.length && docs[drawerRow.id] !== undefined" class="docs-empty">
+              Sin documentos cargados
             </div>
-            <div class="evt-field">
-              <label class="evt-fl">Valor OC</label>
-              <input type="number" class="dso-input" v-model.number="dsoForm[drawerRow.id].ordenCompraValor" @blur="saveDatosFinancieros(drawerRow)" placeholder="0" />
-            </div>
-            <div class="evt-field">
-              <label class="evt-fl">No. Factura</label>
-              <input type="text" class="dso-input" v-model="dsoForm[drawerRow.id].noFactura" @blur="saveDatosFinancieros(drawerRow)" placeholder="—" />
-            </div>
-            <div class="evt-field">
-              <label class="evt-fl">Fecha factura</label>
-              <input type="date" class="dso-input" v-model="dsoForm[drawerRow.id].fechaFactura" @change="saveDatosFinancieros(drawerRow)" />
-            </div>
-            <div class="evt-field">
-              <label class="evt-fl">Retención</label>
-              <input type="number" class="dso-input" v-model.number="dsoForm[drawerRow.id].retencion" @blur="saveDatosFinancieros(drawerRow)" placeholder="0" />
-            </div>
-            <div class="evt-field">
-              <label class="evt-fl">Fecha venc.</label>
-              <input type="date" class="dso-input" v-model="dsoForm[drawerRow.id].fechaVencimiento" @change="saveDatosFinancieros(drawerRow)" />
-            </div>
-            <div class="evt-field">
-              <label class="evt-fl">Anticipo</label>
-              <input type="number" class="dso-input" v-model.number="dsoForm[drawerRow.id].anticipo" @blur="saveDatosFinancieros(drawerRow)" placeholder="0" />
-            </div>
-            <div class="evt-field">
-              <label class="evt-fl">Tipo saldo</label>
-              <input type="text" class="dso-input" v-model="dsoForm[drawerRow.id].tipoSaldo" @blur="saveDatosFinancieros(drawerRow)" placeholder="—" />
-            </div>
-            <div class="evt-field">
-              <label class="evt-fl">IVA total</label>
-              <input type="number" class="dso-input" v-model.number="dsoForm[drawerRow.id].ivaTotal" @blur="saveDatosFinancieros(drawerRow)" placeholder="0" />
-            </div>
-            <div class="evt-field evt-field-full">
-              <label class="evt-fl">Obs. comerciales</label>
-              <textarea class="dso-textarea" v-model="dsoForm[drawerRow.id].observacionesComerciales" @blur="saveDatosFinancieros(drawerRow)" rows="2" placeholder="—" />
-            </div>
-            <div class="evt-field evt-field-full">
-              <label class="evt-fl">Obs. administrativas</label>
-              <textarea class="dso-textarea" v-model="dsoForm[drawerRow.id].observacionesAdministrativas" @blur="saveDatosFinancieros(drawerRow)" rows="2" placeholder="—" />
-            </div>
+            <template v-else>
+              <div
+                v-for="doc in docs[drawerRow.id]"
+                :key="doc.key || doc.url"
+                class="docs-chip"
+              >
+                <span class="docs-chip-tipo">{{ doc.tipo }}</span>
+                <component :is="docIcon(doc)" :size="12" class="docs-chip-icon" />
+                <span class="docs-chip-label">{{ doc.label }}</span>
+                <div class="docs-chip-actions">
+                  <a :href="doc.url" target="_blank" class="docs-chip-btn" title="Ver">
+                    <Eye :size="11" />
+                  </a>
+                  <a :href="doc.url" :download="doc.label" class="docs-chip-btn" title="Descargar">
+                    <Download :size="11" />
+                  </a>
+                </div>
+              </div>
+            </template>
           </div>
         </section>
 
@@ -527,16 +515,19 @@ import {
   Download, Search, ChevronDown, Check, AlertCircle, FileX,
   Pencil, Users, DollarSign, FileText, CheckCircle, XCircle,
   X, Zap, Circle, Info, Package, MessageSquare,
+  Paperclip, Eye, RefreshCw, File, Image, FileType,
 } from 'lucide-vue-next'
 import {
   getAdminCotizaciones, updateEstadoAdmin,
   updateResponsables, toggleValidacionAdmin, updateDatosFinancieros,
   getAdminCotizacionDetail, updateInfoGeneral,
+  getDocumentos, downloadDocumentosZip,
 } from '@/services/administracion.service.js'
 import { getCustomer } from '@/services/customer.service'
 import { getUsers } from '@/services/users.service.js'
 import { ESTADOS_ADMIN, estadoAdminStyle } from '@/composables/useEstadoAdmin.js'
 import NotasCotizacionPanel from '@/components/quotation/NotasCotizacionPanel.vue'
+import FinancieroPanel      from '@/components/quotation/FinancieroPanel.vue'
 
 function estadoStyle(e) { return estadoAdminStyle(e) }
 
@@ -670,6 +661,33 @@ const visiblePages = computed(() => {
 })
 
 // ── Load data ─────────────────────────────────────────────
+// ── Searchable cliente select ──────────────────────────────
+const clienteOpen  = ref({})
+const clienteQuery = ref({})
+
+function filteredClientes(id) {
+  const q = (clienteQuery.value[id] || '').toLowerCase()
+  const list = q ? clientes.value.filter(c => c.name.toLowerCase().includes(q)) : clientes.value
+  return list.slice(0, 10)
+}
+
+function openClienteSearch(id) {
+  clienteOpen.value  = { ...clienteOpen.value,  [id]: true }
+  clienteQuery.value = { ...clienteQuery.value,  [id]: '' }
+}
+
+function selectCliente(row, cliente) {
+  infoForm.value[row.id].clienteId = cliente?.id ?? null
+  clienteOpen.value[row.id]  = false
+  clienteQuery.value[row.id] = ''
+  saveInfoGeneral(row)
+}
+
+function closeClienteSearch(id) {
+  clienteOpen.value[id] = false
+  clienteQuery.value[id] = ''
+}
+
 let debounceTimer = null
 function onFilter() {
   page.value = 1
@@ -788,6 +806,46 @@ async function saveInfoGeneral(row) {
   }, 600)
 }
 
+// ── Documentos ──────────────────────────────────────────────
+const docs         = ref({})   // { [quotationId]: Doc[] }
+const docsLoadingId = ref(null) // id currently loading
+const docsZipping  = ref(false)
+
+const docsLoading = computed(() => docsLoadingId.value === expandedId.value)
+
+async function loadDocumentos(id) {
+  docsLoadingId.value = id
+  try {
+    const data = await getDocumentos(id)
+    docs.value = { ...docs.value, [id]: data.documentos }
+  } catch {
+    docs.value = { ...docs.value, [id]: [] }
+  } finally {
+    docsLoadingId.value = null
+  }
+}
+
+function docsTipos(id) {
+  const list = docs.value[id] || []
+  return [...new Set(list.map(d => d.tipo))]
+}
+
+function docIcon(doc) {
+  if (['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(doc.ext?.toLowerCase())) return Image
+  if (doc.ext?.toLowerCase() === '.pdf') return FileType
+  return File
+}
+
+async function handleDownloadZip(row) {
+  docsZipping.value = true
+  try {
+    const name = `documentos-${row.numero}-${(row.empresa || '').replace(/[^a-z0-9]/gi, '_')}.zip`
+    await downloadDocumentosZip(row.id, name)
+  } finally {
+    docsZipping.value = false
+  }
+}
+
 onMounted(() => {
   load()
   loadUsuarios()
@@ -868,9 +926,9 @@ function toggleExpand(id) {
   }
   expandedId.value = id
   loadDetail(id)
+  loadDocumentos(id)
   const row = rows.value.find(r => r.id === id)
   const hasData = row && (
-    row.responsableComercialId || row.responsableAdministrativoId || row.responsableOperativoId ||
     row.noFactura || row.fechaFactura || row.ordenCompraValor || row.departamentoServicio
   )
   if (!hasData) dsoEditMode.value[id] = true
@@ -995,7 +1053,7 @@ function exportCSV() {
 </script>
 
 <style scoped>
-.adm-page { padding: 20px 24px; max-width: 1440px; font-family: 'Inter', sans-serif; }
+.adm-page { padding: 20px 24px; width: 100%; font-family: 'Inter', sans-serif; box-sizing: border-box; }
 
 .adm-header {
   display: flex; align-items: flex-start; justify-content: space-between;
@@ -1199,8 +1257,15 @@ function exportCSV() {
   flex: 1; height: 30px; padding: 0 8px; border: 1.5px solid #E2E8F0;
   border-radius: 6px; font-size: 12px; font-family: 'Inter', sans-serif;
   color: #0F172A; background: #fff; outline: none; transition: border-color 0.15s;
+  box-sizing: border-box; width: 100%;
+}
+select.dso-select {
+  appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center; padding-right: 26px;
 }
 .dso-input:focus, .dso-select:focus { border-color: #054EAF; }
+.dso-input::placeholder { color: #94A3B8; }
 .dso-textarea {
   width: 100%; padding: 6px 8px; border: 1.5px solid #E2E8F0; border-radius: 6px;
   font-size: 12px; font-family: 'Inter', sans-serif; color: #0F172A;
@@ -1374,12 +1439,12 @@ function exportCSV() {
 .evt-inline-save { margin-top: 8px; font-size: 11px; display: flex; align-items: center; gap: 6px; }
 
 /* Edit form fields */
-.evt-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.evt-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .evt-info-fields { grid-template-columns: 1fr 1fr; }
 .evt-fin-fields { grid-template-columns: 1fr 1fr; }
-.evt-field { display: flex; flex-direction: column; gap: 4px; }
+.evt-field { display: flex; flex-direction: column; gap: 5px; }
 .evt-field-full { grid-column: 1 / -1; }
-.evt-fl { font-size: 11px; font-weight: 500; color: #64748B; }
+.evt-fl { font-size: 11px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.4px; }
 .dso-select, .dso-input { width: 100%; }
 
 /* Products */
@@ -1434,4 +1499,95 @@ function exportCSV() {
   .evt-drawer { width: 100vw; }
   .evt-kv-grid, .evt-fields, .evt-fin-fields { grid-template-columns: 1fr; }
 }
+
+/* ── Documentos section ── */
+.docs-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.docs-header-actions { display: flex; gap: 6px; align-items: center; }
+
+.docs-refresh-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; background: #F1F5F9;
+  border: 1px solid #E2E8F0; border-radius: 6px; cursor: pointer;
+  color: #64748B; transition: background 0.15s;
+}
+.docs-refresh-btn:hover { background: #E2E8F0; }
+
+.docs-zip-btn {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 600; color: #fff;
+  background: #054EAF; border: none; border-radius: 6px;
+  padding: 4px 10px; cursor: pointer; transition: background 0.15s;
+}
+.docs-zip-btn:hover:not(:disabled) { background: #0369a1; }
+.docs-zip-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.docs-box {
+  max-height: 160px; overflow-y: auto;
+  border: 1px solid #E2E8F0; border-radius: 10px;
+  background: #F8FAFC; padding: 6px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.docs-box::-webkit-scrollbar { width: 4px; }
+.docs-box::-webkit-scrollbar-track { background: transparent; }
+.docs-box::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
+
+.docs-empty {
+  padding: 12px; text-align: center; font-size: 12px; color: #94A3B8;
+}
+
+.docs-chip {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 8px; background: #fff;
+  border: 1px solid #E2E8F0; border-radius: 7px;
+  transition: background 0.1s; min-width: 0;
+}
+.docs-chip:hover { background: #EFF6FF; border-color: #BFDBFE; }
+
+.docs-chip-tipo {
+  font-size: 9px; font-weight: 700; color: #fff;
+  background: #64748B; border-radius: 4px;
+  padding: 1px 5px; white-space: nowrap; flex-shrink: 0; text-transform: uppercase;
+}
+.docs-chip-icon { color: #64748B; flex-shrink: 0; }
+.docs-chip-label {
+  font-size: 11px; font-weight: 500; color: #334155;
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.docs-chip-actions { display: flex; gap: 4px; flex-shrink: 0; margin-left: auto; }
+.docs-chip-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 5px; text-decoration: none;
+  color: #475569; background: #F1F5F9; border: 1px solid #E2E8F0;
+  transition: background 0.1s;
+}
+.docs-chip-btn:hover { background: #DBEAFE; color: #054EAF; border-color: #BFDBFE; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 0.8s linear infinite; }
+
+/* ── Searchable select ── */
+.ss-wrap { position: relative; }
+.ss-input { width: 100%; padding-right: 24px; }
+.ss-clear {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  font-size: 11px; color: #94A3B8; cursor: pointer; line-height: 1;
+}
+.ss-clear:hover { color: #475569; }
+.ss-dropdown {
+  position: absolute; z-index: 200; top: calc(100% + 3px); left: 0; right: 0;
+  background: #fff; border: 1.5px solid #E2E8F0; border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+  overflow-y: auto; max-height: 220px;
+}
+.ss-option {
+  padding: 7px 10px; font-size: 12px; color: #334155; cursor: pointer;
+  transition: background 0.1s;
+}
+.ss-option:hover { background: #EFF6FF; }
+.ss-option-active { background: #EFF6FF; font-weight: 600; color: #054EAF; }
+.ss-option-none { color: #94A3B8; font-style: italic; }
+.ss-no-results { color: #94A3B8; font-style: italic; cursor: default; }
 </style>

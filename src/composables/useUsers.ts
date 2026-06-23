@@ -15,6 +15,7 @@ export const rolePermissions: Record<string, string[]> = {
   SUPERVISOR:    ['Reservas', 'Inventario', 'Control operativo', 'Materiales', 'Tareas'],
   COORDINADOR:   ['Sus cotizaciones asignadas', 'Control operativo', 'Materiales', 'Check-in/out'],
   LOGISTICO:     ['Control operativo', 'Materiales', 'Check-in/out'],
+  OPERATIVO:     ['Control operativo', 'Materiales', 'Check-in/out'],
 }
 
 export function useUsers() {
