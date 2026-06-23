@@ -1,14 +1,21 @@
 <template>
   <div class="aa-page">
 
-    <!-- Header -->
-    <div class="aa-header">
+    <!-- Header — oculto cuando está embebido dentro de Checkins.vue -->
+    <div v-if="!embedded" class="aa-header">
       <div class="aa-header-left">
         <button class="aa-back-btn" @click="router.push('/operativa/checkins')">
           <ArrowLeft :size="16" />
         </button>
         <h1 class="aa-title">Aspectos de inspección</h1>
       </div>
+      <button class="aa-add-btn" @click="openAdd">
+        <Plus :size="15" /> Agregar aspecto
+      </button>
+    </div>
+
+    <!-- Acciones cuando está embebido -->
+    <div v-if="embedded" class="aa-embedded-actions">
       <button class="aa-add-btn" @click="openAdd">
         <Plus :size="15" /> Agregar aspecto
       </button>
@@ -155,6 +162,8 @@ import {
   getAspectosAdmin, createAspecto, updateAspecto,
   toggleAspecto, deleteAspecto, reorderAspectos,
 } from '../../services/aspectos.service.js'
+
+defineProps({ embedded: { type: Boolean, default: false } })
 
 const router = useRouter()
 
@@ -471,4 +480,10 @@ async function handleDelete() {
 
 .spin { animation: aa-spin 0.9s linear infinite; }
 @keyframes aa-spin { to { transform: rotate(360deg); } }
+
+/* Modo embebido */
+.aa-embedded-actions {
+  display: flex; justify-content: flex-end;
+  padding: 0 0 16px;
+}
 </style>

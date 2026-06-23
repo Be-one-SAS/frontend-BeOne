@@ -182,11 +182,119 @@
       </div>
 
     </div>
+
+    <!-- ══ Personal operativo — sección independiente ══════════════ -->
+    <div class="po-section">
+
+      <!-- Header de sección -->
+      <div class="po-header">
+        <div class="po-header-left">
+          <div class="po-header-icon"><Users :size="20" color="#166534" /></div>
+          <div>
+            <h2 class="po-title">Personal operativo y logístico</h2>
+            <p class="po-sub">Horas trabajadas, valor por hora y costo total por evento</p>
+          </div>
+        </div>
+        <div class="po-header-right">
+          <select v-model="personal.quotationId" class="po-select" @change="runPersonal">
+            <option :value="null">Todos los eventos</option>
+            <option v-for="q in personal.quotations" :key="q.id" :value="q.id">
+              #{{ q.numero }} — {{ q.cliente?.name ?? q.empresa ?? '—' }}
+            </option>
+          </select>
+          <button v-if="personal.data?.length" class="rep-btn-export" @click="exportPersonal">
+            <Download :size="13" /> Exportar CSV
+          </button>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div v-if="personal.data?.length" class="po-kpis">
+        <div class="po-kpi">
+          <span class="po-kpi-val">{{ personalKpis.personas }}</span>
+          <span class="po-kpi-lbl">Personas</span>
+        </div>
+        <div class="po-kpi">
+          <span class="po-kpi-val">{{ personalKpis.horas }}h</span>
+          <span class="po-kpi-lbl">Horas trabajadas</span>
+        </div>
+        <div class="po-kpi po-kpi--registros">
+          <span class="po-kpi-val">{{ personal.data.length }}</span>
+          <span class="po-kpi-lbl">Registros</span>
+        </div>
+        <div class="po-kpi po-kpi--money">
+          <span class="po-kpi-val">{{ fmtMoney(personalKpis.costo) }}</span>
+          <span class="po-kpi-lbl">Costo total personal</span>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div v-if="personal.loading" class="po-loading">
+        <div class="po-spinner" /><span>Cargando registros…</span>
+      </div>
+
+      <!-- Error -->
+      <p v-else-if="personal.error" class="rep-err" style="padding:16px 0">{{ personal.error }}</p>
+
+      <!-- Vacío -->
+      <div v-else-if="personal.data && !personal.data.length" class="po-empty">
+        Sin registros de turno para el filtro seleccionado
+      </div>
+
+      <!-- Tabla -->
+      <div v-else-if="personal.data?.length" class="po-table-wrap">
+        <table class="po-table">
+          <thead>
+            <tr>
+              <th>Persona</th>
+              <th>Rol</th>
+              <th v-if="!personal.quotationId">Evento</th>
+              <th>Fecha</th>
+              <th>Ingreso</th>
+              <th>Salida</th>
+              <th>Horas reales</th>
+              <th>Valor / hora</th>
+              <th>% Extra</th>
+              <th class="po-th-right">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="r in personal.data" :key="r.id" :class="{ 'po-row-incomplete': !r.horaIngreso || !r.horaSalida }">
+              <td class="po-td-person">
+                <div class="po-avatar">{{ (r.user?.fullName ?? '?').split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase() }}</div>
+                <span>{{ r.user?.fullName ?? '—' }}</span>
+              </td>
+              <td><span class="rep-role" :class="repRoleClass(r.user?.role)">{{ r.user?.role ?? '—' }}</span></td>
+              <td v-if="!personal.quotationId" class="po-td-event">
+                <span class="po-event-num">#{{ r.quotation?.numero }}</span>
+                {{ r.quotation?.cliente?.name ?? r.quotation?.empresa ?? '—' }}
+              </td>
+              <td>{{ fmtDate(r.fecha) }}</td>
+              <td class="rep-mono po-td-time">{{ r.horaIngreso ? fmtTime(r.horaIngreso) : '—' }}</td>
+              <td class="rep-mono po-td-time">{{ r.horaSalida  ? fmtTime(r.horaSalida)  : '—' }}</td>
+              <td class="po-td-hours">{{ calcHours(r.horaIngreso, r.horaSalida) }}</td>
+              <td class="po-td-rate">{{ r.valorHoraContratada ? fmtMoney(Number(r.valorHoraContratada)) : '—' }}</td>
+              <td class="po-td-pct">{{ r.porcentajeAdicional ? r.porcentajeAdicional + '%' : '—' }}</td>
+              <td class="po-td-total">{{ calcTotal(r) }}</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td :colspan="personal.quotationId ? 6 : 7" class="po-tfoot-label">Totales</td>
+              <td class="po-td-hours po-tfoot-val">{{ personalKpis.horas }}h</td>
+              <td colspan="2"></td>
+              <td class="po-td-total po-tfoot-val">{{ fmtMoney(personalKpis.costo) }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import {
   Clock, Users, Building2, CalendarDays,
   Download, Play, Loader2,
@@ -197,6 +305,8 @@ import {
   getReportePorCliente,
   getAdminCotizaciones,
 } from '@/services/administracion.service.js'
+import { getQuotations } from '@/services/quotation.service'
+import { getReportePersonal } from '@/services/registros-turno.service'
 
 // ── Helpers ───────────────────────────────────────────────
 function fmtMoney(n) {
@@ -354,12 +464,90 @@ function exportPeriodo() {
 }
 
 function today() { return new Date().toISOString().slice(0, 10) }
+
+// ── Personal operativo ────────────────────────────────────
+const personal = ref({ quotationId: null, quotations: [], data: null, loading: false, error: null })
+
+onMounted(async () => {
+  try {
+    const res = await getQuotations()
+    personal.value.quotations = (res.data ?? []).filter(q =>
+      ['Aprobada', 'Pendiente'].includes(q.quotationStatus?.name ?? '')
+    )
+  } catch (_) {}
+  await runPersonal()
+})
+
+async function runPersonal() {
+  personal.value.loading = true
+  personal.value.error   = null
+  try {
+    personal.value.data = await getReportePersonal(personal.value.quotationId)
+  } catch (e) {
+    personal.value.error = e?.response?.data?.message ?? 'Error generando reporte'
+  } finally {
+    personal.value.loading = false
+  }
+}
+
+const personalKpis = computed(() => {
+  const rows = personal.value.data ?? []
+  const personas = new Set(rows.map(r => r.userId)).size
+  const horas = rows.reduce((s, r) => s + calcHoursNum(r.horaIngreso, r.horaSalida), 0)
+  const costo = rows.reduce((s, r) => s + calcTotalNum(r), 0)
+  return { personas, horas: horas.toFixed(1), costo }
+})
+
+function calcHoursNum(inIso, outIso) {
+  if (!inIso || !outIso) return 0
+  const h = (new Date(outIso) - new Date(inIso)) / 3600000
+  return h > 0 ? h : 0
+}
+function calcHours(inIso, outIso) {
+  const h = calcHoursNum(inIso, outIso)
+  return h > 0 ? h.toFixed(1) + 'h' : '—'
+}
+function calcTotalNum(r) {
+  if (!r.horaIngreso || !r.horaSalida || !r.valorHoraContratada) return 0
+  return calcHoursNum(r.horaIngreso, r.horaSalida) * Number(r.valorHoraContratada) * (1 + (r.porcentajeAdicional ?? 0) / 100)
+}
+function calcTotal(r) {
+  const t = calcTotalNum(r)
+  return t > 0 ? fmtMoney(t) : '—'
+}
+function fmtTime(iso) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false })
+}
+function repRoleClass(role) {
+  const map = { LOGISTICA: 'rep-role--blue', OPERATIVO: 'rep-role--green', SUPERVISOR: 'rep-role--purple', COORDINADOR: 'rep-role--orange' }
+  return map[role] ?? 'rep-role--gray'
+}
+
+function exportPersonal() {
+  const rows = personal.value.data ?? []
+  const headers = ['Persona', 'Rol', 'Evento', 'Fecha', 'Ingreso', 'Salida', 'Horas', 'Valor/hora', '% Extra', 'Total']
+  const csv = rows.map(r => [
+    r.user?.fullName ?? '',
+    r.user?.role ?? '',
+    `#${r.quotation?.numero} ${r.quotation?.cliente?.name ?? r.quotation?.empresa ?? ''}`,
+    fmtDate(r.fecha),
+    r.horaIngreso ? fmtTime(r.horaIngreso) : '',
+    r.horaSalida  ? fmtTime(r.horaSalida)  : '',
+    calcHours(r.horaIngreso, r.horaSalida),
+    r.valorHoraContratada ? Number(r.valorHoraContratada) : '',
+    r.porcentajeAdicional ?? 0,
+    calcTotalNum(r).toFixed(0),
+  ])
+  downloadCSV(csv, headers, `personal-operativo-${today()}.csv`)
+}
 </script>
 
 <style scoped>
 .rep-page {
   padding: 20px 24px;
-  max-width: 1200px;
+  width: 100%;
+  box-sizing: border-box;
   font-family: 'Inter', sans-serif;
 }
 
@@ -515,4 +703,111 @@ function today() { return new Date().toISOString().slice(0, 10) }
 .rep-tasa { font-size: 11px; font-weight: 600; padding: 2px 5px; border-radius: 5px; }
 .rep-tasa.good { background: #F0FDF4; color: #166534; }
 .rep-tasa.low  { background: #FEF2F2; color: #991B1B; }
+
+/* Shared */
+.rep-mono { font-family: monospace; }
+.rep-role { display: inline-block; padding: 2px 7px; border-radius: 99px; font-size: 10px; font-weight: 600; }
+.rep-role--blue   { background: #DBEAFE; color: #1D4ED8; }
+.rep-role--green  { background: #D1FAE5; color: #065F46; }
+.rep-role--purple { background: #EDE9FE; color: #6D28D9; }
+.rep-role--orange { background: #FEF3C7; color: #92400E; }
+.rep-role--gray   { background: #F1F5F9; color: #475569; }
+
+/* ── Personal operativo ── */
+.po-section {
+  margin-top: 28px;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #E8EDF5;
+  overflow: hidden;
+}
+
+.po-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid #F1F5F9;
+  flex-wrap: wrap;
+}
+.po-header-left { display: flex; align-items: center; gap: 12px; }
+.po-header-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: #F0FDF4; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.po-title { font-size: 15px; font-weight: 700; color: #0F172A; margin: 0 0 2px; }
+.po-sub   { font-size: 12px; color: #64748B; margin: 0; }
+.po-header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.po-select {
+  border: 1.5px solid #E2E8F0; border-radius: 8px;
+  padding: 7px 12px; font-size: 13px; color: #0F172A;
+  background: white; cursor: pointer; min-width: 240px;
+}
+
+/* KPIs */
+.po-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-bottom: 1px solid #F1F5F9;
+}
+@media (max-width: 700px) { .po-kpis { grid-template-columns: repeat(2, 1fr); } }
+.po-kpi {
+  padding: 16px 24px;
+  display: flex; flex-direction: column; gap: 3px;
+  border-right: 1px solid #F1F5F9;
+}
+.po-kpi:last-child { border-right: none; }
+.po-kpi--money { background: #F0FDF4; }
+.po-kpi--registros { background: #F8FAFC; }
+.po-kpi-val { font-size: 22px; font-weight: 800; color: #0F1A2E; line-height: 1; }
+.po-kpi-lbl { font-size: 11px; color: #94A3B8; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
+.po-kpi--money .po-kpi-val { color: #059669; }
+
+/* States */
+.po-loading { display: flex; align-items: center; gap: 10px; padding: 40px 24px; color: #64748B; font-size: 13px; }
+.po-spinner {
+  width: 20px; height: 20px; border: 2.5px solid #E2E8F0;
+  border-top-color: #054EAF; border-radius: 50%;
+  animation: spin 0.8s linear infinite; flex-shrink: 0;
+}
+.po-empty { text-align: center; padding: 40px 24px; color: #94A3B8; font-size: 13px; }
+
+/* Tabla */
+.po-table-wrap { width: 100%; overflow-x: auto; }
+.po-table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+}
+.po-table th {
+  padding: 10px 16px;
+  font-size: 11px; font-weight: 700; color: #64748B;
+  text-transform: uppercase; letter-spacing: .04em;
+  background: #FAFBFC; border-bottom: 1.5px solid #E8EDF5;
+  text-align: left; white-space: nowrap;
+}
+.po-th-right { text-align: right; }
+.po-table td { padding: 12px 16px; border-bottom: 1px solid #F8FAFC; color: #1E293B; vertical-align: middle; }
+.po-table tr:last-child td { border-bottom: none; }
+.po-row-incomplete td { opacity: .65; }
+.po-table tfoot td {
+  padding: 10px 16px; border-top: 2px solid #E8EDF5;
+  background: #FAFBFC; font-size: 12px;
+}
+.po-tfoot-label { font-weight: 700; color: #374151; }
+.po-tfoot-val   { font-weight: 800; }
+
+.po-td-person { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.po-avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: #EFF6FF; color: #2563EB;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; flex-shrink: 0;
+}
+.po-td-event   { font-size: 12px; }
+.po-event-num  { font-weight: 700; color: #6366F1; margin-right: 5px; }
+.po-td-time    { color: #334155; }
+.po-td-hours   { font-weight: 700; color: #0F1A2E; }
+.po-td-rate    { color: #475569; font-size: 12px; }
+.po-td-pct     { color: #475569; font-size: 12px; }
+.po-td-total   { font-weight: 700; color: #059669; text-align: right; white-space: nowrap; }
 </style>

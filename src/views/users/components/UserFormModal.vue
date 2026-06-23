@@ -118,15 +118,15 @@
                   </select>
                 </div>
 
-                <!-- Ciudad -->
+                <!-- Sede -->
                 <div class="field-wrap">
-                  <label class="field-lbl">Ciudad</label>
-                  <input
-                    v-model="form.ciudad"
-                    type="text"
-                    class="field-input"
-                    placeholder="Medellín"
-                  />
+                  <label class="field-lbl">Sede <span class="optional">(opcional)</span></label>
+                  <select v-model="form.sedeId" class="field-input">
+                    <option :value="null">— Sin sede asignada —</option>
+                    <option v-for="s in sedes" :key="s.id" :value="s.id">
+                      {{ s.nombre }} · {{ s.ciudad }}
+                    </option>
+                  </select>
                 </div>
 
                 <!-- Documento -->
@@ -216,8 +216,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { X, Eye, EyeOff, Save } from 'lucide-vue-next'
+import { getSedes } from '@/services/sedes.service.js'
 
 // ── Props & Emits ─────────────────────────────────────
 const props = defineProps({
@@ -228,6 +229,10 @@ const emit = defineEmits(['close', 'save'])
 
 // ── Config ────────────────────────────────────────────
 const ROLES = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO']
+const sedes = ref([])
+onMounted(async () => {
+  try { sedes.value = (await getSedes()).data ?? [] } catch (_) {}
+})
 
 const ROLE_BADGE = {
   ADMIN:         'bg-[#FEE2E2] text-[#B91C1C]',
@@ -248,6 +253,7 @@ const form = reactive({
   fullName: '', email: '', username: '',
   telefono: '', role: '', status: 'Activo',
   ciudad: '', documento: '', password: '', notas: '',
+  sedeId: null,
 })
 
 const errors  = reactive({})
@@ -270,12 +276,14 @@ watch(() => props.show, (val) => {
       documento:props.usuario.documento?? '',
       notas:    props.usuario.notas    ?? '',
       password: '',
+      sedeId:   props.usuario.sedeId   ?? null,
     })
   } else {
     Object.assign(form, {
       fullName: '', email: '', username: '',
       telefono: '', role: '', status: 'Activo',
       ciudad: '', documento: '', password: '', notas: '',
+      sedeId: null,
     })
   }
 })

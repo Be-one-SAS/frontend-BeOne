@@ -18,6 +18,11 @@ export const deleteRegistro = (id) =>
 export const getTurnoToken = (quotationId) =>
   api.post(`/registros-turno/quotation/${quotationId}/token`).then(r => r.data)
 
+export const getReportePersonal = (quotationId) => {
+  const params = quotationId ? `?quotationId=${quotationId}` : ''
+  return api.get(`/registros-turno/reporte/personal${params}`).then(r => r.data)
+}
+
 // Public — no auth
 export const getTurnoPublico = (token) =>
   axios.get(`${BASE}/registros-turno/turno/${token}`).then(r => r.data)

@@ -156,6 +156,12 @@ const routes = [
         meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
       },
       {
+        path: 'operativa/turnos',
+        name: 'RegistroTurno',
+        component: () => import('../views/operativa/RegistroTurno.vue'),
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICA'] },
+      },
+      {
         path: 'operativa/checkins',
         name: 'CheckIns',
         component: () => import('../views/operativa/CheckIns.vue'),
@@ -163,9 +169,7 @@ const routes = [
       },
       {
         path: 'operativa/checkins/admin',
-        name: 'AspectosAdmin',
-        component: () => import('../views/operativa/AspectosAdmin.vue'),
-        meta: { roles: ['ADMIN', 'ADMINISTRADOR'] },
+        redirect: '/operativa/checkins',
       },
       {
         path: 'operativa/inventario',
@@ -281,6 +285,12 @@ const routes = [
         name: 'Configuracion',
         component: () => import('../views/configuracion/Configuracion.vue'),
         meta: { roles: ['ADMIN'] },
+      },
+      {
+        path: 'configuracion/sedes',
+        name: 'Sedes',
+        component: () => import('../views/configuracion/Sedes.vue'),
+        meta: { roles: ['ADMIN', 'DIRECCION', 'ADMINISTRADOR'] },
       },
       {
         path: 'materiales',
