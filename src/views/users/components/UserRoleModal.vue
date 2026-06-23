@@ -181,6 +181,13 @@ const ROLE_CONFIG = [
     iconColor:   '#64748B',
     description: 'Control operativo y materiales',
   },
+  {
+    key:         'OPERATIVO',
+    icon:        Truck,
+    iconBg:      '#D1FAE5',
+    iconColor:   '#065F46',
+    description: 'Responsable operativo de eventos',
+  },
 ]
 
 const ROLE_BADGE = {
@@ -191,6 +198,7 @@ const ROLE_BADGE = {
   SUPERVISOR:    'bg-[#FEF3C7] text-[#B45309]',
   COORDINADOR:   'bg-[#FFEDD5] text-[#C2410C]',
   LOGISTICO:     'bg-[#F1F5F9] text-[#64748B]',
+  OPERATIVO:     'bg-[#D1FAE5] text-[#065F46]',
 }
 
 // ── Avatar helpers ────────────────────────────────────

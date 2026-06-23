@@ -302,7 +302,7 @@
                     >
                       <Search :size="14" class="s-ico" />
                       <span class="picker-btn-text">
-                        {{ selectedProduct?.dispositivo || selectedProduct?.nombre || 'Buscar y seleccionar producto…' }}
+                        {{ selectedProduct?.nombre || selectedProduct?.dispositivo || 'Buscar y seleccionar producto…' }}
                       </span>
                     </button>
                     <ProductPickerModal
@@ -401,7 +401,7 @@
                 <div v-else class="cart-items">
                   <!-- Equipos Propios -->
                   <div v-for="(it, i) in items" :key="'own-' + i" class="cart-row">
-                    <p class="cart-name">{{ it.dispositivo || it.descripcion }}</p>
+                    <p class="cart-name">{{ it.nombre || it.dispositivo || it.descripcion }}</p>
                     <div class="cart-meta">
                       <span class="cart-qty">{{ it.cantidadJornada }}j × {{ it.cantidadProducto }}u</span>
                       <span class="cart-price">${{ Math.round(totalesFilasPropias[i] || 0).toLocaleString('es-CO') }}</span>
@@ -627,7 +627,7 @@
                     </thead>
                     <tbody>
                       <tr v-for="(it, i) in items" :key="i" class="prd-row-view">
-                        <td class="td-name">{{ it.dispositivo || it.descripcion }}</td>
+                        <td class="td-name">{{ it.nombre || it.dispositivo || it.descripcion }}</td>
                         <td class="td-center">{{ it.cantidadJornada }}</td>
                         <td class="td-center">{{ it.cantidadProducto }}</td>
                         <td class="td-right prd-price">{{ formatCOP(it.unitPrice) }}</td>
@@ -1482,6 +1482,7 @@ const getCotizacion = async () => {
     items.value = data.items.map(it => ({
       id:                it.id,
       productId:         it.productId || it.product?.id,
+      nombre:            it.product?.nombre,
       category:          it.product?.categoria,
       dispositivo:       it.product?.dispositivo,
       descripcion:       it.product?.descripcion,
@@ -1552,7 +1553,7 @@ const formatDate = (iso) => {
 }
 
 const eliminarItem = (item) => {
-  if (confirm(`¿Seguro que deseas eliminar el producto "${item.descripcion || item.dispositivo}"?`)) {
+  if (confirm(`¿Seguro que deseas eliminar el producto "${item.nombre || item.descripcion || item.dispositivo}"?`)) {
     // Use reference equality (indexOf) so it works for unsaved items that have no id yet.
     const idx = items.value.indexOf(item)
     if (idx !== -1) {

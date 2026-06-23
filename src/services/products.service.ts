@@ -1,22 +1,16 @@
 import api from "./api";
 
 
-export const getProducts = async () => {
+export const getProducts = async (params?: { page?: number; limit?: number; search?: string }) => {
     try {
-        const response = await api.get(
-            "/producto",
-
-            {
-                headers: {
-                    "Content-Type": "application/json",
-                },
-            }
-        );
-
-        return response;
+        const response = await api.get("/producto", { params });
+        // Normaliza: el API retorna { data, total, page, limit, totalPages } o array legacy
+        const payload = response.data;
+        const normalized = Array.isArray(payload) ? payload : (payload?.data ?? []);
+        return { ...response, data: normalized, meta: Array.isArray(payload) ? null : payload };
     } catch (error) {
         console.error("Fallo el servicio para obtener los productos", error);
-        throw error; // Lanza el error para manejarlo donde se use
+        throw error;
     }
 };
 
@@ -36,6 +30,28 @@ export const getByName = async (name: string) => {
     } catch (error) {
         console.error("Fallo el servicio para obtener los product box", error);
         throw error; // Lanza el error para manejarlo donde se use
+    }
+};
+
+export const uploadProductFoto = async (id: number | string, file: File) => {
+    try {
+        const form = new FormData();
+        form.append('file', file);
+        return await api.patch(`/producto/${id}/foto`, form, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+    } catch (error) {
+        console.error('Fallo el servicio para subir foto del producto', error);
+        throw error;
+    }
+};
+
+export const deleteProduct = async (id: number | string) => {
+    try {
+        return await api.delete(`/producto/${id}`);
+    } catch (error) {
+        console.error("Fallo el servicio para eliminar el producto", error);
+        throw error;
     }
 };
 

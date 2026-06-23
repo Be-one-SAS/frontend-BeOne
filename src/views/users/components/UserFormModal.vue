@@ -227,7 +227,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'save'])
 
 // ── Config ────────────────────────────────────────────
-const ROLES = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO']
+const ROLES = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO']
 
 const ROLE_BADGE = {
   ADMIN:         'bg-[#FEE2E2] text-[#B91C1C]',
@@ -237,6 +237,7 @@ const ROLE_BADGE = {
   SUPERVISOR:    'bg-[#EDE9FE] text-[#7C3AED]',
   COORDINADOR:   'bg-[#E0F2FE] text-[#0369A1]',
   LOGISTICO:     'bg-[#DCFCE7] text-[#16A34A]',
+  OPERATIVO:     'bg-[#D1FAE5] text-[#065F46]',
 }
 
 // ── Modo ──────────────────────────────────────────────

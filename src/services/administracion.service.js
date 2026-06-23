@@ -44,3 +44,44 @@ export const updateDatosFinancieros = async (id, dto) => {
   const res = await api.patch(`/administracion/cotizaciones/${id}/datos-financieros`, dto)
   return res.data
 }
+
+export const updateInfoGeneral = async (id, dto) => {
+  const res = await api.patch(`/administracion/cotizaciones/${id}/info-general`, dto)
+  return res.data
+}
+
+export const getAdminCotizacionDetail = async (id) => {
+  const res = await api.get(`/administracion/cotizaciones/${id}`)
+  return res.data
+}
+
+export const uploadPlanimetria = async (id, file) => {
+  const fd = new FormData()
+  fd.append('file', file)
+  const res = await api.post(`/administracion/cotizaciones/${id}/planimetria`, fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return res.data
+}
+
+export const deletePlanimetria = async (id) => {
+  const res = await api.delete(`/administracion/cotizaciones/${id}/planimetria`)
+  return res.data
+}
+
+export const getDocumentos = async (id) => {
+  const res = await api.get(`/administracion/cotizaciones/${id}/documentos`)
+  return res.data
+}
+
+export const downloadDocumentosZip = async (id, filename) => {
+  const res = await api.get(`/administracion/cotizaciones/${id}/documentos/zip`, {
+    responseType: 'blob',
+  })
+  const url = URL.createObjectURL(res.data)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename || `documentos-${id}.zip`
+  a.click()
+  URL.revokeObjectURL(url)
+}

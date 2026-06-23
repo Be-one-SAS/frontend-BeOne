@@ -99,6 +99,21 @@ export const toggleUserStatus = async (id, status) => {
 }
 
 /**
+ * POST /users/:id/resend-bienvenida
+ * Genera una contraseña temporal y reenvía el correo de bienvenida.
+ * @param {number|string} id
+ */
+export const resendBienvenida = async (id) => {
+  try {
+    const response = await api.post(`/users/${id}/resend-bienvenida`)
+    return response.data
+  } catch (error) {
+    console.error(`[users.service] Error en resendBienvenida(${id}):`, error)
+    throw error
+  }
+}
+
+/**
  * DELETE /users/:id
  * Elimina permanentemente un usuario.
  * ⚠️  Solo disponible para ADMIN.

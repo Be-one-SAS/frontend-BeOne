@@ -1,45 +1,38 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { getProducts, getByName, updateProduct } from '@/services/products.service'
-import { getBox }                  from '@/services/suppliers.service'
-import ModalReutilizable           from '@/components/modal/ModalReutilizable.vue'
+import { getProducts, updateProduct, deleteProduct, uploadProductFoto } from '@/services/products.service'
+import {
+  getMaterialCategorias, getMaterialesBase,
+  getMaterialesByProducto, addMaterialToProducto,
+  updateMaterialOfProducto, removeMaterialFromProducto,
+  parseTextoMateriales, bulkAssignMateriales,
+} from '@/services/materiales.service'
+import ModalReutilizable from '@/components/modal/ModalReutilizable.vue'
 import {
   RefreshCw, ChevronUp, ChevronDown, Inbox,
-  Eye, Pencil, Trash2,
+  Pencil, Trash2, Plus, X, Camera, FileText,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
 } from 'lucide-vue-next'
 
 /* ─── state ─────────────────────────────────────────────── */
-const products       = ref([])
-const boxOptions     = ref([])
-const loading        = ref(false)
+const products    = ref([])
+const loading     = ref(false)
 
-const search         = ref('')
-const categFilter    = ref('')
-const condFilter     = ref('')
-const selectedBox    = ref('')
-const pageSize       = ref(25)
+const search      = ref('')
+const categFilter = ref('')
+const tipoFilter  = ref('')
+const condFilter  = ref('')
+const pageSize    = ref(25)
 
-const isFiltering    = ref(false)
-const filteredByName = ref([])
-
-// sort
-const sortKey = ref('dispositivo')
+const sortKey = ref('nombre')
 const sortDir = ref('asc')
 
-// accordion
 const expandedRow = ref(null)
-const toggleRow = (id) => {
-  expandedRow.value = expandedRow.value === id ? null : id
-}
-
-// modal precios
-const isModalOpen     = ref(false)
-const selectedProduct = ref(null)
-const modalPrices     = ref([])
+const toggleRow   = (id) => { expandedRow.value = expandedRow.value === id ? null : id }
 
 // modal delete
 const deleteModal     = ref(false)
+const deleteLoading   = ref(false)
 const productToDelete = ref(null)
 
 // modal editar
@@ -47,45 +40,86 @@ const editModal   = ref(false)
 const editLoading = ref(false)
 const editError   = ref('')
 const editForm    = ref({
-  dispositivo:             '',
-  nombre:                  '',
-  categoria:               '',
-  bodega:                  '',
-  conditionStatus:         '',
-  availabilityStatus:      '',
-  amperios:                null,
-  medidas:                 '',
-  qMotores:                null,
-  qOperarios:              null,
-  m2Dispositivo:           null,
-  pesoAproxDisp:           null,
-  m3Transporte:            null,
-  qHorasOperacion:         null,
-  qHorasMontaje:           null,
-  qPersonalMontaje:        null,
-  anioDispositivo:         null,
-  montacarga:              '',
-  qPesosEstacas:           null,
-  qExtintores:             null,
-  incluyeTransporteBogMde: '',
-  descripcion:             '',
-  notas:                   '',
+  nombre:             '',
+  dispositivo:        '',
+  descripcion:        '',
+  categoria:          '',
+  bodega:             '',
+  conditionStatus:    '',
+  availabilityStatus: '',
+  amperios:           null,
+  medidas:            '',
+  qMotores:           null,
+  qOperarios:         null,
+  m2Dispositivo:      null,
+  pesoAproxDisp:      null,
+  m3Transporte:       null,
+  qHorasOperacion:    null,
+  qHorasMontaje:      null,
+  qPersonalMontaje:   null,
+  anioDispositivo:    null,
+  montacarga:         '',
+  qPesosEstacas:      null,
+  qExtintores:        null,
+  notas:              '',
+  precioCafam:        null,
+  precioComfama:      null,
+  precioCompensar:    null,
+  precioColsubsidio:  null,
+  precioOperadores:   null,
 })
-const productToEdit = ref(null)
+const editAccesorios = ref([])   // [{ nombre: string }]
+const newAccesorio   = ref('')
+const productToEdit  = ref(null)
 
-/* ─── options lists ─────────────────────────────────────── */
-const categorias = computed(() => {
-  const set = new Set(products.value.map(p => p.categoria).filter(Boolean))
-  return [...set].sort()
-})
+// foto
+const fotoLoading   = ref(false)
+const fotoError     = ref('')
+const fotoInput     = ref(null)   // ref al <input type="file">
+
+// materiales del modal de edición
+const categoriasMat    = ref([])
+const editMateriales   = ref([])          // ProductoMaterial[]
+const editMatLoading   = ref(false)
+const editMatSearch    = ref('')
+const editMatResults   = ref([])
+const editMatSearching = ref(false)
+const editMatSelected  = ref(null)
+const editMatCantidad  = ref(1)
+const editMatOpcional  = ref(false)
+const editMatAdding    = ref(false)
+const editMatAddError  = ref('')
+const editMatInlineId  = ref(null)        // id del PM en edición inline
+const editMatInlineCant = ref(1)
+// parser dentro del modal
+const editParserOpen   = ref(false)
+const editParserText   = ref('')
+const editParserItems  = ref([])
+const editParserStep   = ref(1)           // 1: input  2: review  3: done
+const editParserParsing = ref(false)
+const editParserSaving  = ref(false)
+const editParserResult  = ref(null)
+const editParserError   = ref('')
+
+/* ─── computed options ───────────────────────────────────── */
+const categorias = computed(() => [...new Set(products.value.map(p => p.categoria).filter(Boolean))].sort())
+const tipos      = computed(() => [...new Set(products.value.map(p => p.dispositivo).filter(Boolean))].sort())
 
 const conditionOptions = [
-  { value: 'OPERATIVO_OK',      label: 'Operativo OK'      },
-  { value: 'OPERATIVO_70',      label: 'Operativo 70%'     },
-  { value: 'OPERATIVO_50',      label: 'Operativo 50%'     },
-  { value: 'EN_MANTENIMIENTO',  label: 'En mantenimiento'  },
-  { value: 'DEFECTUOSO',        label: 'Defectuoso'        },
-  { value: 'NO_ACTIVO',         label: 'No activo'         },
+  { value: 'OPERATIVO_OK',     label: 'Operativo OK'     },
+  { value: 'OPERATIVO_70',     label: 'Operativo 70%'    },
+  { value: 'OPERATIVO_50',     label: 'Operativo 50%'    },
+  { value: 'EN_MANTENIMIENTO', label: 'En mantenimiento' },
+  { value: 'DEFECTUOSO',       label: 'Defectuoso'       },
+  { value: 'NO_ACTIVO',        label: 'No activo'        },
+]
+
+const PRICE_LISTS = [
+  { key: 'precioCafam',       label: 'CAFAM'       },
+  { key: 'precioComfama',     label: 'Comfama'     },
+  { key: 'precioCompensar',   label: 'Compensar'   },
+  { key: 'precioColsubsidio', label: 'Colsubsidio' },
+  { key: 'precioOperadores',  label: 'Operadores'  },
 ]
 
 /* ─── filter + sort ─────────────────────────────────────── */
@@ -93,14 +127,14 @@ const filteredSorted = computed(() => {
   const q = search.value.toLowerCase()
   let list = products.value.filter(p => {
     const matchSearch = !q ||
-      (p.dispositivo?.toLowerCase().includes(q)) ||
-      (p.categoria?.toLowerCase().includes(q))   ||
+      (p.nombre?.toLowerCase().includes(q))    ||
+      (p.categoria?.toLowerCase().includes(q)) ||
       (p.bodega?.toLowerCase().includes(q))
     const matchCateg = !categFilter.value || p.categoria === categFilter.value
+    const matchTipo  = !tipoFilter.value  || p.dispositivo === tipoFilter.value
     const matchCond  = !condFilter.value  || p.conditionStatus === condFilter.value
-    return matchSearch && matchCateg && matchCond
+    return matchSearch && matchCateg && matchTipo && matchCond
   })
-
   if (sortKey.value) {
     const dir = sortDir.value === 'asc' ? 1 : -1
     list = [...list].sort((a, b) => {
@@ -109,47 +143,33 @@ const filteredSorted = computed(() => {
       return av < bv ? -dir : av > bv ? dir : 0
     })
   }
-
   return list
 })
 
-/* ─── pagination ────────────────────────────────────────── */
+/* ─── pagination ─────────────────────────────────────────── */
 const currentPage = ref(1)
 watch(filteredSorted, () => { currentPage.value = 1 })
 
-const pagedRows = computed(() => {
+const pagedRows  = computed(() => {
   const start = (currentPage.value - 1) * Number(pageSize.value)
   return filteredSorted.value.slice(start, start + Number(pageSize.value))
 })
-
 const totalPages = computed(() => Math.ceil(filteredSorted.value.length / Number(pageSize.value)))
-
 const visiblePages = computed(() => {
-  const total = totalPages.value
-  const cur   = currentPage.value
+  const total = totalPages.value, cur = currentPage.value
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
-  const pages = []
-  if (cur <= 4) {
-    pages.push(1, 2, 3, 4, 5, '...', total)
-  } else if (cur >= total - 3) {
-    pages.push(1, '...', total - 4, total - 3, total - 2, total - 1, total)
-  } else {
-    pages.push(1, '...', cur - 1, cur, cur + 1, '...', total)
-  }
-  return pages
+  if (cur <= 4)          return [1, 2, 3, 4, 5, '...', total]
+  if (cur >= total - 3)  return [1, '...', total-4, total-3, total-2, total-1, total]
+  return [1, '...', cur-1, cur, cur+1, '...', total]
 })
 
-/* ─── sort toggle ───────────────────────────────────────── */
+/* ─── sort ───────────────────────────────────────────────── */
 const sortBy = (key) => {
-  if (sortKey.value === key) {
-    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
-  } else {
-    sortKey.value = key
-    sortDir.value = 'asc'
-  }
+  if (sortKey.value === key) sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+  else { sortKey.value = key; sortDir.value = 'asc' }
 }
 
-/* ─── badge helpers ─────────────────────────────────────── */
+/* ─── badge helpers ──────────────────────────────────────── */
 const condClass = (val) => ({
   OPERATIVO_OK:     'badge badge--green',
   OPERATIVO_70:     'badge badge--yellow',
@@ -180,94 +200,203 @@ const availLabel = (val) => ({
   NO_DISPONIBLE: 'No disponible',
 }[val] || val || '—')
 
-/* ─── fetch ─────────────────────────────────────────────── */
+const fmt = (n) => n != null ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n) : '—'
+
+/* ─── fetch ──────────────────────────────────────────────── */
 async function fetchProducts() {
   loading.value = true
   try {
-    const res      = await getProducts()
-    products.value = res.data || []
-
-    const resBoxes   = await getBox()
-    boxOptions.value = (resBoxes.data?.[1] || []).map(b => ({ id: b.id, name: b.boxName }))
-  } catch (e) {
-    console.error(e)
-  } finally {
-    loading.value = false
-  }
+    const res       = await getProducts()
+    products.value  = res.data || []
+  } catch (e) { console.error(e) }
+  finally { loading.value = false }
 }
 
-async function handleBoxFilter() {
-  if (!selectedBox.value) { isFiltering.value = false; return }
-  const res = await getByName(selectedBox.value)
-  filteredByName.value = res.data || []
-  isFiltering.value = true
-}
-
-function resetTables() {
-  selectedBox.value = ''
-  isFiltering.value = false
-  search.value      = ''
-  categFilter.value = ''
-  condFilter.value  = ''
+function resetFilters() {
+  search.value = ''; categFilter.value = ''; tipoFilter.value = ''; condFilter.value = ''
   fetchProducts()
 }
 
-async function saveFilteredPrices() {
-  alert('Precios filtrados actualizados')
+/* ─── delete ─────────────────────────────────────────────── */
+function confirmDelete(product) { productToDelete.value = product; deleteModal.value = true }
+
+async function executeDelete() {
+  deleteLoading.value = true
+  try {
+    await deleteProduct(productToDelete.value.id)
+    products.value    = products.value.filter(p => p.id !== productToDelete.value.id)
+    deleteModal.value = false
+    productToDelete.value = null
+  } catch (e) {
+    console.error(e)
+  } finally {
+    deleteLoading.value = false
+  }
 }
 
-/* ─── modal precios ─────────────────────────────────────── */
-function openModal(product) {
-  selectedProduct.value = product
-  modalPrices.value = (product.productBoxes || []).map(b => ({
-    id: b.id, boxName: b.boxName, price: b.price,
-  }))
-  isModalOpen.value = true
-}
-
-async function saveModalPrices() {
-  alert('Precios actualizados correctamente (modal)')
-  isModalOpen.value = false
-}
-
-/* ─── delete ────────────────────────────────────────────── */
-function confirmDelete(product) {
-  productToDelete.value = product
-  deleteModal.value = true
-}
-function executeDelete() {
-  products.value = products.value.filter(p => p.id !== productToDelete.value.id)
-  deleteModal.value     = false
-  productToDelete.value = null
-}
-
-/* ─── editar producto ───────────────────────────────────── */
+/* ─── edit ───────────────────────────────────────────────── */
 function openEdit(product) {
   productToEdit.value = product
   editError.value     = ''
   Object.keys(editForm.value).forEach(k => {
     editForm.value[k] = product[k] ?? (typeof editForm.value[k] === 'string' ? '' : null)
   })
-  editModal.value = true
+  editAccesorios.value = (product.accesorios || []).map(a => ({ nombre: a.nombre }))
+  newAccesorio.value   = ''
+  editModal.value      = true
+  editMateriales.value  = []
+  editMatSearch.value   = ''
+  editMatSelected.value = null
+  editMatCantidad.value = 1
+  editMatOpcional.value = false
+  editMatAddError.value = ''
+  editMatInlineId.value = null
+  editParserOpen.value  = false
+  editMatLoading.value  = true
+  getMaterialesByProducto(product.id)
+    .then(r  => { editMateriales.value = r })
+    .catch(() => {})
+    .finally(() => { editMatLoading.value = false })
+  if (!categoriasMat.value.length)
+    getMaterialCategorias().then(r => { categoriasMat.value = r })
 }
 
+function addAccesorio() {
+  const n = newAccesorio.value.trim()
+  if (n) { editAccesorios.value.push({ nombre: n }); newAccesorio.value = '' }
+}
+
+function removeAccesorio(i) { editAccesorios.value.splice(i, 1) }
+
 async function saveEdit() {
-  if (!editForm.value.dispositivo?.trim()) {
-    editError.value = 'El nombre del dispositivo es obligatorio.'
-    return
-  }
-  editLoading.value = true
-  editError.value   = ''
+  if (!editForm.value.nombre?.trim()) { editError.value = 'El nombre es obligatorio.'; return }
+  editLoading.value = true; editError.value = ''
   try {
-    const res = await updateProduct(productToEdit.value.id, editForm.value)
+    const payload = {
+      ...editForm.value,
+      accesorios: editAccesorios.value.map(a => a.nombre),
+    }
+    const res     = await updateProduct(productToEdit.value.id, payload)
     const updated = res.data
-    const idx = products.value.findIndex(p => p.id === productToEdit.value.id)
-    if (idx !== -1) products.value[idx] = { ...products.value[idx], ...updated }
+    const idx     = products.value.findIndex(p => p.id === productToEdit.value.id)
+    if (idx !== -1) {
+      products.value[idx] = {
+        ...products.value[idx],
+        ...updated,
+        accesorios: editAccesorios.value.map((a, i) => ({ nombre: a.nombre, orden: i + 1 })),
+      }
+    }
     editModal.value = false
   } catch (e) {
-    editError.value = e?.response?.data?.message || 'Error al guardar. Intenta de nuevo.'
+    editError.value = e?.response?.data?.message || 'Error al guardar.'
   } finally {
     editLoading.value = false
+  }
+}
+
+/* ─── materiales en modal de edición ────────────────────────── */
+watch(editMatSearch, async (val) => {
+  editMatSelected.value = null
+  if (val.length < 2) { editMatResults.value = []; return }
+  editMatSearching.value = true
+  try { editMatResults.value = await getMaterialesBase({ search: val, activo: true }) }
+  catch (e) { console.error(e) }
+  finally { editMatSearching.value = false }
+})
+
+function selectEditMat(m) {
+  editMatSelected.value = m
+  editMatSearch.value   = m.nombre
+  editMatResults.value  = []
+}
+
+async function addEditMaterial() {
+  if (!editMatSelected.value) { editMatAddError.value = 'Selecciona un material.'; return }
+  if (!editMatCantidad.value || editMatCantidad.value <= 0) { editMatAddError.value = 'Cantidad inválida.'; return }
+  editMatAdding.value = true; editMatAddError.value = ''
+  try {
+    const pm = await addMaterialToProducto(productToEdit.value.id, {
+      materialBaseId: editMatSelected.value.id,
+      cantidad: editMatCantidad.value,
+      esOpcional: editMatOpcional.value,
+    })
+    editMateriales.value.push(pm)
+    editMatSearch.value = ''; editMatSelected.value = null; editMatCantidad.value = 1; editMatOpcional.value = false
+  } catch (e) {
+    editMatAddError.value = e?.response?.data?.message || 'Error al agregar.'
+  } finally {
+    editMatAdding.value = false
+  }
+}
+
+function startInlineEdit(pm) {
+  editMatInlineId.value   = pm.id
+  editMatInlineCant.value = pm.cantidad
+}
+
+async function saveInlineEdit(pm) {
+  try {
+    const updated = await updateMaterialOfProducto(pm.id, { cantidad: editMatInlineCant.value })
+    const idx = editMateriales.value.findIndex(m => m.id === pm.id)
+    if (idx !== -1) editMateriales.value[idx] = updated
+    editMatInlineId.value = null
+  } catch (e) { console.error(e) }
+}
+
+async function deleteEditMaterial(pm) {
+  if (!confirm(`¿Eliminar "${pm.materialBase?.nombre}"?`)) return
+  try {
+    await removeMaterialFromProducto(pm.id)
+    editMateriales.value = editMateriales.value.filter(m => m.id !== pm.id)
+  } catch (e) { console.error(e) }
+}
+
+function openEditParser() {
+  editParserText.value = ''; editParserItems.value = []; editParserStep.value = 1
+  editParserResult.value = null; editParserError.value = ''
+  editParserOpen.value = true
+}
+
+async function runEditParser() {
+  if (!editParserText.value.trim()) return
+  editParserParsing.value = true; editParserError.value = ''
+  try {
+    const parsed = await parseTextoMateriales(editParserText.value)
+    editParserItems.value = parsed.map(p => ({ ...p, categoriaId: 11 }))
+    editParserStep.value  = 2
+  } catch (e) { editParserError.value = 'Error al parsear.' }
+  finally { editParserParsing.value = false }
+}
+
+async function confirmEditParser() {
+  editParserSaving.value = true; editParserError.value = ''
+  try {
+    const result = await bulkAssignMateriales(productToEdit.value.id, editParserItems.value)
+    editParserResult.value = result
+    editParserStep.value   = 3
+    editMateriales.value   = await getMaterialesByProducto(productToEdit.value.id)
+  } catch (e) { editParserError.value = e?.response?.data?.message || 'Error al asignar.' }
+  finally { editParserSaving.value = false }
+}
+
+async function handleFotoChange(event) {
+  const file = event.target.files?.[0]
+  if (!file || !productToEdit.value) return
+  fotoLoading.value = true
+  fotoError.value   = ''
+  try {
+    const res = await uploadProductFoto(productToEdit.value.id, file)
+    const newUrl = res.data.imageUrl
+    // actualizar en la lista local (cache-bust para forzar recarga del img)
+    const idx = products.value.findIndex(p => p.id === productToEdit.value.id)
+    if (idx !== -1) products.value[idx].linkFotoDispositivo = newUrl + '?t=' + Date.now()
+    editForm.value.linkFotoDispositivo = newUrl
+    productToEdit.value = { ...productToEdit.value, linkFotoDispositivo: newUrl }
+  } catch (e) {
+    fotoError.value = e?.response?.data?.message || 'Error al subir la foto.'
+  } finally {
+    fotoLoading.value = false
+    if (fotoInput.value) fotoInput.value.value = ''
   }
 }
 
@@ -277,15 +406,11 @@ onMounted(fetchProducts)
 <template>
   <div class="pp-page">
 
-    <!-- ══════════════════════════════════════════ -->
-    <!-- HEADER                                     -->
-    <!-- ══════════════════════════════════════════ -->
+    <!-- HEADER -->
     <div class="flex items-center justify-between mb-6">
       <div>
         <h2 class="pp-title">Productos Propios</h2>
-        <p class="pp-subtitle">
-          {{ isFiltering ? filteredByName.length : filteredSorted.length }} productos encontrados
-        </p>
+        <p class="pp-subtitle">{{ filteredSorted.length }} productos encontrados</p>
       </div>
       <div class="pp-head-actions">
         <div class="per-page-wrap">
@@ -296,250 +421,176 @@ onMounted(fetchProducts)
             <option :value="50">50</option>
           </select>
         </div>
-        <button class="btn-reload" @click="resetTables">
+        <button class="btn-reload" @click="resetFilters">
           <RefreshCw :size="13" /> Recargar
-        </button>
-        <button v-if="isFiltering" class="btn-save-prices" @click="saveFilteredPrices">
-          Guardar cambios
         </button>
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════════ -->
-    <!-- FILTROS                                    -->
-    <!-- ══════════════════════════════════════════ -->
+    <!-- FILTROS -->
     <div class="bg-white rounded-[14px] p-4 mb-5 shadow-[0_1px_4px_rgba(5,78,175,.06)] grid grid-cols-2 md:grid-cols-4 gap-4">
-
-      <input
-        v-model="search"
-        type="text"
-        placeholder="Buscar dispositivo, categoría…"
-        class="pp-input"
-      />
-
+      <input v-model="search" type="text" placeholder="Buscar nombre, categoría…" class="pp-input" />
       <select v-model="categFilter" class="pp-input">
         <option value="">Todas las categorías</option>
         <option v-for="c in categorias" :key="c" :value="c">{{ c }}</option>
       </select>
-
+      <select v-model="tipoFilter" class="pp-input">
+        <option value="">Todos los tipos</option>
+        <option v-for="t in tipos" :key="t" :value="t">{{ t }}</option>
+      </select>
       <select v-model="condFilter" class="pp-input">
         <option value="">Todas las condiciones</option>
         <option v-for="c in conditionOptions" :key="c.value" :value="c.value">{{ c.label }}</option>
       </select>
-
-      <select v-model="selectedBox" class="pp-input" @change="handleBoxFilter">
-        <option value="">Filtrar por Box</option>
-        <option v-for="box in boxOptions" :key="box.id" :value="box.name">{{ box.name }}</option>
-      </select>
-
     </div>
 
-    <!-- ══════════════════════════════════════════ -->
-    <!-- TABLA PRINCIPAL                            -->
-    <!-- ══════════════════════════════════════════ -->
-    <div v-if="!isFiltering" class="bg-white rounded-[18px] shadow-[0_1px_4px_rgba(5,78,175,.06),_0_4px_16px_rgba(5,78,175,.08)] overflow-hidden">
+    <!-- TABLA -->
+    <div class="bg-white rounded-[18px] shadow-[0_1px_4px_rgba(5,78,175,.06),_0_4px_16px_rgba(5,78,175,.08)] overflow-hidden">
       <div class="overflow-x-auto">
         <table class="pp-table">
-
-          <!-- HEAD -->
           <thead>
             <tr class="pp-head-row">
               <th class="pp-th" style="width:36px"></th>
               <th class="pp-th pp-th-center" style="width:44px">#</th>
-              <th class="pp-th pp-th-sort" @click="sortBy('dispositivo')">
-                Dispositivo
+              <th class="pp-th" style="width:52px"></th>
+              <th class="pp-th pp-th-sort" @click="sortBy('nombre')">
+                Nombre
                 <span class="sort-icons">
-                  <ChevronUp   :size="11" :class="sortKey === 'dispositivo' && sortDir === 'asc'  ? 'sort-active' : 'sort-dim'" />
-                  <ChevronDown :size="11" :class="sortKey === 'dispositivo' && sortDir === 'desc' ? 'sort-active' : 'sort-dim'" />
+                  <ChevronUp   :size="11" :class="sortKey==='nombre'&&sortDir==='asc'  ?'sort-active':'sort-dim'" />
+                  <ChevronDown :size="11" :class="sortKey==='nombre'&&sortDir==='desc' ?'sort-active':'sort-dim'" />
                 </span>
               </th>
               <th class="pp-th pp-th-sort" @click="sortBy('categoria')">
                 Categoría
                 <span class="sort-icons">
-                  <ChevronUp   :size="11" :class="sortKey === 'categoria' && sortDir === 'asc'  ? 'sort-active' : 'sort-dim'" />
-                  <ChevronDown :size="11" :class="sortKey === 'categoria' && sortDir === 'desc' ? 'sort-active' : 'sort-dim'" />
+                  <ChevronUp   :size="11" :class="sortKey==='categoria'&&sortDir==='asc'  ?'sort-active':'sort-dim'" />
+                  <ChevronDown :size="11" :class="sortKey==='categoria'&&sortDir==='desc' ?'sort-active':'sort-dim'" />
                 </span>
               </th>
               <th class="pp-th pp-th-sort" @click="sortBy('bodega')">
                 Bodega
                 <span class="sort-icons">
-                  <ChevronUp   :size="11" :class="sortKey === 'bodega' && sortDir === 'asc'  ? 'sort-active' : 'sort-dim'" />
-                  <ChevronDown :size="11" :class="sortKey === 'bodega' && sortDir === 'desc' ? 'sort-active' : 'sort-dim'" />
+                  <ChevronUp   :size="11" :class="sortKey==='bodega'&&sortDir==='asc'  ?'sort-active':'sort-dim'" />
+                  <ChevronDown :size="11" :class="sortKey==='bodega'&&sortDir==='desc' ?'sort-active':'sort-dim'" />
                 </span>
               </th>
               <th class="pp-th pp-th-sort" @click="sortBy('conditionStatus')">
                 Condición
                 <span class="sort-icons">
-                  <ChevronUp   :size="11" :class="sortKey === 'conditionStatus' && sortDir === 'asc'  ? 'sort-active' : 'sort-dim'" />
-                  <ChevronDown :size="11" :class="sortKey === 'conditionStatus' && sortDir === 'desc' ? 'sort-active' : 'sort-dim'" />
+                  <ChevronUp   :size="11" :class="sortKey==='conditionStatus'&&sortDir==='asc'  ?'sort-active':'sort-dim'" />
+                  <ChevronDown :size="11" :class="sortKey==='conditionStatus'&&sortDir==='desc' ?'sort-active':'sort-dim'" />
                 </span>
               </th>
               <th class="pp-th">Disponibilidad</th>
-              <th class="pp-th" style="width:120px">Acciones</th>
+              <th class="pp-th" style="width:90px">Acciones</th>
             </tr>
           </thead>
 
-          <!-- BODY -->
           <tbody>
-
             <!-- Skeleton -->
             <template v-if="loading">
               <tr v-for="n in 5" :key="`sk-${n}`" class="pp-row">
-                <td class="pp-td"></td>
-                <td class="pp-td"><div class="sk-box" style="width:30px"></div></td>
-                <td class="pp-td"><div class="sk-box" style="width:140px"></div></td>
-                <td class="pp-td"><div class="sk-box" style="width:90px"></div></td>
-                <td class="pp-td"><div class="sk-box" style="width:80px"></div></td>
-                <td class="pp-td"><div class="sk-box" style="width:100px"></div></td>
-                <td class="pp-td"><div class="sk-box" style="width:90px"></div></td>
-                <td class="pp-td"><div class="sk-box" style="width:40px"></div></td>
-                <td class="pp-td"><div class="sk-box" style="width:60px"></div></td>
+                <td class="pp-td" v-for="c in 9" :key="c"><div class="sk-box" style="width:80px"></div></td>
               </tr>
             </template>
 
-            <!-- Filas reales -->
             <template v-else>
               <template v-for="(row, index) in pagedRows" :key="row.id">
 
-                <!-- ── Fila principal ── -->
+                <!-- Fila principal -->
                 <tr class="pp-row" @click="toggleRow(row.id)">
-
-                  <!-- Chevron -->
                   <td class="pp-td pp-td-center">
-                    <ChevronDown
-                      :size="14"
-                      class="pp-chevron"
-                      :class="{ 'pp-chevron-open': expandedRow === row.id }"
-                    />
+                    <ChevronDown :size="14" class="pp-chevron" :class="{ 'pp-chevron-open': expandedRow === row.id }" />
                   </td>
-
-                  <!-- # -->
                   <td class="pp-td pp-td-center pp-idx">
                     {{ index + 1 + (currentPage - 1) * Number(pageSize) }}
                   </td>
-
-                  <!-- Dispositivo -->
-                  <td class="pp-td">
-                    <div class="pp-disp-cell">
-                      <span class="pp-disp-name">{{ row.dispositivo || '—' }}</span>
-                      <span v-if="row.nombre" class="pp-disp-sub">{{ row.nombre }}</span>
+                  <td class="pp-td pp-td-center">
+                    <div class="pp-thumb-wrap">
+                      <img
+                        v-if="row.linkFotoDispositivo"
+                        :src="row.linkFotoDispositivo"
+                        class="pp-thumb"
+                        alt=""
+                        @error="$event.target.style.display='none'"
+                      />
+                      <div v-else class="pp-thumb-empty"><Camera :size="14" /></div>
                     </div>
                   </td>
-
-                  <!-- Categoría -->
                   <td class="pp-td">
-                    <span class="pp-categ">{{ row.categoria || '—' }}</span>
+                    <div class="pp-disp-cell">
+                      <span class="pp-disp-name">{{ row.nombre || '—' }}</span>
+                      <span v-if="row.dispositivo" class="pp-tipo-badge">{{ row.dispositivo }}</span>
+                    </div>
                   </td>
-
-                  <!-- Bodega -->
-                  <td class="pp-td">
-                    <span class="pp-bodega">{{ row.bodega || '—' }}</span>
-                  </td>
-
-                  <!-- Condición -->
-                  <td class="pp-td">
-                    <span :class="condClass(row.conditionStatus)">{{ condLabel(row.conditionStatus) }}</span>
-                  </td>
-
-                  <!-- Disponibilidad -->
-                  <td class="pp-td">
-                    <span :class="availClass(row.availabilityStatus)">{{ availLabel(row.availabilityStatus) }}</span>
-                  </td>
-
-
-                  <!-- Acciones — @click.stop evita el toggle -->
+                  <td class="pp-td"><span class="pp-categ">{{ row.categoria || '—' }}</span></td>
+                  <td class="pp-td"><span class="pp-bodega">{{ row.bodega || '—' }}</span></td>
+                  <td class="pp-td"><span :class="condClass(row.conditionStatus)">{{ condLabel(row.conditionStatus) }}</span></td>
+                  <td class="pp-td"><span :class="availClass(row.availabilityStatus)">{{ availLabel(row.availabilityStatus) }}</span></td>
                   <td class="pp-td" @click.stop>
                     <div class="pp-actions">
-                      <button class="act-btn act-edit" title="Editar" @click.stop="openEdit(row)">
-                        <Pencil :size="12" />
-                      </button>
-                      <button class="act-btn act-del" title="Eliminar" @click.stop="confirmDelete(row)">
-                        <Trash2 :size="12" />
-                      </button>
+                      <button class="act-btn act-edit" title="Editar" @click.stop="openEdit(row)"><Pencil :size="12" /></button>
+                      <button class="act-btn act-del"  title="Eliminar" @click.stop="confirmDelete(row)"><Trash2 :size="12" /></button>
                     </div>
                   </td>
                 </tr>
 
-                <!-- ── Fila expandida (siempre en DOM, transición max-height) ── -->
+                <!-- Fila expandida -->
                 <tr class="pp-exp-tr">
                   <td colspan="9" class="pp-exp-td">
-                    <div
-                      class="pp-exp-panel"
-                      :class="{ 'pp-exp-open': expandedRow === row.id }"
-                    >
+                    <div class="pp-exp-panel" :class="{ 'pp-exp-open': expandedRow === row.id }">
                       <div class="pp-exp-inner">
-                        <div class="pp-exp-grid">
 
-                          <div class="pp-exp-field">
-                            <span class="pp-exp-label">Amperios</span>
-                            <span class="pp-exp-val">{{ row.amperios ?? '—' }}</span>
+                        <!-- Foto + Descripción -->
+                        <div class="pp-exp-top">
+                          <div v-if="row.linkFotoDispositivo" class="pp-exp-foto-wrap">
+                            <img :src="row.linkFotoDispositivo" class="pp-exp-foto" alt="" />
                           </div>
-                          <div class="pp-exp-field">
-                            <span class="pp-exp-label">Medidas</span>
-                            <span class="pp-exp-val">{{ row.medidas || '—' }}</span>
+                          <div class="pp-exp-top-content">
+                            <div v-if="row.descripcion" class="pp-exp-desc">{{ row.descripcion }}</div>
                           </div>
-                          <div class="pp-exp-field">
-                            <span class="pp-exp-label">Motores</span>
-                            <span class="pp-exp-val">{{ row.qMotores ?? '—' }}</span>
-                          </div>
-                          <div class="pp-exp-field">
-                            <span class="pp-exp-label">Operarios</span>
-                            <span class="pp-exp-val">{{ row.qOperarios ?? '—' }}</span>
-                          </div>
-                          <div class="pp-exp-field">
-                            <span class="pp-exp-label">m²</span>
-                            <span class="pp-exp-val">{{ row.m2Dispositivo ?? '—' }}</span>
-                          </div>
-                          <div class="pp-exp-field">
-                            <span class="pp-exp-label">Peso (kg)</span>
-                            <span class="pp-exp-val">{{ row.pesoAproxDisp ?? '—' }}</span>
-                          </div>
-                          <div class="pp-exp-field">
-                            <span class="pp-exp-label">m³ Transporte</span>
-                            <span class="pp-exp-val">{{ row.m3Transporte ?? '—' }}</span>
-                          </div>
-                          <div class="pp-exp-field">
-                            <span class="pp-exp-label">Horas Operación</span>
-                            <span class="pp-exp-val">{{ row.qHorasOperacion ?? '—' }}</span>
-                          </div>
-                          <div class="pp-exp-field">
-                            <span class="pp-exp-label">Horas Montaje</span>
-                            <span class="pp-exp-val">{{ row.qHorasMontaje ?? '—' }}</span>
-                          </div>
-                          <div class="pp-exp-field">
-                            <span class="pp-exp-label">Personal Montaje</span>
-                            <span class="pp-exp-val">{{ row.qPersonalMontaje ?? '—' }}</span>
-                          </div>
-                          <div class="pp-exp-field">
-                            <span class="pp-exp-label">Año</span>
-                            <span class="pp-exp-val">{{ row.anioDispositivo ?? '—' }}</span>
-                          </div>
-                          <div class="pp-exp-field">
-                            <span class="pp-exp-label">Montacarga</span>
-                            <span class="pp-exp-val">{{ row.montacarga || '—' }}</span>
-                          </div>
-                          <div class="pp-exp-field">
-                            <span class="pp-exp-label">Pesos Estacas</span>
-                            <span class="pp-exp-val">{{ row.qPesosEstacas ?? '—' }}</span>
-                          </div>
-                          <div class="pp-exp-field">
-                            <span class="pp-exp-label">Extintores</span>
-                            <span class="pp-exp-val">{{ row.qExtintores ?? '—' }}</span>
-                          </div>
-                          <div class="pp-exp-field pp-exp-field--wide">
-                            <span class="pp-exp-label">Incluye Transporte</span>
-                            <span class="pp-exp-val">{{ row.incluyeTransporteBogMde || '—' }}</span>
-                          </div>
-                          <div class="pp-exp-field pp-exp-field--wide">
-                            <span class="pp-exp-label">Descripción</span>
-                            <span class="pp-exp-val">{{ row.descripcion || '—' }}</span>
-                          </div>
-                          <div class="pp-exp-field pp-exp-field--wide">
-                            <span class="pp-exp-label">Notas</span>
-                            <span class="pp-exp-val">{{ row.notas || '—' }}</span>
-                          </div>
-
                         </div>
+
+                        <!-- Especificaciones técnicas -->
+                        <p class="pp-exp-section">Especificaciones</p>
+                        <div class="pp-exp-grid">
+                          <div class="pp-exp-field"><span class="pp-exp-label">Amperios</span><span class="pp-exp-val">{{ row.amperios ?? '—' }}</span></div>
+                          <div class="pp-exp-field"><span class="pp-exp-label">Medidas</span><span class="pp-exp-val">{{ row.medidas || '—' }}</span></div>
+                          <div class="pp-exp-field"><span class="pp-exp-label">Motores</span><span class="pp-exp-val">{{ row.qMotores ?? '—' }}</span></div>
+                          <div class="pp-exp-field"><span class="pp-exp-label">Operarios</span><span class="pp-exp-val">{{ row.qOperarios ?? '—' }}</span></div>
+                          <div class="pp-exp-field"><span class="pp-exp-label">m²</span><span class="pp-exp-val">{{ row.m2Dispositivo ?? '—' }}</span></div>
+                          <div class="pp-exp-field"><span class="pp-exp-label">Peso (kg)</span><span class="pp-exp-val">{{ row.pesoAproxDisp ?? '—' }}</span></div>
+                          <div class="pp-exp-field"><span class="pp-exp-label">m³ Transporte</span><span class="pp-exp-val">{{ row.m3Transporte ?? '—' }}</span></div>
+                          <div class="pp-exp-field"><span class="pp-exp-label">Hs. Operación</span><span class="pp-exp-val">{{ row.qHorasOperacion ?? '—' }}</span></div>
+                          <div class="pp-exp-field"><span class="pp-exp-label">Hs. Montaje</span><span class="pp-exp-val">{{ row.qHorasMontaje ?? '—' }}</span></div>
+                          <div class="pp-exp-field"><span class="pp-exp-label">Personal Montaje</span><span class="pp-exp-val">{{ row.qPersonalMontaje ?? '—' }}</span></div>
+                          <div class="pp-exp-field"><span class="pp-exp-label">Año</span><span class="pp-exp-val">{{ row.anioDispositivo ?? '—' }}</span></div>
+                          <div class="pp-exp-field"><span class="pp-exp-label">Montacarga</span><span class="pp-exp-val">{{ row.montacarga || '—' }}</span></div>
+                          <div class="pp-exp-field"><span class="pp-exp-label">Pesos/Estacas</span><span class="pp-exp-val">{{ row.qPesosEstacas ?? '—' }}</span></div>
+                          <div class="pp-exp-field"><span class="pp-exp-label">Extintores</span><span class="pp-exp-val">{{ row.qExtintores ?? '—' }}</span></div>
+                        </div>
+
+                        <!-- Precios -->
+                        <p class="pp-exp-section">Precios por lista</p>
+                        <div class="pp-prices-grid">
+                          <div v-for="pl in PRICE_LISTS" :key="pl.key" class="pp-price-item">
+                            <span class="pp-price-label">{{ pl.label }}</span>
+                            <span class="pp-price-val">{{ fmt(row[pl.key]) }}</span>
+                          </div>
+                          <div class="pp-price-item pp-price-item--cop">
+                            <span class="pp-price-label">COP (costo)</span>
+                            <span class="pp-price-val">{{ fmt(row.cop) }}</span>
+                          </div>
+                        </div>
+
+                        <!-- Accesorios -->
+                        <template v-if="row.accesorios?.length">
+                          <p class="pp-exp-section">Accesorios / Lista de materiales</p>
+                          <div class="pp-acc-list">
+                            <span v-for="a in row.accesorios" :key="a.id" class="pp-acc-chip">{{ a.nombre }}</span>
+                          </div>
+                        </template>
+
                       </div>
                     </div>
                   </td>
@@ -547,16 +598,12 @@ onMounted(fetchProducts)
 
               </template>
             </template>
-
           </tbody>
         </table>
       </div>
 
-      <!-- Estado vacío -->
-      <div
-        v-if="!loading && pagedRows.length === 0"
-        class="py-16 flex flex-col items-center gap-3 text-text-3"
-      >
+      <!-- Vacío -->
+      <div v-if="!loading && pagedRows.length === 0" class="py-16 flex flex-col items-center gap-3 text-text-3">
         <Inbox class="w-10 h-10 opacity-40" />
         <p class="text-[14px]">No se encontraron productos</p>
       </div>
@@ -568,153 +615,87 @@ onMounted(fetchProducts)
           de {{ filteredSorted.length }}
         </span>
         <div class="pg-pages">
-          <button class="pg-btn" :disabled="currentPage === 1" @click="currentPage = 1">
-            <ChevronsLeft :size="14" />
-          </button>
-          <button class="pg-btn" :disabled="currentPage === 1" @click="currentPage--">
-            <ChevronLeft :size="14" />
-          </button>
+          <button class="pg-btn" :disabled="currentPage === 1" @click="currentPage = 1"><ChevronsLeft :size="14" /></button>
+          <button class="pg-btn" :disabled="currentPage === 1" @click="currentPage--"><ChevronLeft :size="14" /></button>
           <template v-for="p in visiblePages" :key="p">
             <span v-if="p === '...'" class="pg-ellipsis">…</span>
-            <button
-              v-else
-              class="pg-btn pg-num"
-              :class="{ 'pg-active': p === currentPage }"
-              @click="currentPage = p"
-            >{{ p }}</button>
+            <button v-else class="pg-btn pg-num" :class="{ 'pg-active': p === currentPage }" @click="currentPage = p">{{ p }}</button>
           </template>
-          <button class="pg-btn" :disabled="currentPage === totalPages" @click="currentPage++">
-            <ChevronRight :size="14" />
-          </button>
-          <button class="pg-btn" :disabled="currentPage === totalPages" @click="currentPage = totalPages">
-            <ChevronsRight :size="14" />
-          </button>
+          <button class="pg-btn" :disabled="currentPage === totalPages" @click="currentPage++"><ChevronRight :size="14" /></button>
+          <button class="pg-btn" :disabled="currentPage === totalPages" @click="currentPage = totalPages"><ChevronsRight :size="14" /></button>
         </div>
-      </div>
-
-    </div>
-
-    <!-- ══════════════════════════════════════════ -->
-    <!-- TABLA FILTRADA POR BOX                     -->
-    <!-- ══════════════════════════════════════════ -->
-    <div v-if="isFiltering" class="bg-white rounded-[18px] shadow-[0_1px_4px_rgba(5,78,175,.06),_0_4px_16px_rgba(5,78,175,.08)] overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="pp-table">
-          <thead>
-            <tr class="pp-head-row">
-              <th class="pp-th">ID</th>
-              <th class="pp-th">Cliente / Box</th>
-              <th class="pp-th">Precio</th>
-              <th class="pp-th">Producto</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in filteredByName" :key="item.id" class="pp-row">
-              <td class="pp-td pp-idx">{{ item.id }}</td>
-              <td class="pp-td">{{ item.boxName }}</td>
-              <td class="pp-td">
-                <input
-                  type="number"
-                  v-model.number="item.price"
-                  class="price-input"
-                />
-              </td>
-              <td class="pp-td">{{ item.product?.dispositivo }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div v-if="!filteredByName.length" class="py-16 flex flex-col items-center gap-3 text-text-3">
-        <Inbox class="w-10 h-10 opacity-40" />
-        <p class="text-[14px]">No se encontraron registros para ese box</p>
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════════ -->
-    <!-- MODAL: Precios por Box                     -->
-    <!-- ══════════════════════════════════════════ -->
-    <ModalReutilizable :show="isModalOpen" @close="isModalOpen = false">
-      <div>
-        <h2 class="modal-title">Precios — {{ selectedProduct?.dispositivo }}</h2>
-        <table class="w-full text-sm border border-[#E5EAF0] rounded-[var(--r-lg)] overflow-hidden mt-4">
-          <thead class="bg-[#F8FAFC]">
-            <tr>
-              <th class="border border-[#E5EAF0] px-3 py-2 text-[11px] font-semibold text-[#64748B] uppercase text-left">Caja</th>
-              <th class="border border-[#E5EAF0] px-3 py-2 text-[11px] font-semibold text-[#64748B] uppercase text-left">Precio</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="box in modalPrices" :key="box.id" class="border-b border-[#F1F5FA] hover:bg-[#F8FAFC]">
-              <td class="border border-[#F1F5FA] px-3 py-2 text-[13px] text-[#64748B]">{{ box.boxName }}</td>
-              <td class="border border-[#F1F5FA] px-3 py-2">
-                <input
-                  type="number"
-                  v-model.number="box.price"
-                  class="bg-[#F8FAFC] border border-[#E5EAF0] rounded-full px-3 py-1 text-[13px] text-[#0F1A2E] w-full focus:outline-none focus:ring-2 focus:ring-[#054EAF]"
-                />
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <div class="flex justify-end gap-3 mt-6">
-          <button
-            @click="isModalOpen = false"
-            class="px-[18px] py-[9px] text-[13px] font-semibold bg-[#EEF4FF] text-[#054EAF] border border-[#BFDBFE] rounded-[8px] hover:bg-[#DBEAFE] transition"
-          >Cerrar</button>
-          <button
-            @click="saveModalPrices"
-            class="px-[18px] py-[9px] text-[13px] font-semibold bg-[#054EAF] text-white rounded-[8px] shadow-[var(--shadow-btn)] hover:bg-[#03368A] transition"
-          >Guardar cambios</button>
-        </div>
-      </div>
-    </ModalReutilizable>
-
-    <!-- ══════════════════════════════════════════ -->
-    <!-- MODAL: Editar producto                     -->
-    <!-- ══════════════════════════════════════════ -->
+    <!-- ══ MODAL: Editar producto ══ -->
     <ModalReutilizable :show="editModal" @close="editModal = false">
       <div class="edit-modal-wrap">
         <h2 class="modal-title mb-1">Editar producto</h2>
-        <p class="edit-modal-sub">{{ productToEdit?.dispositivo }}</p>
-
-        <!-- Error global -->
+        <p class="edit-modal-sub">{{ productToEdit?.nombre }}</p>
         <div v-if="editError" class="edit-error">{{ editError }}</div>
+
+        <!-- Foto del producto -->
+        <div class="edit-foto-section">
+          <div class="edit-foto-preview">
+            <img
+              v-if="productToEdit?.linkFotoDispositivo"
+              :src="productToEdit.linkFotoDispositivo"
+              class="edit-foto-img"
+              alt=""
+            />
+            <div v-else class="edit-foto-placeholder">
+              <Camera :size="32" class="edit-foto-ico" />
+              <span>Sin foto</span>
+            </div>
+          </div>
+          <div class="edit-foto-actions">
+            <input
+              ref="fotoInput"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/avif"
+              style="display:none"
+              @change="handleFotoChange"
+            />
+            <button
+              class="btn-foto-upload"
+              :disabled="fotoLoading"
+              @click="fotoInput.click()"
+            >
+              <Camera :size="13" />
+              {{ fotoLoading ? 'Subiendo…' : productToEdit?.linkFotoDispositivo ? 'Cambiar foto' : 'Subir foto' }}
+            </button>
+            <p v-if="fotoError" class="foto-error">{{ fotoError }}</p>
+          </div>
+        </div>
 
         <div class="edit-form-grid">
 
-          <!-- ─ Sección: Identificación ─ -->
-          <p class="edit-section-label" style="grid-column: 1/-1">Identificación</p>
-
-          <div class="edit-field">
-            <label class="edit-label">Dispositivo *</label>
-            <input v-model="editForm.dispositivo" class="edit-input" placeholder="Nombre del dispositivo" />
+          <!-- Identificación -->
+          <p class="edit-section-label" style="grid-column:1/-1">Identificación</p>
+          <div class="edit-field edit-field--wide">
+            <label class="edit-label">Nombre *</label>
+            <input v-model="editForm.nombre" class="edit-input" placeholder="Nombre del producto" />
           </div>
-          <div class="edit-field">
-            <label class="edit-label">Nombre interno</label>
-            <input v-model="editForm.nombre" class="edit-input" placeholder="Nombre interno" />
+          <div class="edit-field edit-field--wide">
+            <label class="edit-label">Tipo / Característica</label>
+            <input v-model="editForm.dispositivo" class="edit-input" placeholder="Ej: DISPOSITIVO ENTRETENIMIENTO" />
           </div>
           <div class="edit-field">
             <label class="edit-label">Categoría</label>
-            <input v-model="editForm.categoria" class="edit-input" placeholder="Ej: Iluminación, Audio…" />
+            <input v-model="editForm.categoria" class="edit-input" />
           </div>
           <div class="edit-field">
             <label class="edit-label">Bodega</label>
-            <input v-model="editForm.bodega" class="edit-input" placeholder="Bodega" />
+            <input v-model="editForm.bodega" class="edit-input" />
           </div>
 
-          <!-- ─ Sección: Estado ─ -->
-          <p class="edit-section-label" style="grid-column: 1/-1">Estado</p>
-
+          <!-- Estado -->
+          <p class="edit-section-label" style="grid-column:1/-1">Estado</p>
           <div class="edit-field">
             <label class="edit-label">Condición</label>
             <select v-model="editForm.conditionStatus" class="edit-input">
               <option value="">— Seleccionar —</option>
-              <option value="OPERATIVO_OK">Operativo OK</option>
-              <option value="OPERATIVO_70">Operativo 70%</option>
-              <option value="OPERATIVO_50">Operativo 50%</option>
-              <option value="EN_MANTENIMIENTO">En mantenimiento</option>
-              <option value="DEFECTUOSO">Defectuoso</option>
-              <option value="NO_ACTIVO">No activo</option>
+              <option v-for="o in conditionOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
             </select>
           </div>
           <div class="edit-field">
@@ -727,89 +708,232 @@ onMounted(fetchProducts)
             </select>
           </div>
           <div class="edit-field">
-            <label class="edit-label">Año del dispositivo</label>
-            <input v-model.number="editForm.anioDispositivo" type="number" class="edit-input" placeholder="Ej: 2020" />
+            <label class="edit-label">Año</label>
+            <input v-model.number="editForm.anioDispositivo" type="number" class="edit-input" />
           </div>
 
-          <!-- ─ Sección: Especificaciones técnicas ─ -->
-          <p class="edit-section-label" style="grid-column: 1/-1">Especificaciones técnicas</p>
+          <!-- Especificaciones -->
+          <p class="edit-section-label" style="grid-column:1/-1">Especificaciones técnicas</p>
+          <div class="edit-field"><label class="edit-label">Amperios</label><input v-model.number="editForm.amperios" type="number" class="edit-input" /></div>
+          <div class="edit-field"><label class="edit-label">Medidas</label><input v-model="editForm.medidas" class="edit-input" /></div>
+          <div class="edit-field"><label class="edit-label">Motores</label><input v-model.number="editForm.qMotores" type="number" class="edit-input" /></div>
+          <div class="edit-field"><label class="edit-label">Operarios</label><input v-model.number="editForm.qOperarios" type="number" class="edit-input" /></div>
+          <div class="edit-field"><label class="edit-label">m²</label><input v-model.number="editForm.m2Dispositivo" type="number" step="0.01" class="edit-input" /></div>
+          <div class="edit-field"><label class="edit-label">Peso aprox (kg)</label><input v-model.number="editForm.pesoAproxDisp" type="number" step="0.1" class="edit-input" /></div>
+          <div class="edit-field"><label class="edit-label">m³ Transporte</label><input v-model.number="editForm.m3Transporte" type="number" step="0.01" class="edit-input" /></div>
+          <div class="edit-field"><label class="edit-label">Pesos/Estacas</label><input v-model.number="editForm.qPesosEstacas" type="number" class="edit-input" /></div>
+          <div class="edit-field"><label class="edit-label">Extintores</label><input v-model.number="editForm.qExtintores" type="number" class="edit-input" /></div>
+          <div class="edit-field"><label class="edit-label">Montacarga</label><input v-model="editForm.montacarga" class="edit-input" /></div>
+          <div class="edit-field"><label class="edit-label">Hs. Operación</label><input v-model.number="editForm.qHorasOperacion" type="number" step="0.5" class="edit-input" /></div>
+          <div class="edit-field"><label class="edit-label">Hs. Montaje</label><input v-model.number="editForm.qHorasMontaje" type="number" step="0.5" class="edit-input" /></div>
+          <div class="edit-field"><label class="edit-label">Personal Montaje</label><input v-model.number="editForm.qPersonalMontaje" type="number" class="edit-input" /></div>
 
-          <div class="edit-field">
-            <label class="edit-label">Amperios</label>
-            <input v-model.number="editForm.amperios" type="number" class="edit-input" placeholder="A" />
+          <!-- Precios -->
+          <p class="edit-section-label" style="grid-column:1/-1">Precios por lista</p>
+          <div v-for="pl in PRICE_LISTS" :key="pl.key" class="edit-field">
+            <label class="edit-label">{{ pl.label }}</label>
+            <input v-model.number="editForm[pl.key]" type="number" step="1000" class="edit-input" placeholder="$ 0" />
           </div>
           <div class="edit-field">
-            <label class="edit-label">Medidas</label>
-            <input v-model="editForm.medidas" class="edit-input" placeholder="Ej: 2x1x1 m" />
-          </div>
-          <div class="edit-field">
-            <label class="edit-label">Motores</label>
-            <input v-model.number="editForm.qMotores" type="number" class="edit-input" placeholder="Cantidad" />
-          </div>
-          <div class="edit-field">
-            <label class="edit-label">Operarios</label>
-            <input v-model.number="editForm.qOperarios" type="number" class="edit-input" placeholder="Cantidad" />
-          </div>
-          <div class="edit-field">
-            <label class="edit-label">m²</label>
-            <input v-model.number="editForm.m2Dispositivo" type="number" step="0.01" class="edit-input" placeholder="m²" />
-          </div>
-          <div class="edit-field">
-            <label class="edit-label">Peso aprox. (kg)</label>
-            <input v-model.number="editForm.pesoAproxDisp" type="number" step="0.1" class="edit-input" placeholder="kg" />
-          </div>
-          <div class="edit-field">
-            <label class="edit-label">m³ Transporte</label>
-            <input v-model.number="editForm.m3Transporte" type="number" step="0.01" class="edit-input" placeholder="m³" />
-          </div>
-          <div class="edit-field">
-            <label class="edit-label">Pesos / Estacas</label>
-            <input v-model.number="editForm.qPesosEstacas" type="number" class="edit-input" placeholder="Cantidad" />
-          </div>
-          <div class="edit-field">
-            <label class="edit-label">Extintores</label>
-            <input v-model.number="editForm.qExtintores" type="number" class="edit-input" placeholder="Cantidad" />
-          </div>
-          <div class="edit-field">
-            <label class="edit-label">Montacarga</label>
-            <input v-model="editForm.montacarga" class="edit-input" placeholder="Tipo de montacarga" />
+            <label class="edit-label">COP (costo)</label>
+            <input v-model.number="editForm.cop" type="number" step="1000" class="edit-input" placeholder="$ 0" />
           </div>
 
-          <!-- ─ Sección: Operación y montaje ─ -->
-          <p class="edit-section-label" style="grid-column: 1/-1">Operación y montaje</p>
-
-          <div class="edit-field">
-            <label class="edit-label">Horas de operación</label>
-            <input v-model.number="editForm.qHorasOperacion" type="number" step="0.5" class="edit-input" placeholder="h" />
-          </div>
-          <div class="edit-field">
-            <label class="edit-label">Horas de montaje</label>
-            <input v-model.number="editForm.qHorasMontaje" type="number" step="0.5" class="edit-input" placeholder="h" />
-          </div>
-          <div class="edit-field">
-            <label class="edit-label">Personal de montaje</label>
-            <input v-model.number="editForm.qPersonalMontaje" type="number" class="edit-input" placeholder="Cantidad" />
-          </div>
-          <div class="edit-field" style="grid-column: span 2">
-            <label class="edit-label">Incluye transporte BOG/MDE</label>
-            <input v-model="editForm.incluyeTransporteBogMde" class="edit-input" placeholder="Ej: Sí, No, Consultar…" />
-          </div>
-
-          <!-- ─ Sección: Textos ─ -->
-          <p class="edit-section-label" style="grid-column: 1/-1">Descripción y notas</p>
-
-          <div class="edit-field" style="grid-column: 1/-1">
+          <!-- Descripción y notas -->
+          <p class="edit-section-label" style="grid-column:1/-1">Descripción y notas</p>
+          <div class="edit-field" style="grid-column:1/-1">
             <label class="edit-label">Descripción</label>
-            <textarea v-model="editForm.descripcion" class="edit-input edit-textarea" rows="3" placeholder="Descripción del producto…"></textarea>
+            <textarea v-model="editForm.descripcion" class="edit-input edit-textarea" rows="3"></textarea>
           </div>
-          <div class="edit-field" style="grid-column: 1/-1">
+          <div class="edit-field" style="grid-column:1/-1">
             <label class="edit-label">Notas</label>
-            <textarea v-model="editForm.notas" class="edit-input edit-textarea" rows="2" placeholder="Notas internas…"></textarea>
+            <textarea v-model="editForm.notas" class="edit-input edit-textarea" rows="2"></textarea>
+          </div>
+
+          <!-- Accesorios -->
+          <p class="edit-section-label" style="grid-column:1/-1">Accesorios / Lista de materiales</p>
+          <div style="grid-column:1/-1">
+            <div class="acc-chips-wrap">
+              <div v-for="(a, i) in editAccesorios" :key="i" class="acc-chip-edit">
+                <span>{{ a.nombre }}</span>
+                <button class="acc-chip-rm" @click="removeAccesorio(i)"><X :size="10" /></button>
+              </div>
+            </div>
+            <div class="acc-add-row">
+              <input
+                v-model="newAccesorio"
+                class="edit-input"
+                placeholder="Nuevo accesorio…"
+                @keydown.enter.prevent="addAccesorio"
+                style="flex:1"
+              />
+              <button class="btn-add-acc" @click="addAccesorio"><Plus :size="13" /> Agregar</button>
+            </div>
+          </div>
+
+          <!-- Materiales del catálogo -->
+          <div style="grid-column:1/-1" class="mat-section">
+            <div class="mat-section-header">
+              <span class="edit-section-label" style="margin:0">
+                Materiales del catálogo
+                <span class="mat-count-badge">{{ editMateriales.length }}</span>
+              </span>
+              <div class="mat-header-actions">
+                <button class="btn-mat-text" @click="openEditParser">
+                  <FileText :size="13" /> Importar texto
+                </button>
+                <button class="btn-mat-text btn-mat-primary" @click="editMatAdding = !editMatAdding">
+                  <Plus :size="13" /> Agregar material
+                </button>
+              </div>
+            </div>
+
+            <!-- add inline form -->
+            <div v-if="editMatAdding" class="mat-add-form">
+              <div class="mat-search-wrap">
+                <input
+                  v-model="editMatSearch"
+                  class="edit-input"
+                  placeholder="Buscar material en catálogo…"
+                  autocomplete="off"
+                />
+                <div v-if="editMatSearching" class="mat-search-spinner"></div>
+                <ul v-if="editMatResults.length" class="mat-dropdown">
+                  <li
+                    v-for="m in editMatResults"
+                    :key="m.id"
+                    class="mat-dropdown-item"
+                    @mousedown.prevent="selectEditMat(m)"
+                  >
+                    <span class="mat-drop-name">{{ m.nombre }}</span>
+                    <span class="mat-drop-unit">{{ m.unidad }}</span>
+                  </li>
+                </ul>
+              </div>
+              <input
+                v-model.number="editMatCantidad"
+                type="number" min="1" step="0.5"
+                class="edit-input mat-cant-input"
+                placeholder="Cant."
+              />
+              <label class="mat-opc-label">
+                <input type="checkbox" v-model="editMatOpcional" />
+                Opcional
+              </label>
+              <button class="btn-mat-confirm" :disabled="editMatAdding && !editMatSelected" @click="addEditMaterial">
+                <span v-if="editMatAdding && editMatSearch && !editMatSelected">…</span>
+                <span v-else>Agregar</span>
+              </button>
+              <p v-if="editMatAddError" class="mat-error">{{ editMatAddError }}</p>
+            </div>
+
+            <!-- tabla -->
+            <div v-if="editMatLoading" class="mat-loading">Cargando materiales…</div>
+            <div v-else-if="!editMateriales.length" class="mat-empty">Sin materiales asignados desde el catálogo.</div>
+            <table v-else class="mat-table">
+              <thead>
+                <tr>
+                  <th>Material</th>
+                  <th>Unidad</th>
+                  <th>Cantidad</th>
+                  <th>Tipo</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="pm in editMateriales" :key="pm.id">
+                  <td class="mat-nombre">{{ pm.materialBase?.nombre }}</td>
+                  <td class="mat-unit">{{ pm.materialBase?.unidad || '—' }}</td>
+                  <td class="mat-cant">
+                    <template v-if="editMatInlineId === pm.id">
+                      <input
+                        v-model.number="editMatInlineCant"
+                        type="number" min="0.5" step="0.5"
+                        class="edit-input mat-inline-input"
+                        @keydown.enter.prevent="saveInlineEdit(pm)"
+                        @keydown.escape.prevent="editMatInlineId = null"
+                      />
+                      <button class="btn-mat-icon btn-mat-ok" @click="saveInlineEdit(pm)">✓</button>
+                      <button class="btn-mat-icon btn-mat-cancel" @click="editMatInlineId = null">✕</button>
+                    </template>
+                    <template v-else>
+                      <span class="mat-cant-val">{{ pm.cantidad }}</span>
+                      <button class="btn-mat-icon btn-mat-edit-inline" @click="startInlineEdit(pm)">
+                        <Pencil :size="11" />
+                      </button>
+                    </template>
+                  </td>
+                  <td>
+                    <span :class="pm.esOpcional ? 'mat-badge-opt' : 'mat-badge-req'">
+                      {{ pm.esOpcional ? 'Opcional' : 'Requerido' }}
+                    </span>
+                  </td>
+                  <td class="mat-actions">
+                    <button class="btn-mat-icon btn-mat-del" @click="deleteEditMaterial(pm)">
+                      <X :size="12" />
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- parser modal inline -->
+            <div v-if="editParserOpen" class="mat-parser-overlay">
+              <div class="mat-parser-box">
+                <div class="mat-parser-header">
+                  <span>Importar materiales desde texto</span>
+                  <button class="btn-mat-icon" @click="editParserOpen = false"><X :size="14" /></button>
+                </div>
+
+                <!-- step 1: ingresar texto -->
+                <div v-if="editParserStep === 1">
+                  <p class="mat-parser-hint">Ejemplo: <em>20 puff 4 parasoles 1 multitoma</em></p>
+                  <textarea
+                    v-model="editParserText"
+                    class="edit-input edit-textarea mat-parser-ta"
+                    rows="4"
+                    placeholder="Pega aquí la lista de materiales…"
+                  ></textarea>
+                  <p v-if="editParserError" class="mat-error">{{ editParserError }}</p>
+                  <div class="mat-parser-footer">
+                    <button class="btn-cancel" @click="editParserOpen = false">Cancelar</button>
+                    <button class="btn-save" :disabled="editParserParsing || !editParserText.trim()" @click="runEditParser">
+                      {{ editParserParsing ? 'Parseando…' : 'Continuar' }}
+                    </button>
+                  </div>
+                </div>
+
+                <!-- step 2: revisar ítems -->
+                <div v-if="editParserStep === 2">
+                  <p class="mat-parser-subhead">Revisa los {{ editParserItems.length }} ítems detectados:</p>
+                  <div class="mat-parser-items">
+                    <div v-for="(item, i) in editParserItems" :key="i" class="mat-parser-item">
+                      <input v-model.number="item.cantidad" type="number" min="0.5" step="0.5" class="edit-input mat-cant-input" />
+                      <input v-model="item.nombre" class="edit-input" style="flex:1" />
+                      <button class="btn-mat-icon btn-mat-del" @click="editParserItems.splice(i,1)"><X :size="12" /></button>
+                    </div>
+                  </div>
+                  <p v-if="editParserError" class="mat-error">{{ editParserError }}</p>
+                  <div class="mat-parser-footer">
+                    <button class="btn-cancel" @click="editParserStep = 1">Atrás</button>
+                    <button class="btn-save" :disabled="editParserSaving" @click="confirmEditParser">
+                      {{ editParserSaving ? 'Asignando…' : 'Confirmar y asignar' }}
+                    </button>
+                  </div>
+                </div>
+
+                <!-- step 3: resultado -->
+                <div v-if="editParserStep === 3 && editParserResult" class="mat-parser-result">
+                  <p>✓ Asignados: <strong>{{ editParserResult.created + editParserResult.updated }}</strong>
+                    ({{ editParserResult.created }} nuevos, {{ editParserResult.updated }} actualizados)</p>
+                  <button class="btn-save" @click="editParserOpen = false">Cerrar</button>
+                </div>
+              </div>
+            </div>
           </div>
 
         </div>
 
-        <!-- Footer -->
         <div class="edit-footer">
           <button @click="editModal = false" class="btn-cancel" :disabled="editLoading">Cancelar</button>
           <button @click="saveEdit" class="btn-save" :disabled="editLoading">
@@ -820,9 +944,7 @@ onMounted(fetchProducts)
       </div>
     </ModalReutilizable>
 
-    <!-- ══════════════════════════════════════════ -->
-    <!-- MODAL: Confirmar eliminación               -->
-    <!-- ══════════════════════════════════════════ -->
+    <!-- ══ MODAL: Confirmar eliminación ══ -->
     <ModalReutilizable :show="deleteModal" @close="deleteModal = false">
       <div class="text-center p-2">
         <div class="flex justify-center mb-4">
@@ -832,20 +954,16 @@ onMounted(fetchProducts)
         </div>
         <h2 class="modal-title text-center">Eliminar producto</h2>
         <p class="text-[13px] text-[#64748B] mt-2 mb-6 leading-relaxed">
-          ¿Estás seguro de que deseas eliminar
-          <strong>{{ productToDelete?.dispositivo }}</strong>?
+          ¿Seguro que deseas eliminar <strong>{{ productToDelete?.nombre }}</strong>?
           Esta acción no se puede deshacer.
         </p>
         <div class="flex justify-center gap-3">
-          <button
-            @click="deleteModal = false"
-            class="px-[18px] py-[9px] text-[13px] font-semibold bg-[#F1F5F9] text-[#64748B] border border-[#E5EAF0] rounded-[8px] hover:bg-[#E5EAF0] transition"
-          >Cancelar</button>
-          <button
-            @click="executeDelete"
-            class="px-[18px] py-[9px] text-[13px] font-semibold bg-[#B91C1C] text-white rounded-[8px] hover:bg-[#991B1B] transition flex items-center gap-2"
-          >
-            <Trash2 :size="14" /> Eliminar
+          <button @click="deleteModal = false" class="px-[18px] py-[9px] text-[13px] font-semibold bg-[#F1F5F9] text-[#64748B] border border-[#E5EAF0] rounded-[8px] hover:bg-[#E5EAF0] transition" :disabled="deleteLoading">
+            Cancelar
+          </button>
+          <button @click="executeDelete" class="px-[18px] py-[9px] text-[13px] font-semibold bg-[#B91C1C] text-white rounded-[8px] hover:bg-[#991B1B] transition flex items-center gap-2" :disabled="deleteLoading">
+            <span v-if="deleteLoading" class="edit-spinner"></span>
+            <Trash2 v-else :size="14" /> Eliminar
           </button>
         </div>
       </div>
@@ -855,178 +973,77 @@ onMounted(fetchProducts)
 </template>
 
 <style scoped>
-/* ─── Page ──────────────────────────────────────────────── */
 .pp-page { width: 100%; }
 
-/* ─── Header ────────────────────────────────────────────── */
 .pp-title {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--text-1, #0F1A2E);
-  margin: 0 0 4px;
-  line-height: 1.2;
+  font-size: 22px; font-weight: 700; color: var(--text-1, #0F1A2E);
+  margin: 0 0 4px; line-height: 1.2;
 }
-.pp-subtitle {
-  font-size: 13px;
-  color: var(--text-3, #94A3B8);
-  font-family: 'Inter', sans-serif;
-  margin: 0;
-}
-.pp-head-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+.pp-subtitle { font-size: 13px; color: var(--text-3, #94A3B8); font-family: 'Inter', sans-serif; margin: 0; }
+.pp-head-actions { display: flex; align-items: center; gap: 8px; }
 
 .btn-reload {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  font-size: 12px;
-  font-weight: 600;
-  font-family: 'Inter', sans-serif;
-  border-radius: 8px;
-  border: 1px solid #E2EBF6;
-  background: #F8FAFC;
-  color: #64748B;
-  cursor: pointer;
-  transition: background 0.15s;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; font-size: 12px; font-weight: 600;
+  font-family: 'Inter', sans-serif; border-radius: 8px;
+  border: 1px solid #E2EBF6; background: #F8FAFC; color: #64748B;
+  cursor: pointer; transition: background 0.15s;
 }
 .btn-reload:hover { background: #E2EBF6; }
-
-.btn-save-prices {
-  padding: 8px 14px;
-  font-size: 12px;
-  font-weight: 600;
-  font-family: 'Inter', sans-serif;
-  border-radius: 8px;
-  border: none;
-  background: #054EAF;
-  color: #fff;
-  cursor: pointer;
-  box-shadow: var(--shadow-btn);
-  transition: background 0.15s;
-}
-.btn-save-prices:hover { background: #03368A; }
 
 .per-page-wrap { display: flex; align-items: center; gap: 8px; }
 .per-page-lbl  { font-size: 12px; color: #94A3B8; font-family: 'Inter', sans-serif; white-space: nowrap; }
 
-/* ─── Inputs / selects ──────────────────────────────────── */
 .pp-input {
-  width: 100%;
-  background: #F8FAFC;
-  border: 1px solid #E2EBF6;
-  border-radius: 999px;
-  padding: 8px 16px;
-  font-size: 13px;
-  color: var(--text-1, #0F1A2E);
-  font-family: 'Inter', sans-serif;
-  outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-  appearance: auto;
+  width: 100%; background: #F8FAFC; border: 1px solid #E2EBF6;
+  border-radius: 999px; padding: 8px 16px;
+  font-size: 13px; color: var(--text-1, #0F1A2E);
+  font-family: 'Inter', sans-serif; outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s; appearance: auto;
 }
-.pp-input:focus {
-  border-color: var(--primary, #054EAF);
-  box-shadow: 0 0 0 3px rgba(5, 78, 175, 0.1);
-}
+.pp-input:focus { border-color: var(--primary, #054EAF); box-shadow: 0 0 0 3px rgba(5,78,175,.1); }
 .pp-input::placeholder { color: var(--text-3, #94A3B8); }
 .pp-input--sm { width: 70px; text-align: center; }
 
-/* ─── Tabla ─────────────────────────────────────────────── */
-.pp-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  font-family: 'Inter', sans-serif;
-}
-
-/* ─── Head ──────────────────────────────────────────────── */
+.pp-table { width: 100%; border-collapse: separate; border-spacing: 0; font-family: 'Inter', sans-serif; }
 .pp-head-row { background: #EBF3FC; }
-
 .pp-th {
-  padding: 12px 16px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-2, #64748B);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  text-align: left;
-  white-space: nowrap;
+  padding: 12px 16px; font-size: 11px; font-weight: 600;
+  color: var(--text-2, #64748B); text-transform: uppercase;
+  letter-spacing: 0.5px; text-align: left; white-space: nowrap;
   border-bottom: 1px solid #E2EBF6;
 }
 .pp-th-center { text-align: center; }
-.pp-th-sort {
-  cursor: pointer;
-  user-select: none;
-  transition: color 0.12s;
-}
+.pp-th-sort { cursor: pointer; user-select: none; transition: color 0.12s; }
 .pp-th-sort:hover { color: #054EAF; }
-
-.sort-icons {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  margin-left: 4px;
-  vertical-align: middle;
-  gap: 0;
-  line-height: 0;
-}
+.sort-icons { display: inline-flex; flex-direction: column; align-items: center; margin-left: 4px; vertical-align: middle; gap: 0; line-height: 0; }
 .sort-active { color: #054EAF; }
 .sort-dim    { color: #CBD5E1; }
 
-/* ─── Filas ─────────────────────────────────────────────── */
-.pp-row {
-  background: #FFFFFF;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
+.pp-row { background: #FFFFFF; cursor: pointer; transition: background 0.15s; }
 .pp-row:hover { background: #F0F7FF; }
-
 .pp-td {
-  padding: 14px 16px;
-  font-size: 13px;
-  color: var(--text-1, #0F1A2E);
-  border-bottom: 1px solid #EBF3FC;
-  vertical-align: middle;
-  white-space: nowrap;
+  padding: 14px 16px; font-size: 13px; color: var(--text-1, #0F1A2E);
+  border-bottom: 1px solid #EBF3FC; vertical-align: middle; white-space: nowrap;
 }
 .pp-td-center { text-align: center; }
-
 .pp-idx { font-size: 12px; color: var(--text-3, #94A3B8); font-weight: 500; }
 
-/* ─── Chevron toggle ────────────────────────────────────── */
-.pp-chevron {
-  color: var(--text-3, #94A3B8);
-  transition: transform 0.2s ease, color 0.15s ease;
-  display: block;
-  margin: 0 auto;
-}
-.pp-chevron-open {
-  transform: rotate(180deg);
-  color: #054EAF;
-}
+.pp-chevron { color: var(--text-3, #94A3B8); transition: transform 0.2s, color 0.15s; display: block; margin: 0 auto; }
+.pp-chevron-open { transform: rotate(180deg); color: #054EAF; }
 
-/* ─── Cell: dispositivo ─────────────────────────────────── */
-.pp-disp-cell { display: flex; flex-direction: column; gap: 2px; }
-.pp-disp-name { font-weight: 600; font-size: 13px; color: var(--text-1, #0F1A2E); }
-.pp-disp-sub  { font-size: 11px; color: var(--text-3, #94A3B8); }
-
+.pp-disp-cell { display: flex; flex-direction: column; gap: 4px; }
+.pp-disp-name { font-weight: 600; font-size: 13px; color: var(--text-1, #0F1A2E); white-space: normal; }
+.pp-tipo-badge {
+  display: inline-block; padding: 2px 7px; border-radius: 999px;
+  font-size: 10px; font-weight: 600; font-family: 'Inter', sans-serif;
+  background: #EBF3FC; color: #054EAF; white-space: nowrap; width: fit-content;
+}
 .pp-categ  { font-size: 13px; color: var(--text-2, #64748B); }
 .pp-bodega { font-size: 13px; color: var(--text-2, #64748B); }
 
-/* ─── Badges ────────────────────────────────────────────── */
-.badge {
-  display: inline-block;
-  padding: 3px 9px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
-  font-family: 'Inter', sans-serif;
-  white-space: nowrap;
-}
+.badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; font-family: 'Inter', sans-serif; white-space: nowrap; }
 .badge--green  { background: #DCFCE7; color: #16A34A; }
 .badge--yellow { background: #FEF3C7; color: #B45309; }
 .badge--orange { background: #FFEDD5; color: #C2410C; }
@@ -1034,280 +1051,268 @@ onMounted(fetchProducts)
 .badge--red    { background: #FEE2E2; color: #B91C1C; }
 .badge--slate  { background: #F1F5F9; color: #64748B; }
 
-/* ─── Botones de acción ─────────────────────────────────── */
 .pp-actions { display: flex; align-items: center; gap: 6px; }
-
 .act-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 10px;
-  font-size: 11px;
-  font-weight: 600;
-  font-family: 'Inter', sans-serif;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  transition: background 0.15s ease;
-  white-space: nowrap;
-  line-height: 1;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 10px; font-size: 11px; font-weight: 600;
+  font-family: 'Inter', sans-serif; border-radius: 8px;
+  border: none; cursor: pointer; transition: background 0.15s; white-space: nowrap; line-height: 1;
 }
-.act-view       { background: #DBEAFE; color: #1D4ED8; }
-.act-view:hover { background: #BFDBFE; }
 .act-edit       { background: #FEF3C7; color: #B45309; }
 .act-edit:hover { background: #FDE68A; }
 .act-del        { background: #FEE2E2; color: #B91C1C; }
 .act-del:hover  { background: #FECACA; }
 
-/* ─── Fila expandida ────────────────────────────────────── */
-.pp-exp-td {
-  padding: 0 !important;
-  border-bottom: 1px solid #EBF3FC;
-}
+/* ─── Fila expandida ─── */
+.pp-exp-td { padding: 0 !important; border-bottom: 1px solid #EBF3FC; }
+.pp-exp-panel { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+.pp-exp-open  { max-height: 1000px; }
+.pp-exp-inner { background: #F8FBFF; border-left: 3px solid #054EAF; padding: 16px 24px; display: flex; flex-direction: column; gap: 12px; }
 
-.pp-exp-panel {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.25s ease;
+.pp-exp-desc { font-size: 12px; color: #64748B; font-style: italic; }
+.pp-exp-section {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: #054EAF; font-family: 'Inter', sans-serif;
+  margin: 0; border-bottom: 1px solid #E2EBF6; padding-bottom: 4px;
 }
-.pp-exp-open { max-height: 600px; }
-
-.pp-exp-inner {
-  background: #F8FBFF;
-  border-left: 3px solid #054EAF;
-  padding: 16px 24px;
-}
-
 .pp-exp-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px 24px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 20px;
 }
 @media (max-width: 768px) { .pp-exp-grid { grid-template-columns: repeat(2, 1fr); } }
 
-.pp-exp-field { display: flex; flex-direction: column; gap: 4px; }
-.pp-exp-field--wide { grid-column: span 2; }
+.pp-exp-field { display: flex; flex-direction: column; gap: 3px; }
+.pp-exp-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-3, #94A3B8); }
+.pp-exp-val   { font-size: 13px; color: var(--text-1, #0F1A2E); font-weight: 500; white-space: normal; word-break: break-word; }
 
-.pp-exp-label {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-3, #94A3B8);
-  font-family: 'Inter', sans-serif;
+.pp-prices-grid {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px;
 }
-.pp-exp-val {
-  font-size: 13px;
-  color: var(--text-1, #0F1A2E);
-  font-family: 'Inter', sans-serif;
-  font-weight: 500;
-  white-space: normal;
-  word-break: break-word;
-}
+@media (max-width: 900px) { .pp-prices-grid { grid-template-columns: repeat(3, 1fr); } }
 
-/* ─── Skeleton ──────────────────────────────────────────── */
-.sk-box {
-  height: 14px;
-  border-radius: 6px;
-  background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.4s ease infinite;
+.pp-price-item {
+  background: #fff; border: 1px solid #E2EBF6; border-radius: 10px;
+  padding: 8px 12px; display: flex; flex-direction: column; gap: 3px;
 }
-@keyframes shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+.pp-price-item--cop { border-color: #CBD5E1; background: #F8FAFC; }
+.pp-price-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #64748B; }
+.pp-price-val   { font-size: 13px; font-weight: 700; color: #054EAF; font-family: 'Inter', sans-serif; }
+.pp-price-item--cop .pp-price-val { color: #374151; }
+
+.pp-acc-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.pp-acc-chip {
+  background: #EBF3FC; color: #054EAF; border-radius: 999px;
+  padding: 3px 10px; font-size: 11px; font-weight: 500;
 }
 
-/* ─── Price input (tabla box) ───────────────────────────── */
-.price-input {
-  background: #F8FAFC;
-  border: 1px solid #E2EBF6;
-  border-radius: 999px;
-  padding: 6px 12px;
-  font-size: 13px;
-  font-family: 'Inter', sans-serif;
-  color: #0F1A2E;
-  width: 120px;
-  outline: none;
-}
-.price-input:focus {
-  border-color: #054EAF;
-  box-shadow: 0 0 0 3px rgba(5,78,175,.1);
-}
+/* ─── Skeleton ─── */
+.sk-box { height: 14px; border-radius: 6px; background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%); background-size: 200% 100%; animation: shimmer 1.4s ease infinite; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-/* ─── Paginación ────────────────────────────────────────── */
-.pp-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px;
-  border-top: 1px solid #EBF3FC;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.pg-info {
-  font-size: 12px;
-  color: #94A3B8;
-  font-family: 'Inter', sans-serif;
-}
+/* ─── Paginación ─── */
+.pp-pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-top: 1px solid #EBF3FC; flex-wrap: wrap; gap: 8px; }
+.pg-info { font-size: 12px; color: #94A3B8; font-family: 'Inter', sans-serif; }
 .pg-pages { display: flex; align-items: center; gap: 4px; }
-.pg-btn {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  border: 1px solid #E2EBF6;
-  background: #FFFFFF;
-  color: #64748B;
-  font-size: 12px;
-  font-family: 'Inter', sans-serif;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.12s ease;
-}
+.pg-btn { width: 30px; height: 30px; border-radius: 8px; border: 1px solid #E2EBF6; background: #FFFFFF; color: #64748B; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.12s; }
 .pg-btn:hover:not(:disabled) { background: #EEF4FF; color: #054EAF; border-color: #BFDBFE; }
 .pg-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .pg-active { background: #054EAF !important; color: #FFFFFF !important; border-color: #054EAF !important; font-weight: 600; }
 .pg-ellipsis { color: #94A3B8; font-size: 13px; padding: 0 4px; }
 
-/* ─── Modal title ───────────────────────────────────────── */
-.modal-title {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 16px;
-  font-weight: 700;
-  color: #0F1A2E;
-  margin: 0;
-}
-
-/* ─── Edit modal ─────────────────────────────────────────── */
+/* ─── Modal ─── */
+.modal-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700; color: #0F1A2E; margin: 0; }
 .edit-modal-wrap { display: flex; flex-direction: column; gap: 16px; }
+.edit-modal-sub  { font-size: 13px; color: #64748B; font-family: 'Inter', sans-serif; margin: -10px 0 0; }
+.edit-error      { background: #FEE2E2; color: #B91C1C; border: 1px solid #FECACA; border-radius: 8px; padding: 10px 14px; font-size: 13px; }
 
-.edit-modal-sub {
-  font-size: 13px;
-  color: #64748B;
-  font-family: 'Inter', sans-serif;
-  margin: -10px 0 0;
-}
-
-.edit-error {
-  background: #FEE2E2;
-  color: #B91C1C;
-  border: 1px solid #FECACA;
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 13px;
-  font-family: 'Inter', sans-serif;
-}
-
-.edit-form-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px 16px;
-  max-height: 60vh;
-  overflow-y: auto;
-  padding-right: 4px;
-}
+.edit-form-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px 16px; max-height: 62vh; overflow-y: auto; padding-right: 4px; }
 @media (max-width: 768px) { .edit-form-grid { grid-template-columns: repeat(2, 1fr); } }
 
-.edit-section-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #054EAF;
-  font-family: 'Inter', sans-serif;
-  padding: 6px 0 2px;
-  border-bottom: 1px solid #EBF3FC;
-  margin-bottom: 2px;
-}
-
+.edit-section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #054EAF; padding: 6px 0 2px; border-bottom: 1px solid #EBF3FC; margin-bottom: 2px; }
 .edit-field { display: flex; flex-direction: column; gap: 5px; }
-
-.edit-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: #64748B;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-family: 'Inter', sans-serif;
-}
-
-.edit-input {
-  background: #F8FAFC;
-  border: 1px solid #E2EBF6;
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 13px;
-  color: #0F1A2E;
-  font-family: 'Inter', sans-serif;
-  outline: none;
-  width: 100%;
-  transition: border-color 0.15s, box-shadow 0.15s;
-  appearance: auto;
-}
-.edit-input:focus {
-  border-color: #054EAF;
-  box-shadow: 0 0 0 3px rgba(5,78,175,.1);
-}
+.edit-field--wide { grid-column: span 2; }
+.edit-label  { font-size: 11px; font-weight: 600; color: #64748B; text-transform: uppercase; letter-spacing: 0.04em; }
+.edit-input  { background: #F8FAFC; border: 1px solid #E2EBF6; border-radius: 8px; padding: 8px 12px; font-size: 13px; color: #0F1A2E; font-family: 'Inter', sans-serif; outline: none; width: 100%; transition: border-color 0.15s, box-shadow 0.15s; appearance: auto; }
+.edit-input:focus { border-color: #054EAF; box-shadow: 0 0 0 3px rgba(5,78,175,.1); }
 .edit-input::placeholder { color: #94A3B8; }
+.edit-textarea { resize: vertical; border-radius: 8px; min-height: 60px; }
 
-.edit-textarea {
-  resize: vertical;
-  border-radius: 8px;
-  min-height: 60px;
+.acc-chips-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; min-height: 28px; }
+.acc-chip-edit {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #EBF3FC; color: #054EAF; border-radius: 999px;
+  padding: 4px 10px; font-size: 12px; font-weight: 500;
 }
-
-.edit-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding-top: 8px;
-  border-top: 1px solid #EBF3FC;
+.acc-chip-rm {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 14px; height: 14px; border-radius: 50%; border: none;
+  background: #BFDBFE; color: #1D4ED8; cursor: pointer; padding: 0;
 }
-
-.btn-cancel {
-  padding: 9px 20px;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: 'Inter', sans-serif;
-  border-radius: 8px;
-  border: 1px solid #E2EBF6;
-  background: #F1F5F9;
-  color: #64748B;
-  cursor: pointer;
+.acc-chip-rm:hover { background: #93C5FD; }
+.acc-add-row { display: flex; gap: 8px; align-items: center; }
+.btn-add-acc {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 8px 14px; font-size: 12px; font-weight: 600;
+  border-radius: 8px; border: 1.5px solid #054EAF;
+  background: #EBF3FC; color: #054EAF; cursor: pointer; white-space: nowrap;
   transition: background 0.15s;
 }
+.btn-add-acc:hover { background: #DBEAFE; }
+
+.edit-footer { display: flex; justify-content: flex-end; gap: 10px; padding-top: 8px; border-top: 1px solid #EBF3FC; }
+.btn-cancel { padding: 9px 20px; font-size: 13px; font-weight: 600; border-radius: 8px; border: 1px solid #E2EBF6; background: #F1F5F9; color: #64748B; cursor: pointer; transition: background 0.15s; }
 .btn-cancel:hover:not(:disabled) { background: #E2EBF6; }
 .btn-cancel:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.btn-save {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 22px;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: 'Inter', sans-serif;
-  border-radius: 8px;
-  border: none;
-  background: #054EAF;
-  color: #fff;
-  cursor: pointer;
-  box-shadow: 0 1px 4px rgba(5,78,175,.25);
-  transition: background 0.15s;
-}
+.btn-save { display: inline-flex; align-items: center; gap: 8px; padding: 9px 22px; font-size: 13px; font-weight: 600; border-radius: 8px; border: none; background: #054EAF; color: #fff; cursor: pointer; box-shadow: 0 1px 4px rgba(5,78,175,.25); transition: background 0.15s; }
 .btn-save:hover:not(:disabled) { background: #03368A; }
 .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
 
-.edit-spinner {
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(255,255,255,.4);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
-  flex-shrink: 0;
-}
+.edit-spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; flex-shrink: 0; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── thumbnail en fila ──────────────────────────────── */
+.pp-thumb-wrap { width: 40px; height: 40px; border-radius: 8px; overflow: hidden; background: #F1F5F9; display: flex; align-items: center; justify-content: center; border: 1px solid #E2EBF6; }
+.pp-thumb { width: 40px; height: 40px; object-fit: cover; display: block; }
+.pp-thumb-empty { color: #CBD5E1; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+
+/* ── foto en panel expandido ────────────────────────── */
+.pp-exp-top { display: flex; gap: 20px; align-items: flex-start; margin-bottom: 14px; }
+.pp-exp-foto-wrap { flex-shrink: 0; width: 180px; height: 130px; border-radius: 10px; overflow: hidden; background: #F8FAFC; border: 1px solid #E2EBF6; }
+.pp-exp-foto { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pp-exp-top-content { flex: 1; }
+
+/* ── foto en modal de edición ───────────────────────── */
+.edit-foto-section { display: flex; align-items: center; gap: 16px; padding: 14px; background: #F8FAFC; border: 1px solid #E2EBF6; border-radius: 10px; }
+.edit-foto-preview { width: 100px; height: 80px; border-radius: 8px; overflow: hidden; background: #EFF4FB; border: 1px solid #D9E8F8; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.edit-foto-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.edit-foto-placeholder { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #94A3B8; font-size: 11px; font-family: 'Inter', sans-serif; }
+.edit-foto-ico { color: #CBD5E1; }
+.edit-foto-actions { display: flex; flex-direction: column; gap: 6px; }
+.btn-foto-upload {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; font-size: 12px; font-weight: 600; font-family: 'Inter', sans-serif;
+  border-radius: 8px; border: 1.5px solid #054EAF; background: #EBF3FC; color: #054EAF;
+  cursor: pointer; transition: background 0.15s; white-space: nowrap;
+}
+.btn-foto-upload:hover:not(:disabled) { background: #DBEAFE; }
+.btn-foto-upload:disabled { opacity: 0.6; cursor: not-allowed; }
+.foto-error { font-size: 12px; color: #B91C1C; margin: 0; }
+
+/* ─── materiales en modal ─────────────────────────────────── */
+.mat-section { position: relative; }
+.mat-section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.mat-count-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #DBEAFE; color: #1D4ED8;
+  border-radius: 9999px; font-size: 11px; font-weight: 600;
+  min-width: 18px; height: 18px; padding: 0 5px; margin-left: 6px;
+}
+.mat-header-actions { display: flex; gap: 6px; }
+.btn-mat-text {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;
+  border: 1px solid #CBD5E1; background: #fff; cursor: pointer;
+  color: #475569; transition: background 0.15s;
+}
+.btn-mat-text:hover { background: #F1F5F9; }
+.btn-mat-primary { background: #EFF6FF; border-color: #93C5FD; color: #1D4ED8; }
+.btn-mat-primary:hover { background: #DBEAFE; }
+
+.mat-add-form {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px;
+  padding: 10px 12px; margin-bottom: 12px; position: relative;
+}
+.mat-search-wrap { flex: 1; min-width: 180px; position: relative; }
+.mat-search-spinner {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid #CBD5E1; border-top-color: #3B82F6; animation: spin 0.7s linear infinite;
+}
+.mat-dropdown {
+  position: absolute; top: calc(100% + 2px); left: 0; right: 0;
+  background: #fff; border: 1px solid #E2E8F0; border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100;
+  max-height: 200px; overflow-y: auto; list-style: none; margin: 0; padding: 0;
+}
+.mat-dropdown-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px; font-size: 13px; cursor: pointer;
+}
+.mat-dropdown-item:hover { background: #EFF6FF; }
+.mat-drop-name { color: #0F172A; }
+.mat-drop-unit { font-size: 11px; color: #94A3B8; }
+.mat-cant-input { width: 70px; }
+.mat-opc-label { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #475569; cursor: pointer; }
+.btn-mat-confirm {
+  padding: 5px 14px; border-radius: 6px; border: none;
+  background: #3B82F6; color: #fff; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s;
+}
+.btn-mat-confirm:hover:not(:disabled) { background: #2563EB; }
+.btn-mat-confirm:disabled { opacity: 0.5; cursor: not-allowed; }
+.mat-error { font-size: 12px; color: #B91C1C; margin: 4px 0 0; width: 100%; }
+
+.mat-loading, .mat-empty { font-size: 12px; color: #94A3B8; padding: 10px 0; text-align: center; }
+.mat-table {
+  width: 100%; border-collapse: collapse; font-size: 12px;
+}
+.mat-table th {
+  text-align: left; font-size: 11px; color: #94A3B8; font-weight: 600;
+  padding: 4px 8px; border-bottom: 1px solid #E2E8F0;
+}
+.mat-table td { padding: 6px 8px; border-bottom: 1px solid #F1F5F9; }
+.mat-table tr:last-child td { border-bottom: none; }
+.mat-nombre { font-weight: 500; color: #0F172A; }
+.mat-unit { color: #64748B; }
+.mat-cant { display: flex; align-items: center; gap: 4px; }
+.mat-cant-val { min-width: 28px; text-align: right; }
+.mat-inline-input { width: 60px; padding: 2px 6px; font-size: 12px; }
+.mat-actions { text-align: right; }
+.btn-mat-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 4px; border: none;
+  background: transparent; cursor: pointer; padding: 0; color: #64748B;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-mat-icon:hover { background: #F1F5F9; }
+.btn-mat-ok  { color: #16A34A; }
+.btn-mat-ok:hover  { background: #DCFCE7; }
+.btn-mat-cancel { color: #9CA3AF; }
+.btn-mat-edit-inline { color: #60A5FA; }
+.btn-mat-del { color: #F87171; }
+.btn-mat-del:hover  { background: #FEF2F2; color: #DC2626; }
+.mat-badge-req {
+  display: inline-block; padding: 2px 7px; border-radius: 9999px;
+  font-size: 10px; font-weight: 600; background: #EFF6FF; color: #2563EB;
+}
+.mat-badge-opt {
+  display: inline-block; padding: 2px 7px; border-radius: 9999px;
+  font-size: 10px; font-weight: 600; background: #FFF7ED; color: #C2410C;
+}
+
+/* parser inline modal */
+.mat-parser-overlay {
+  position: absolute; inset: 0; background: rgba(255,255,255,0.96);
+  border-radius: 8px; z-index: 200; display: flex; align-items: flex-start;
+  padding-top: 8px;
+}
+.mat-parser-box {
+  width: 100%; background: #fff; border: 1px solid #E2E8F0;
+  border-radius: 10px; padding: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+.mat-parser-header {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 14px; font-weight: 600; color: #0F172A; margin-bottom: 12px;
+}
+.mat-parser-hint { font-size: 12px; color: #94A3B8; margin: 0 0 8px; }
+.mat-parser-subhead { font-size: 12px; font-weight: 600; color: #475569; margin: 0 0 8px; }
+.mat-parser-ta { width: 100%; box-sizing: border-box; }
+.mat-parser-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.mat-parser-items { display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; margin-bottom: 8px; }
+.mat-parser-item { display: flex; align-items: center; gap: 6px; }
+.mat-parser-result { text-align: center; padding: 12px 0; }
+.mat-parser-result p { font-size: 14px; margin: 0 0 12px; }
 </style>

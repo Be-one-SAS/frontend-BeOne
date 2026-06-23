@@ -15,13 +15,17 @@
       </button>
     </div>
 
-    <ProfileHeader />
+    <div class="flex items-center gap-2">
+      <NotificationBell />
+      <ProfileHeader />
+    </div>
   </header>
 </template>
 
 <script setup>
 import { useRouter, useRoute } from 'vue-router'
-import ProfileHeader from '@/components/shared/ProfileHeader.vue'
+import ProfileHeader     from '@/components/shared/ProfileHeader.vue'
+import NotificationBell  from '@/components/shared/NotificationBell.vue'
 
 const router = useRouter()
 const route = useRoute()

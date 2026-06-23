@@ -7,7 +7,7 @@ import { cancelReservation, confirmReservation } from "../../services/reservatio
 import BaseTable from "../../components/ui/BaseTable.vue";
 import CollaboratorsManager from "./components/CollaboratorsManager.vue";
 import QuotationPDF from "../../components/quotation/QuotationPDF.vue";
-import { ChevronDown, Eye, CheckCircle, XCircle, FileText, Inbox, Users, Download, X, Printer, StickyNote, Plus, Trash2 } from 'lucide-vue-next';
+import { ChevronDown, Eye, CheckCircle, XCircle, FileText, Inbox, Users, Download, X, Printer, StickyNote, Plus, Trash2, Clock } from 'lucide-vue-next';
 import {
   AREAS_NOTA,
   createNotaCotizacion,
@@ -63,6 +63,25 @@ const estados = [
   { label: "Aprobada", value: "Aprobada" },
   { label: "Rechazada", value: "Rechazada" },
 ];
+
+// ── Soft-lock countdown ──────────────────────────────────
+const LOCK_DAYS  = 7
+const LOCK_HOURS = LOCK_DAYS * 24  // 168 h total
+
+const pendingLockInfo = (q) => {
+  if (q.quotationStatus?.name !== 'Pendiente' || !q.createdAt) return null
+  const deadline  = new Date(q.createdAt).getTime() + LOCK_HOURS * 60 * 60 * 1000
+  const msLeft    = deadline - Date.now()
+  if (msLeft <= 0) return { expired: true, hoursLeft: 0, hoursElapsed: LOCK_HOURS }
+  const hoursLeft    = Math.ceil(msLeft / (1000 * 60 * 60))
+  const hoursElapsed = LOCK_HOURS - hoursLeft
+  return { expired: false, hoursLeft, hoursElapsed }
+}
+const lockColor = (hoursLeft) => {
+  if (hoursLeft > 96) return { text: '#1D4ED8', track: '#DBEAFE', fill: '#3B82F6' }
+  if (hoursLeft > 48) return { text: '#92400E', track: '#FEF3C7', fill: '#F59E0B' }
+  return              { text: '#B91C1C', track: '#FEE2E2', fill: '#EF4444' }
+}
 
 // FILTROS COMPUTADOS
 const filteredQuotations = computed(() => {
@@ -405,6 +424,7 @@ const formatDateTime = (iso) =>
               <th class="vc-th">Cliente</th>
               <th class="vc-th">Agente</th>
               <th class="vc-th">Evento</th>
+              <th class="vc-th" style="width:110px">Unidad</th>
               <th class="vc-th vc-th-center" style="width:100px">Asistentes</th>
               <th class="vc-th">Acciones</th>
             </tr>
@@ -434,6 +454,34 @@ const formatDateTime = (iso) =>
                   <div class="vc-quot-cell">
                     <span class="vc-num">{{ q.numero }}-2026</span>
                     <Badge :estado="q.quotationStatus?.name" />
+                    <!-- Barra de progreso de bloqueo temporal -->
+                    <template v-if="pendingLockInfo(q)">
+                      <div style="width:100%;display:flex;flex-direction:column;gap:3px;margin-top:4px">
+                        <!-- Label -->
+                        <div
+                          style="display:flex;align-items:center;gap:3px;font-size:10px;font-weight:600"
+                          :style="{ color: pendingLockInfo(q).expired ? '#94A3B8' : lockColor(pendingLockInfo(q).hoursLeft).text }"
+                        >
+                          <Clock :size="9" />
+                          <span v-if="!pendingLockInfo(q).expired">{{ pendingLockInfo(q).hoursLeft }}h restantes de 168h</span>
+                          <span v-else>Productos liberados</span>
+                        </div>
+                        <!-- Track -->
+                        <div
+                          style="width:100%;height:8px;border-radius:99px;overflow:hidden"
+                          :style="{ background: pendingLockInfo(q).expired ? '#F1F5F9' : lockColor(pendingLockInfo(q).hoursLeft).track }"
+                        >
+                          <!-- Fill -->
+                          <div
+                            style="height:100%;border-radius:99px;transition:width 0.4s ease"
+                            :style="{
+                              width: ((pendingLockInfo(q).hoursElapsed / LOCK_HOURS) * 100).toFixed(1) + '%',
+                              background: pendingLockInfo(q).expired ? '#CBD5E1' : lockColor(pendingLockInfo(q).hoursLeft).fill
+                            }"
+                          />
+                        </div>
+                      </div>
+                    </template>
                   </div>
                 </td>
 
@@ -456,6 +504,12 @@ const formatDateTime = (iso) =>
                       {{ formatDate(q.operationWindow?.eventStartAt) }}
                     </span>
                   </div>
+                </td>
+
+                <!-- Unidad ejecución -->
+                <td class="vc-td">
+                  <span v-if="q.unidadEjecucion" class="vc-unidad-badge">{{ q.unidadEjecucion }}</span>
+                  <span v-else class="vc-unidad-empty">—</span>
                 </td>
 
                 <!-- Asistentes -->
@@ -653,6 +707,38 @@ const formatDateTime = (iso) =>
                         </div>
 
                       </div>
+
+                      <!-- ── Productos ── -->
+                      <div v-if="(q.items?.length || q.thirdPartyItems?.length)" class="vc-products-section">
+                        <div class="vc-products-title">Productos</div>
+                        <div class="vc-products-list">
+                          <div
+                            v-for="item in q.items"
+                            :key="'p' + item.id"
+                            class="vc-product-row"
+                          >
+                            <span class="vc-product-badge vc-badge-own">Propio</span>
+                            <span class="vc-product-name">{{ item.product?.nombre || item.product?.dispositivo }}</span>
+                            <span class="vc-product-qty">× {{ item.cantidadProducto ?? item.quantity ?? 1 }}</span>
+                            <span v-if="item.product?.categoria" class="vc-product-cat">{{ item.product.categoria }}</span>
+                          </div>
+                          <div
+                            v-for="item in q.thirdPartyItems"
+                            :key="'tp' + item.id"
+                            class="vc-product-row"
+                          >
+                            <span class="vc-product-badge vc-badge-tp">Tercero</span>
+                            <span class="vc-product-name">{{ item.catalogProduct?.nombre }}</span>
+                            <span class="vc-product-qty">× {{ item.cantidad ?? 1 }}</span>
+                            <span v-if="item.catalogProduct?.categoria" class="vc-product-cat">{{ item.catalogProduct.categoria }}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div v-else class="vc-products-section">
+                        <div class="vc-products-title">Productos</div>
+                        <span class="vc-exp-val" style="font-size:12px;color:#94A3B8">Sin productos agregados</span>
+                      </div>
+
                     </div>
                   </div>
                 </td>
@@ -1005,7 +1091,7 @@ const formatDateTime = (iso) =>
 .vc-quot-cell {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
 }
 
 .vc-num {
@@ -1110,7 +1196,7 @@ const formatDateTime = (iso) =>
   transition: max-height 0.25s ease;
 }
 
-.vc-exp-open { max-height: 600px; }
+.vc-exp-open { max-height: 1200px; }
 
 .vc-exp-inner {
   background: #F8FBFF;
@@ -1151,6 +1237,39 @@ const formatDateTime = (iso) =>
   white-space: normal;
   word-break: break-word;
 }
+
+/* ─── Productos en panel expandido ─────────────────── */
+.vc-products-section {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #E2EDF8;
+}
+.vc-products-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.05em; color: #94A3B8; margin-bottom: 8px;
+}
+.vc-products-list { display: flex; flex-direction: column; gap: 5px; }
+.vc-product-row {
+  display: flex; align-items: center; gap: 8px;
+  background: #fff; border: 1px solid #E2E8F0; border-radius: 7px;
+  padding: 6px 10px;
+}
+.vc-product-name {
+  flex: 1; font-size: 13px; font-weight: 500; color: #0F172A;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.vc-product-qty {
+  font-size: 12px; color: #64748B; font-weight: 600; white-space: nowrap;
+}
+.vc-product-cat {
+  font-size: 11px; color: #64748B; background: #F1F5F9;
+  padding: 1px 7px; border-radius: 99px; white-space: nowrap;
+}
+.vc-product-badge {
+  font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 5px; white-space: nowrap;
+}
+.vc-badge-own { background: #EFF6FF; color: #1D4ED8; }
+.vc-badge-tp  { background: #FFF7ED; color: #C2410C; }
 
 .vc-link {
   color: #054EAF;
@@ -1385,4 +1504,15 @@ const formatDateTime = (iso) =>
 }
 .vc-nota-add-btn:hover:not(:disabled) { background: #03368A; }
 .vc-nota-add-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.vc-unidad-badge {
+  display: inline-block;
+  font-size: 11px; font-weight: 600;
+  background: #EFF6FF; color: #1D4ED8;
+  padding: 2px 8px; border-radius: 99px;
+  white-space: nowrap;
+}
+.vc-unidad-empty { color: #CBD5E1; font-size: 13px; }
+
+/* Lock bar — todo inline, este bloque está vacío intencionalmente */
 </style>

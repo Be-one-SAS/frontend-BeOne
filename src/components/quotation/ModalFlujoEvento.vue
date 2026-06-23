@@ -150,7 +150,7 @@ const indicators = computed(() => {
       cta: 'Asignar', action: () => emit('open-team'),
     },
     {
-      key: 'equipo',    label: 'Equipo de apoyo asignado',       weight: 15,
+      key: 'equipo',    label: 'Equipo de apoyo asignado',       weight: 10,
       done: (ev?.members?.length ?? 0) > 0,
       cta: 'Asignar', action: () => emit('open-team'),
     },
@@ -165,10 +165,15 @@ const indicators = computed(() => {
       cta: null,
     },
     {
-      key: 'pago',      label: 'Estado administrativo confirmado', weight: 25,
+      key: 'pago',      label: 'Estado administrativo confirmado', weight: 15,
       done: ev?.estadoAdministrativo === 'Pagada' || ev?.estadoAdministrativo === 'Facturada',
       cta: null,
       nodata: !ev?.estadoAdministrativo,
+    },
+    {
+      key: 'valadm',    label: 'Validado administrativamente',   weight: 15,
+      done: !!ev?.validadoAdministrativamente,
+      cta: null,
     },
   ]
 })

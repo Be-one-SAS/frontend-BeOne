@@ -165,6 +165,13 @@
                   <ToggleRight v-if="u.status === 'Activo'" :size="15" />
                   <ToggleLeft v-else :size="15" />
                 </button>
+                <button v-if="canEdit('usuarios')" class="action-btn"
+                  :title="resendOkId === u.id ? '¡Correo enviado!' : 'Reenviar correo de bienvenida'"
+                  :style="resendOkId === u.id ? '--hbg:#DCFCE7; --hc:#16A34A' : '--hbg:#D1FAE5; --hc:#065F46'"
+                  :disabled="resendingId === u.id"
+                  @click="handleResendBienvenida(u)">
+                  <Mail :size="15" />
+                </button>
                 <button v-if="canDelete('usuarios')" class="action-btn" title="Eliminar usuario"
                   style="--hbg:#FEE2E2; --hc:#B91C1C" @click="abrirModalEliminar(u)">
                   <Trash2 :size="15" />
@@ -323,12 +330,12 @@ import { ref, computed, onMounted, watch } from 'vue'
 import {
   Users, UserPlus, Search, X, AlertCircle,
   Eye, Pencil, Shield, ToggleLeft, ToggleRight, Trash2,
-  UserCheck, UserX, BarChart2,
+  UserCheck, UserX, BarChart2, Mail,
 } from 'lucide-vue-next'
 import { useUsers, rolePermissions } from '@/composables/useUsers'
 import { useAuth } from '@/composables/useAuth'
 import { usePermissions } from '@/composables/usePermissions'
-import { updateUserRole } from '@/services/users.service'
+import { updateUserRole, resendBienvenida } from '@/services/users.service'
 import UserFormModal from './components/UserFormModal.vue'
 import UserRoleModal from './components/UserRoleModal.vue'
 import UserDeleteModal from './components/UserDeleteModal.vue'
@@ -367,7 +374,7 @@ watch([search, rolFiltro, statusFiltro], () => {
 })
 
 // ── Config ────────────────────────────────────────────
-const ROLES = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO']
+const ROLES = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO']
 const TABLE_COLS = ['Usuario', 'Username', 'Rol', 'Estado', 'Último acceso', 'Creado', 'Acciones']
 
 // ── Badge maps ────────────────────────────────────────
@@ -379,6 +386,7 @@ const ROLE_BADGE = {
   SUPERVISOR: 'bg-[#FEF3C7] text-[#B45309]',
   COORDINADOR: 'bg-[#FFEDD5] text-[#C2410C]',
   LOGISTICO: 'bg-[#F1F5F9] text-[#64748B]',
+  OPERATIVO: 'bg-[#D1FAE5] text-[#065F46]',
 }
 const STATUS_BADGE = {
   Activo: 'bg-[#DCFCE7] text-[#16A34A]',
@@ -463,6 +471,26 @@ const handleDeleteUser = async (u) => {
     showDeleteModal.value = false
   } catch (e) {
     actionError.value = e?.message ?? 'Error al eliminar el usuario'
+  }
+}
+
+// ── Reenviar bienvenida ───────────────────────────────
+const resendingId = ref(null)
+const resendOkId  = ref(null)
+
+const handleResendBienvenida = async (u) => {
+  if (resendingId.value) return
+  resendingId.value = u.id
+  resendOkId.value  = null
+  actionError.value = ''
+  try {
+    await resendBienvenida(u.id)
+    resendOkId.value = u.id
+    setTimeout(() => { resendOkId.value = null }, 3000)
+  } catch (e) {
+    actionError.value = e?.response?.data?.message ?? e?.message ?? 'Error al reenviar el correo'
+  } finally {
+    resendingId.value = null
   }
 }
 

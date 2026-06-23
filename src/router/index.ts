@@ -38,6 +38,30 @@ const routes = [
     meta: { public: true },
   },
 
+  // ── Encuesta de satisfacción (pública, sin auth) ──────
+  {
+    path: '/encuesta/:token',
+    name: 'EncuestaPublica',
+    component: () => import('../views/encuesta/EncuestaPublica.vue'),
+    meta: { public: true },
+  },
+
+  // ── Registro de turno (pública, sin auth) ─────────────
+  {
+    path: '/turno/:token',
+    name: 'TurnoPublico',
+    component: () => import('../views/operativa/TurnoPublico.vue'),
+    meta: { public: true },
+  },
+
+  // ── Checklist de evento (pública, sin auth) ───────────
+  {
+    path: '/checklist/evento/:id',
+    name: 'ChecklistPublico',
+    component: () => import('../views/operativa/ChecklistPublico.vue'),
+    meta: { public: true },
+  },
+
   // ── Auth (solo invitados) ─────────────────────────────
   {
     path: '/',
@@ -257,6 +281,12 @@ const routes = [
         name: 'Configuracion',
         component: () => import('../views/configuracion/Configuracion.vue'),
         meta: { roles: ['ADMIN'] },
+      },
+      {
+        path: 'materiales',
+        name: 'Materiales',
+        component: () => import('../views/materiales/Materiales.vue'),
+        meta: { roles: ['ADMIN', 'SUPERVISOR'] },
       },
 
       // ── Perfil del usuario ──────────────────────────────

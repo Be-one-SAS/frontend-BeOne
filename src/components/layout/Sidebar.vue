@@ -112,7 +112,7 @@ import {
   Archive, Wrench, Users, BarChart2, PieChart,
   DollarSign, Activity, UserCog, Settings,
   LogOut, CheckSquare, ClipboardCheck, SlidersHorizontal,
-  Landmark, TableProperties, FileBarChart, ShoppingCart,
+  Landmark, TableProperties, FileBarChart, ShoppingCart, Layers,
 } from 'lucide-vue-next'
 import { useAuth }               from '@/composables/useAuth'
 import { useSidebarPermissions, useMobileSidebar } from '@/composables/useSidebarPermissions'
@@ -185,6 +185,7 @@ const ALL_MENU_ITEMS = [
     children: [
       { label: 'Productos propios',   route: '/products',            icon: Package,       roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'] },
       { label: 'Productos externos',  route: '/products/no-propios', icon: PackageSearch, roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'] },
+      { label: 'Materiales',          route: '/materiales',          icon: Layers,        roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR'] },
     ],
   },
 
@@ -193,15 +194,15 @@ const ALL_MENU_ITEMS = [
     separator: true,
     icon:  Truck,
     label: 'Dpto Operativo',
-    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'],
+    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO'],
     children: [
-      { label: 'Control',             route: '/admin/control',        icon: ClipboardCheck, roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
-      { label: 'Reporte diario',      route: '/operativa/reporte',    icon: ClipboardList,  roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
-      { label: 'Check-ins',           route: '/operativa/checkins',        icon: MapPin,    roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
+      { label: 'Control',             route: '/admin/control',        icon: ClipboardCheck, roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO'] },
+      { label: 'Reporte diario',      route: '/operativa/reporte',    icon: ClipboardList,  roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO'] },
+      { label: 'Check-ins',           route: '/operativa/checkins',        icon: MapPin,    roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO'] },
       { label: 'Aspectos Check-in',  route: '/operativa/checkins/admin',  icon: Settings,  roles: ['ADMIN', 'ADMINISTRADOR'] },
       { label: 'Inventario',          route: '/inventory',            icon: Archive,        roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'SUPERVISOR'] },
-      { label: 'Montajes',            route: '/operativa/montajes',        icon: Wrench,        roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
-      { label: 'Órdenes de Compra',   route: '/operativa/ordenes-compra',  icon: ShoppingCart,  roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'LIDER'] },
+      { label: 'Montajes',            route: '/operativa/montajes',        icon: Wrench,        roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO'] },
+      { label: 'Órdenes de Compra',   route: '/operativa/ordenes-compra',  icon: ShoppingCart,  roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO', 'LIDER'] },
     ],
   },
   {
@@ -223,7 +224,7 @@ const ALL_MENU_ITEMS = [
     label: 'Administración',
     roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'],
     children: [
-      { label: 'Cotizaciones',        route: '/administracion/cotizaciones',   icon: TableProperties, roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
+      { label: 'Eventos',              route: '/administracion/cotizaciones',   icon: TableProperties, roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
       { label: 'Dashboard Financiero', route: '/administracion/dashboard',     icon: BarChart2,       roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
       { label: 'Reportes',             route: '/administracion/reportes',      icon: FileBarChart,    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
       { label: 'Órdenes de Compra',    route: '/administracion/ordenes-compra', icon: ShoppingCart,    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
