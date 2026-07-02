@@ -126,13 +126,13 @@ const routeIsActive = (path) => currentRoute.path === path
 }
 
 .menu-link:hover {
-  background: #EBF3FC;
-  color: #054EAF;
+  background: #F0FAFB;
+  color: #27C8D8;
 }
 
 .menu-link--active {
-  background: #EBF3FC;
-  color: #054EAF;
+  background: #F0FAFB;
+  color: #27C8D8;
   font-weight: 600;
 }
 
@@ -190,13 +190,13 @@ const routeIsActive = (path) => currentRoute.path === path
 }
 
 .submenu-link:hover {
-  background: #EBF3FC;
-  color: #054EAF;
+  background: #F0FAFB;
+  color: #27C8D8;
 }
 
 .submenu-link--active {
-  background: #EBF3FC;
-  color: #054EAF;
+  background: #F0FAFB;
+  color: #27C8D8;
   font-weight: 600;
 }
 

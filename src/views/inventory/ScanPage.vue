@@ -361,7 +361,7 @@ const fmtTime = (iso) =>
   background: rgba(255,255,255,.06); color: rgba(255,255,255,.6);
   font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s;
 }
-.scan-mode-btn.active { background: #054EAF; border-color: #054EAF; color: #fff; }
+.scan-mode-btn.active { background: #27C8D8; border-color: #27C8D8; color: #fff; }
 
 /* ── Camera area ── */
 .scan-camera-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 16px; }
@@ -371,7 +371,7 @@ const fmtTime = (iso) =>
 /* Viewfinder corners */
 .vf-corner {
   position: absolute; width: 22px; height: 22px;
-  border-color: #054EAF; border-style: solid;
+  border-color: #27C8D8; border-style: solid;
   animation: corner-pulse 2s ease-in-out infinite;
 }
 .vf-tl { top: 0; left: 0; border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
@@ -392,11 +392,11 @@ const fmtTime = (iso) =>
   font-size: 15px; color: #F8FAFC; font-family: 'Inter',sans-serif; outline: none;
 }
 .scan-search-input::placeholder { color: rgba(255,255,255,.3); }
-.scan-search-input:focus { border-color: #054EAF; }
+.scan-search-input:focus { border-color: #27C8D8; }
 
 .scan-search-results { display: flex; flex-direction: column; gap: 4px; overflow-y: auto; max-height: 300px; }
 .scan-result-row { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: rgba(255,255,255,.06); border-radius: 10px; cursor: pointer; transition: background .15s; }
-.scan-result-row:hover { background: rgba(5,78,175,.3); }
+.scan-result-row:hover { background: rgba(39,200,216,.3); }
 .scan-result-info { flex: 1; }
 .scan-result-name { display: block; font-size: 14px; font-weight: 600; }
 .scan-result-code { display: block; font-size: 11px; color: rgba(255,255,255,.4); font-family: 'JetBrains Mono',monospace; }
@@ -424,10 +424,10 @@ const fmtTime = (iso) =>
 
 .scan-confirm-btn {
   display: flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 14px; background: #054EAF; color: #fff;
+  padding: 14px; background: #27C8D8; color: #fff;
   border: none; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; transition: background .15s;
 }
-.scan-confirm-btn:hover:not(:disabled) { background: #0342A0; }
+.scan-confirm-btn:hover:not(:disabled) { background: #1BAEBB; }
 .scan-confirm-btn:disabled { opacity: .6; cursor: not-allowed; }
 
 /* ── History bottom sheet ── */
@@ -452,7 +452,7 @@ const fmtTime = (iso) =>
 .scan-history-empty { font-size: 12px; color: rgba(255,255,255,.35); padding: 8px 0; text-align: center; }
 .scan-history-row { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
 .sh-name { flex: 1; font-weight: 500; }
-.sh-qty  { font-family: 'JetBrains Mono',monospace; font-weight: 700; color: #60A5FA; }
+.sh-qty  { font-family: 'JetBrains Mono',monospace; font-weight: 700; color: #5DD8E5; }
 .sh-time { font-size: 11px; color: rgba(255,255,255,.35); }
 
 /* ── Toasts ── */

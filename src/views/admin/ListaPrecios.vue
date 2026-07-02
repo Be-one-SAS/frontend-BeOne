@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { formatCOP } from '@/utils/currency.js'
 import TableDinamic from '../../components/tables/TableDinamic.vue'
 import { getProducts } from '../../services/products.service'
 
@@ -15,11 +16,11 @@ onMounted(async () => {
       { label: 'Nombre', field: 'nombre' },
       { label: 'Categoría', field: 'categoria' },
       { label: 'Dispositivo', field: 'dispositivo' },
-      { label: 'COP', field: 'cop', formatFn: val => `$${val?.toLocaleString()}` },
+      { label: 'COP', field: 'cop', formatFn: val => formatCOP(val) },
       { label: 'Bodega', field: 'bodega' },
       { label: 'Estado', field: 'estado' },
-      { label: 'Total', field: 'total', formatFn: val => `$${val?.toLocaleString()}` },
-      { label: 'Utilidad Neta', field: 'utilidadNeta', formatFn: val => `$${val?.toLocaleString()}` },
+      { label: 'Total', field: 'total', formatFn: val => formatCOP(val) },
+      { label: 'Utilidad Neta', field: 'utilidadNeta', formatFn: val => formatCOP(val) },
       {
         label: 'Foto',
         field: 'linkFotoDispositivo',

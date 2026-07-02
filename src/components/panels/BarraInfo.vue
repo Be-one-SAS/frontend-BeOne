@@ -1,9 +1,9 @@
 <template>
-  <div class="w-full bg-primary-light rounded-[var(--r-md)] p-4 flex justify-between items-center border border-[#BFDBFE]">
+  <div class="w-full bg-primary-light rounded-[var(--r-md)] p-4 flex justify-between items-center border border-[#A7EEF5]">
     <div class="flex-1 text-center text-[13px] text-text-1">
       <span class="font-semibold text-primary">Q de Motores:</span> {{ motores }}
     </div>
-    <div class="flex-1 text-center text-[13px] text-text-1 border-l border-r border-[#BFDBFE]">
+    <div class="flex-1 text-center text-[13px] text-text-1 border-l border-r border-[#A7EEF5]">
       <span class="font-semibold text-primary">Q de Amperios:</span> {{ amperios }}
     </div>
     <div class="flex-1 text-center text-[13px] text-text-1">

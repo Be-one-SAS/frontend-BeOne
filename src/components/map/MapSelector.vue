@@ -458,7 +458,7 @@ onUnmounted(() => {
 .search-box--focus,
 .search-box:focus-within {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(5, 78, 175, 0.10);
+  box-shadow: 0 0 0 3px rgba(39,200,216, 0.10);
 }
 .search-ico   { color: var(--color-text-3); flex-shrink: 0; }
 .search-input {
@@ -573,7 +573,7 @@ onUnmounted(() => {
   gap: 16px;
   padding: 14px 16px;
   background: var(--color-primary-light);
-  border: 1px solid #BFDBFE;
+  border: 1px solid #A7EEF5;
   border-radius: var(--r-xl);
 }
 .confirm-info {

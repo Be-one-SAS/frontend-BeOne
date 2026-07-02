@@ -154,6 +154,16 @@ export const updateProfile = async (id: number, data: Record<string, unknown>) =
   }
 };
 
+export const changePassword = async (data: { currentPassword: string; newPassword: string }) => {
+  try {
+    const response = await api.patch('/users/profile/password', data);
+    return response;
+  } catch (error) {
+    console.error("Fallo el servicio para cambiar la contraseña:", error);
+    throw error;
+  }
+};
+
 export const getUsersByRole = async (role: string) => {
   try {
     const response = await api.get(`/users?role=${role}`);

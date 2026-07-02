@@ -61,7 +61,7 @@ onBeforeUnmount(() => {
 /* ── Layout raíz ─────────────────────────────────────── */
 .layout-wrap {
   display: flex;
-  background: #EBF3FC;
+  background: #F0FAFB;
   height: 100vh;
   overflow: hidden;
 }
@@ -99,12 +99,12 @@ onBeforeUnmount(() => {
   cursor: pointer;
   flex-shrink: 0;
   transition: background 0.15s, color 0.15s;
-  box-shadow: 0 1px 4px rgba(5, 78, 175, .06);
+  box-shadow: 0 1px 4px rgba(39,200,216, .06);
 }
 
 .hamburger-btn:hover {
-  background: #EBF3FC;
-  color: #054EAF;
+  background: #F0FAFB;
+  color: #27C8D8;
 }
 
 /* ── Contenido scrollable ────────────────────────────── */

@@ -86,7 +86,7 @@ const closeModal = () => {
     <!-- ══════════════════════════════════════════ -->
     <!-- FILTROS                                    -->
     <!-- ══════════════════════════════════════════ -->
-    <div class="bg-white rounded-[14px] p-4 mb-5 shadow-[0_1px_4px_rgba(5,78,175,.06)] grid grid-cols-1 gap-4">
+    <div class="bg-white rounded-[14px] p-4 mb-5 shadow-[0_1px_4px_rgba(39,200,216,.06)] grid grid-cols-1 gap-4">
       <input
         v-model="searchQuery"
         type="text"
@@ -98,7 +98,7 @@ const closeModal = () => {
     <!-- ══════════════════════════════════════════ -->
     <!-- TABLA                                      -->
     <!-- ══════════════════════════════════════════ -->
-    <div class="bg-white rounded-[18px] shadow-[0_1px_4px_rgba(5,78,175,.06),_0_4px_16px_rgba(5,78,175,.08)] overflow-hidden">
+    <div class="bg-white rounded-[18px] shadow-[0_1px_4px_rgba(39,200,216,.06),_0_4px_16px_rgba(39,200,216,.08)] overflow-hidden">
       <div class="overflow-x-auto">
         <table class="pl-table">
 
@@ -194,7 +194,7 @@ const closeModal = () => {
           <button
             @click="savePrice"
             :disabled="!price"
-            class="px-[18px] py-[9px] text-[13px] font-semibold bg-[#054EAF] text-white rounded-[8px] shadow-[var(--shadow-btn)] hover:bg-[#03368A] disabled:opacity-50 disabled:cursor-not-allowed transition"
+            class="px-[18px] py-[9px] text-[13px] font-semibold bg-[#27C8D8] text-white rounded-[8px] shadow-[var(--shadow-btn)] hover:bg-[#1BAEBB] disabled:opacity-50 disabled:cursor-not-allowed transition"
           >Guardar precio</button>
         </div>
       </div>
@@ -237,8 +237,8 @@ const closeModal = () => {
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .pl-input:focus {
-  border-color: var(--primary, #054EAF);
-  box-shadow: 0 0 0 3px rgba(5, 78, 175, 0.1);
+  border-color: var(--primary, #27C8D8);
+  box-shadow: 0 0 0 3px rgba(39,200,216, 0.1);
 }
 .pl-input::placeholder { color: var(--text-3, #94A3B8); }
 
@@ -251,7 +251,7 @@ const closeModal = () => {
 }
 
 /* ─── Head ──────────────────────────────────────────────── */
-.pl-head-row { background: #EBF3FC; }
+.pl-head-row { background: #F0FAFB; }
 
 .pl-th {
   padding: 12px 16px;
@@ -277,7 +277,7 @@ const closeModal = () => {
   padding: 14px 16px;
   font-size: 13px;
   color: var(--text-1, #0F1A2E);
-  border-bottom: 1px solid #EBF3FC;
+  border-bottom: 1px solid #F0FAFB;
   vertical-align: middle;
   white-space: nowrap;
 }

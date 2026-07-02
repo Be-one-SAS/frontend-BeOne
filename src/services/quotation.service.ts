@@ -289,3 +289,77 @@ export const restoreVersion = async (quotationId: number | string, versionId: nu
     }
 };
 
+// ── CUADRO DE COSTOS ────────────────────────────────────────────────────────
+// Gastos adicionales/imprevistos del evento. Solo restan de la utilidad
+// interna de la cotización, nunca cambian el precio/total del cliente.
+
+export const getExtraCosts = async (quotationId: number | string) => {
+    try {
+        const response = await api.get(`/quotations/${quotationId}/extra-costs`);
+        return response;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const createExtraCost = async (
+    quotationId: number | string,
+    data: { descripcion: string; categoria: string; monto: number; fecha: string },
+) => {
+    try {
+        const response = await api.post(`/quotations/${quotationId}/extra-costs`, data, {
+            headers: { 'Content-Type': 'application/json' },
+        });
+        return response;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const updateExtraCost = async (
+    quotationId: number | string,
+    costId: number | string,
+    data: Partial<{ descripcion: string; categoria: string; monto: number; fecha: string }>,
+) => {
+    try {
+        const response = await api.patch(`/quotations/${quotationId}/extra-costs/${costId}`, data, {
+            headers: { 'Content-Type': 'application/json' },
+        });
+        return response;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const deleteExtraCost = async (quotationId: number | string, costId: number | string) => {
+    try {
+        const response = await api.delete(`/quotations/${quotationId}/extra-costs/${costId}`);
+        return response;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const uploadExtraCostSoporte = async (quotationId: number | string, costId: number | string, file: File) => {
+    try {
+        const fd = new FormData();
+        fd.append('file', file);
+        const response = await api.post(`/quotations/${quotationId}/extra-costs/${costId}/soporte`, fd, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return response;
+    } catch (error) {
+        throw error;
+    }
+};
+
+// Resumen de pricing (Motor V2): lo que ve el vendedor + admin
+export const getPricingSummary = async (quotationId: number | string) => {
+    try {
+        const response = await api.get(`/quotations/${quotationId}/pricing-summary`);
+        return response;
+    } catch (error) {
+        throw error;
+    }
+};
+

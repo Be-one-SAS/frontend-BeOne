@@ -8,7 +8,7 @@
           @click="prevMonth"
           class="w-7 h-7 rounded-[8px] border border-[#E2EBF6] bg-white
                  flex items-center justify-center text-text-3
-                 hover:bg-[#EBF3FC] hover:text-[#054EAF] hover:border-[#BFDBFE]
+                 hover:bg-[#F0FAFB] hover:text-[#27C8D8] hover:border-[#A7EEF5]
                  transition-all duration-150 cursor-pointer"
           aria-label="Mes anterior"
         >
@@ -25,7 +25,7 @@
           @click="nextMonth"
           class="w-7 h-7 rounded-[8px] border border-[#E2EBF6] bg-white
                  flex items-center justify-center text-text-3
-                 hover:bg-[#EBF3FC] hover:text-[#054EAF] hover:border-[#BFDBFE]
+                 hover:bg-[#F0FAFB] hover:text-[#27C8D8] hover:border-[#A7EEF5]
                  transition-all duration-150 cursor-pointer"
           aria-label="Mes siguiente"
         >
@@ -35,7 +35,7 @@
 
       <!-- Badge contador de eventos -->
       <span class="text-[11px] font-medium px-2.5 py-1 rounded-full
-                   bg-[#EBF3FC] text-[#054EAF] font-['Inter',sans-serif]
+                   bg-[#F0FAFB] text-[#27C8D8] font-['Inter',sans-serif]
                    shrink-0">
         {{ eventCountThisMonth }} eventos
       </span>
@@ -84,7 +84,7 @@
               v-if="day.isCurrentMonth && day.type && day.date !== todayISO"
               class="absolute bottom-[4px] w-[4px] h-[4px] rounded-full"
               :class="{
-                'bg-[#1D4ED8]': day.type === 'CONFIRMED',
+                'bg-[#27C8D8]': day.type === 'CONFIRMED',
                 'bg-[#B45309]': day.type === 'IN_PROCESS',
               }"
             />
@@ -106,7 +106,7 @@
 
       <!-- ════════ PANEL LATERAL — Próximos eventos ════════ -->
       <div class="flex flex-col gap-1.5 shrink-0
-                  border-t md:border-t-0 md:border-l border-[#EBF3FC]
+                  border-t md:border-t-0 md:border-l border-[#F0FAFB]
                   pt-4 md:pt-0 md:pl-4
                   w-full md:w-[140px]">
 
@@ -138,7 +138,7 @@
               <span
                 class="w-1.5 h-1.5 rounded-full shrink-0 mt-[2px]"
                 :class="{
-                  'bg-[#1D4ED8]': event.type === 'CONFIRMED',
+                  'bg-[#27C8D8]': event.type === 'CONFIRMED',
                   'bg-[#B45309]': event.type === 'IN_PROCESS',
                 }"
               />
@@ -159,13 +159,13 @@
         </div>
 
         <!-- Mini leyenda -->
-        <div class="mt-auto pt-3 border-t border-[#EBF3FC] flex flex-col gap-1.5">
+        <div class="mt-auto pt-3 border-t border-[#F0FAFB] flex flex-col gap-1.5">
           <div class="flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-[#054EAF] shrink-0" />
+            <span class="w-2 h-2 rounded-full bg-[#27C8D8] shrink-0" />
             <span class="text-[10px] text-text-3 font-['Inter',sans-serif]">Hoy</span>
           </div>
           <div class="flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-[#1D4ED8] shrink-0" />
+            <span class="w-2 h-2 rounded-full bg-[#27C8D8] shrink-0" />
             <span class="text-[10px] text-text-3 font-['Inter',sans-serif]">Confirmado</span>
           </div>
           <div class="flex items-center gap-1.5">
@@ -258,8 +258,8 @@ const getDayClass = (day) => {
 // ─── Clases Tailwind para el contenedor de celda ────────
 const getCellClass = (day) => {
   if (!day.isCurrentMonth)       return 'opacity-0 pointer-events-none'
-  if (day.date === todayISO)     return 'bg-[#054EAF] text-white rounded-full'
-  if (day.type === 'CONFIRMED')  return 'hover:bg-[#DBEAFE] transition-colors duration-150'
+  if (day.date === todayISO)     return 'bg-[#27C8D8] text-white rounded-full'
+  if (day.type === 'CONFIRMED')  return 'hover:bg-[#CCEFF2] transition-colors duration-150'
   if (day.type === 'IN_PROCESS') return 'hover:bg-[#FEF3C7] transition-colors duration-150'
   return 'hover:bg-[#F1F5FA] transition-colors duration-150'
 }
@@ -268,7 +268,7 @@ const getCellClass = (day) => {
 const getDayNumberClass = (day) => {
   if (!day.isCurrentMonth)       return ''
   if (day.date === todayISO)     return 'text-white font-bold text-[13px]'
-  if (day.type === 'CONFIRMED')  return 'text-[#1D4ED8] font-semibold'
+  if (day.type === 'CONFIRMED')  return 'text-[#27C8D8] font-semibold'
   if (day.type === 'IN_PROCESS') return 'text-[#B45309] font-semibold'
   return 'text-text-1'
 }

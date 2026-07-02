@@ -11,8 +11,15 @@ import TeamModal from '@/components/quotation/TeamModal.vue'
 import ModalFlujoEvento from '@/components/quotation/ModalFlujoEvento.vue'
 import AsignacionEquipos from '@/views/operativa/AsignacionEquipos.vue'
 import NotasCotizacionPanel from '@/components/quotation/NotasCotizacionPanel.vue'
+import ExtraCostsPanel from '@/components/quotation/ExtraCostsPanel.vue'
 import { createEncuesta, getEncuestas } from '@/services/encuestas.service'
 import { uploadPlanimetria, deletePlanimetria } from '@/services/administracion.service.js'
+import { useAuth } from '@/composables/useAuth'
+
+// Debe coincidir con EXTRA_COST_READ_ROLES en el backend (quotations.controller.ts)
+const EXTRA_COST_READ_ROLES = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO']
+const { user } = useAuth()
+const canSeeExtraCosts = computed(() => EXTRA_COST_READ_ROLES.includes(user.value?.roles?.[0]))
 
 const activeTab = ref<'control' | 'equipo'>('control')
 
@@ -363,7 +370,7 @@ const handleDeletePlan = async () => {
     <!-- ═══════════════════════════════════════════════ -->
     <!-- FILTROS                                         -->
     <!-- ═══════════════════════════════════════════════ -->
-    <div class="bg-white rounded-[14px] p-4 mb-5 shadow-[0_1px_4px_rgba(5,78,175,.06)] grid grid-cols-1 md:grid-cols-5 gap-3">
+    <div class="bg-white rounded-[14px] p-4 mb-5 shadow-[0_1px_4px_rgba(39,200,216,.06)] grid grid-cols-1 md:grid-cols-5 gap-3">
 
       <div class="relative">
         <Search :size="13" class="abs-search-icon" />
@@ -393,7 +400,7 @@ const handleDeletePlan = async () => {
     <!-- ═══════════════════════════════════════════════ -->
     <!-- TABLA                                           -->
     <!-- ═══════════════════════════════════════════════ -->
-    <div class="bg-white rounded-[18px] shadow-[0_1px_4px_rgba(5,78,175,.06),_0_4px_16px_rgba(5,78,175,.08)] overflow-hidden">
+    <div class="bg-white rounded-[18px] shadow-[0_1px_4px_rgba(39,200,216,.06),_0_4px_16px_rgba(39,200,216,.08)] overflow-hidden">
 
       <!-- Skeleton -->
       <div v-if="loading" class="sk-wrap">
@@ -418,7 +425,7 @@ const handleDeletePlan = async () => {
               <th class="vc-th" style="width:28px"></th>
               <th class="vc-th" style="width:68px">N° Evento</th>
               <th class="vc-th" style="width:110px">LQ</th>
-              <th class="vc-th" style="width:100px">Unidad</th>
+              <th class="vc-th" style="width:100px">Región</th>
               <th class="vc-th" style="min-width:160px">Evento</th>
               <th class="vc-th" style="width:140px">Equipo</th>
               <th class="vc-th vc-th-center" style="width:40px" title="Flujo del Evento">
@@ -826,6 +833,9 @@ const handleDeletePlan = async () => {
                         :areasFiltro="['Operativo', 'Logístico']"
                       />
 
+                      <!-- Cuadro de costos (gastos adicionales del evento) -->
+                      <ExtraCostsPanel v-if="canSeeExtraCosts" :quotationId="ev.id" />
+
                     </div>
                   </div>
                 </td>
@@ -990,7 +1000,7 @@ const handleDeletePlan = async () => {
 }
 
 .ctrl-tab:hover { color: #0F1A2E; background: rgba(255,255,255,.6); }
-.ctrl-tab--active { background: #FFFFFF; color: #054EAF; box-shadow: 0 1px 4px rgba(15,26,46,.1); }
+.ctrl-tab--active { background: #FFFFFF; color: #27C8D8; box-shadow: 0 1px 4px rgba(15,26,46,.1); }
 
 .vc-title {
   font-family: 'Plus Jakarta Sans', sans-serif;
@@ -1023,8 +1033,8 @@ const handleDeletePlan = async () => {
 }
 
 .vc-input:focus {
-  border-color: var(--primary, #054EAF);
-  box-shadow: 0 0 0 3px rgba(5, 78, 175, 0.1);
+  border-color: var(--primary, #27C8D8);
+  box-shadow: 0 0 0 3px rgba(39,200,216, 0.1);
 }
 
 .vc-input::placeholder { color: var(--text-3, #94A3B8); }
@@ -1036,7 +1046,7 @@ const handleDeletePlan = async () => {
   font-family: 'Inter', sans-serif;
 }
 
-.vc-head-row { background: #EBF3FC; }
+.vc-head-row { background: #F0FAFB; }
 
 .vc-th {
   padding: 10px 12px;
@@ -1063,7 +1073,7 @@ const handleDeletePlan = async () => {
   padding: 11px 12px;
   font-size: 13px;
   color: var(--text-1, #0F1A2E);
-  border-bottom: 1px solid #EBF3FC;
+  border-bottom: 1px solid #F0FAFB;
   vertical-align: middle;
   white-space: nowrap;
 }
@@ -1076,16 +1086,16 @@ const handleDeletePlan = async () => {
   display: block;
   margin: 0 auto;
 }
-.vc-chevron-open { transform: rotate(180deg); color: #054EAF; }
+.vc-chevron-open { transform: rotate(180deg); color: #27C8D8; }
 
 .vc-num {
   font-weight: 700;
   font-size: 13px;
-  color: #054EAF;
+  color: #27C8D8;
   font-family: 'JetBrains Mono', 'Courier New', monospace;
 }
 
-.vc-exp-td { padding: 0 !important; border-bottom: 1px solid #EBF3FC; }
+.vc-exp-td { padding: 0 !important; border-bottom: 1px solid #F0FAFB; }
 
 .vc-exp-panel {
   max-height: 0;
@@ -1096,7 +1106,7 @@ const handleDeletePlan = async () => {
 
 .vc-exp-inner {
   background: #F8FBFF;
-  border-left: 3px solid #054EAF;
+  border-left: 3px solid #27C8D8;
   padding: 16px 20px;
 }
 
@@ -1128,11 +1138,11 @@ const handleDeletePlan = async () => {
   font-weight: 500;
 }
 
-.vc-link { color: #054EAF; text-decoration: underline; font-size: 13px; font-weight: 500; }
-.vc-link:hover { color: #0342A0; }
+.vc-link { color: #27C8D8; text-decoration: underline; font-size: 13px; font-weight: 500; }
+.vc-link:hover { color: #1BAEBB; }
 
 /* ── Control-specific ─────────────────────────────────── */
-.text-primary { color: #054EAF; }
+.text-primary { color: #27C8D8; }
 
 .ev-counter {
   display: inline-flex;
@@ -1141,8 +1151,8 @@ const handleDeletePlan = async () => {
   min-width: 36px;
   height: 36px;
   padding: 0 12px;
-  background: #EBF3FC;
-  color: #054EAF;
+  background: #F0FAFB;
+  color: #27C8D8;
   font-size: 15px;
   font-weight: 700;
   font-family: 'JetBrains Mono', monospace;
@@ -1173,7 +1183,7 @@ const handleDeletePlan = async () => {
 }
 
 .badge-orange { background: #FFF7ED; color: #C2410C; }
-.badge-blue   { background: #EFF6FF; color: #1D4ED8; }
+.badge-blue   { background: #E0F9FA; color: #27C8D8; }
 .badge-green  { background: #F0FDF4; color: #166534; }
 .badge-purple { background: #F5F3FF; color: #6D28D9; }
 .badge-yellow { background: #FEFCE8; color: #854D0E; }
@@ -1196,10 +1206,10 @@ const handleDeletePlan = async () => {
 }
 
 .ctrl-check-on  { background: #DCFCE7; color: #16A34A; }
-.ctrl-check-done { background: #054EAF; color: #FFFFFF; min-width: 26px; width: auto; padding: 0 8px; }
+.ctrl-check-done { background: #27C8D8; color: #FFFFFF; min-width: 26px; width: auto; padding: 0 8px; }
 .ctrl-check-off { background: #FEE2E2; color: #DC2626; }
-.ctrl-check-op  { background: #EBF3FC; color: #054EAF; }
-.ctrl-check-op:hover { background: #054EAF; color: #FFFFFF; }
+.ctrl-check-op  { background: #F0FAFB; color: #27C8D8; }
+.ctrl-check-op:hover { background: #27C8D8; color: #FFFFFF; }
 .ctrl-check:hover:not(:disabled) { opacity: 0.75; }
 .ctrl-check:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -1214,7 +1224,7 @@ const handleDeletePlan = async () => {
 .ctrl-lq-pending {
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 11px; font-weight: 700;
-  background: #EFF6FF; color: #1D4ED8;
+  background: #E0F9FA; color: #27C8D8;
   border-radius: 99px; padding: 2px 7px;
   font-family: 'Inter', sans-serif;
 }
@@ -1243,11 +1253,11 @@ const handleDeletePlan = async () => {
   align-items: center;
   gap: 4px;
   padding: 4px 10px;
-  background: #EBF3FC;
+  background: #F0FAFB;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 500;
-  color: #054EAF;
+  color: #27C8D8;
   white-space: nowrap;
 }
 
@@ -1303,9 +1313,9 @@ const handleDeletePlan = async () => {
   border: 1.5px solid transparent;
 }
 .ctrl-vstep--desp {
-  background: #EFF6FF;
-  border-color: #93C5FD;
-  color: #1D4ED8;
+  background: #E0F9FA;
+  border-color: #8EEAF3;
+  color: #27C8D8;
 }
 .ctrl-vstep--ret {
   background: #F0FDF4;
@@ -1334,7 +1344,7 @@ const handleDeletePlan = async () => {
 /* % Ejecución */
 .ctrl-ejec-wrap { display: flex; align-items: center; gap: 5px; }
 .ctrl-ejec-bar  { width: 40px; height: 5px; background: #E2E8F0; border-radius: 99px; overflow: hidden; }
-.ctrl-ejec-fill { height: 100%; background: #054EAF; border-radius: 99px; transition: width 0.3s; }
+.ctrl-ejec-fill { height: 100%; background: #27C8D8; border-radius: 99px; transition: width 0.3s; }
 .ctrl-ejec-full { background: #16A34A; }
 .ctrl-ejec-pct  { font-size: 11px; color: #64748B; white-space: nowrap; }
 
@@ -1427,9 +1437,9 @@ const handleDeletePlan = async () => {
   transition: all 0.15s;
 }
 .equipo-edit-btn:hover {
-  background: #EBF3FC;
-  border-color: #054EAF;
-  color: #054EAF;
+  background: #F0FAFB;
+  border-color: #27C8D8;
+  color: #27C8D8;
 }
 
 /* ── Encuesta ────────────────────────────────────────── */
@@ -1443,7 +1453,7 @@ const handleDeletePlan = async () => {
   background: #f8faff; color: #64748b; cursor: pointer;
   transition: background 0.13s, color 0.13s;
 }
-.enc-copy-btn:hover { background: #eff6ff; color: #054EAF; }
+.enc-copy-btn:hover { background: #E0F9FA; color: #27C8D8; }
 
 /* ── Modal Planimetría ─────────────────────────────────── */
 .plani-overlay {
@@ -1495,11 +1505,11 @@ const handleDeletePlan = async () => {
 .plani-pdf-name { font-size: 13px; color: #475569; font-weight: 500; }
 .plani-view-btn {
   display: inline-flex; align-items: center; gap: 6px;
-  background: #EFF6FF; color: #1D4ED8; border-radius: 8px;
+  background: #E0F9FA; color: #27C8D8; border-radius: 8px;
   padding: 8px 18px; font-size: 13px; font-weight: 600;
   text-decoration: none; transition: background 0.15s;
 }
-.plani-view-btn:hover { background: #DBEAFE; }
+.plani-view-btn:hover { background: #CCEFF2; }
 
 .plani-actions { display: flex; gap: 8px; width: 100%; }
 .plani-btn {
@@ -1520,10 +1530,10 @@ const handleDeletePlan = async () => {
   gap: 10px; cursor: pointer; transition: all 0.18s; background: #F8FAFC;
   -webkit-tap-highlight-color: transparent;
 }
-.plani-drop:hover, .plani-drop-over { border-color: #054EAF; background: #EFF6FF; }
-.plani-drop-uploading { border-color: #054EAF; background: #EFF6FF; pointer-events: none; }
+.plani-drop:hover, .plani-drop-over { border-color: #27C8D8; background: #E0F9FA; }
+.plani-drop-uploading { border-color: #27C8D8; background: #E0F9FA; pointer-events: none; }
 .plani-drop-icon { color: #94A3B8; }
-.plani-drop:hover .plani-drop-icon, .plani-drop-over .plani-drop-icon { color: #054EAF; }
+.plani-drop:hover .plani-drop-icon, .plani-drop-over .plani-drop-icon { color: #27C8D8; }
 .plani-drop-text { font-size: 14px; font-weight: 600; color: #334155; margin: 0; }
 .plani-drop-hint { font-size: 12px; color: #94A3B8; margin: 0; }
 .plani-file-input { display: none; }
@@ -1542,7 +1552,7 @@ const handleDeletePlan = async () => {
   border: 2px solid rgba(0,0,0,0.15); border-top-color: currentColor;
   animation: plani-rot 0.7s linear infinite; display: inline-block;
 }
-.plani-spin-lg { width: 32px; height: 32px; border-width: 3px; color: #054EAF; }
+.plani-spin-lg { width: 32px; height: 32px; border-width: 3px; color: #27C8D8; }
 @keyframes plani-rot { to { transform: rotate(360deg); } }
 
 </style>

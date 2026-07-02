@@ -217,7 +217,7 @@ onUnmounted(async () => { await stopCamera(); stopNFC() })
               <button class="sm-btn-primary" @click="startNFC">Reintentar</button>
             </template>
             <template v-else-if="nfcStatus === 'scanning'">
-              <div class="sm-nfc-pulse"><Wifi :size="28" style="color:#054EAF" /></div>
+              <div class="sm-nfc-pulse"><Wifi :size="28" style="color:#27C8D8" /></div>
               <p class="sm-nfc-msg">Acerca el tag NFC al dispositivo…</p>
               <button class="sm-btn-ghost" @click="stopNFC">Detener</button>
             </template>
@@ -324,7 +324,7 @@ onUnmounted(async () => { await stopCamera(); stopNFC() })
   transition: all 0.15s;
   white-space: nowrap;
 }
-.sm-tab--active { background: #fff; color: #054EAF; box-shadow: 0 1px 4px rgba(5,78,175,.12); }
+.sm-tab--active { background: #fff; color: #27C8D8; box-shadow: 0 1px 4px rgba(39,200,216,.12); }
 
 .sm-body  { flex: 1; display: flex; flex-direction: column; gap: 12px; }
 .sm-hint  { font-size: 12px; color: #94A3B8; font-family: 'Inter', sans-serif; margin: 0; }
@@ -360,7 +360,7 @@ onUnmounted(async () => { await stopCamera(); stopNFC() })
 .sm-nfc-sub  { font-size: 12px; color: #94A3B8; font-family: 'Inter', sans-serif; margin: 0; }
 .sm-nfc-pulse {
   width: 72px; height: 72px; border-radius: 50%;
-  background: #EBF3FC;
+  background: #F0FAFB;
   display: flex; align-items: center; justify-content: center;
   animation: nfc-pulse 1.6s ease-in-out infinite;
 }
@@ -381,17 +381,17 @@ onUnmounted(async () => { await stopCamera(); stopNFC() })
   outline: none;
   transition: border-color 0.15s;
 }
-.sm-input:focus { border-color: #054EAF; box-shadow: 0 0 0 3px rgba(5,78,175,.1); }
+.sm-input:focus { border-color: #27C8D8; box-shadow: 0 0 0 3px rgba(39,200,216,.1); }
 
 /* Botones */
 .sm-btn-primary {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 9px 16px;
-  background: #054EAF; color: #fff; border: none; border-radius: 8px;
+  background: #27C8D8; color: #fff; border: none; border-radius: 8px;
   font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif;
   cursor: pointer; white-space: nowrap; transition: background 0.15s;
 }
-.sm-btn-primary:hover:not(:disabled) { background: #03368A; }
+.sm-btn-primary:hover:not(:disabled) { background: #1BAEBB; }
 .sm-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .sm-btn-ghost {
@@ -406,10 +406,10 @@ onUnmounted(async () => { await stopCamera(); stopNFC() })
 /* Info/Error */
 .sm-info  { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #64748B; font-family: 'Inter', sans-serif; }
 .sm-error { display: flex; align-items: center; gap: 6px; padding: 10px 14px; background: #FEF2F2; color: #B91C1C; border-radius: 8px; font-size: 12px; font-family: 'Inter', sans-serif; }
-.sm-link  { color: #054EAF; font-weight: 600; background: none; border: none; cursor: pointer; font-size: 12px; padding: 0; margin-left: 4px; }
+.sm-link  { color: #27C8D8; font-weight: 600; background: none; border: none; cursor: pointer; font-size: 12px; padding: 0; margin-left: 4px; }
 
 /* Resultado */
-.sm-result { background: #F0F7FF; border: 1px solid #BFDBFE; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+.sm-result { background: #F0F7FF; border: 1px solid #A7EEF5; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
 .sm-result-top    { display: flex; align-items: center; gap: 12px; }
 .sm-result-ico    { width: 44px; height: 44px; background: #DCFCE7; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .sm-result-name   { font-size: 15px; font-weight: 700; color: #0F1A2E; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; }
@@ -419,7 +419,7 @@ onUnmounted(async () => { await stopCamera(); stopNFC() })
 /* Spin */
 .sm-spin { animation: sm-spin 0.9s linear infinite; flex-shrink: 0; }
 @keyframes sm-spin  { to { transform: rotate(360deg); } }
-@keyframes nfc-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(5,78,175,.35); } 50% { box-shadow: 0 0 0 16px rgba(5,78,175,0); } }
+@keyframes nfc-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(39,200,216,.35); } 50% { box-shadow: 0 0 0 16px rgba(39,200,216,0); } }
 
 @media (max-width: 640px) {
   .sm-qr-frame  { min-height: 200px; }

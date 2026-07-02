@@ -1,7 +1,7 @@
 <template>
   <div class="ic-card">
     <div class="ic-head">
-      <div class="ic-icon"><FileSpreadsheet :size="18" color="#054EAF" /></div>
+      <div class="ic-icon"><FileSpreadsheet :size="18" color="#27C8D8" /></div>
       <div>
         <h3 class="ic-title">{{ title }}</h3>
         <p class="ic-desc">{{ description }}</p>
@@ -137,7 +137,7 @@ function doImport() {
 .ic-card {
   background: #fff;
   border-radius: 16px;
-  box-shadow: 0 1px 4px rgba(5,78,175,.06), 0 4px 16px rgba(5,78,175,.08);
+  box-shadow: 0 1px 4px rgba(39,200,216,.06), 0 4px 16px rgba(39,200,216,.08);
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -147,7 +147,7 @@ function doImport() {
 .ic-head { display: flex; gap: 12px; align-items: flex-start; }
 .ic-icon {
   width: 40px; height: 40px; flex-shrink: 0;
-  background: #EBF3FC; border-radius: 10px;
+  background: #F0FAFB; border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
 }
 .ic-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; color: #0F172A; margin: 0 0 3px; }
@@ -159,22 +159,22 @@ function doImport() {
   align-items: center; gap: 8px; cursor: pointer;
   transition: border-color 0.15s, background 0.15s; text-align: center;
 }
-.ic-drop:hover, .ic-drop-over { border-color: #054EAF; background: #F0F7FF; }
+.ic-drop:hover, .ic-drop-over { border-color: #27C8D8; background: #F0F7FF; }
 .ic-upload-icon { color: #94A3B8; }
-.ic-drop:hover .ic-upload-icon, .ic-drop-over .ic-upload-icon { color: #054EAF; }
+.ic-drop:hover .ic-upload-icon, .ic-drop-over .ic-upload-icon { color: #27C8D8; }
 .ic-drop-hint { font-size: 12px; color: #94A3B8; }
-.ic-filename  { font-size: 12px; color: #054EAF; font-weight: 600; word-break: break-all; }
+.ic-filename  { font-size: 12px; color: #27C8D8; font-weight: 600; word-break: break-all; }
 
 .ic-warn { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #DC2626; }
 
 .ic-btn-import {
   display: flex; align-items: center; justify-content: center; gap: 7px;
   padding: 9px 16px; border-radius: 10px; border: none;
-  background: #054EAF; color: #fff;
+  background: #27C8D8; color: #fff;
   font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif;
   cursor: pointer; transition: background 0.15s;
 }
-.ic-btn-import:hover:not(:disabled) { background: #0440A0; }
+.ic-btn-import:hover:not(:disabled) { background: #1BAEBB; }
 .ic-btn-import:disabled { background: #CBD5E1; cursor: not-allowed; }
 
 .ic-spinner {
@@ -191,7 +191,7 @@ function doImport() {
   font-size: 12px; font-weight: 500; color: #374151;
   cursor: pointer; transition: all 0.15s; align-self: flex-start;
 }
-.ic-btn-reset:hover { border-color: #054EAF; color: #054EAF; background: #EFF6FF; }
+.ic-btn-reset:hover { border-color: #27C8D8; color: #27C8D8; background: #E0F9FA; }
 
 .ic-result { display: flex; flex-direction: column; gap: 8px; }
 .ic-result-row { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; }
@@ -224,7 +224,7 @@ function doImport() {
   font-size: 12px; color: #64748B; cursor: pointer;
   user-select: none; width: fit-content;
 }
-.ic-cols-toggle:hover { color: #054EAF; }
+.ic-cols-toggle:hover { color: #27C8D8; }
 
 .ic-cols-table { border: 1.5px solid #E2E8F0; border-radius: 10px; overflow: hidden; }
 .ic-col-row {

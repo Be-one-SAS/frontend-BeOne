@@ -141,7 +141,7 @@
           <div class="modal-box">
             <div class="modal-header">
               <div class="modal-title-wrap">
-                <UserCog :size="20" color="#054EAF" />
+                <UserCog :size="20" color="#27C8D8" />
                 <h2 class="modal-title">{{ editingUser ? 'Editar usuario' : 'Nuevo usuario' }}</h2>
               </div>
               <button class="close-btn" @click="closeModal"><X :size="18" /></button>
@@ -198,7 +198,7 @@
           <div class="modal-box modal-box--sm">
             <div class="modal-header">
               <div class="modal-title-wrap">
-                <ArrowLeftRight :size="20" color="#054EAF" />
+                <ArrowLeftRight :size="20" color="#27C8D8" />
                 <h2 class="modal-title">Reasignar usuario</h2>
               </div>
               <button class="close-btn" @click="showReassign = false"><X :size="18" /></button>
@@ -297,7 +297,7 @@ const roleCls = (role) => ({
   SOPORTE:      'badge-slate',
 }[role] ?? 'badge-slate')
 
-const avatarColors = ['#054EAF','#7C3AED','#0891B2','#059669','#D97706','#DB2777']
+const avatarColors = ['#27C8D8','#7C3AED','#27C8D8','#059669','#D97706','#DB2777']
 const avatarBg = (name) => avatarColors[(name?.charCodeAt(0) ?? 0) % avatarColors.length]
 const initials = (name) => name?.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() ?? '?'
 
@@ -439,7 +439,7 @@ onMounted(async () => { await fetchUsers() })
   font-family: 'Inter', sans-serif;
   box-sizing: border-box;
 }
-.search-input:focus { outline: none; border-color: #054EAF; }
+.search-input:focus { outline: none; border-color: #27C8D8; }
 .sel {
   padding: 9px 12px;
   border: 1.5px solid #E2E8F0;
@@ -450,13 +450,13 @@ onMounted(async () => { await fetchUsers() })
   font-family: 'Inter', sans-serif;
   cursor: pointer;
 }
-.sel:focus { outline: none; border-color: #054EAF; }
+.sel:focus { outline: none; border-color: #27C8D8; }
 
 /* Table card */
 .table-card {
   background: #fff;
   border-radius: 18px;
-  box-shadow: 0 1px 4px rgba(5,78,175,.06), 0 4px 16px rgba(5,78,175,.08);
+  box-shadow: 0 1px 4px rgba(39,200,216,.06), 0 4px 16px rgba(39,200,216,.08);
   overflow: hidden;
 }
 .sort-header-table, .data-table {
@@ -478,7 +478,7 @@ onMounted(async () => { await fetchUsers() })
   user-select: none;
 }
 .sortable { cursor: pointer; display: table-cell; }
-.sortable:hover { color: #054EAF; }
+.sortable:hover { color: #27C8D8; }
 .sortable svg { vertical-align: middle; margin-left: 3px; }
 
 .data-table tbody tr { border-bottom: 1px solid #F1F5F9; transition: background .12s; }
@@ -507,7 +507,7 @@ onMounted(async () => { await fetchUsers() })
   font-family: 'Inter', sans-serif;
 }
 .badge-indigo { background: #EEF2FF; color: #4338CA; }
-.badge-blue   { background: #EFF6FF; color: #1D4ED8; }
+.badge-blue   { background: #E0F9FA; color: #27C8D8; }
 .badge-purple { background: #F5F3FF; color: #7C3AED; }
 .badge-orange { background: #FFF7ED; color: #C2410C; }
 .badge-teal   { background: #F0FDFA; color: #0F766E; }
@@ -527,7 +527,7 @@ onMounted(async () => { await fetchUsers() })
   display: flex; align-items: center;
   transition: all .15s;
 }
-.icon-btn:hover { border-color: #054EAF; color: #054EAF; background: #EFF6FF; }
+.icon-btn:hover { border-color: #27C8D8; color: #27C8D8; background: #E0F9FA; }
 
 /* Skeleton */
 .skeleton-wrap { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
@@ -555,14 +555,14 @@ onMounted(async () => { await fetchUsers() })
 .btn-primary {
   display: flex; align-items: center; gap: 8px;
   padding: 10px 20px;
-  background: #054EAF;
+  background: #27C8D8;
   color: #fff;
   border: none; border-radius: 10px;
   font-size: 14px; font-weight: 600;
   cursor: pointer; font-family: 'Inter', sans-serif;
   transition: background .15s;
 }
-.btn-primary:hover:not(:disabled) { background: #043d8a; }
+.btn-primary:hover:not(:disabled) { background: #1BAEBB; }
 .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
 .btn-ghost {
   padding: 10px 20px;
@@ -589,7 +589,7 @@ onMounted(async () => { await fetchUsers() })
   border-radius: 20px;
   width: 100%;
   max-width: 480px;
-  box-shadow: 0 20px 60px rgba(5,78,175,.18);
+  box-shadow: 0 20px 60px rgba(39,200,216,.18);
   display: flex; flex-direction: column;
   overflow: hidden;
 }
@@ -623,7 +623,7 @@ onMounted(async () => { await fetchUsers() })
   font-family: 'Inter', sans-serif;
   transition: border-color .15s;
 }
-.field-input:focus { outline: none; border-color: #054EAF; }
+.field-input:focus { outline: none; border-color: #27C8D8; }
 .field-error { border-color: #EF4444 !important; }
 .err-msg { font-size: 11px; color: #EF4444; }
 

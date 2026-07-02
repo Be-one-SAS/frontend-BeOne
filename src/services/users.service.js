@@ -128,3 +128,13 @@ export const deleteUser = async (id) => {
     throw error
   }
 }
+
+export const adminSetPassword = async (id, newPassword) => {
+  try {
+    const response = await api.patch(`/users/${id}/password`, { newPassword })
+    return response.data
+  } catch (error) {
+    console.error(`[users.service] Error en adminSetPassword(${id}):`, error)
+    throw error
+  }
+}

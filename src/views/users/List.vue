@@ -147,7 +147,7 @@
 
               <!-- Acciones -->
               <td class="td-actions" @click.stop>
-                <button class="action-btn" title="Ver perfil" style="--hbg:#DBEAFE; --hc:#1D4ED8" @click="verPerfil(u)">
+                <button class="action-btn" title="Ver perfil" style="--hbg:#CCEFF2; --hc:#27C8D8" @click="verPerfil(u)">
                   <Eye :size="15" />
                 </button>
                 <button v-if="canEdit('usuarios')" class="action-btn" title="Editar usuario"
@@ -172,6 +172,10 @@
                   @click="handleResendBienvenida(u)">
                   <Mail :size="15" />
                 </button>
+                <button v-if="currentUserRole === 'ADMIN'" class="action-btn" title="Cambiar contraseña"
+                  style="--hbg:#F0FDF4; --hc:#16A34A" @click="abrirModalPwd(u)">
+                  <KeyRound :size="15" />
+                </button>
                 <button v-if="canDelete('usuarios')" class="action-btn" title="Eliminar usuario"
                   style="--hbg:#FEE2E2; --hc:#B91C1C" @click="abrirModalEliminar(u)">
                   <Trash2 :size="15" />
@@ -195,7 +199,7 @@
                             <span class="exp-val">{{ u.telefono || '—' }}</span>
                           </div>
                           <div class="exp-field">
-                            <span class="exp-lbl">Sede</span>
+                            <span class="exp-lbl">Unidad de Ejecución</span>
                             <span class="exp-val">
                               <template v-if="u.sede">
                                 {{ u.sede.nombre }} · {{ u.sede.ciudad }}
@@ -302,6 +306,10 @@
             <ToggleRight v-if="u.status === 'Activo'" :size="15" />
             <ToggleLeft v-else :size="15" />
           </button>
+          <button v-if="currentUserRole === 'ADMIN'" class="action-btn" title="Cambiar contraseña"
+            style="--hbg:#F0FDF4; --hc:#16A34A" @click="abrirModalPwd(u)">
+            <KeyRound :size="15" />
+          </button>
           <button v-if="canDelete('usuarios')" class="action-btn" title="Eliminar" style="--hbg:#FEE2E2; --hc:#B91C1C"
             @click="abrirModalEliminar(u)">
             <Trash2 :size="15" />
@@ -327,6 +335,56 @@
     <UserDeleteModal :show="showDeleteModal" :usuario="usuarioEliminar" @close="showDeleteModal = false"
       @confirm="handleDeleteUser" />
 
+    <!-- Modal: Cambiar contraseña (admin) -->
+    <Teleport to="body">
+      <Transition name="modal-fade">
+        <div v-if="showPwdModal" class="modal-overlay" @click.self="closePwdModal">
+          <div class="modal-box">
+            <div class="modal-box-header">
+              <KeyRound :size="18" style="color:#27C8D8" />
+              <span>Cambiar contraseña</span>
+              <button class="modal-box-close" @click="closePwdModal">×</button>
+            </div>
+            <div class="modal-box-body">
+              <p class="modal-box-user">{{ pwdTarget?.fullName }}</p>
+              <div class="pwd-field-wrap">
+                <label class="pwd-label">Nueva contraseña</label>
+                <div class="pwd-input-row">
+                  <input :type="showNewPwd ? 'text' : 'password'" v-model="pwdNew"
+                    class="pwd-input" placeholder="Mínimo 6 caracteres" autocomplete="new-password" />
+                  <button type="button" class="pwd-eye" @click="showNewPwd = !showNewPwd">
+                    <Eye v-if="!showNewPwd" :size="15" />
+                    <EyeOff v-else :size="15" />
+                  </button>
+                </div>
+              </div>
+              <div class="pwd-field-wrap">
+                <label class="pwd-label">Confirmar contraseña</label>
+                <div class="pwd-input-row">
+                  <input :type="showConfPwd ? 'text' : 'password'" v-model="pwdConfirm"
+                    class="pwd-input" :class="{ 'pwd-input--error': pwdMismatch }"
+                    placeholder="Repite la contraseña" autocomplete="new-password" />
+                  <button type="button" class="pwd-eye" @click="showConfPwd = !showConfPwd">
+                    <Eye v-if="!showConfPwd" :size="15" />
+                    <EyeOff v-else :size="15" />
+                  </button>
+                </div>
+                <span v-if="pwdMismatch" class="pwd-error">Las contraseñas no coinciden</span>
+              </div>
+              <p v-if="pwdApiError" class="pwd-api-error">{{ pwdApiError }}</p>
+            </div>
+            <div class="modal-box-footer">
+              <button class="modal-box-cancel" @click="closePwdModal">Cancelar</button>
+              <button class="modal-box-save" :disabled="savingPwd || !pwdNew || pwdMismatch" @click="handleSavePwd">
+                <span v-if="savingPwd">Guardando…</span>
+                <span v-else>Guardar contraseña</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
   </div>
 </template>
 
@@ -334,13 +392,13 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import {
   Users, UserPlus, Search, X, AlertCircle,
-  Eye, Pencil, Shield, ToggleLeft, ToggleRight, Trash2,
-  UserCheck, UserX, BarChart2, Mail,
+  Eye, EyeOff, Pencil, Shield, ToggleLeft, ToggleRight, Trash2,
+  UserCheck, UserX, BarChart2, Mail, KeyRound,
 } from 'lucide-vue-next'
 import { useUsers, rolePermissions } from '@/composables/useUsers'
 import { useAuth } from '@/composables/useAuth'
 import { usePermissions } from '@/composables/usePermissions'
-import { updateUserRole, resendBienvenida } from '@/services/users.service'
+import { updateUserRole, resendBienvenida, adminSetPassword } from '@/services/users.service'
 import UserFormModal from './components/UserFormModal.vue'
 import UserRoleModal from './components/UserRoleModal.vue'
 import UserDeleteModal from './components/UserDeleteModal.vue'
@@ -385,7 +443,7 @@ const TABLE_COLS = ['Usuario', 'Username', 'Rol', 'Estado', 'Último acceso', 'C
 // ── Badge maps ────────────────────────────────────────
 const ROLE_BADGE = {
   ADMIN: 'bg-[#FEE2E2] text-[#B91C1C]',
-  ADMINISTRADOR: 'bg-[#DBEAFE] text-[#1D4ED8]',
+  ADMINISTRADOR: 'bg-[#CCEFF2] text-[#27C8D8]',
   DIRECCION: 'bg-[#EDE9FE] text-[#7C3AED]',
   LIDER: 'bg-[#DCFCE7] text-[#16A34A]',
   SUPERVISOR: 'bg-[#FEF3C7] text-[#B45309]',
@@ -406,7 +464,7 @@ const DOT_CLASS = {
 
 // ── KPI chips ─────────────────────────────────────────
 const kpiList = computed(() => [
-  { label: 'Total usuarios', value: kpis.value.total, icon: Users, iconBg: '#EBF3FC', iconColor: '#054EAF' },
+  { label: 'Total usuarios', value: kpis.value.total, icon: Users, iconBg: '#F0FAFB', iconColor: '#27C8D8' },
   { label: 'Activos', value: kpis.value.activos, icon: UserCheck, iconBg: '#DCFCE7', iconColor: '#16A34A' },
   { label: 'Inactivos / Suspendidos', value: kpis.value.inactivos, icon: UserX, iconBg: '#FEE2E2', iconColor: '#B91C1C' },
   { label: 'Roles en uso', value: kpis.value.roles, icon: BarChart2, iconBg: '#EDE9FE', iconColor: '#7C3AED' },
@@ -417,7 +475,7 @@ const hasFilters = computed(() => search.value || rolFiltro.value || statusFiltr
 const limpiarFiltros = () => { search.value = ''; rolFiltro.value = ''; statusFiltro.value = '' }
 
 // ── Avatar helpers ────────────────────────────────────
-const AVATAR_COLORS = ['#054EAF', '#7C3AED', '#B45309', '#B91C1C', '#16A34A', '#0891B2', '#C2410C']
+const AVATAR_COLORS = ['#27C8D8', '#7C3AED', '#B45309', '#B91C1C', '#16A34A', '#27C8D8', '#C2410C']
 const getAvatarColor = (name) => AVATAR_COLORS[(name?.charCodeAt(0) ?? 0) % AVATAR_COLORS.length]
 const getInitials = (name) =>
   (name ?? '').trim().split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
@@ -514,6 +572,44 @@ const verPerfil = (u) => {
   console.log('[UsersList] Ver perfil:', u) // conectar API aquí → router.push(`/users/${u.id}`)
 }
 
+// ── Modal: Cambiar contraseña (admin) ─────────────────
+const showPwdModal = ref(false)
+const pwdTarget    = ref(null)
+const pwdNew       = ref('')
+const pwdConfirm   = ref('')
+const showNewPwd   = ref(false)
+const showConfPwd  = ref(false)
+const savingPwd    = ref(false)
+const pwdApiError  = ref('')
+
+const pwdMismatch = computed(() => pwdConfirm.value.length > 0 && pwdNew.value !== pwdConfirm.value)
+
+const abrirModalPwd = (u) => {
+  pwdTarget.value   = u
+  pwdNew.value      = ''
+  pwdConfirm.value  = ''
+  showNewPwd.value  = false
+  showConfPwd.value = false
+  pwdApiError.value = ''
+  showPwdModal.value = true
+}
+
+const closePwdModal = () => { showPwdModal.value = false }
+
+const handleSavePwd = async () => {
+  if (!pwdNew.value || pwdNew.value.length < 6 || pwdMismatch.value) return
+  savingPwd.value   = true
+  pwdApiError.value = ''
+  try {
+    await adminSetPassword(pwdTarget.value.id, pwdNew.value)
+    showPwdModal.value = false
+  } catch (e) {
+    pwdApiError.value = e?.response?.data?.message ?? e?.message ?? 'Error al cambiar la contraseña'
+  } finally {
+    savingPwd.value = false
+  }
+}
+
 // ── Init ──────────────────────────────────────────────
 onMounted(() => loadUsers())
 </script>
@@ -540,7 +636,7 @@ onMounted(() => loadUsers())
   border-radius: 14px;
   padding: 16px;
   border: 1px solid #E2EBF6;
-  box-shadow: 0 1px 4px rgba(5, 78, 175, .06);
+  box-shadow: 0 1px 4px rgba(39,200,216, .06);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -598,7 +694,7 @@ onMounted(() => loadUsers())
   align-items: center;
   gap: 6px;
   padding: 9px 18px;
-  background: #054EAF;
+  background: #27C8D8;
   color: #FFFFFF;
   border: none;
   border-radius: 8px;
@@ -606,12 +702,12 @@ onMounted(() => loadUsers())
   font-weight: 600;
   font-family: 'Inter', sans-serif;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(5, 78, 175, 0.22);
+  box-shadow: 0 2px 8px rgba(39,200,216, 0.22);
   transition: background 0.15s ease;
 }
 
 .btn-primary:hover {
-  background: #03368A;
+  background: #1BAEBB;
 }
 
 /* ── Filter bar ──────────────────────────────────────── */
@@ -620,7 +716,7 @@ onMounted(() => loadUsers())
   border-radius: 18px;
   padding: 16px 20px;
   border: 1px solid #E2EBF6;
-  box-shadow: 0 1px 4px rgba(5, 78, 175, .06);
+  box-shadow: 0 1px 4px rgba(39,200,216, .06);
 }
 
 .filter-grid {
@@ -657,8 +753,8 @@ onMounted(() => loadUsers())
 }
 
 .search-input:focus {
-  border-color: #054EAF;
-  box-shadow: 0 0 0 2px rgba(5, 78, 175, 0.12);
+  border-color: #27C8D8;
+  box-shadow: 0 0 0 2px rgba(39,200,216, 0.12);
 }
 
 .search-clear {
@@ -686,7 +782,7 @@ onMounted(() => loadUsers())
 }
 
 .filter-select:focus {
-  border-color: #054EAF;
+  border-color: #27C8D8;
 }
 
 .btn-ghost-filter {
@@ -716,7 +812,7 @@ onMounted(() => loadUsers())
   background: #FFFFFF;
   border-radius: 18px;
   border: 1px solid #E2EBF6;
-  box-shadow: 0 1px 4px rgba(5, 78, 175, .06), 0 4px 16px rgba(5, 78, 175, .08);
+  box-shadow: 0 1px 4px rgba(39,200,216, .06), 0 4px 16px rgba(39,200,216, .08);
   overflow-x: auto;
   overflow-y: auto;
 }
@@ -751,7 +847,7 @@ onMounted(() => loadUsers())
 
 .page-btn:hover:not(:disabled) {
   background: #E2EBF6;
-  color: #054EAF;
+  color: #27C8D8;
 }
 
 .page-btn:disabled {
@@ -922,7 +1018,7 @@ onMounted(() => loadUsers())
 .skel-bar {
   height: 12px;
   border-radius: 6px;
-  background: #EBF3FC;
+  background: #F0FAFB;
 }
 
 /* ── Estado vacío ────────────────────────────────────── */
@@ -947,7 +1043,7 @@ onMounted(() => loadUsers())
 }
 
 .exp-panel {
-  border-left: 3px solid #054EAF;
+  border-left: 3px solid #27C8D8;
   background: #F8FBFF;
   padding: 16px 24px;
 }
@@ -1002,8 +1098,8 @@ onMounted(() => loadUsers())
 .perm-pill {
   display: inline-block;
   padding: 3px 10px;
-  background: #EBF3FC;
-  color: #054EAF;
+  background: #F0FAFB;
+  color: #27C8D8;
   border-radius: 99px;
   font-size: 11px;
   font-weight: 500;
@@ -1032,7 +1128,7 @@ onMounted(() => loadUsers())
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #054EAF;
+  background: #27C8D8;
   flex-shrink: 0;
 }
 
@@ -1063,7 +1159,7 @@ onMounted(() => loadUsers())
   background: #FFFFFF;
   border-radius: 16px;
   border: 1px solid #E2EBF6;
-  box-shadow: 0 1px 4px rgba(5, 78, 175, .06);
+  box-shadow: 0 1px 4px rgba(39,200,216, .06);
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -1093,7 +1189,7 @@ onMounted(() => loadUsers())
 
 .mobile-skel {
   height: 100px;
-  background: #EBF3FC;
+  background: #F0FAFB;
   border-radius: 16px;
   margin-bottom: 12px;
 }
@@ -1171,4 +1267,68 @@ onMounted(() => loadUsers())
 .error-fade-leave-to {
   opacity: 0;
 }
+
+/* ── Modal contraseña ──────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(15,26,46,.45);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.modal-box {
+  background: #fff; border-radius: 16px;
+  width: 100%; max-width: 400px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.18);
+  font-family: 'Inter', sans-serif;
+  overflow: hidden;
+}
+.modal-box-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid #F1F5F9;
+  font-size: 15px; font-weight: 700; color: #0F172A;
+}
+.modal-box-close {
+  margin-left: auto; background: none; border: none;
+  font-size: 20px; color: #94A3B8; cursor: pointer; line-height: 1;
+}
+.modal-box-close:hover { color: #475569; }
+.modal-box-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+.modal-box-user { font-size: 13px; color: #64748B; margin: 0; }
+.modal-box-footer {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 14px 20px; border-top: 1px solid #F1F5F9;
+}
+.modal-box-cancel {
+  padding: 8px 16px; border: 1.5px solid #E2E8F0; border-radius: 8px;
+  font-size: 13px; font-weight: 600; color: #64748B; background: #fff; cursor: pointer;
+}
+.modal-box-cancel:hover { border-color: #94A3B8; }
+.modal-box-save {
+  padding: 8px 18px; border: none; border-radius: 8px;
+  font-size: 13px; font-weight: 700; color: #fff;
+  background: #27C8D8; cursor: pointer; transition: background .15s;
+}
+.modal-box-save:hover:not(:disabled) { background: #1BAEBB; }
+.modal-box-save:disabled { opacity: .55; cursor: not-allowed; }
+
+.pwd-field-wrap { display: flex; flex-direction: column; gap: 4px; }
+.pwd-label { font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: .04em; }
+.pwd-input-row { display: flex; align-items: center; border: 1.5px solid #E2E8F0; border-radius: 8px; overflow: hidden; }
+.pwd-input-row:focus-within { border-color: #27C8D8; }
+.pwd-input {
+  flex: 1; height: 36px; padding: 0 10px; border: none; outline: none;
+  font-size: 13px; font-family: 'Inter', sans-serif; color: #0F172A; background: transparent;
+}
+.pwd-input--error { background: #FFF5F5; }
+.pwd-eye {
+  padding: 0 10px; height: 36px; border: none; background: none;
+  color: #94A3B8; cursor: pointer; display: flex; align-items: center;
+}
+.pwd-eye:hover { color: #475569; }
+.pwd-error { font-size: 11px; color: #B91C1C; }
+.pwd-api-error { font-size: 12px; color: #B91C1C; background: #FFF5F5; padding: 8px 10px; border-radius: 6px; margin: 0; }
+
+.modal-fade-enter-active, .modal-fade-leave-active { transition: opacity .2s ease; }
+.modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
 </style>

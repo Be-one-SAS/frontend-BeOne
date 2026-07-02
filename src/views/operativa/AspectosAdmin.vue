@@ -335,15 +335,15 @@ async function handleDelete() {
   cursor: pointer; color: #475569; flex-shrink: 0;
   transition: border-color 0.15s;
 }
-.aa-back-btn:hover { border-color: #054EAF; color: #054EAF; }
+.aa-back-btn:hover { border-color: #27C8D8; color: #27C8D8; }
 .aa-title { font-size: 20px; font-weight: 700; color: #0F172A; margin: 0; }
 .aa-add-btn {
   display: flex; align-items: center; gap: 6px;
   padding: 8px 16px; border-radius: 8px; border: none;
-  background: #054EAF; color: #fff; font-size: 13px; font-weight: 600;
+  background: #27C8D8; color: #fff; font-size: 13px; font-weight: 600;
   cursor: pointer; transition: background 0.15s; white-space: nowrap;
 }
-.aa-add-btn:hover { background: #0341A0; }
+.aa-add-btn:hover { background: #1BAEBB; }
 
 /* ── Loading / Error ── */
 .aa-loading {
@@ -417,7 +417,7 @@ async function handleDelete() {
   cursor: pointer; color: #64748B; transition: all 0.15s;
   flex-shrink: 0;
 }
-.aa-icon-btn:hover:not(:disabled) { border-color: #054EAF; color: #054EAF; background: #EFF6FF; }
+.aa-icon-btn:hover:not(:disabled) { border-color: #27C8D8; color: #27C8D8; background: #E0F9FA; }
 .aa-icon-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .aa-icon-edit:hover:not(:disabled)   { border-color: #D97706; color: #D97706; background: #FFFBEB; }
 .aa-icon-delete:hover:not(:disabled) { border-color: #DC2626; color: #DC2626; background: #FEF2F2; }
@@ -444,7 +444,7 @@ async function handleDelete() {
   color: #0F172A; resize: vertical; transition: border-color 0.15s;
   box-sizing: border-box;
 }
-.aa-modal-textarea:focus { outline: none; border-color: #054EAF; }
+.aa-modal-textarea:focus { outline: none; border-color: #27C8D8; }
 .aa-modal-textarea-err  { border-color: #DC2626; }
 .aa-modal-error { display: block; font-size: 11px; color: #DC2626; margin-top: 4px; }
 
@@ -457,10 +457,10 @@ async function handleDelete() {
 .aa-modal-save {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
-  border: none; background: #054EAF; color: #fff; cursor: pointer;
+  border: none; background: #27C8D8; color: #fff; cursor: pointer;
   transition: background 0.15s; min-width: 100px; justify-content: center;
 }
-.aa-modal-save:hover:not(:disabled) { background: #0341A0; }
+.aa-modal-save:hover:not(:disabled) { background: #1BAEBB; }
 .aa-modal-save:disabled { opacity: 0.6; cursor: not-allowed; }
 .aa-modal-delete {
   display: inline-flex; align-items: center; gap: 6px;

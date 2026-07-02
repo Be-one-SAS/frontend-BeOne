@@ -146,7 +146,7 @@
             <div class="g3">
               <InputLabel label="Agente Comercial" v-model="cotizacion.agenteComercial" disabled />
               <div class="field-wrap">
-                <label class="field-lbl">Unidad de Ejecución</label>
+                <label class="field-lbl">Región operativa</label>
                 <select v-model="cotizacion.unidadEjecucion" class="field-sel">
                   <option>Antioquia</option>
                   <option>Cundinamarca</option>
@@ -404,7 +404,7 @@
                     <p class="cart-name">{{ it.nombre || it.dispositivo || it.descripcion }}</p>
                     <div class="cart-meta">
                       <span class="cart-qty">{{ it.cantidadJornada }}j × {{ it.cantidadProducto }}u</span>
-                      <span class="cart-price">${{ Math.round(totalesFilasPropias[i] || 0).toLocaleString('es-CO') }}</span>
+                      <span class="cart-price">{{ formatCOP(Math.round(totalesFilasPropias[i] || 0)) }}</span>
                     </div>
                   </div>
 
@@ -416,7 +416,7 @@
                     </p>
                     <div class="cart-meta">
                       <span class="cart-qty">{{ it.cantidad }} unid.</span>
-                      <span class="cart-price">${{ Math.round(totalesFilasTerceros[i] || 0).toLocaleString('es-CO') }}</span>
+                      <span class="cart-price">{{ formatCOP(Math.round(totalesFilasTerceros[i] || 0)) }}</span>
                     </div>
                   </div>
                 </div>
@@ -424,7 +424,7 @@
                 <!-- Total parcial -->
                 <div v-if="items.length || itemsTerceros.length" class="cart-total">
                   <span class="total-lbl">Total parcial</span>
-                  <span class="total-val">${{ (subtotalGeneral || 0).toLocaleString('es-CO') }}</span>
+                  <span class="total-val">{{ formatCOP(subtotalGeneral || 0) }}</span>
                 </div>
               </div>
             </div>
@@ -596,7 +596,7 @@
                   <div class="summ-row"><dt>Correo</dt>                  <dd>{{ cotizacion.correo             || '—' }}</dd></div>
                   <div class="summ-row"><dt>Celular</dt>                 <dd>{{ cotizacion.celular            || '—' }}</dd></div>
                   <div class="summ-row"><dt>Agente comercial</dt>        <dd>{{ cotizacion.agenteComercial    || '—' }}</dd></div>
-                  <div class="summ-row"><dt>Unidad de ejecución</dt>     <dd>{{ cotizacion.unidadEjecucion    || '—' }}</dd></div>
+                  <div class="summ-row"><dt>Región operativa</dt>        <dd>{{ cotizacion.unidadEjecucion    || '—' }}</dd></div>
                   <div class="summ-row"><dt>Vigencia</dt>                <dd>{{ cotizacion.vigencia           || '—' }}</dd></div>
                   <div class="summ-row"><dt>Evento</dt>                  <dd>{{ cotizacion.description        || '—' }}</dd></div>
                   <div class="summ-row"><dt>Ubicación</dt>               <dd>{{ cotizacion.ubicacion          || '—' }}</dd></div>
@@ -1033,6 +1033,7 @@ import InputLabel from '@/components/input/InputLabel.vue';
 import CollaboratorsManager from './components/CollaboratorsManager.vue';
 import QuotationVersions from './components/QuotationVersions.vue';
 import { ref, onMounted, watch, computed } from 'vue';   // añadido: computed
+import { formatCOP } from '@/utils/currency.js'
 import { getQuotationById, getVersions, createVersion } from '../../services/quotation.service';
 
 import ModalReutilizable from '../../components/modal/ModalReutilizable.vue';
@@ -1300,8 +1301,7 @@ const totalesFilasTerceros = computed(() =>
   itemsTerceros.value.map(item => calcularTotalFilaTercero(item))
 )
 
-const formatCOP = (val) =>
-  val == null ? '—' : new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(val)
+
 
 const buildThirdPartyPayload = () => ({
   dispositivo:                productoTercero.dispositivo,
@@ -1738,10 +1738,10 @@ watch(modalCotizacionExitosa, (val) => {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: linear-gradient(135deg, #054EAF 0%, #0A3D8F 100%);
+  background: linear-gradient(135deg, #27C8D8 0%, #1BAEBB 100%);
   padding: 8px 16px;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(5, 78, 175, 0.2);
+  box-shadow: 0 4px 12px rgba(39,200,216, 0.2);
 }
 
 .version-label {
@@ -1795,14 +1795,14 @@ watch(modalCotizacionExitosa, (val) => {
 }
 
 .action-btn--update {
-  background: linear-gradient(135deg, #054EAF 0%, #0A3D8F 100%);
+  background: linear-gradient(135deg, #27C8D8 0%, #1BAEBB 100%);
   color: white;
-  box-shadow: 0 4px 12px rgba(5, 78, 175, 0.25);
+  box-shadow: 0 4px 12px rgba(39,200,216, 0.25);
 }
 
 .action-btn--update:hover {
-  background: linear-gradient(135deg, #03368A 0%, #072D6F 100%);
-  box-shadow: 0 6px 16px rgba(5, 78, 175, 0.35);
+  background: linear-gradient(135deg, #1BAEBB 0%, #1BAEBB 100%);
+  box-shadow: 0 6px 16px rgba(39,200,216, 0.35);
   transform: translateY(-2px);
 }
 
@@ -1813,8 +1813,8 @@ watch(modalCotizacionExitosa, (val) => {
 .action-btn--save            { background: #DCFCE7; color: #16A34A; }
 .action-btn--save:hover      { background: #BBF7D0; }
 .action-btn--save:disabled   { opacity: 0.5; cursor: not-allowed; }
-.action-btn--primary         { background: #054EAF; color: white; box-shadow: 0 2px 8px rgba(5,78,175,.18); }
-.action-btn--primary:hover   { background: #03368A; }
+.action-btn--primary         { background: #27C8D8; color: white; box-shadow: 0 2px 8px rgba(39,200,216,.18); }
+.action-btn--primary:hover   { background: #1BAEBB; }
 
 /* ═══════════════════════════════════════════════════════════
    STEPPER
@@ -1823,7 +1823,7 @@ watch(modalCotizacionExitosa, (val) => {
   background: #FFFFFF;
   border-radius: 18px;
   padding: 20px 24px 16px;
-  box-shadow: 0 1px 4px rgba(5,78,175,.06), 0 4px 16px rgba(5,78,175,.08);
+  box-shadow: 0 1px 4px rgba(39,200,216,.06), 0 4px 16px rgba(39,200,216,.08);
   border: 1px solid #EEF1F7;
 }
 
@@ -1860,7 +1860,7 @@ watch(modalCotizacionExitosa, (val) => {
   transition: all 0.2s;
   flex-shrink: 0;
 }
-.step-active  .step-bubble { background: #054EAF; color: white; box-shadow: 0 0 0 4px rgba(5,78,175,.14); }
+.step-active  .step-bubble { background: #27C8D8; color: white; box-shadow: 0 0 0 4px rgba(39,200,216,.14); }
 .step-done    .step-bubble { background: #6EE7A0; color: white; }
 .step-pending .step-bubble { background: #F1F5FA; color: #94A3B8; }
 
@@ -1870,7 +1870,7 @@ watch(modalCotizacionExitosa, (val) => {
   font-family: 'Inter', sans-serif;
   white-space: nowrap;
 }
-.step-active  .step-label { color: #054EAF; font-weight: 700; }
+.step-active  .step-label { color: #27C8D8; font-weight: 700; }
 .step-done    .step-label { color: #16A34A; }
 .step-pending .step-label { color: #94A3B8; }
 
@@ -1891,7 +1891,7 @@ watch(modalCotizacionExitosa, (val) => {
   font-family: 'Inter', sans-serif;
   margin-bottom: 10px;
 }
-.step-mobile-label strong { color: #054EAF; }
+.step-mobile-label strong { color: #27C8D8; }
 
 /* Progress bar */
 .prog-track {
@@ -1902,7 +1902,7 @@ watch(modalCotizacionExitosa, (val) => {
 }
 .prog-fill {
   height: 100%;
-  background: #054EAF;
+  background: #27C8D8;
   border-radius: 99px;
   transition: width 0.4s ease;
 }
@@ -1931,7 +1931,7 @@ watch(modalCotizacionExitosa, (val) => {
   background: #FFFFFF;
   border-radius: 18px;
   padding: 20px 24px;
-  box-shadow: 0 1px 4px rgba(5,78,175,.06), 0 4px 16px rgba(5,78,175,.08);
+  box-shadow: 0 1px 4px rgba(39,200,216,.06), 0 4px 16px rgba(39,200,216,.08);
   border: 1px solid #EEF1F7;
 }
 
@@ -1944,7 +1944,7 @@ watch(modalCotizacionExitosa, (val) => {
   gap: 8px;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #EBF3FC;
+  border-bottom: 1px solid #F0FAFB;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 15px;
   font-weight: 600;
@@ -1962,7 +1962,7 @@ watch(modalCotizacionExitosa, (val) => {
   color: #0F1A2E;
 }
 
-.icon-primary { color: #054EAF; flex-shrink: 0; }
+.icon-primary { color: #27C8D8; flex-shrink: 0; }
 
 /* ═══════════════════════════════════════════════════════════
    GRIDS
@@ -2004,8 +2004,8 @@ watch(modalCotizacionExitosa, (val) => {
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .field-sel:focus {
-  border-color: #054EAF;
-  box-shadow: 0 0 0 2px rgba(5,78,175,.12);
+  border-color: #27C8D8;
+  box-shadow: 0 0 0 2px rgba(39,200,216,.12);
 }
 
 /* Badge de duración */
@@ -2013,8 +2013,8 @@ watch(modalCotizacionExitosa, (val) => {
   margin-left: auto;
   font-size: 11px;
   font-weight: 600;
-  background: #EEF4FF;
-  color: #054EAF;
+  background: #E0F9FA;
+  color: #27C8D8;
   padding: 3px 10px;
   border-radius: 20px;
   font-family: 'Inter', sans-serif;
@@ -2059,8 +2059,8 @@ watch(modalCotizacionExitosa, (val) => {
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .search-wrap:focus-within {
-  border-color: #054EAF;
-  box-shadow: 0 0 0 2px rgba(5,78,175,.12);
+  border-color: #27C8D8;
+  box-shadow: 0 0 0 2px rgba(39,200,216,.12);
 }
 
 .s-ico { color: #94A3B8; flex-shrink: 0; }
@@ -2089,7 +2089,7 @@ watch(modalCotizacionExitosa, (val) => {
   border-radius: 12px;
   max-height: 220px;
   overflow-y: auto;
-  box-shadow: 0 4px 16px rgba(5,78,175,.1);
+  box-shadow: 0 4px 16px rgba(39,200,216,.1);
 }
 .cat-opt {
   padding: 9px 16px;
@@ -2099,7 +2099,7 @@ watch(modalCotizacionExitosa, (val) => {
   font-family: 'Inter', sans-serif;
   transition: background 0.12s;
 }
-.cat-opt:hover { background: #EEF4FF; color: #054EAF; }
+.cat-opt:hover { background: #E0F9FA; color: #27C8D8; }
 
 /* Fila de cantidades + botones */
 .add-row {
@@ -2131,8 +2131,8 @@ watch(modalCotizacionExitosa, (val) => {
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .qty-input:focus {
-  border-color: #054EAF;
-  box-shadow: 0 0 0 2px rgba(5,78,175,.12);
+  border-color: #27C8D8;
+  box-shadow: 0 0 0 2px rgba(39,200,216,.12);
 }
 
 .btn-tercero {
@@ -2142,32 +2142,32 @@ watch(modalCotizacionExitosa, (val) => {
   padding: 9px 14px;
   font-size: 12px;
   font-weight: 600;
-  background: #EEF4FF;
-  color: #054EAF;
-  border: 1px solid #BFDBFE;
+  background: #E0F9FA;
+  color: #27C8D8;
+  border: 1px solid #A7EEF5;
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.15s;
   white-space: nowrap;
   font-family: 'Inter', sans-serif;
 }
-.btn-tercero:hover { background: #DBEAFE; }
+.btn-tercero:hover { background: #CCEFF2; }
 
 .btn-add {
   padding: 9px 18px;
   font-size: 13px;
   font-weight: 600;
-  background: #054EAF;
+  background: #27C8D8;
   color: white;
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(5,78,175,.18);
+  box-shadow: 0 2px 8px rgba(39,200,216,.18);
   transition: background 0.15s;
   white-space: nowrap;
   font-family: 'Inter', sans-serif;
 }
-.btn-add:hover      { background: #03368A; }
+.btn-add:hover      { background: #1BAEBB; }
 .btn-add--edit      { background: #F59E0B; box-shadow: none; }
 .btn-add--edit:hover { background: #D97706; }
 
@@ -2176,8 +2176,8 @@ watch(modalCotizacionExitosa, (val) => {
   margin-left: auto;
   font-size: 11px;
   font-weight: 600;
-  background: #EEF4FF;
-  color: #054EAF;
+  background: #E0F9FA;
+  color: #27C8D8;
   padding: 2px 8px;
   border-radius: 20px;
   font-family: 'Inter', sans-serif;
@@ -2228,7 +2228,7 @@ watch(modalCotizacionExitosa, (val) => {
   margin-top: 2px;
 }
 .cart-qty   { font-size: 11px; color: #94A3B8; font-family: 'Inter', sans-serif; }
-.cart-price { font-size: 11px; font-weight: 600; color: #054EAF; font-family: 'Inter', sans-serif; }
+.cart-price { font-size: 11px; font-weight: 600; color: #27C8D8; font-family: 'Inter', sans-serif; }
 
 .cart-total {
   display: flex;
@@ -2236,10 +2236,10 @@ watch(modalCotizacionExitosa, (val) => {
   align-items: center;
   padding-top: 12px;
   margin-top: 8px;
-  border-top: 2px solid #EBF3FC;
+  border-top: 2px solid #F0FAFB;
 }
 .total-lbl { font-size: 12px; font-weight: 600; color: #64748B; font-family: 'Inter', sans-serif; }
-.total-val { font-size: 16px; font-weight: 700; color: #054EAF; font-family: 'Plus Jakarta Sans', sans-serif; }
+.total-val { font-size: 16px; font-weight: 700; color: #27C8D8; font-family: 'Plus Jakarta Sans', sans-serif; }
 
 /* Sección de detalle de productos */
 .mt20 { margin-top: 4px; }
@@ -2252,8 +2252,8 @@ watch(modalCotizacionExitosa, (val) => {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: #EEF4FF;
-  border: 1px solid #BFDBFE;
+  background: #E0F9FA;
+  border: 1px solid #A7EEF5;
   border-radius: var(--r-xl);
   padding: 14px 20px;
   flex-wrap: wrap;
@@ -2263,8 +2263,8 @@ watch(modalCotizacionExitosa, (val) => {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #DBEAFE;
-  color: #1D4ED8;
+  background: #CCEFF2;
+  color: #27C8D8;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2281,12 +2281,12 @@ watch(modalCotizacionExitosa, (val) => {
 .draft-banner-text strong {
   font-size: 13px;
   font-weight: 600;
-  color: #1D4ED8;
+  color: #27C8D8;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 .draft-banner-text span {
   font-size: 12px;
-  color: #3B82F6;
+  color: #27C8D8;
   font-family: 'Inter', sans-serif;
 }
 
@@ -2319,16 +2319,16 @@ watch(modalCotizacionExitosa, (val) => {
   padding: 6px 16px;
   font-size: 12px;
   font-weight: 600;
-  background: #054EAF;
+  background: #27C8D8;
   color: white;
   border: none;
   border-radius: 99px;
   cursor: pointer;
   font-family: 'Inter', sans-serif;
-  box-shadow: 0 2px 8px rgba(5,78,175,.18);
+  box-shadow: 0 2px 8px rgba(39,200,216,.18);
   transition: background 0.15s;
 }
-.draft-btn-continue:hover { background: #03368A; }
+.draft-btn-continue:hover { background: #1BAEBB; }
 
 /* Transition for the banner */
 .banner-slide-enter-active,
@@ -2379,8 +2379,8 @@ watch(modalCotizacionExitosa, (val) => {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #054EAF 0%, #1a72e8 100%);
-  box-shadow: 0 0 0 6px rgba(5,78,175,.10);
+  background: linear-gradient(135deg, #27C8D8 0%, #27C8D8 100%);
+  box-shadow: 0 0 0 6px rgba(39,200,216,.10);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2434,9 +2434,9 @@ watch(modalCotizacionExitosa, (val) => {
   text-align: left;
 }
 .picker-btn:hover {
-  border-color: #054EAF;
-  background: #EEF4FF;
-  box-shadow: 0 0 0 2px rgba(5,78,175,.10);
+  border-color: #27C8D8;
+  background: #E0F9FA;
+  box-shadow: 0 0 0 2px rgba(39,200,216,.10);
 }
 .picker-btn .s-ico { color: #94A3B8; flex-shrink: 0; }
 .picker-btn-text {
@@ -2514,7 +2514,7 @@ watch(modalCotizacionExitosa, (val) => {
   font-family: 'Inter', sans-serif;
   font-size: 12px;
 }
-.eq-table thead tr { border-bottom: 2px solid #EBF3FC; }
+.eq-table thead tr { border-bottom: 2px solid #F0FAFB; }
 .eq-table th {
   text-align: left;
   font-size: 10px;
@@ -2531,7 +2531,7 @@ watch(modalCotizacionExitosa, (val) => {
 }
 .eq-table tr:last-child td { border-bottom: none; }
 .eq-table .td-name  { font-weight: 500; max-width: 200px; }
-.td-total { font-weight: 600; color: #054EAF; }
+.td-total { font-weight: 600; color: #27C8D8; }
 
 .eq-subtotal-row {
   background: #F0F6FF;
@@ -2548,7 +2548,7 @@ watch(modalCotizacionExitosa, (val) => {
 .eq-subtotal-val {
   font-size: 13px;
   font-weight: 800;
-  color: #054EAF;
+  color: #27C8D8;
   padding: 9px 8px;
 }
 
@@ -2602,15 +2602,15 @@ watch(modalCotizacionExitosa, (val) => {
   color: #64748B;
   border: 1px solid #E5EAF0;
 }
-.btn-ghost-full:hover { background: #EEF4FF; color: #054EAF; border-color: #BFDBFE; }
+.btn-ghost-full:hover { background: #E0F9FA; color: #27C8D8; border-color: #A7EEF5; }
 
 .btn-primary-full {
-  background: #054EAF;
+  background: #27C8D8;
   color: white;
   border: none;
-  box-shadow: 0 2px 8px rgba(5,78,175,.18);
+  box-shadow: 0 2px 8px rgba(39,200,216,.18);
 }
-.btn-primary-full:hover  { background: #03368A; }
+.btn-primary-full:hover  { background: #1BAEBB; }
 .btn-warning-full        { background: #F59E0B; box-shadow: none; }
 .btn-warning-full:hover  { background: #D97706; }
 
@@ -2624,7 +2624,7 @@ watch(modalCotizacionExitosa, (val) => {
   padding: 16px 24px;
   background: #FFFFFF;
   border-radius: 18px;
-  box-shadow: 0 1px 4px rgba(5,78,175,.06), 0 4px 16px rgba(5,78,175,.08);
+  box-shadow: 0 1px 4px rgba(39,200,216,.06), 0 4px 16px rgba(39,200,216,.08);
   border: 1px solid #EEF1F7;
   gap: 12px;
 }
@@ -2647,7 +2647,7 @@ watch(modalCotizacionExitosa, (val) => {
   transition: all 0.15s;
   font-family: 'Inter', sans-serif;
 }
-.btn-prev:hover { background: #EEF4FF; color: #054EAF; border-color: #BFDBFE; }
+.btn-prev:hover { background: #E0F9FA; color: #27C8D8; border-color: #A7EEF5; }
 
 .btn-next {
   display: flex;
@@ -2656,18 +2656,18 @@ watch(modalCotizacionExitosa, (val) => {
   padding: 9px 18px;
   font-size: 13px;
   font-weight: 600;
-  background: #054EAF;
+  background: #27C8D8;
   color: white;
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(5,78,175,.18);
+  box-shadow: 0 2px 8px rgba(39,200,216,.18);
   transition: background 0.15s;
   font-family: 'Inter', sans-serif;
 }
-.btn-next:hover    { background: #03368A; }
+.btn-next:hover    { background: #1BAEBB; }
 .btn-next:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-next:disabled:hover { background: #054EAF; }
+.btn-next:disabled:hover { background: #27C8D8; }
 
 /* Tooltip sobre el botón Siguiente cuando está deshabilitado */
 .btn-next-wrap { position: relative; }
@@ -2711,22 +2711,22 @@ watch(modalCotizacionExitosa, (val) => {
   transition: all 0.15s;
   font-family: 'Inter', sans-serif;
 }
-.btn-ghost-nav:hover { background: #EEF4FF; color: #054EAF; border-color: #BFDBFE; }
+.btn-ghost-nav:hover { background: #E0F9FA; color: #27C8D8; border-color: #A7EEF5; }
 
 .btn-primary-nav {
   padding: 9px 18px;
   font-size: 13px;
   font-weight: 600;
-  background: #054EAF;
+  background: #27C8D8;
   color: white;
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(5,78,175,.18);
+  box-shadow: 0 2px 8px rgba(39,200,216,.18);
   transition: background 0.15s;
   font-family: 'Inter', sans-serif;
 }
-.btn-primary-nav:hover  { background: #03368A; }
+.btn-primary-nav:hover  { background: #1BAEBB; }
 .btn-warning-nav        { background: #F59E0B; box-shadow: none; }
 .btn-warning-nav:hover  { background: #D97706; }
 
@@ -2774,9 +2774,9 @@ watch(modalCotizacionExitosa, (val) => {
   padding: 6px 14px;
   font-size: 12px;
   font-weight: 600;
-  background: #EFF6FF;
-  color: #1D4ED8;
-  border: 1px solid #BFDBFE;
+  background: #E0F9FA;
+  color: #27C8D8;
+  border: 1px solid #A7EEF5;
   border-radius: 8px;
   cursor: pointer;
   font-family: 'Inter', sans-serif;
@@ -2784,8 +2784,8 @@ watch(modalCotizacionExitosa, (val) => {
   white-space: nowrap;
 }
 .btn-add-tercero:hover {
-  background: #DBEAFE;
-  border-color: #93C5FD;
+  background: #CCEFF2;
+  border-color: #8EEAF3;
 }
 
 .tercero-empty {
@@ -2820,10 +2820,10 @@ watch(modalCotizacionExitosa, (val) => {
 .fin-bar {
   display: flex;
   align-items: stretch;
-  background: linear-gradient(135deg, #054EAF 0%, #0B6BDB 100%);
+  background: linear-gradient(135deg, #27C8D8 0%, #27C8D8 100%);
   border-radius: 18px;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(5, 78, 175, 0.30), 0 1px 4px rgba(0,0,0,0.12);
+  box-shadow: 0 4px 20px rgba(39,200,216, 0.30), 0 1px 4px rgba(0,0,0,0.12);
   border: 1px solid rgba(255,255,255,0.12);
   margin-bottom: 24px;
 }
@@ -2864,7 +2864,7 @@ watch(modalCotizacionExitosa, (val) => {
 }
 
 .fin-bar-lbl--total {
-  color: #93C5FD;
+  color: #8EEAF3;
 }
 
 .fin-bar-val {
@@ -2876,7 +2876,7 @@ watch(modalCotizacionExitosa, (val) => {
 }
 
 .fin-bar-val--disc { color: #FCA5A5; }
-.fin-bar-val--iva  { color: #7DD3FC; }
+.fin-bar-val--iva  { color: #80E5EF; }
 
 .fin-bar-val--total {
   font-size: 26px;
@@ -2925,9 +2925,9 @@ watch(modalCotizacionExitosa, (val) => {
 }
 
 .client-badge {
-  background: #EFF6FF;
-  border: 1px solid #3B82F6;
-  color: #1D4ED8;
+  background: #E0F9FA;
+  border: 1px solid #27C8D8;
+  color: #27C8D8;
 }
 
 .j-bet {
@@ -2936,7 +2936,7 @@ watch(modalCotizacionExitosa, (val) => {
 
 .cart-row--tercero {
   background: #F0F9FF;
-  border-left: 3px solid #0EA5E9;
+  border-left: 3px solid #27C8D8;
   border-radius: 4px;
   padding: 8px;
   margin-bottom: 4px;
@@ -2945,7 +2945,7 @@ watch(modalCotizacionExitosa, (val) => {
   display: inline-block;
   vertical-align: middle;
   margin-right: 4px;
-  color: #0EA5E9;
+  color: #27C8D8;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -2958,7 +2958,7 @@ watch(modalCotizacionExitosa, (val) => {
   background: #FFFFFF;
   border-radius: 18px;
   border: 1px solid #E2EBF6;
-  box-shadow: 0 1px 4px rgba(5, 78, 175, .06), 0 4px 16px rgba(5, 78, 175, .08);
+  box-shadow: 0 1px 4px rgba(39,200,216, .06), 0 4px 16px rgba(39,200,216, .08);
   overflow: hidden;
 }
 
@@ -3070,7 +3070,7 @@ watch(modalCotizacionExitosa, (val) => {
 }
 
 .prd-price { color: #374151; font-weight: 500; }
-.prd-total { font-weight: 700; color: #054EAF; }
+.prd-total { font-weight: 700; color: #27C8D8; }
 
 /* Input de descuento */
 .prd-discount-input {
@@ -3098,8 +3098,8 @@ watch(modalCotizacionExitosa, (val) => {
 }
 
 .prd-discount-input:focus {
-  border-color: #054EAF;
-  box-shadow: 0 0 0 2px rgba(5, 78, 175, 0.12);
+  border-color: #27C8D8;
+  box-shadow: 0 0 0 2px rgba(39,200,216, 0.12);
 }
 .prd-discount-input::-webkit-outer-spin-button,
 .prd-discount-input::-webkit-inner-spin-button {
@@ -3145,7 +3145,7 @@ watch(modalCotizacionExitosa, (val) => {
 .td-subtotal-val {
   font-size: 14px;
   font-weight: 800;
-  color: #054EAF;
+  color: #27C8D8;
   text-align: right;
   font-family: 'Inter', sans-serif;
   white-space: nowrap;
@@ -3182,7 +3182,7 @@ watch(modalCotizacionExitosa, (val) => {
   width: fit-content;
   font-family: 'Inter', sans-serif;
 }
-.nota-area-badge[data-area="Comercial"]       { background: #DBEAFE; color: #1D4ED8; }
+.nota-area-badge[data-area="Comercial"]       { background: #CCEFF2; color: #27C8D8; }
 .nota-area-badge[data-area="Operativo"]       { background: #D1FAE5; color: #065F46; }
 .nota-area-badge[data-area="Administrativo"]  { background: #FEF3C7; color: #92400E; }
 .nota-area-badge[data-area="Logístico"]       { background: #EDE9FE; color: #5B21B6; }
@@ -3266,8 +3266,8 @@ watch(modalCotizacionExitosa, (val) => {
   line-height: 1.5;
 }
 .nota-textarea:focus {
-  border-color: #054EAF;
-  box-shadow: 0 0 0 2px rgba(5, 78, 175, 0.12);
+  border-color: #27C8D8;
+  box-shadow: 0 0 0 2px rgba(39,200,216, 0.12);
 }
 .nota-textarea::placeholder { color: #94A3B8; }
 
@@ -3280,14 +3280,14 @@ watch(modalCotizacionExitosa, (val) => {
   font-size: 13px;
   font-weight: 600;
   font-family: 'Inter', sans-serif;
-  background: #054EAF;
+  background: #27C8D8;
   color: white;
   border: none;
   border-radius: 10px;
   cursor: pointer;
   transition: background 0.15s, opacity 0.15s;
 }
-.nota-add-btn:hover:not(:disabled) { background: #03368A; }
+.nota-add-btn:hover:not(:disabled) { background: #1BAEBB; }
 .nota-add-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* ═══════════════════════════════════════════════════════════
@@ -3386,12 +3386,12 @@ watch(modalCotizacionExitosa, (val) => {
 }
 
 .modal-btn--primary {
-  background: #054EAF;
+  background: #27C8D8;
   color: #FFFFFF;
-  box-shadow: 0 2px 8px rgba(5, 78, 175, 0.18);
+  box-shadow: 0 2px 8px rgba(39,200,216, 0.18);
 }
 
 .modal-btn--primary:hover {
-  background: #03368A;
+  background: #1BAEBB;
 }
 </style>

@@ -266,7 +266,7 @@ const fmtDate = (iso) =>
 /* Status badge */
 .mfe-status-badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
 .badge-yellow { background: #FEFCE8; color: #854D0E; }
-.badge-blue   { background: #EFF6FF; color: #1D4ED8; }
+.badge-blue   { background: #E0F9FA; color: #27C8D8; }
 .badge-green  { background: #F0FDF4; color: #166534; }
 .badge-orange { background: #FFF7ED; color: #C2410C; }
 .badge-gray   { background: #F1F5F9; color: #64748B; }
@@ -295,13 +295,13 @@ const fmtDate = (iso) =>
   position: relative;
 }
 
-.mfe-step--done .mfe-circle   { background: #054EAF; color: #fff; }
-.mfe-step--active .mfe-circle  { background: #fff; border: 2px solid #054EAF; color: #054EAF; }
+.mfe-step--done .mfe-circle   { background: #27C8D8; color: #fff; }
+.mfe-step--active .mfe-circle  { background: #fff; border: 2px solid #27C8D8; color: #27C8D8; }
 .mfe-step--pending .mfe-circle { background: #F1F5F9; border: 2px solid #E2E8F0; color: #94A3B8; }
 
 .mfe-pulse-dot {
   width: 8px; height: 8px; border-radius: 50%;
-  background: #054EAF;
+  background: #27C8D8;
   animation: pulse-step .9s ease-in-out infinite;
 }
 @keyframes pulse-step {
@@ -317,7 +317,7 @@ const fmtDate = (iso) =>
   white-space: nowrap;
   font-family: 'Inter',sans-serif;
 }
-.mfe-step--done .mfe-step-label   { color: #054EAF; }
+.mfe-step--done .mfe-step-label   { color: #27C8D8; }
 .mfe-step--active .mfe-step-label  { color: #0F1A2E; font-weight: 700; }
 
 .mfe-step-date { font-size: 9px; color: #94A3B8; text-align: center; white-space: nowrap; }
@@ -329,7 +329,7 @@ const fmtDate = (iso) =>
   min-width: 16px;
   transition: background .3s;
 }
-.mfe-connector--filled { background: #054EAF; }
+.mfe-connector--filled { background: #27C8D8; }
 
 /* Progress bar */
 .mfe-prog-block { display: flex; flex-direction: column; gap: 8px; }
@@ -347,14 +347,14 @@ const fmtDate = (iso) =>
 
 .fill-red   { background: linear-gradient(90deg, #F97316, #EF4444); }
 .fill-amber { background: linear-gradient(90deg, #F59E0B, #EAB308); }
-.fill-blue  { background: linear-gradient(90deg, #3B82F6, #054EAF); }
+.fill-blue  { background: linear-gradient(90deg, #27C8D8, #27C8D8); }
 .fill-green { background: linear-gradient(90deg, #22C55E, #16A34A); }
 .mfe-fill--complete { animation: pulse-green 1.5s ease-in-out 2; }
 @keyframes pulse-green { 0%,100% { opacity: 1; } 50% { opacity: .75; } }
 
 .pct-red   { color: #EF4444; }
 .pct-amber { color: #D97706; }
-.pct-blue  { color: #054EAF; }
+.pct-blue  { color: #27C8D8; }
 .pct-green { color: #16A34A; }
 
 /* Indicators */
@@ -382,12 +382,12 @@ const fmtDate = (iso) =>
 .mfe-ind-weight { font-size: 11px; font-weight: 700; color: #94A3B8; font-family: 'JetBrains Mono',monospace; }
 
 .mfe-cta {
-  padding: 4px 12px; background: #EBF3FC; color: #054EAF;
+  padding: 4px 12px; background: #F0FAFB; color: #27C8D8;
   border: none; border-radius: 6px;
   font-size: 11px; font-weight: 600; font-family: 'Inter',sans-serif;
   cursor: pointer; transition: all .15s; white-space: nowrap;
 }
-.mfe-cta:hover { background: #054EAF; color: #fff; }
+.mfe-cta:hover { background: #27C8D8; color: #fff; }
 
 .mfe-nodata { font-size: 11px; color: #94A3B8; font-style: italic; white-space: nowrap; }
 

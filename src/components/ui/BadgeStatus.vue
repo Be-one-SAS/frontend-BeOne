@@ -80,8 +80,8 @@ const variant = computed(() => resolved.value.variant)
 .badge-green .badge-dot { background: #22C55E; }
 
 /* ── Blue ──────────── */
-.badge-blue { background: #DBEAFE; color: #1D4ED8; }
-.badge-blue .badge-dot { background: #3B82F6; }
+.badge-blue { background: #CCEFF2; color: #27C8D8; }
+.badge-blue .badge-dot { background: #27C8D8; }
 
 /* ── Amber ─────────── */
 .badge-amber { background: #FEF3C7; color: #B45309; }

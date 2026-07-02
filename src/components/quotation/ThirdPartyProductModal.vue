@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch, nextTick } from 'vue'
+import { formatCOP } from '@/utils/currency.js'
 import {
   Package, X, Save,
   Cpu, Zap, Truck, Clock, DollarSign,
@@ -51,8 +52,7 @@ const cotizacion = computed(() => {
   return { precioVenta, costoTotal, iva, cuatroXmil, comision, renta, gastosFinancieros, gastosAdministrativos, utilidadFinal }
 })
 
-const formatMoney = (val) =>
-  new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(val || 0)
+const formatMoney = (val) => formatCOP(val || 0)
 
 /* ────────────────────────────────────────────────────
    IMAGE PREVIEW
@@ -434,7 +434,7 @@ watch(() => props.show, (val) => {
 .tp-panel {
   background: #FFFFFF;
   border-radius: var(--r-2xl, 24px);
-  box-shadow: var(--shadow-modal, 0 8px 40px rgba(5,78,175,.14));
+  box-shadow: var(--shadow-modal, 0 8px 40px rgba(39,200,216,.14));
   width: 100%;
   max-width: 720px;
   max-height: 90vh;
@@ -450,7 +450,7 @@ watch(() => props.show, (val) => {
   justify-content: space-between;
   gap: 12px;
   padding: 20px 24px 18px;
-  border-bottom: 1px solid #EBF3FC;
+  border-bottom: 1px solid #F0FAFB;
   flex-shrink: 0;
 }
 
@@ -464,8 +464,8 @@ watch(() => props.show, (val) => {
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: #EEF4FF;
-  color: #054EAF;
+  background: #E0F9FA;
+  color: #27C8D8;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -523,7 +523,7 @@ watch(() => props.show, (val) => {
 /* ─── Cards (section containers) ──────────────────────────── */
 .tp-card {
   background: #FFFFFF;
-  border: 1px solid #EBF3FC;
+  border: 1px solid #F0FAFB;
   border-radius: var(--r-lg, 12px);
   padding: 18px 20px;
   display: flex;
@@ -533,7 +533,7 @@ watch(() => props.show, (val) => {
 
 .tp-card--fin {
   background: #F8FBFF;
-  border-color: #DBEAFE;
+  border-color: #CCEFF2;
 }
 
 /* ─── Section header ───────────────────────────────────────── */
@@ -546,11 +546,11 @@ watch(() => props.show, (val) => {
   font-weight: 600;
   color: #0F1A2E;
   padding-bottom: 10px;
-  border-bottom: 1px solid #EBF3FC;
+  border-bottom: 1px solid #F0FAFB;
 }
 
 .tp-ico {
-  color: #054EAF;
+  color: #27C8D8;
   flex-shrink: 0;
 }
 
@@ -618,8 +618,8 @@ watch(() => props.show, (val) => {
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .finp:focus {
-  border-color: #054EAF;
-  box-shadow: 0 0 0 3px rgba(5, 78, 175, 0.1);
+  border-color: #27C8D8;
+  box-shadow: 0 0 0 3px rgba(39,200,216, 0.1);
 }
 .finp::placeholder { color: #94A3B8; }
 
@@ -639,8 +639,8 @@ watch(() => props.show, (val) => {
   min-height: 72px;
 }
 .f-textarea:focus {
-  border-color: #054EAF;
-  box-shadow: 0 0 0 3px rgba(5, 78, 175, 0.1);
+  border-color: #27C8D8;
+  box-shadow: 0 0 0 3px rgba(39,200,216, 0.1);
 }
 .f-textarea::placeholder { color: #94A3B8; }
 
@@ -681,7 +681,7 @@ watch(() => props.show, (val) => {
   padding: 0;
 }
 .tgl--on {
-  background: #054EAF;
+  background: #27C8D8;
 }
 .tgl-thumb {
   position: absolute;
@@ -728,8 +728,8 @@ watch(() => props.show, (val) => {
 .fin-pill--green { border-color: #BBF7D0; }
 .fin-pill--green .fin-val { color: #16A34A; }
 
-.fin-pill--blue  { border-color: #BFDBFE; }
-.fin-pill--blue  .fin-val { color: #1D4ED8; }
+.fin-pill--blue  { border-color: #A7EEF5; }
+.fin-pill--blue  .fin-val { color: #27C8D8; }
 
 .fin-pill--yellow { border-color: #FDE68A; }
 .fin-pill--yellow .fin-val { color: #B45309; }
@@ -769,7 +769,7 @@ watch(() => props.show, (val) => {
   justify-content: flex-end;
   gap: 10px;
   padding: 16px 24px;
-  border-top: 1px solid #EBF3FC;
+  border-top: 1px solid #F0FAFB;
   flex-shrink: 0;
   background: #FFFFFF;
 }
@@ -801,14 +801,14 @@ watch(() => props.show, (val) => {
   font-family: 'Inter', sans-serif;
   border-radius: 8px;
   border: none;
-  background: #054EAF;
+  background: #27C8D8;
   color: #FFFFFF;
   cursor: pointer;
-  box-shadow: var(--shadow-btn, 0 2px 8px rgba(5,78,175,.18));
+  box-shadow: var(--shadow-btn, 0 2px 8px rgba(39,200,216,.18));
   transition: background 0.15s, box-shadow 0.15s;
 }
 .tp-btn-primary:hover {
-  background: #03368A;
+  background: #1BAEBB;
 }
 
 /* ─── Transition ───────────────────────────────────────────── */

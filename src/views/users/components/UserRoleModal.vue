@@ -69,7 +69,7 @@
 
                   <!-- Check -->
                   <div v-if="selectedRole === rol.key" class="role-check">
-                    <CheckCircle2 :size="16" color="#054EAF" />
+                    <CheckCircle2 :size="16" color="#27C8D8" />
                   </div>
                 </button>
               </div>
@@ -142,8 +142,8 @@ const ROLE_CONFIG = [
   {
     key:         'ADMINISTRADOR',
     icon:        UserCog,
-    iconBg:      '#DBEAFE',
-    iconColor:   '#1D4ED8',
+    iconBg:      '#CCEFF2',
+    iconColor:   '#27C8D8',
     description: 'Gestión comercial y operativa',
   },
   {
@@ -192,7 +192,7 @@ const ROLE_CONFIG = [
 
 const ROLE_BADGE = {
   ADMIN:         'bg-[#FEE2E2] text-[#B91C1C]',
-  ADMINISTRADOR: 'bg-[#DBEAFE] text-[#1D4ED8]',
+  ADMINISTRADOR: 'bg-[#CCEFF2] text-[#27C8D8]',
   DIRECCION:     'bg-[#EDE9FE] text-[#7C3AED]',
   LIDER:         'bg-[#DCFCE7] text-[#16A34A]',
   SUPERVISOR:    'bg-[#FEF3C7] text-[#B45309]',
@@ -202,7 +202,7 @@ const ROLE_BADGE = {
 }
 
 // ── Avatar helpers ────────────────────────────────────
-const AVATAR_COLORS = ['#054EAF', '#7C3AED', '#B45309', '#B91C1C', '#16A34A', '#0891B2', '#C2410C']
+const AVATAR_COLORS = ['#27C8D8', '#7C3AED', '#B45309', '#B91C1C', '#16A34A', '#27C8D8', '#C2410C']
 const getAvatarColor = (name) => AVATAR_COLORS[(name?.charCodeAt(0) ?? 0) % AVATAR_COLORS.length]
 const getInitials = (name) =>
   (name ?? '').trim().split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
@@ -392,9 +392,9 @@ const asignar = () => {
 }
 
 .role-card-selected {
-  border-color: #054EAF !important;
-  background: #EBF3FC !important;
-  box-shadow: 0 0 0 1px #054EAF;
+  border-color: #27C8D8 !important;
+  background: #F0FAFB !important;
+  box-shadow: 0 0 0 1px #27C8D8;
 }
 
 .role-card-icon {
@@ -478,7 +478,7 @@ const asignar = () => {
   justify-content: flex-end;
   gap: 10px;
   padding-top: 4px;
-  border-top: 1px solid #EBF3FC;
+  border-top: 1px solid #F0FAFB;
 }
 
 .btn-ghost {
@@ -501,7 +501,7 @@ const asignar = () => {
   align-items: center;
   gap: 6px;
   padding: 8px 20px;
-  background: #054EAF;
+  background: #27C8D8;
   color: #FFFFFF;
   border: none;
   border-radius: 10px;
@@ -509,11 +509,11 @@ const asignar = () => {
   font-weight: 600;
   font-family: 'Inter', sans-serif;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(5, 78, 175, 0.22);
+  box-shadow: 0 2px 8px rgba(39,200,216, 0.22);
   transition: background 0.15s;
 }
 
-.btn-assign:hover:not(:disabled) { background: #03368A; }
+.btn-assign:hover:not(:disabled) { background: #1BAEBB; }
 
 .btn-assign:disabled {
   opacity: 0.4;

@@ -1,8 +1,12 @@
 // router/index.ts
 import { createRouter, createWebHistory } from 'vue-router'
-import MainLayout    from '../components/layout/MainLayout.vue'
-import LoginPage     from '../views/authentication/LoginPage.vue'
-import { useAuth }   from '../composables/useAuth'
+import MainLayout       from '../components/layout/MainLayout.vue'
+import LoginPage        from '../views/authentication/LoginPage.vue'
+import { useAuth }      from '../composables/useAuth'
+import NotFound         from '../views/NotFound.vue'
+import MaintenancePage  from '../views/MaintenancePage.vue'
+
+const MAINTENANCE_MODE = import.meta.env.VITE_MAINTENANCE_MODE === 'true'
 
 // ─────────────────────────────────────────────────────────
 // Imports estáticos (rutas principales — siempre cargadas)
@@ -22,6 +26,14 @@ import Tareas           from '../views/admin/Tareas.vue'
 import Unauthorized     from '../views/Unauthorized.vue'
 
 const routes = [
+
+  // ── Mantenimiento (pública, intercepta todo cuando está activo) ──
+  {
+    path: '/maintenance',
+    name: 'Maintenance',
+    component: MaintenancePage,
+    meta: { public: true },
+  },
 
   // ── Sin autorización ──────────────────────────────────
   {
@@ -90,7 +102,7 @@ const routes = [
         component: DashboardPage,
         meta: {
           requiresAuth: true,
-          roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'],
+          roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR'],
         },
       },
 
@@ -99,7 +111,7 @@ const routes = [
         path: 'admin/cotizar/:id?',
         name: 'Cotizar',
         component: Cotizar,
-        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'LIDER'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'LIDER', 'COORDINADOR'] },
       },
       {
         path: 'admin/ver-cotizaciones',
@@ -111,7 +123,7 @@ const routes = [
         path: 'customer/customer',
         name: 'Clientes',
         component: Customer,
-        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'COORDINADOR'] },
       },
       {
         path: 'suppliers/suppliers',
@@ -123,7 +135,7 @@ const routes = [
         path: 'customer/price',
         name: 'ListPrice',
         component: PriceList,
-        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'LIDER'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'LIDER', 'COORDINADOR'] },
       },
 
       // ── Productos ──────────────────────────────────────
@@ -131,13 +143,13 @@ const routes = [
         path: 'products',
         name: 'Productos',
         component: Products,
-        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR'] },
       },
       {
         path: 'products/no-propios',
         name: 'ProductosNoPropios',
         component: ProductsNoPropios,
-        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR'] },
       },
 
       // ── Control Operativo ──────────────────────────────
@@ -145,7 +157,7 @@ const routes = [
         path: 'admin/control',
         name: 'Control',
         component: () => import('../views/admin/Control.vue'),
-        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO'] },
       },
 
       // ── Operativo ──────────────────────────────────────
@@ -153,19 +165,19 @@ const routes = [
         path: 'operativa/reporte',
         name: 'Reporte',
         component: Reporte,
-        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO'] },
       },
       {
         path: 'operativa/turnos',
         name: 'RegistroTurno',
         component: () => import('../views/operativa/RegistroTurno.vue'),
-        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICA'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO'] },
       },
       {
         path: 'operativa/checkins',
         name: 'CheckIns',
         component: () => import('../views/operativa/CheckIns.vue'),
-        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO'] },
       },
       {
         path: 'operativa/checkins/admin',
@@ -193,13 +205,13 @@ const routes = [
         path: 'operativa/montajes',
         name: 'Montajes',
         component: () => import('../views/operativa/Montajes.vue'),
-        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO'] },
       },
       {
         path: 'operativa/ordenes-compra',
         name: 'OrdenesCompra',
         component: () => import('../views/operativa/OrdenesCompra.vue'),
-        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'LIDER'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'LIDER', 'OPERATIVO'] },
       },
       {
         path: 'operativa/equipos',
@@ -251,6 +263,12 @@ const routes = [
         component: () => import('../views/administracion/AdminOrdenesCompra.vue'),
         meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
       },
+      {
+        path: 'administracion/movimientos',
+        name: 'AdminMovimientos',
+        component: () => import('../views/administracion/AdminMovimientos.vue'),
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
+      },
 
       // ── Usuarios ───────────────────────────────────────
       {
@@ -284,11 +302,11 @@ const routes = [
         path: 'configuracion',
         name: 'Configuracion',
         component: () => import('../views/configuracion/Configuracion.vue'),
-        meta: { roles: ['ADMIN'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR'] },
       },
       {
-        path: 'configuracion/sedes',
-        name: 'Sedes',
+        path: 'configuracion/unidades-ejecucion',
+        name: 'UnidadesEjecucion',
         component: () => import('../views/configuracion/Sedes.vue'),
         meta: { roles: ['ADMIN', 'DIRECCION', 'ADMINISTRADOR'] },
       },
@@ -296,7 +314,7 @@ const routes = [
         path: 'materiales',
         name: 'Materiales',
         component: () => import('../views/materiales/Materiales.vue'),
-        meta: { roles: ['ADMIN', 'SUPERVISOR'] },
+        meta: { roles: ['ADMIN', 'SUPERVISOR', 'COORDINADOR'] },
       },
 
       // ── Perfil del usuario ──────────────────────────────
@@ -307,6 +325,14 @@ const routes = [
         meta: { requiresAuth: true },
       },
     ],
+  },
+
+  // ── 404 — debe ir al final para capturar cualquier ruta no definida ──
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: NotFound,
+    meta: { public: true },
   },
 ]
 
@@ -323,7 +349,12 @@ const router = createRouter({
 const { isAuthenticated, user } = useAuth()
 
 router.beforeEach((to, _from, next) => {
-  // 0. Ruta pública (ej: /scan/:token) — pasa siempre
+  // 0a. Modo mantenimiento — redirige todo excepto /maintenance y rutas públicas de operación
+  if (MAINTENANCE_MODE && to.name !== 'Maintenance') {
+    return next('/maintenance')
+  }
+
+  // 0b. Ruta pública (ej: /scan/:token, /checklist/:id) — pasa siempre
   if (to.meta.public) return next()
 
   // 1. Ruta protegida sin sesión → redirige al login

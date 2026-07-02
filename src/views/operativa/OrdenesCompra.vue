@@ -131,6 +131,14 @@
                 {{ oc.responsableRecepcion }}
               </div>
             </div>
+
+            <!-- Botón confirmar recepción (solo OCs aprobadas) -->
+            <div v-if="oc.estado === 'APROBADA'" class="oc-confirm-wrap" @click.stop>
+              <button class="oc-confirm-btn" @click.stop="confirmarRecepcion(oc)" :disabled="oc._saving">
+                <CheckCircle2 :size="13" />
+                Confirmar recepción
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -145,7 +153,18 @@
               <h3 class="oc-detail-num">{{ detailOC.numero }}</h3>
               <span class="oc-badge" :class="`oc-badge-${detailOC.estado.toLowerCase()}`">{{ detailOC.estado }}</span>
             </div>
-            <button class="oc-detail-close" @click="detailOC = null"><X :size="20" /></button>
+            <div style="display:flex;align-items:center;gap:8px">
+              <button
+                v-if="detailOC.estado === 'APROBADA'"
+                class="oc-detail-confirm-btn"
+                @click="confirmarRecepcionModal"
+                :disabled="detailOC._saving"
+              >
+                <CheckCircle2 :size="13" />
+                Confirmar recepción
+              </button>
+              <button class="oc-detail-close" @click="detailOC = null"><X :size="20" /></button>
+            </div>
           </div>
           <div class="oc-detail-body">
             <!-- Evento -->
@@ -194,9 +213,10 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { formatCOP } from '@/utils/currency.js'
 import {
   RefreshCw, Search, ChevronDown, Check, AlertCircle,
-  ShoppingCart, Calendar, Clock, User, Building2, Package, X,
+  ShoppingCart, Calendar, Clock, User, Building2, Package, X, CheckCircle2,
 } from 'lucide-vue-next'
 import { getOrdenesCompra, updateOrdenCompraEstado } from '@/services/ordenes-compra.service.js'
 
@@ -207,10 +227,7 @@ function fmtDate(d) {
   if (!d) return '—'
   return new Date(d).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
 }
-function fmtMoney(n) {
-  if (n == null) return '—'
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n)
-}
+function fmtMoney(n) { return n == null ? '—' : formatCOP(n) }
 
 // ── State ─────────────────────────────────────────────────
 const loading    = ref(false)
@@ -298,6 +315,30 @@ async function changeEstado(oc, newEstado) {
   }
 }
 
+// ── Confirmar recepción ───────────────────────────────────
+async function confirmarRecepcion(oc) {
+  if (!confirm(`¿Confirmar que se recibió la OC ${oc.numero} del proveedor ${oc.proveedorNombre}?`)) return
+  await changeEstado(oc, 'RECIBIDA')
+}
+
+async function confirmarRecepcionModal() {
+  const oc = detailOC.value
+  if (!oc) return
+  if (!confirm(`¿Confirmar que se recibió la OC ${oc.numero} del proveedor ${oc.proveedorNombre}?`)) return
+  oc._saving = true
+  const prev = oc.estado
+  oc.estado = 'RECIBIDA'
+  try {
+    await updateOrdenCompraEstado(oc.id, 'RECIBIDA')
+    const inList = allOCs.value.find(o => o.id === oc.id)
+    if (inList) inList.estado = 'RECIBIDA'
+  } catch {
+    oc.estado = prev
+  } finally {
+    oc._saving = false
+  }
+}
+
 // ── Detail ────────────────────────────────────────────────
 function openDetail(oc) { detailOC.value = oc }
 </script>
@@ -337,7 +378,7 @@ function openDetail(oc) { detailOC.value = oc }
   font-size: 13px; font-family: 'Inter', sans-serif; color: #0F172A;
   background: #fff; outline: none; box-sizing: border-box; transition: border-color 0.15s;
 }
-.oc-input:focus { border-color: #054EAF; }
+.oc-input:focus { border-color: #27C8D8; }
 
 /* Estado multi-select */
 .oc-estado-wrap { position: relative; }
@@ -352,31 +393,31 @@ function openDetail(oc) { detailOC.value = oc }
 .oc-estado-drop {
   position: absolute; top: calc(100% + 4px); left: 0; z-index: 100;
   background: #fff; border: 1.5px solid #E2E8F0; border-radius: 10px;
-  box-shadow: 0 6px 20px rgba(5,78,175,.1); padding: 5px; min-width: 160px;
+  box-shadow: 0 6px 20px rgba(39,200,216,.1); padding: 5px; min-width: 160px;
 }
 .oc-estado-opt {
   display: flex; align-items: center; gap: 8px; padding: 7px 8px;
   border-radius: 7px; cursor: pointer; transition: background 0.1s;
 }
 .oc-estado-opt:hover { background: #F8FAFC; }
-.oc-estado-opt.sel { background: #EBF3FC; }
+.oc-estado-opt.sel { background: #F0FAFB; }
 .oc-opt-check {
   width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid #CBD5E1;
-  display: flex; align-items: center; justify-content: center; color: #054EAF;
+  display: flex; align-items: center; justify-content: center; color: #27C8D8;
 }
 .oc-clear { width: 100%; margin-top: 3px; padding: 5px; border: none; background: none; color: #EF4444; font-size: 12px; cursor: pointer; border-radius: 6px; }
 .oc-clear:hover { background: #FEF2F2; }
 
 /* Estado badges */
 .oc-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; }
-.oc-badge-emitida  { background: #EFF6FF; color: #1D4ED8; }
+.oc-badge-emitida  { background: #E0F9FA; color: #27C8D8; }
 .oc-badge-aprobada { background: #F0FDF4; color: #166534; }
 .oc-badge-recibida { background: #1E293B; color: #F1F5F9; }
 .oc-badge-cancelada{ background: #FEF2F2; color: #991B1B; }
 
 /* Loading / Error / Empty */
 .oc-loading { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 40px; color: #64748B; font-size: 14px; }
-.oc-spinner { width: 26px; height: 26px; border: 3px solid #E2E8F0; border-top-color: #054EAF; border-radius: 50%; animation: spin 0.8s linear infinite; }
+.oc-spinner { width: 26px; height: 26px; border: 3px solid #E2E8F0; border-top-color: #27C8D8; border-radius: 50%; animation: spin 0.8s linear infinite; }
 .oc-error { display: flex; align-items: center; gap: 8px; padding: 14px; background: #FEF2F2; border-radius: 10px; color: #DC2626; font-size: 13px; }
 .oc-error button { margin-left: auto; padding: 4px 10px; border: 1px solid #DC2626; border-radius: 6px; background: none; color: #DC2626; cursor: pointer; font-size: 12px; }
 .oc-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 48px; color: #94A3B8; font-size: 14px; }
@@ -384,14 +425,14 @@ function openDetail(oc) { detailOC.value = oc }
 
 /* Groups */
 .oc-groups { display: flex; flex-direction: column; gap: 16px; }
-.oc-group { background: #fff; border-radius: 16px; box-shadow: 0 1px 4px rgba(5,78,175,.06), 0 2px 8px rgba(5,78,175,.06); overflow: hidden; }
+.oc-group { background: #fff; border-radius: 16px; box-shadow: 0 1px 4px rgba(39,200,216,.06), 0 2px 8px rgba(39,200,216,.06); overflow: hidden; }
 
 .oc-group-head {
   display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
   padding: 14px 18px; background: #F8FAFC; border-bottom: 1.5px solid #E2E8F0;
 }
 .oc-group-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.oc-group-num { font-size: 11px; font-weight: 700; color: #054EAF; }
+.oc-group-num { font-size: 11px; font-weight: 700; color: #27C8D8; }
 .oc-group-name { font-size: 14px; font-weight: 700; color: #0F172A; }
 .oc-group-desc { font-size: 12px; color: #64748B; }
 .oc-group-right { display: flex; align-items: center; gap: 10px; }
@@ -412,7 +453,7 @@ function openDetail(oc) { detailOC.value = oc }
 
 .oc-card-top { display: flex; align-items: center; justify-content: space-between; }
 .oc-card-left { display: flex; align-items: center; gap: 8px; }
-.oc-card-numero { font-size: 13px; font-weight: 700; color: #054EAF; }
+.oc-card-numero { font-size: 13px; font-weight: 700; color: #27C8D8; }
 .oc-card-right { display: flex; align-items: center; gap: 8px; }
 
 .oc-estado-ctrl { display: flex; align-items: center; gap: 6px; }
@@ -421,8 +462,8 @@ function openDetail(oc) { detailOC.value = oc }
   font-size: 12px; font-family: 'Inter', sans-serif; color: #374151;
   background: #F8FAFC; outline: none; cursor: pointer;
 }
-.oc-estado-select:focus { border-color: #054EAF; }
-.oc-saving-dot { width: 7px; height: 7px; border-radius: 50%; background: #054EAF; animation: blink 0.8s alternate infinite; }
+.oc-estado-select:focus { border-color: #27C8D8; }
+.oc-saving-dot { width: 7px; height: 7px; border-radius: 50%; background: #27C8D8; animation: blink 0.8s alternate infinite; }
 @keyframes blink { from { opacity: 1 } to { opacity: 0.2 } }
 
 .oc-card-body { display: flex; flex-wrap: wrap; gap: 8px 16px; }
@@ -472,6 +513,30 @@ function openDetail(oc) { detailOC.value = oc }
 .oc-detail-row { display: flex; gap: 12px; font-size: 13px; }
 .oc-detail-label { font-weight: 600; color: #64748B; min-width: 100px; flex-shrink: 0; }
 .oc-detail-total { font-weight: 700; color: #0F172A; }
+
+/* Confirmar recepción */
+.oc-confirm-wrap { padding-top: 6px; border-top: 1px solid #F1F5F9; }
+.oc-confirm-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; padding: 7px 12px;
+  background: #E0F9FA; border: 1.5px solid #27C8D8;
+  border-radius: 8px; font-size: 12px; font-weight: 700; color: #0F7A89;
+  cursor: pointer; transition: background .15s, filter .15s;
+  font-family: 'Inter', sans-serif;
+}
+.oc-confirm-btn:hover:not(:disabled) { background: #A7EEF5; }
+.oc-confirm-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.oc-detail-confirm-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 12px;
+  background: #27C8D8; border: none;
+  border-radius: 8px; font-size: 12px; font-weight: 700; color: #fff;
+  cursor: pointer; transition: background .15s;
+  font-family: 'Inter', sans-serif;
+}
+.oc-detail-confirm-btn:hover:not(:disabled) { background: #1BAEBB; }
+.oc-detail-confirm-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Transition */
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }

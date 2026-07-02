@@ -120,9 +120,9 @@
 
                 <!-- Sede -->
                 <div class="field-wrap">
-                  <label class="field-lbl">Sede <span class="optional">(opcional)</span></label>
+                  <label class="field-lbl">Unidad de Ejecución <span class="optional">(opcional)</span></label>
                   <select v-model="form.sedeId" class="field-input">
-                    <option :value="null">— Sin sede asignada —</option>
+                    <option :value="null">— Sin unidad asignada —</option>
                     <option v-for="s in sedes" :key="s.id" :value="s.id">
                       {{ s.nombre }} · {{ s.ciudad }}
                     </option>
@@ -238,9 +238,9 @@ const ROLE_BADGE = {
   ADMIN:         'bg-[#FEE2E2] text-[#B91C1C]',
   ADMINISTRADOR: 'bg-[#FEF3C7] text-[#B45309]',
   DIRECCION:     'bg-[#FCE7F3] text-[#BE185D]',
-  LIDER:         'bg-[#DBEAFE] text-[#1D4ED8]',
+  LIDER:         'bg-[#CCEFF2] text-[#27C8D8]',
   SUPERVISOR:    'bg-[#EDE9FE] text-[#7C3AED]',
-  COORDINADOR:   'bg-[#E0F2FE] text-[#0369A1]',
+  COORDINADOR:   'bg-[#E0F2FE] text-[#138E9C]',
   LOGISTICO:     'bg-[#DCFCE7] text-[#16A34A]',
   OPERATIVO:     'bg-[#D1FAE5] text-[#065F46]',
 }
@@ -431,7 +431,7 @@ const guardar = () => {
   font-family: 'Inter', sans-serif;
 }
 
-.badge-create { background: #DBEAFE; color: #1D4ED8; }
+.badge-create { background: #CCEFF2; color: #27C8D8; }
 .badge-edit   { background: #FEF3C7; color: #B45309; }
 
 .btn-close {
@@ -487,8 +487,8 @@ const guardar = () => {
 }
 
 .field-input:focus {
-  border-color: #054EAF;
-  box-shadow: 0 0 0 2px rgba(5, 78, 175, 0.1);
+  border-color: #27C8D8;
+  box-shadow: 0 0 0 2px rgba(39,200,216, 0.1);
 }
 
 .field-input.field-error {
@@ -515,7 +515,7 @@ const guardar = () => {
   transition: border-color 0.15s;
 }
 
-.field-textarea:focus { border-color: #054EAF; }
+.field-textarea:focus { border-color: #27C8D8; }
 
 .err-msg {
   font-size: 11px;
@@ -632,7 +632,7 @@ const guardar = () => {
   gap: 10px;
   margin-top: 20px;
   padding-top: 16px;
-  border-top: 1px solid #EBF3FC;
+  border-top: 1px solid #F0FAFB;
 }
 
 .btn-ghost {
@@ -655,7 +655,7 @@ const guardar = () => {
   align-items: center;
   gap: 6px;
   padding: 8px 20px;
-  background: #054EAF;
+  background: #27C8D8;
   color: #FFFFFF;
   border: none;
   border-radius: 10px;
@@ -664,10 +664,10 @@ const guardar = () => {
   font-family: 'Inter', sans-serif;
   cursor: pointer;
   transition: background 0.15s;
-  box-shadow: 0 2px 8px rgba(5, 78, 175, 0.22);
+  box-shadow: 0 2px 8px rgba(39,200,216, 0.22);
 }
 
-.btn-save:hover:not(:disabled) { background: #03368A; }
+.btn-save:hover:not(:disabled) { background: #1BAEBB; }
 
 .btn-save:disabled {
   opacity: 0.45;

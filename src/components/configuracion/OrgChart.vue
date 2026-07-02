@@ -40,7 +40,7 @@ const GAP_H  = 18   // min horizontal gap between nodes
 const PAD    = 24   // canvas horizontal padding
 
 // ── Palette ───────────────────────────────────────────────────────
-const PALETTE = ['#054EAF','#0369A1','#0F766E','#6D28D9','#BE185D','#D97706','#047857','#B45309']
+const PALETTE = ['#27C8D8','#138E9C','#0F766E','#6D28D9','#BE185D','#D97706','#047857','#B45309']
 const rgba = (hex, a) => {
   const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16)
   return `rgba(${r},${g},${b},${a})`
@@ -191,13 +191,13 @@ function drawRoot(ctx, n, p) {
   ctx.translate(n.x, n.y)
   ctx.scale(hs, hs)
 
-  ctx.shadowColor   = 'rgba(5,78,175,0.28)'
+  ctx.shadowColor   = 'rgba(39,200,216,0.28)'
   ctx.shadowBlur    = hovered === n.id ? 20 : 10
   ctx.shadowOffsetY = 3
 
   const g = ctx.createLinearGradient(-ROOT_W/2, -ROOT_H/2, ROOT_W/2, ROOT_H/2)
   g.addColorStop(0, '#0F1A2E')
-  g.addColorStop(1, '#054EAF')
+  g.addColorStop(1, '#27C8D8')
   rr(ctx, -ROOT_W/2, -ROOT_H/2, ROOT_W, ROOT_H, 14)
   ctx.fillStyle = g; ctx.fill()
   ctx.shadowColor = 'transparent'
@@ -404,7 +404,7 @@ watch(() => props.sedes, async () => {
 .orgchart-wrap {
   position: relative;
   width: 100%;
-  background: linear-gradient(145deg, #F8FAFC 0%, #EFF6FF 100%);
+  background: linear-gradient(145deg, #F8FAFC 0%, #E0F9FA 100%);
   border-radius: 16px;
   border: 1px solid #E2E8F0;
   overflow: hidden;

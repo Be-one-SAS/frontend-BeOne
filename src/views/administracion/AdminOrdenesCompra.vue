@@ -497,6 +497,52 @@
       </div>
     </div><!-- /oc-split -->
 
+    <!-- ── Apartado: Órdenes Cumplidas ──────────────────── -->
+    <div v-if="ocsCumplidas.length" class="oc-cumplidas-section">
+      <div class="oc-cumplidas-header">
+        <div class="oc-cumplidas-title">
+          <CheckCircle2 :size="16" style="color:#27C8D8" />
+          Órdenes de Compra Cumplidas
+          <span class="oc-cumplidas-count">{{ ocsCumplidas.length }}</span>
+        </div>
+        <span class="oc-cumplidas-sub">Proveedores que ya realizaron la entrega</span>
+      </div>
+      <div class="oc-cumplidas-table-wrap">
+        <table class="oc-cumplidas-table">
+          <thead>
+            <tr>
+              <th>Número OC</th>
+              <th>Proveedor</th>
+              <th>Evento</th>
+              <th>Cliente</th>
+              <th>Descripción</th>
+              <th>Total OC</th>
+              <th>Fecha recibida</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="oc in ocsCumplidas"
+              :key="oc.id"
+              class="oc-cumplidas-row"
+              @click="selectOC(oc); setLeftPanel('ordenes'); setTab('RECIBIDA')"
+            >
+              <td class="oc-cumplidas-numero">
+                <CheckCircle2 :size="12" style="color:#27C8D8;flex-shrink:0" />
+                {{ oc.numero }}
+              </td>
+              <td class="oc-cumplidas-proveedor">{{ oc.proveedorNombre }}</td>
+              <td class="oc-cumplidas-evento">{{ oc.quotation?.description || oc.quotation?.empresa || '—' }}</td>
+              <td>{{ oc.quotation?.cliente?.name || oc.quotation?.empresa || '—' }}</td>
+              <td class="oc-cumplidas-desc">{{ oc.descripcion }}</td>
+              <td class="oc-cumplidas-total">{{ fmtMoney(oc.precioTotal) }}</td>
+              <td class="oc-cumplidas-fecha">{{ fmtDate(oc.updatedAt) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- ── Slide-over: Crear OC ───────────────────────── -->
     <Teleport to="body">
       <Transition name="backdrop-fade">
@@ -677,6 +723,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { formatCOP } from '@/utils/currency.js'
 import {
   Download, Plus, Search, AlertCircle, ShoppingCart,
   X, CalendarDays, Building2, CheckCircle2, XCircle,
@@ -690,7 +737,7 @@ import { getAdminCotizaciones } from '@/services/administracion.service.js'
 const ESTADOS_OC = [
   { value: 'EMITIDA',   label: 'Emitida',   bg: '#FEFCE8', color: '#854D0E' },
   { value: 'APROBADA',  label: 'Aprobada',  bg: '#F0FDF4', color: '#166534' },
-  { value: 'RECIBIDA',  label: 'Recibida',  bg: '#EFF6FF', color: '#1D4ED8' },
+  { value: 'RECIBIDA',  label: 'Recibida',  bg: '#E0F9FA', color: '#27C8D8' },
   { value: 'CANCELADA', label: 'Cancelada', bg: '#FEF2F2', color: '#991B1B' },
 ]
 
@@ -705,7 +752,7 @@ function estadoLabel(val) {
 // Flujo de estado: EMITIDA → APROBADA → RECIBIDA | CANCELADA
 const estadoActions = [
   { next: 'APROBADA',  label: 'Aprobar OC',     from: ['EMITIDA'],             bg: '#F0FDF4', color: '#166534', icon: BadgeCheck },
-  { next: 'RECIBIDA',  label: 'Marcar recibida', from: ['APROBADA'],            bg: '#EFF6FF', color: '#1D4ED8', icon: CheckCircle2 },
+  { next: 'RECIBIDA',  label: 'Marcar recibida', from: ['APROBADA'],            bg: '#E0F9FA', color: '#27C8D8', icon: CheckCircle2 },
   { next: 'CANCELADA', label: 'Cancelar',        from: ['EMITIDA', 'APROBADA'], bg: '#FEF2F2', color: '#991B1B', icon: XCircle },
 ]
 
@@ -718,10 +765,7 @@ function fmtDateShort(d) {
   if (!d) return '—'
   return new Date(d).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
 }
-function fmtMoney(n) {
-  if (!n && n !== 0) return '—'
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n)
-}
+function fmtMoney(n) { return (!n && n !== 0) ? '—' : formatCOP(n) }
 
 // ── STATE ─────────────────────────────────────────────────
 const loading      = ref(false)
@@ -743,6 +787,9 @@ const cotFilter             = ref('pendiente')
 const filters  = ref({ search: '' })
 const formErrors = ref({})
 const modal    = ref({ open: false, oc: {} })
+
+// ── CUMPLIDAS ─────────────────────────────────────────────
+const ocsCumplidas = computed(() => rows.value.filter(r => r.estado === 'RECIBIDA'))
 
 // ── FILTERED LIST ─────────────────────────────────────────
 const filteredRows = computed(() => {
@@ -795,7 +842,7 @@ const listTabs = computed(() => {
     { key: 'TODAS',    label: 'Todas',    count: rows.value.length, badgeStyle: { background: '#F1F5F9', color: '#64748B' } },
     { key: 'EMITIDA',  label: 'Emitidas', count: count('EMITIDA'),  badgeStyle: { background: '#FEFCE8', color: '#854D0E' } },
     { key: 'APROBADA', label: 'Aprobadas',count: count('APROBADA'), badgeStyle: { background: '#F0FDF4', color: '#166534' } },
-    { key: 'RECIBIDA', label: 'Recibidas',count: count('RECIBIDA'), badgeStyle: { background: '#EFF6FF', color: '#1D4ED8' } },
+    { key: 'RECIBIDA', label: 'Recibidas',count: count('RECIBIDA'), badgeStyle: { background: '#E0F9FA', color: '#27C8D8' } },
     { key: 'CANCELADA',label: 'Canceladas',count:count('CANCELADA'),badgeStyle: { background: '#FEF2F2', color: '#991B1B' } },
   ]
 })
@@ -815,8 +862,8 @@ const kpiCards = computed(() => {
     { key: 'TODAS',    label: 'Total OCs',    value: rows.value.length, color: '#0F172A', icon: ShoppingCart, sub: null },
     { key: 'EMITIDA',  label: 'Emitidas',     value: emitidas,          color: '#854D0E', icon: Send,         sub: null },
     { key: 'APROBADA', label: 'Aprobadas',    value: aprobadas,         color: '#166534', icon: BadgeCheck,   sub: null },
-    { key: 'RECIBIDA', label: 'Recibidas',    value: recibidas,         color: '#1D4ED8', icon: CheckCircle2, sub: null },
-    { key: 'total',    label: 'Valor total',  value: fmtMoney(totalVal),color: '#054EAF', icon: Package,      sub: null },
+    { key: 'RECIBIDA', label: 'Recibidas',    value: recibidas,         color: '#27C8D8', icon: CheckCircle2, sub: null },
+    { key: 'total',    label: 'Valor total',  value: fmtMoney(totalVal),color: '#27C8D8', icon: Package,      sub: null },
   ]
 })
 
@@ -1083,11 +1130,11 @@ function exportDetailCSV() {
 /* ── Buttons ─────────────────────────────────────────── */
 .oc-btn-primary {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 16px; background: #054EAF; color: #fff;
+  padding: 8px 16px; background: #27C8D8; color: #fff;
   border: none; border-radius: 10px; font-size: 13px; font-weight: 500;
   cursor: pointer; transition: background 0.15s;
 }
-.oc-btn-primary:hover:not(:disabled) { background: #043d8a; }
+.oc-btn-primary:hover:not(:disabled) { background: #1BAEBB; }
 .oc-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 .oc-btn-ghost {
   display: inline-flex; align-items: center; gap: 6px;
@@ -1109,8 +1156,8 @@ function exportDetailCSV() {
   display: flex; flex-direction: column; gap: 4px;
   cursor: pointer; transition: all 0.15s;
 }
-.oc-kpi:hover { border-color: #BFDBFE; box-shadow: 0 2px 8px rgba(5,78,175,.08); }
-.oc-kpi.active { border-color: #054EAF; background: #F0F7FF; }
+.oc-kpi:hover { border-color: #A7EEF5; box-shadow: 0 2px 8px rgba(39,200,216,.08); }
+.oc-kpi.active { border-color: #27C8D8; background: #F0F7FF; }
 .oc-kpi-top { display: flex; align-items: center; gap: 6px; }
 .oc-kpi-label { font-size: 11px; font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.4px; }
 .oc-kpi-value { font-size: 20px; font-weight: 700; font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -1121,7 +1168,7 @@ function exportDetailCSV() {
   display: flex;
   background: #fff;
   border-radius: 16px;
-  box-shadow: 0 1px 4px rgba(5,78,175,.06), 0 4px 20px rgba(5,78,175,.08);
+  box-shadow: 0 1px 4px rgba(39,200,216,.06), 0 4px 20px rgba(39,200,216,.08);
   overflow: hidden;
   flex: 1;
   min-height: 560px;
@@ -1151,7 +1198,7 @@ function exportDetailCSV() {
   border-bottom: 2px solid transparent; margin-bottom: -1.5px;
 }
 .oc-panel-btn:hover { color: #374151; background: #F8FAFC; }
-.oc-panel-btn.active { color: #054EAF; border-bottom-color: #054EAF; background: #F0F7FF; font-weight: 600; }
+.oc-panel-btn.active { color: #27C8D8; border-bottom-color: #27C8D8; background: #F0F7FF; font-weight: 600; }
 .oc-panel-count {
   font-size: 10px; font-weight: 700;
   padding: 1px 6px; border-radius: 10px;
@@ -1172,7 +1219,7 @@ function exportDetailCSV() {
   background: #fff; outline: none; box-sizing: border-box;
   transition: border-color 0.15s;
 }
-.oc-search-input:focus { border-color: #054EAF; }
+.oc-search-input:focus { border-color: #27C8D8; }
 
 .oc-list-tabs {
   display: flex;
@@ -1190,7 +1237,7 @@ function exportDetailCSV() {
   transition: all 0.12s;
 }
 .oc-list-tab:hover { background: #F1F5F9; color: #374151; }
-.oc-list-tab.active { background: #EFF6FF; color: #054EAF; font-weight: 600; }
+.oc-list-tab.active { background: #E0F9FA; color: #27C8D8; font-weight: 600; }
 .oc-tab-badge {
   font-size: 10px; font-weight: 700;
   padding: 1px 5px; border-radius: 4px;
@@ -1222,11 +1269,11 @@ function exportDetailCSV() {
   cursor: pointer; transition: all 0.15s;
   display: flex; flex-direction: column; gap: 5px;
 }
-.oc-card:hover { border-color: #BFDBFE; box-shadow: 0 2px 8px rgba(5,78,175,.07); }
-.oc-card.selected { border-color: #054EAF; background: #F0F7FF; box-shadow: 0 2px 12px rgba(5,78,175,.12); }
+.oc-card:hover { border-color: #A7EEF5; box-shadow: 0 2px 8px rgba(39,200,216,.07); }
+.oc-card.selected { border-color: #27C8D8; background: #F0F7FF; box-shadow: 0 2px 12px rgba(39,200,216,.12); }
 
 .oc-card-head { display: flex; align-items: center; justify-content: space-between; }
-.oc-card-id { font-size: 12px; font-weight: 700; color: #054EAF; }
+.oc-card-id { font-size: 12px; font-weight: 700; color: #27C8D8; }
 .oc-estado-pill {
   font-size: 10px; font-weight: 700;
   padding: 2px 7px; border-radius: 5px; white-space: nowrap;
@@ -1243,7 +1290,7 @@ function exportDetailCSV() {
 .oc-card-qty { font-size: 11px; color: #94A3B8; }
 .oc-card-total { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
 .oc-card-total-label { font-size: 10px; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.3px; }
-.oc-card-total-val { font-size: 14px; font-weight: 700; color: #054EAF; font-family: 'Plus Jakarta Sans', sans-serif; }
+.oc-card-total-val { font-size: 14px; font-weight: 700; color: #27C8D8; font-family: 'Plus Jakarta Sans', sans-serif; }
 
 .oc-list-footer {
   display: flex; align-items: center; justify-content: space-between;
@@ -1264,23 +1311,23 @@ function exportDetailCSV() {
 .oc-emitir-btn {
   display: flex; align-items: center; gap: 8px;
   width: 100%; padding: 12px 20px;
-  background: linear-gradient(135deg, #054EAF 0%, #0369A1 100%);
+  background: linear-gradient(135deg, #27C8D8 0%, #138E9C 100%);
   color: #fff; border: none; border-radius: 12px;
   font-size: 15px; font-weight: 700;
   cursor: pointer; transition: all 0.2s;
-  box-shadow: 0 4px 14px rgba(5,78,175,.3);
+  box-shadow: 0 4px 14px rgba(39,200,216,.3);
   margin-top: 12px; justify-content: center;
 }
-.oc-emitir-btn:hover { filter: brightness(1.08); box-shadow: 0 6px 20px rgba(5,78,175,.4); transform: translateY(-1px); }
+.oc-emitir-btn:hover { filter: brightness(1.08); box-shadow: 0 6px 20px rgba(39,200,216,.4); transform: translateY(-1px); }
 
 .oc-emitir-btn-sm {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 9px 18px; background: #054EAF; color: #fff;
+  padding: 9px 18px; background: #27C8D8; color: #fff;
   border: none; border-radius: 10px;
   font-size: 13px; font-weight: 600; cursor: pointer;
   transition: background 0.15s;
 }
-.oc-emitir-btn-sm:hover { background: #043d8a; }
+.oc-emitir-btn-sm:hover { background: #1BAEBB; }
 
 .oc-cot-no-ocs {
   display: flex; flex-direction: column; align-items: center; gap: 10px;
@@ -1293,7 +1340,7 @@ function exportDetailCSV() {
   cursor: pointer; transition: all 0.15s;
   display: flex; flex-direction: column; gap: 6px;
 }
-.oc-linked-card:hover { border-color: #BFDBFE; background: #F0F7FF; }
+.oc-linked-card:hover { border-color: #A7EEF5; background: #F0F7FF; }
 .oc-linked-head { display: flex; align-items: center; justify-content: space-between; }
 .oc-linked-info { display: flex; align-items: center; gap: 12px; font-size: 12px; color: #64748B; flex-wrap: wrap; }
 .oc-linked-desc { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1340,7 +1387,7 @@ function exportDetailCSV() {
   position: absolute; top: calc(100% + 4px); right: 0;
   z-index: 100; background: #fff;
   border: 1.5px solid #E2E8F0; border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(5,78,175,.12);
+  box-shadow: 0 8px 24px rgba(39,200,216,.12);
   min-width: 180px; padding: 4px;
 }
 .oc-tools-item {
@@ -1382,7 +1429,7 @@ function exportDetailCSV() {
 .oc-info-row { display: flex; flex-direction: column; gap: 2px; }
 .oc-info-label { font-size: 10px; font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.3px; }
 .oc-info-val { font-size: 13px; color: #0F172A; }
-.oc-link-style { color: #054EAF; font-weight: 500; }
+.oc-link-style { color: #27C8D8; font-weight: 500; }
 .oc-mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; }
 .oc-notes-text { font-size: 13px; color: #374151; line-height: 1.6; margin: 0; }
 
@@ -1417,11 +1464,11 @@ function exportDetailCSV() {
   border-radius: 10px; padding: 10px 16px;
 }
 .oc-price-total {
-  background: #EFF6FF; border-color: #BFDBFE;
+  background: #E0F9FA; border-color: #A7EEF5;
 }
 .oc-price-label { font-size: 10px; font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.3px; }
 .oc-price-val { font-size: 15px; font-weight: 600; color: #0F172A; font-family: 'Plus Jakarta Sans', sans-serif; }
-.oc-price-big { font-size: 18px; color: #054EAF; }
+.oc-price-big { font-size: 18px; color: #27C8D8; }
 .oc-price-sep { font-size: 20px; color: #CBD5E1; font-weight: 300; }
 
 /* ── Slide-over modal ────────────────────────────────── */
@@ -1436,7 +1483,7 @@ function exportDetailCSV() {
   position: fixed; top: 0; right: 0; bottom: 0;
   width: min(640px, 100vw); background: #fff;
   z-index: 500; display: flex; flex-direction: column;
-  box-shadow: -8px 0 32px rgba(5,78,175,.12);
+  box-shadow: -8px 0 32px rgba(39,200,216,.12);
 }
 .slideover-enter-active, .slideover-leave-active { transition: transform 0.28s cubic-bezier(.4,0,.2,1); }
 .slideover-enter-from, .slideover-leave-to { transform: translateX(100%); }
@@ -1471,7 +1518,7 @@ function exportDetailCSV() {
   font-size: 13px; font-family: 'Inter', sans-serif; color: #0F172A;
   background: #fff; outline: none; transition: border-color 0.15s; box-sizing: border-box; width: 100%;
 }
-.oc-mo-input:focus { border-color: #054EAF; }
+.oc-mo-input:focus { border-color: #27C8D8; }
 .oc-mo-textarea { height: auto; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .oc-mo-select { cursor: pointer; }
 
@@ -1482,12 +1529,12 @@ function exportDetailCSV() {
 /* Precio total display */
 .oc-precio-total-display {
   display: flex; align-items: center; gap: 12px;
-  background: #EFF6FF; border: 1.5px solid #BFDBFE;
+  background: #E0F9FA; border: 1.5px solid #A7EEF5;
   border-radius: 10px; padding: 12px 16px;
 }
-.oc-precio-total-label { font-size: 11px; font-weight: 600; color: #054EAF; text-transform: uppercase; letter-spacing: 0.3px; }
-.oc-precio-total-val { font-size: 20px; font-weight: 700; color: #054EAF; font-family: 'Plus Jakarta Sans', sans-serif; }
-.oc-precio-formula { font-size: 12px; color: #93C5FD; margin-left: auto; }
+.oc-precio-total-label { font-size: 11px; font-weight: 600; color: #27C8D8; text-transform: uppercase; letter-spacing: 0.3px; }
+.oc-precio-total-val { font-size: 20px; font-weight: 700; color: #27C8D8; font-family: 'Plus Jakarta Sans', sans-serif; }
+.oc-precio-formula { font-size: 12px; color: #8EEAF3; margin-left: auto; }
 
 .oc-mo-footer {
   display: flex; align-items: center; justify-content: flex-end; gap: 8px;
@@ -1497,11 +1544,96 @@ function exportDetailCSV() {
 
 /* ── Shared utils ────────────────────────────────────── */
 .oc-strong { font-weight: 700 !important; }
-.oc-primary { color: #054EAF !important; font-weight: 700 !important; }
+.oc-primary { color: #27C8D8 !important; font-weight: 700 !important; }
 .oc-spinner {
   width: 12px; height: 12px;
   border: 2px solid rgba(255,255,255,.4); border-top-color: #fff;
   border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block;
 }
 @keyframes spin { to { transform: rotate(360deg) } }
+
+/* ── Apartado Cumplidas ───────────────────────────────── */
+.oc-cumplidas-section {
+  background: #fff;
+  border-radius: 16px;
+  border: 1.5px solid #A7EEF5;
+  box-shadow: 0 1px 4px rgba(39,200,216,.06), 0 4px 16px rgba(39,200,216,.08);
+  overflow: hidden;
+}
+
+.oc-cumplidas-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #E0F9FA 0%, #F0FAFB 100%);
+  border-bottom: 1.5px solid #A7EEF5;
+}
+.oc-cumplidas-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0F1A2E;
+}
+.oc-cumplidas-count {
+  background: #27C8D8;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 20px;
+}
+.oc-cumplidas-sub {
+  font-size: 12px;
+  color: #64748B;
+}
+
+.oc-cumplidas-table-wrap { overflow-x: auto; }
+.oc-cumplidas-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.oc-cumplidas-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  color: #94A3B8;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  border-bottom: 1.5px solid #E5EAF0;
+  background: #F8FAFC;
+  white-space: nowrap;
+}
+.oc-cumplidas-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #F1F5FA;
+  color: #374151;
+  vertical-align: middle;
+}
+.oc-cumplidas-row {
+  cursor: pointer;
+  transition: background .12s;
+}
+.oc-cumplidas-row:hover td { background: #F0FAFB; }
+.oc-cumplidas-row:last-child td { border-bottom: none; }
+.oc-cumplidas-numero {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  color: #27C8D8;
+  white-space: nowrap;
+}
+.oc-cumplidas-proveedor { font-weight: 600; color: #0F1A2E; }
+.oc-cumplidas-evento { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.oc-cumplidas-desc { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #64748B; }
+.oc-cumplidas-total { font-weight: 700; color: #0F1A2E; white-space: nowrap; }
+.oc-cumplidas-fecha { color: #27C8D8; font-weight: 600; white-space: nowrap; }
 </style>

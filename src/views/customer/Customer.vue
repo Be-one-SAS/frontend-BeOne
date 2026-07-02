@@ -186,7 +186,7 @@ onMounted(async () => {
     <!-- ══════════════════════════════════════════ -->
     <!-- FILTROS                                    -->
     <!-- ══════════════════════════════════════════ -->
-    <div class="bg-white rounded-[14px] p-4 mb-5 shadow-[0_1px_4px_rgba(5,78,175,.06)] grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="bg-white rounded-[14px] p-4 mb-5 shadow-[0_1px_4px_rgba(39,200,216,.06)] grid grid-cols-1 md:grid-cols-2 gap-4">
 
       <input
         v-model="searchQuery"
@@ -206,7 +206,7 @@ onMounted(async () => {
     <!-- ══════════════════════════════════════════ -->
     <!-- TABLA                                      -->
     <!-- ══════════════════════════════════════════ -->
-    <div class="bg-white rounded-[18px] shadow-[0_1px_4px_rgba(5,78,175,.06),_0_4px_16px_rgba(5,78,175,.08)] overflow-hidden">
+    <div class="bg-white rounded-[18px] shadow-[0_1px_4px_rgba(39,200,216,.06),_0_4px_16px_rgba(39,200,216,.08)] overflow-hidden">
       <div class="overflow-x-auto">
         <table class="cu-table">
 
@@ -405,7 +405,7 @@ onMounted(async () => {
           <button
             @click="actualizarCliente"
             :disabled="!nuevoCliente.name"
-            class="px-[18px] py-[9px] text-[13px] font-semibold bg-[#054EAF] text-white rounded-[8px] shadow-[var(--shadow-btn)] hover:bg-[#03368A] disabled:opacity-50 disabled:cursor-not-allowed transition"
+            class="px-[18px] py-[9px] text-[13px] font-semibold bg-[#27C8D8] text-white rounded-[8px] shadow-[var(--shadow-btn)] hover:bg-[#1BAEBB] disabled:opacity-50 disabled:cursor-not-allowed transition"
           >Guardar cambios</button>
         </div>
       </div>
@@ -438,7 +438,7 @@ onMounted(async () => {
           <button
             @click="openNewCustomerModal"
             :disabled="!nuevoCliente.name"
-            class="px-[18px] py-[9px] text-[13px] font-semibold bg-[#054EAF] text-white rounded-[8px] shadow-[var(--shadow-btn)] hover:bg-[#03368A] disabled:opacity-50 disabled:cursor-not-allowed transition"
+            class="px-[18px] py-[9px] text-[13px] font-semibold bg-[#27C8D8] text-white rounded-[8px] shadow-[var(--shadow-btn)] hover:bg-[#1BAEBB] disabled:opacity-50 disabled:cursor-not-allowed transition"
           >Crear cliente</button>
         </div>
       </div>
@@ -475,13 +475,13 @@ onMounted(async () => {
   font-family: 'Inter', sans-serif;
   border-radius: 8px;
   border: none;
-  background: #054EAF;
+  background: #27C8D8;
   color: #fff;
   cursor: pointer;
   box-shadow: var(--shadow-btn);
   transition: background 0.15s;
 }
-.btn-new:hover { background: #03368A; }
+.btn-new:hover { background: #1BAEBB; }
 
 .per-page-wrap { display: flex; align-items: center; gap: 8px; }
 .per-page-lbl  { font-size: 12px; color: #94A3B8; font-family: 'Inter', sans-serif; white-space: nowrap; }
@@ -510,8 +510,8 @@ select.cu-input {
   padding-right: 30px;
 }
 .cu-input:focus {
-  border-color: var(--primary, #054EAF);
-  box-shadow: 0 0 0 3px rgba(5, 78, 175, 0.1);
+  border-color: var(--primary, #27C8D8);
+  box-shadow: 0 0 0 3px rgba(39,200,216, 0.1);
 }
 .cu-input::placeholder { color: var(--text-3, #94A3B8); }
 .cu-input--sm { width: 70px; text-align: center; }
@@ -525,7 +525,7 @@ select.cu-input {
 }
 
 /* ─── Head ──────────────────────────────────────────────── */
-.cu-head-row { background: #EBF3FC; }
+.cu-head-row { background: #F0FAFB; }
 
 .cu-th {
   padding: 12px 16px;
@@ -552,7 +552,7 @@ select.cu-input {
   padding: 14px 16px;
   font-size: 13px;
   color: var(--text-1, #0F1A2E);
-  border-bottom: 1px solid #EBF3FC;
+  border-bottom: 1px solid #F0FAFB;
   vertical-align: middle;
   white-space: nowrap;
 }
@@ -569,7 +569,7 @@ select.cu-input {
 }
 .cu-chevron-open {
   transform: rotate(180deg);
-  color: #054EAF;
+  color: #27C8D8;
 }
 
 /* ─── Cell: nombre ──────────────────────────────────────── */
@@ -587,7 +587,7 @@ select.cu-input {
   font-family: 'Inter', sans-serif;
   white-space: nowrap;
 }
-.badge--blue  { background: #DBEAFE; color: #1D4ED8; }
+.badge--blue  { background: #CCEFF2; color: #27C8D8; }
 .badge--slate { background: #F1F5F9; color: #64748B; }
 
 /* ─── Botones de acción ─────────────────────────────────── */
@@ -612,7 +612,7 @@ select.cu-input {
 /* ─── Fila expandida ────────────────────────────────────── */
 .cu-exp-td {
   padding: 0 !important;
-  border-bottom: 1px solid #EBF3FC;
+  border-bottom: 1px solid #F0FAFB;
 }
 
 .cu-exp-panel {
@@ -624,7 +624,7 @@ select.cu-input {
 
 .cu-exp-inner {
   background: #F8FBFF;
-  border-left: 3px solid #054EAF;
+  border-left: 3px solid #27C8D8;
   padding: 16px 24px;
 }
 
@@ -674,7 +674,7 @@ select.cu-input {
   align-items: center;
   justify-content: space-between;
   padding: 12px 20px;
-  border-top: 1px solid #EBF3FC;
+  border-top: 1px solid #F0FAFB;
   flex-wrap: wrap;
   gap: 8px;
 }
@@ -695,9 +695,9 @@ select.cu-input {
   justify-content: center;
   transition: all 0.12s ease;
 }
-.pg-btn:hover:not(:disabled) { background: #EEF4FF; color: #054EAF; border-color: #BFDBFE; }
+.pg-btn:hover:not(:disabled) { background: #E0F9FA; color: #27C8D8; border-color: #A7EEF5; }
 .pg-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-.pg-active { background: #054EAF !important; color: #FFFFFF !important; border-color: #054EAF !important; font-weight: 600; }
+.pg-active { background: #27C8D8 !important; color: #FFFFFF !important; border-color: #27C8D8 !important; font-weight: 600; }
 .pg-ellipsis { color: #94A3B8; font-size: 13px; padding: 0 4px; }
 
 /* ─── Modal ─────────────────────────────────────────────── */

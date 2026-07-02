@@ -823,7 +823,7 @@ const openDetail = async (enc) => {
 /* ── Shared ── */
 .rpt-spinner {
   width: 32px; height: 32px; border-radius: 50%;
-  border: 2.5px solid #e2e8f0; border-top-color: #0f3460;
+  border: 2.5px solid #e2e8f0; border-top-color: #073B42;
   animation: spin 0.8s linear infinite; flex-shrink: 0;
 }
 .rpt-spinner.sm { width: 20px; height: 20px; }
@@ -835,8 +835,8 @@ const openDetail = async (enc) => {
   font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.13s;
   font-family: inherit; white-space: nowrap;
 }
-.rpt-btn-primary   { background: #0f3460; color: #fff; }
-.rpt-btn-primary:hover:not(:disabled) { background: #1a4a80; }
+.rpt-btn-primary   { background: #073B42; color: #fff; }
+.rpt-btn-primary:hover:not(:disabled) { background: #138E9C; }
 .rpt-btn-primary:disabled { background: #94a3b8; cursor: not-allowed; }
 .rpt-btn-secondary { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }
 .rpt-btn-secondary:hover { background: #e2e8f0; }
@@ -859,7 +859,7 @@ const openDetail = async (enc) => {
   content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
 }
 .ops-card--warn::before   { background: #f59e0b; }
-.ops-card--blue::before   { background: #3b82f6; }
+.ops-card--blue::before   { background: #27C8D8; }
 .ops-card--green::before  { background: #10b981; }
 .ops-card--purple::before { background: #8b5cf6; }
 
@@ -875,7 +875,7 @@ const openDetail = async (enc) => {
 .ops-mini-item { display: flex; align-items: center; gap: 6px; }
 .ops-mini-dot  { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 .ops-mini-dot.warn { background: #f59e0b; }
-.ops-mini-dot.blue { background: #3b82f6; }
+.ops-mini-dot.blue { background: #27C8D8; }
 .ops-mini-text { font-size: 11px; color: #475569; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .ops-progress-bar { height: 6px; background: #e5eaf0; border-radius: 99px; overflow: hidden; margin-top: 10px; }
@@ -892,7 +892,7 @@ const openDetail = async (enc) => {
 .rpt-empty-icon { margin: 0 auto 12px; opacity: 0.3; display: block; }
 .rpt-empty h3 { font-size: 15px; font-weight: 700; color: #0f1a2e; margin: 0 0 6px; }
 .rpt-empty p  { font-size: 13px; margin: 0; }
-.rpt-empty a  { color: #054EAF; }
+.rpt-empty a  { color: #27C8D8; }
 
 .rpt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 14px; }
 
@@ -964,7 +964,7 @@ const openDetail = async (enc) => {
   background: none; border: none; border-bottom: 2px solid transparent;
   cursor: pointer; transition: all 0.15s; margin-bottom: -1px; font-family: inherit;
 }
-.ed-tab--active { color: #0f3460; border-bottom-color: #0f3460; }
+.ed-tab--active { color: #073B42; border-bottom-color: #073B42; }
 .ed-tab:hover:not(.ed-tab--active) { color: #475569; }
 
 /* Pane */
@@ -979,13 +979,13 @@ const openDetail = async (enc) => {
   font-size: 13px; font-family: inherit; color: #0f1a2e; outline: none;
   transition: border-color 0.13s; width: 100%; box-sizing: border-box;
 }
-.ed-input:focus { border-color: #0f3460; }
+.ed-input:focus { border-color: #073B42; }
 .ed-textarea {
   border: 1.5px solid #e2e8f0; border-radius: 9px; padding: 9px 12px;
   font-size: 13px; font-family: inherit; color: #0f1a2e; outline: none;
   transition: border-color 0.13s; width: 100%; box-sizing: border-box; resize: vertical;
 }
-.ed-textarea:focus { border-color: #0f3460; }
+.ed-textarea:focus { border-color: #073B42; }
 
 /* Cover */
 .ed-cover-area { display: flex; gap: 16px; align-items: flex-start; }
@@ -1014,9 +1014,9 @@ const openDetail = async (enc) => {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
   transition: all 0.15s;
 }
-.ed-type-btn:hover { border-color: #0f3460; background: #eff6ff; }
+.ed-type-btn:hover { border-color: #073B42; background: #E0F9FA; }
 .ed-type-btn--active { border-width: 2px; }
-.ed-type-btn--nps.ed-type-btn--active   { border-color: #3b82f6; background: #eff6ff; }
+.ed-type-btn--nps.ed-type-btn--active   { border-color: #27C8D8; background: #E0F9FA; }
 .ed-type-btn--stars.ed-type-btn--active { border-color: #f59e0b; background: #fffbeb; }
 .ed-type-btn--text.ed-type-btn--active  { border-color: #6b7280; background: #f9fafb; }
 .ed-type-btn--yesno.ed-type-btn--active { border-color: #10b981; background: #f0fdf4; }
@@ -1029,7 +1029,7 @@ const openDetail = async (enc) => {
 .ed-add-inline-type { display: flex; align-items: center; gap: 8px; }
 .ed-add-inline-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .ed-req-check { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #475569; cursor: pointer; margin-left: auto; }
-.ed-req-check input { accent-color: #0f3460; }
+.ed-req-check input { accent-color: #073B42; }
 
 /* Items */
 .ed-items-container { background: #f8faff; border: 1.5px solid #e5eaf0; border-radius: 12px; padding: 14px; }
@@ -1056,7 +1056,7 @@ const openDetail = async (enc) => {
   font-size: 9px; font-weight: 800; padding: 3px 6px; border-radius: 5px;
   flex-shrink: 0; min-width: 30px; text-align: center;
 }
-.badge-nps   { background: #dbeafe; color: #1d4ed8; }
+.badge-nps   { background: #CCEFF2; color: #27C8D8; }
 .badge-stars { background: #fef3c7; color: #92400e; }
 .badge-text  { background: #f3f4f6; color: #374151; }
 .badge-yesno { background: #d1fae5; color: #065f46; }
@@ -1065,14 +1065,14 @@ const openDetail = async (enc) => {
   flex: 1; border: none; background: transparent; font-size: 13px; color: #0f1a2e;
   outline: none; font-family: inherit; min-width: 0; padding: 2px 0;
 }
-.ed-item-label-input:focus { border-bottom: 1.5px solid #0f3460; }
+.ed-item-label-input:focus { border-bottom: 1.5px solid #073B42; }
 
 .ed-req-chip {
   font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 99px;
   border: 1.5px solid #e2e8f0; background: #f8faff; color: #94a3b8;
   cursor: pointer; transition: all 0.13s; white-space: nowrap;
 }
-.ed-req-chip--on { background: #dbeafe; border-color: #93c5fd; color: #1d4ed8; }
+.ed-req-chip--on { background: #CCEFF2; border-color: #8EEAF3; color: #27C8D8; }
 
 .ed-ord {
   width: 24px; height: 24px; border: 1px solid #e2e8f0; border-radius: 5px;

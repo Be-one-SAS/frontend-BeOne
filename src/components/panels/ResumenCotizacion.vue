@@ -55,7 +55,7 @@
       <!-- IVA -->
       <div class="rc-row">
         <span class="rc-label">IVA (19%)</span>
-        <span class="rc-val" style="color: #38BDF8; font-weight: 600;">+ {{ fmt(ivaGeneral) }}</span>
+        <span class="rc-val" style="color: #27C8D8; font-weight: 600;">+ {{ fmt(ivaGeneral) }}</span>
       </div>
 
       <!-- TOTAL -->
@@ -71,6 +71,7 @@
 
 <script setup>
 import { ReceiptText } from 'lucide-vue-next'
+import { formatCOP } from '@/utils/currency.js'
 
 defineProps({
   subtotalPropios:  { type: Number, default: 0 },
@@ -96,20 +97,14 @@ const onFocusSelect = (e) => {
   e.target.value = ''
 }
 
-const fmt = (val) =>
-  new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(val ?? 0)
+const fmt = formatCOP
 </script>
 
 <style scoped>
 .rc-card {
   background: #fff;
   border-radius: 16px;
-  box-shadow: 0 1px 4px rgba(5, 78, 175, .06), 0 4px 16px rgba(5, 78, 175, .08);
+  box-shadow: 0 1px 4px rgba(39,200,216, .06), 0 4px 16px rgba(39,200,216, .08);
   border: 1px solid #EEF1F7;
   overflow: hidden;
 }
@@ -126,7 +121,7 @@ const fmt = (val) =>
   font-weight: 700;
   color: #0F1A2E;
 }
-.rc-header-icon { color: #054EAF; }
+.rc-header-icon { color: #27C8D8; }
 
 .rc-body {
   padding: 6px 20px 16px;
@@ -187,7 +182,7 @@ const fmt = (val) =>
 .rc-val--total {
   font-size: 22px;
   font-weight: 800;
-  color: #054EAF;
+  color: #27C8D8;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
@@ -223,8 +218,8 @@ const fmt = (val) =>
 }
 .rc-pct-input:focus {
   outline: none;
-  border-color: #054EAF;
-  box-shadow: 0 0 0 3px rgba(5, 78, 175, 0.10);
+  border-color: #27C8D8;
+  box-shadow: 0 0 0 3px rgba(39,200,216, 0.10);
   background: #fff;
 }
 .rc-pct-sign {

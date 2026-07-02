@@ -155,7 +155,7 @@ const select = (iso) => emit('update:modelValue', iso)
   cursor: pointer;
   transition: all 0.15s;
 }
-.ecp-nav:hover { background: #EBF3FC; color: #054EAF; border-color: #BFDBFE; }
+.ecp-nav:hover { background: #F0FAFB; color: #27C8D8; border-color: #A7EEF5; }
 
 .ecp-month-label {
   font-size: 14px;
@@ -211,17 +211,17 @@ const select = (iso) => emit('update:modelValue', iso)
 }
 .ecp-day--today {
   font-weight: 700;
-  box-shadow: inset 0 0 0 1.5px #054EAF;
-  color: #054EAF;
+  box-shadow: inset 0 0 0 1.5px #27C8D8;
+  color: #27C8D8;
 }
 .ecp-day--selected {
-  background: #054EAF !important;
+  background: #27C8D8 !important;
   color: white !important;
   font-weight: 700;
-  box-shadow: 0 2px 8px rgba(5,78,175,0.3);
+  box-shadow: 0 2px 8px rgba(39,200,216,0.3);
 }
 .ecp-day--range {
-  background: #EBF3FC;
+  background: #F0FAFB;
   border-radius: 0;
 }
 .ecp-day--montaje {

@@ -42,6 +42,8 @@
           </div>
           <div class="user-info">
             <p class="user-name">{{ displayName }}</p>
+            <span v-if="isOrgAdmin" class="sede-chip sede-chip--org" title="Nivel organización">🏢 Organización</span>
+            <span v-else-if="sedeName" class="sede-chip sede-chip--sede" title="Unidad de Ejecución">📍 {{ sedeName }}</span>
           </div>
         </div>
 
@@ -85,8 +87,18 @@
       </template>
     </nav>
 
-    <!-- ── Logout ─────────────────────────────────────── -->
+    <!-- ── Footer: Perfil + Logout ──────────────────────── -->
     <div class="sidebar-footer">
+      <button
+        class="footer-btn"
+        :title="!sidebarExpanded ? 'Mi perfil' : undefined"
+        @click="router.push('/admin/perfil')"
+      >
+        <UserCircle2 class="footer-icon" />
+        <Transition name="label-fade">
+          <span v-if="sidebarExpanded" class="footer-label">Mi perfil</span>
+        </Transition>
+      </button>
       <button
         class="logout-btn"
         :title="!sidebarExpanded ? 'Cerrar sesión' : undefined"
@@ -113,7 +125,7 @@ import {
   DollarSign, Activity, UserCog, Settings,
   LogOut, CheckSquare, ClipboardCheck, SlidersHorizontal,
   Landmark, TableProperties, FileBarChart, ShoppingCart, Layers,
-  Clock as ClockIcon,
+  Clock as ClockIcon, UserCircle2, ListOrdered,
 } from 'lucide-vue-next'
 import { useAuth }               from '@/composables/useAuth'
 import { useSidebarPermissions, useMobileSidebar } from '@/composables/useSidebarPermissions'
@@ -132,6 +144,7 @@ const logoutClearStorange = () => {
 const {
   userRole, canSee, roleBadgeStyle,
   userInitials, avatarColor, displayName,
+  sedeName, isOrgAdmin,
 } = useSidebarPermissions()
 
 // ── Mobile sidebar state ───────────────────────────────
@@ -161,7 +174,7 @@ const ALL_MENU_ITEMS = [
     icon:  LayoutDashboard,
     label: 'Dashboard',
     route: '/dashboard',
-    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'],
+    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR'],
   },
 
   // ── Grupo: Comercial ──────────────────────────────────
@@ -169,12 +182,12 @@ const ALL_MENU_ITEMS = [
     separator: true,
     icon:  TrendingUp,
     label: 'Dpto Comercial',
-    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER'],
+    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'COORDINADOR'],
     children: [
-      { label: 'Nueva cotización',  route: '/admin/cotizar',            icon: FilePlus,   roles: ['ADMIN', 'ADMINISTRADOR', 'LIDER'] },
+      { label: 'Nueva cotización',  route: '/admin/cotizar',            icon: FilePlus,   roles: ['ADMIN', 'ADMINISTRADOR', 'LIDER', 'COORDINADOR'] },
       { label: 'Cotizaciones',      route: '/admin/ver-cotizaciones',   icon: FileText,   roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR'] },
-      { label: 'Clientes',          route: '/customer/customer',        icon: Building2,  roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER'] },
-      { label: 'Clientes directos', route: '/customer/price',           icon: UserCheck,  roles: ['ADMIN', 'ADMINISTRADOR', 'LIDER'] },
+      { label: 'Clientes',          route: '/customer/customer',        icon: Building2,  roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'COORDINADOR'] },
+      { label: 'Clientes directos', route: '/customer/price',           icon: UserCheck,  roles: ['ADMIN', 'ADMINISTRADOR', 'LIDER', 'COORDINADOR'] },
       { label: 'Proveedores',       route: '/suppliers/suppliers',      icon: Handshake,  roles: ['ADMIN'] },
     ],
   },
@@ -182,11 +195,11 @@ const ALL_MENU_ITEMS = [
     separator: false,
     icon:  Boxes,
     label: 'Productos',
-    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'],
+    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR'],
     children: [
-      { label: 'Productos propios',   route: '/products',            icon: Package,       roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'] },
-      { label: 'Productos externos',  route: '/products/no-propios', icon: PackageSearch, roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'] },
-      { label: 'Materiales',          route: '/materiales',          icon: Layers,        roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR'] },
+      { label: 'Productos propios',   route: '/products',            icon: Package,       roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR'] },
+      { label: 'Productos externos',  route: '/products/no-propios', icon: PackageSearch, roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR'] },
+      { label: 'Materiales',          route: '/materiales',          icon: Layers,        roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR'] },
     ],
   },
 
@@ -227,6 +240,7 @@ const ALL_MENU_ITEMS = [
     children: [
       { label: 'Eventos',              route: '/administracion/cotizaciones',   icon: TableProperties, roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
       { label: 'Dashboard Financiero', route: '/administracion/dashboard',     icon: BarChart2,       roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
+      { label: 'Movimientos',          route: '/administracion/movimientos',   icon: ListOrdered,     roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
       { label: 'Reportes',             route: '/administracion/reportes',      icon: FileBarChart,    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
       { label: 'Órdenes de Compra',    route: '/administracion/ordenes-compra', icon: ShoppingCart,    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
     ],
@@ -235,22 +249,20 @@ const ALL_MENU_ITEMS = [
   // ── Grupo: Admin ──────────────────────────────────────
   {
     separator: true,
-    icon:  UserCog,
+    icon:  Users,
     label: 'Usuarios',
-    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'],
-    children: [
-      { label: 'Gestión de usuarios',    route: '/users/list',             icon: Users,             roles: ['ADMIN'] },
-      { label: 'Usuarios',               route: '/admin/usuarios',         icon: UserCog,           roles: ['ADMIN', 'ADMINISTRADOR'] },
-      { label: 'Tareas',                 route: '/admin/tareas',           icon: CheckSquare,       roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'] },
-      { label: 'Parámetros cotización',  route: '/admin/quotation-params', icon: SlidersHorizontal, roles: ['ADMIN'] },
-    ],
+    route: '/users/list',
+    roles: ['ADMIN'],
   },
   {
     separator: false,
     icon:  Settings,
     label: 'Configuración',
-    route: '/configuracion',
-    roles: ['ADMIN'],
+    roles: ['ADMIN', 'ADMINISTRADOR'],
+    children: [
+      { label: 'General',               route: '/configuracion',          icon: Settings,          roles: ['ADMIN'] },
+      { label: 'Parámetros cotización', route: '/admin/quotation-params', icon: SlidersHorizontal, roles: ['ADMIN'] },
+    ],
   },
 ]
 
@@ -297,7 +309,7 @@ const visibleMenuItems = computed(() =>
   flex-direction: column;
   gap: 0;
 
-  box-shadow: 0 1px 4px rgba(5, 78, 175, .06), 0 4px 16px rgba(5, 78, 175, .08);
+  box-shadow: 0 1px 4px rgba(39,200,216, .06), 0 4px 16px rgba(39,200,216, .08);
   height: 100vh;
   position: sticky;
   top: 0;
@@ -339,7 +351,7 @@ const visibleMenuItems = computed(() =>
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: #054EAF;
+  background: #27C8D8;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -362,7 +374,7 @@ const visibleMenuItems = computed(() =>
   gap: 10px;
   margin: 0 2px;
   padding: 10px 10px;
-  background: #EBF3FC;
+  background: #F0FAFB;
   border-radius: 12px;
   overflow: hidden;
 }
@@ -418,7 +430,7 @@ const visibleMenuItems = computed(() =>
 /* ── Separadores ─────────────────────────────────────── */
 .nav-sep {
   height: 1px;
-  background: #EBF3FC;
+  background: #F0FAFB;
   margin: 8px 4px;
 }
 
@@ -444,8 +456,37 @@ const visibleMenuItems = computed(() =>
 .sidebar-footer {
   margin-top: auto;
   padding-top: 8px;
-  border-top: 1px solid #EBF3FC;
+  border-top: 1px solid #F0FAFB;
 }
+
+.footer-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.footer-btn:hover {
+  background: #E0F9FA;
+  color: #27C8D8;
+}
+.footer-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.footer-label { font-size: 13px; }
 
 .logout-btn {
   display: flex;
@@ -503,6 +544,23 @@ const visibleMenuItems = computed(() =>
 .backdrop-fade-leave-active  { transition: opacity 0.2s ease; }
 .backdrop-fade-enter-from,
 .backdrop-fade-leave-to      { opacity: 0; }
+
+/* ── Sede chip ───────────────────────────────────────── */
+.sede-chip {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  padding: 2px 7px;
+  border-radius: 99px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 130px;
+  line-height: 1.5;
+}
+.sede-chip--sede { background: #E0F9FA; color: #27C8D8; }
+.sede-chip--org  { background: #EDE9FE; color: #7C3AED; }
 
 /* ── Mobile ──────────────────────────────────────────── */
 @media (max-width: 767px) {

@@ -130,6 +130,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { formatCOP } from '@/utils/currency.js'
 import { Activity } from 'lucide-vue-next'
 import { getQuotations } from '@/services/quotation.service'
 import { getReportePersonal } from '@/services/registros-turno.service'
@@ -212,10 +213,7 @@ const formatTime = (iso) => {
   return new Date(iso).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false })
 }
 
-const formatCurrency = (val) => {
-  if (val == null || isNaN(val)) return '—'
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val)
-}
+const formatCurrency = (val) => val == null || isNaN(val) ? '—' : formatCOP(val)
 
 const calcHoursNum = (inIso, outIso) => {
   if (!inIso || !outIso) return 0
@@ -304,12 +302,12 @@ const roleClass = (role) => {
 .ro-user-cell { display: flex; align-items: center; gap: 8px; }
 .ro-avatar {
   width: 28px; height: 28px; border-radius: 50%;
-  background: #EFF6FF; color: #2563EB;
+  background: #E0F9FA; color: #27C8D8;
   display: flex; align-items: center; justify-content: center;
   font-size: 10px; font-weight: 700; flex-shrink: 0;
 }
 .ro-role-badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 10px; font-weight: 600; }
-.ro-role--blue   { background: #DBEAFE; color: #1D4ED8; }
+.ro-role--blue   { background: #CCEFF2; color: #27C8D8; }
 .ro-role--green  { background: #D1FAE5; color: #065F46; }
 .ro-role--purple { background: #EDE9FE; color: #6D28D9; }
 .ro-role--orange { background: #FEF3C7; color: #92400E; }

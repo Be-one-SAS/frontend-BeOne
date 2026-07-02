@@ -215,7 +215,7 @@ onMounted(async () => {
 }
 .etd-item:hover { color: #475569; }
 .etd-item--sel {
-  color: #054EAF;
+  color: #27C8D8;
   font-weight: 700;
   font-size: 26px;
 }
@@ -245,12 +245,12 @@ onMounted(async () => {
   left: 4px; right: 4px;
   transform: translateY(-22px);
   height: 44px;
-  border-top: 1.5px solid rgba(5,78,175,0.2);
-  border-bottom: 1.5px solid rgba(5,78,175,0.2);
+  border-top: 1.5px solid rgba(39,200,216,0.2);
+  border-bottom: 1.5px solid rgba(39,200,216,0.2);
   border-radius: 8px;
   pointer-events: none;
   z-index: 3;
-  background: rgba(5,78,175,0.03);
+  background: rgba(39,200,216,0.03);
 }
 
 .etd-colon {

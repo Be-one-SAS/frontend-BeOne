@@ -81,9 +81,9 @@ onUnmounted(() => {
   height: 100%;
   background: linear-gradient(
     90deg,
-    #054EAF 0%,
+    #27C8D8 0%,
     #6EE7A0 50%,
-    #054EAF 100%
+    #27C8D8 100%
   );
   background-size: 200% 100%;
   border-radius: 0 2px 2px 0;
@@ -131,7 +131,7 @@ onUnmounted(() => {
   background: #FFFFFF;
   border-radius: 16px;
   padding: 14px 22px;
-  box-shadow: 0 4px 24px rgba(5, 78, 175, 0.12);
+  box-shadow: 0 4px 24px rgba(39,200,216, 0.12);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -141,8 +141,8 @@ onUnmounted(() => {
 .spinner {
   width: 18px;
   height: 18px;
-  border: 2px solid #EBF3FC;
-  border-top-color: #054EAF;
+  border: 2px solid #F0FAFB;
+  border-top-color: #27C8D8;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
   flex-shrink: 0;

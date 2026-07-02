@@ -139,7 +139,7 @@ onMounted(() => {
   background: white;
   border: 1px solid #E2EBF6;
   border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(5,78,175,0.15);
+  box-shadow: 0 10px 30px rgba(39,200,216,0.15);
   padding: 12px;
   z-index: 1000;
 }
@@ -173,7 +173,7 @@ onMounted(() => {
 }
 
 .icon-brand {
-  color: #054EAF;
+  color: #27C8D8;
 }
 
 .versions-title {
@@ -216,8 +216,8 @@ onMounted(() => {
 }
 
 .is-latest {
-  border-color: #BFDBFE;
-  background: #EFF6FF;
+  border-color: #A7EEF5;
+  background: #E0F9FA;
 }
 
 .version-info {
@@ -241,8 +241,8 @@ onMounted(() => {
 .latest-badge {
   font-size: 9px;
   font-weight: 800;
-  color: #1D4ED8;
-  background: #DBEAFE;
+  color: #27C8D8;
+  background: #CCEFF2;
   padding: 1px 5px;
   border-radius: 4px;
 }
@@ -269,9 +269,9 @@ onMounted(() => {
   transition: all 0.2s;
 }
 .restore-btn:hover {
-  background: #054EAF;
+  background: #27C8D8;
   color: white;
-  border-color: #054EAF;
+  border-color: #27C8D8;
 }
 
 /* Confirm Overlay (dentro del card para no salirse) */

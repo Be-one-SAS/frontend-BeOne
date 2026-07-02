@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { formatCOP as _fmt } from '@/utils/currency.js'
 import { getThirdPartyCatalog, updateThirdPartyCatalog } from '@/services/products.service'
 import ModalReutilizable from '@/components/modal/ModalReutilizable.vue'
 import {
@@ -158,10 +159,7 @@ const sortBy = (key) => {
 }
 
 /* ─── currency format ────────────────────────────────────── */
-const formatCOP = (val) =>
-  val != null
-    ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(val)
-    : '—'
+const formatCOP = (val) => val != null ? _fmt(val) : '—'
 
 /* ─── fetch ──────────────────────────────────────────────── */
 async function fetchProducts() {
@@ -252,7 +250,7 @@ onMounted(fetchProducts)
     </div>
 
     <!-- ── Filters ────────────────────────────────────────── -->
-    <div class="bg-white rounded-[14px] p-4 mb-5 shadow-[0_1px_4px_rgba(5,78,175,.06)] grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="bg-white rounded-[14px] p-4 mb-5 shadow-[0_1px_4px_rgba(39,200,216,.06)] grid grid-cols-2 md:grid-cols-4 gap-4">
       <div class="search-field">
         <Search :size="14" class="s-ico" />
         <input
@@ -276,7 +274,7 @@ onMounted(fetchProducts)
     </div>
 
     <!-- ── Tabla ──────────────────────────────────────────── -->
-    <div class="bg-white rounded-[18px] shadow-[0_1px_4px_rgba(5,78,175,.06),_0_4px_16px_rgba(5,78,175,.08)] overflow-hidden">
+    <div class="bg-white rounded-[18px] shadow-[0_1px_4px_rgba(39,200,216,.06),_0_4px_16px_rgba(39,200,216,.08)] overflow-hidden">
       <div class="overflow-x-auto">
         <table class="np-table">
 
@@ -757,8 +755,8 @@ onMounted(fetchProducts)
   appearance: auto;
 }
 .np-input:focus {
-  border-color: #054EAF;
-  box-shadow: 0 0 0 3px rgba(5,78,175,0.1);
+  border-color: #27C8D8;
+  box-shadow: 0 0 0 3px rgba(39,200,216,0.1);
 }
 .np-input::placeholder { color: #94A3B8; }
 .np-input--sm { width: 70px; text-align: center; }
@@ -771,7 +769,7 @@ onMounted(fetchProducts)
   font-family: 'Inter', sans-serif;
 }
 
-.np-head-row { background: #EBF3FC; }
+.np-head-row { background: #F0FAFB; }
 
 .np-th {
   padding: 12px 16px;
@@ -786,7 +784,7 @@ onMounted(fetchProducts)
 }
 .np-th-center { text-align: center; }
 .np-th-sort { cursor: pointer; user-select: none; transition: color 0.12s; }
-.np-th-sort:hover { color: #054EAF; }
+.np-th-sort:hover { color: #27C8D8; }
 
 .sort-icons {
   display: inline-flex;
@@ -797,7 +795,7 @@ onMounted(fetchProducts)
   gap: 0;
   line-height: 0;
 }
-.sort-active { color: #054EAF; }
+.sort-active { color: #27C8D8; }
 .sort-dim    { color: #CBD5E1; }
 
 /* ─── Filas ─────────────────────────────────────────────── */
@@ -812,7 +810,7 @@ onMounted(fetchProducts)
   padding: 14px 16px;
   font-size: 13px;
   color: #0F1A2E;
-  border-bottom: 1px solid #EBF3FC;
+  border-bottom: 1px solid #F0FAFB;
   vertical-align: middle;
   white-space: nowrap;
 }
@@ -826,7 +824,7 @@ onMounted(fetchProducts)
   display: block;
   margin: 0 auto;
 }
-.np-chevron-open { transform: rotate(180deg); color: #054EAF; }
+.np-chevron-open { transform: rotate(180deg); color: #27C8D8; }
 
 /* ─── Cell: dispositivo ──────────────────────────────────── */
 .np-disp-cell { display: flex; flex-direction: column; gap: 2px; }
@@ -850,7 +848,7 @@ onMounted(fetchProducts)
 .badge--green  { background: #DCFCE7; color: #16A34A; }
 .badge--yellow { background: #FEF3C7; color: #B45309; }
 .badge--orange { background: #FFEDD5; color: #C2410C; }
-.badge--blue   { background: #DBEAFE; color: #1D4ED8; }
+.badge--blue   { background: #CCEFF2; color: #27C8D8; }
 .badge--red    { background: #FEE2E2; color: #B91C1C; }
 .badge--slate  { background: #F1F5F9; color: #64748B; }
 
@@ -878,7 +876,7 @@ onMounted(fetchProducts)
 .act-del:hover  { background: #FECACA; }
 
 /* ─── Fila expandida ─────────────────────────────────────── */
-.np-exp-td { padding: 0 !important; border-bottom: 1px solid #EBF3FC; }
+.np-exp-td { padding: 0 !important; border-bottom: 1px solid #F0FAFB; }
 
 .np-exp-panel {
   max-height: 0;
@@ -889,7 +887,7 @@ onMounted(fetchProducts)
 
 .np-exp-inner {
   background: #F8FBFF;
-  border-left: 3px solid #054EAF;
+  border-left: 3px solid #27C8D8;
   padding: 16px 24px;
 }
 
@@ -939,7 +937,7 @@ onMounted(fetchProducts)
   align-items: center;
   justify-content: space-between;
   padding: 12px 20px;
-  border-top: 1px solid #EBF3FC;
+  border-top: 1px solid #F0FAFB;
   flex-wrap: wrap;
   gap: 8px;
 }
@@ -960,9 +958,9 @@ onMounted(fetchProducts)
   justify-content: center;
   transition: all 0.12s ease;
 }
-.pg-btn:hover:not(:disabled) { background: #EEF4FF; color: #054EAF; border-color: #BFDBFE; }
+.pg-btn:hover:not(:disabled) { background: #E0F9FA; color: #27C8D8; border-color: #A7EEF5; }
 .pg-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-.pg-active { background: #054EAF !important; color: #FFFFFF !important; border-color: #054EAF !important; font-weight: 600; }
+.pg-active { background: #27C8D8 !important; color: #FFFFFF !important; border-color: #27C8D8 !important; font-weight: 600; }
 .pg-ellipsis { color: #94A3B8; font-size: 13px; padding: 0 4px; }
 
 /* ─── Modal title ────────────────────────────────────────── */
@@ -1009,10 +1007,10 @@ onMounted(fetchProducts)
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #054EAF;
+  color: #27C8D8;
   font-family: 'Inter', sans-serif;
   padding: 6px 0 2px;
-  border-bottom: 1px solid #EBF3FC;
+  border-bottom: 1px solid #F0FAFB;
   margin-bottom: 2px;
 }
 
@@ -1041,8 +1039,8 @@ onMounted(fetchProducts)
   appearance: auto;
 }
 .edit-input:focus {
-  border-color: #054EAF;
-  box-shadow: 0 0 0 3px rgba(5,78,175,.1);
+  border-color: #27C8D8;
+  box-shadow: 0 0 0 3px rgba(39,200,216,.1);
 }
 .edit-input::placeholder { color: #94A3B8; }
 
@@ -1057,7 +1055,7 @@ onMounted(fetchProducts)
   justify-content: flex-end;
   gap: 10px;
   padding-top: 8px;
-  border-top: 1px solid #EBF3FC;
+  border-top: 1px solid #F0FAFB;
 }
 
 .btn-cancel {
@@ -1085,13 +1083,13 @@ onMounted(fetchProducts)
   font-family: 'Inter', sans-serif;
   border-radius: 8px;
   border: none;
-  background: #054EAF;
+  background: #27C8D8;
   color: #fff;
   cursor: pointer;
-  box-shadow: 0 1px 4px rgba(5,78,175,.25);
+  box-shadow: 0 1px 4px rgba(39,200,216,.25);
   transition: background 0.15s;
 }
-.btn-save:hover:not(:disabled) { background: #03368A; }
+.btn-save:hover:not(:disabled) { background: #1BAEBB; }
 .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .edit-spinner {

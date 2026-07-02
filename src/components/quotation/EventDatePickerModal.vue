@@ -473,21 +473,21 @@ const triggerFields = computed(() => {
   text-align: left;
 }
 .edp-trigger:hover {
-  border-color: #054EAF;
-  background: #EBF3FC;
-  box-shadow: 0 2px 8px rgba(5,78,175,0.1);
+  border-color: #27C8D8;
+  background: #F0FAFB;
+  box-shadow: 0 2px 8px rgba(39,200,216,0.1);
 }
 .edp-trigger--error {
   border-color: #FCA5A5;
   background: #FFF5F5;
 }
 .edp-trigger--filled {
-  border-color: #BFDBFE;
+  border-color: #A7EEF5;
 }
 .edp-trigger--active {
-  border-color: #054EAF;
-  background: #EBF3FC;
-  box-shadow: 0 2px 8px rgba(5,78,175,0.15);
+  border-color: #27C8D8;
+  background: #F0FAFB;
+  box-shadow: 0 2px 8px rgba(39,200,216,0.15);
 }
 
 .edp-trigger-icon {
@@ -541,7 +541,7 @@ const triggerFields = computed(() => {
 }
 .edp-trigger-referencia-label {
   font-weight: 600;
-  color: #054EAF;
+  color: #27C8D8;
   text-transform: uppercase;
   font-size: 9px;
   letter-spacing: 0.03em;
@@ -553,7 +553,7 @@ const triggerFields = computed(() => {
   flex-shrink: 0;
   transition: color 0.15s;
 }
-.edp-trigger:hover .edp-trigger-chevron { color: #054EAF; }
+.edp-trigger:hover .edp-trigger-chevron { color: #27C8D8; }
 
 /* ── Overlay ─────────────────────────────────────────────────── */
 .edp-overlay {
@@ -572,7 +572,7 @@ const triggerFields = computed(() => {
 .edp-modal {
   background: #FFFFFF;
   border-radius: 20px;
-  box-shadow: 0 8px 40px rgba(5,78,175,0.18), 0 2px 8px rgba(0,0,0,0.08);
+  box-shadow: 0 8px 40px rgba(39,200,216,0.18), 0 2px 8px rgba(0,0,0,0.08);
   width: 100%;
   max-width: 520px;
   max-height: 90vh;
@@ -632,7 +632,7 @@ const triggerFields = computed(() => {
 }
 .edp-prog-fill {
   height: 100%;
-  background: #054EAF;
+  background: #27C8D8;
   border-radius: 99px;
   transition: width 0.35s ease;
 }
@@ -664,8 +664,8 @@ const triggerFields = computed(() => {
 }
 .edp-tab:hover { background: #F8FAFC; }
 .edp-tab--active {
-  background: #EBF3FC;
-  border-color: #BFDBFE;
+  background: #F0FAFB;
+  border-color: #A7EEF5;
 }
 .edp-tab--done {
   background: #F0FDF4;
@@ -679,11 +679,11 @@ const triggerFields = computed(() => {
   font-family: 'Inter', sans-serif;
   white-space: nowrap;
 }
-.edp-tab--active .edp-tab-label { color: #054EAF; }
+.edp-tab--active .edp-tab-label { color: #27C8D8; }
 .edp-tab--done   .edp-tab-label { color: #16A34A; }
 .edp-tab-referencia {
   font-size: 9px;
-  color: #054EAF;
+  color: #27C8D8;
   font-family: 'Inter', sans-serif;
   font-weight: 500;
   margin-top: 2px;
@@ -710,7 +710,7 @@ const triggerFields = computed(() => {
 }
 .edp-step-hint strong { color: #0F1A2E; }
 .edp-hint-ref {
-  color: #054EAF;
+  color: #27C8D8;
   font-weight: 500;
   font-size: 12px;
 }
@@ -755,7 +755,7 @@ const triggerFields = computed(() => {
   cursor: pointer;
   font-weight: 600;
 }
-.edp-confirm-check input { cursor: pointer; accent-color: #054EAF; }
+.edp-confirm-check input { cursor: pointer; accent-color: #27C8D8; }
 
 /* ── Summary ─────────────────────────────────────────────── */
 .edp-summary {
@@ -783,7 +783,7 @@ const triggerFields = computed(() => {
 }
 .edp-summary-time {
   font-weight: 700;
-  color: #054EAF;
+  color: #27C8D8;
 }
 .edp-summary-arrow {
   color: #94A3B8;
@@ -828,10 +828,10 @@ const triggerFields = computed(() => {
 .edp-btn--cancel:hover { background: #E5EAF0; }
 .edp-btn--prev    { background: #F1F5FA; color: #0F1A2E; }
 .edp-btn--prev:hover { background: #E5EAF0; }
-.edp-btn--next    { background: #EBF3FC; color: #054EAF; border: 1px solid #BFDBFE; }
-.edp-btn--next:hover { background: #DBEAFE; }
-.edp-btn--confirm { background: #054EAF; color: white; box-shadow: 0 2px 8px rgba(5,78,175,0.22); }
-.edp-btn--confirm:hover:not(:disabled) { background: #03368A; }
+.edp-btn--next    { background: #F0FAFB; color: #27C8D8; border: 1px solid #A7EEF5; }
+.edp-btn--next:hover { background: #CCEFF2; }
+.edp-btn--confirm { background: #27C8D8; color: white; box-shadow: 0 2px 8px rgba(39,200,216,0.22); }
+.edp-btn--confirm:hover:not(:disabled) { background: #1BAEBB; }
 .edp-btn--confirm:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* ── Animations ──────────────────────────────────────────── */

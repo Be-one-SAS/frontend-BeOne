@@ -356,6 +356,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { formatCOP } from '@/utils/currency.js'
 import {
   getResumenFinanciero,
   createOc, deleteOc,
@@ -385,8 +386,7 @@ const pagoSaving = ref(false)
 const pagoForm   = ref({})
 
 // ── Format helpers ────────────────────────────────────────
-const fmt = (v) =>
-  new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 2 }).format(v ?? 0)
+const fmt = formatCOP
 
 const fmtDate = (d) => {
   if (!d) return ''
@@ -532,7 +532,7 @@ async function removePago(id) {
 }
 .fp-spinner {
   width: 18px; height: 18px; border-radius: 50%;
-  border: 2px solid #E2E8F0; border-top-color: #054EAF;
+  border: 2px solid #E2E8F0; border-top-color: #27C8D8;
   animation: spin 0.7s linear infinite; flex-shrink: 0;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -542,7 +542,7 @@ async function removePago(id) {
   background: #fff; border: 1px solid #E2E8F0; border-radius: 10px;
   padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;
 }
-.fp-card-summary { background: #F0F7FF; border-color: #BFDBFE; }
+.fp-card-summary { background: #F0F7FF; border-color: #A7EEF5; }
 .fp-card-head { display: flex; align-items: center; justify-content: space-between; }
 .fp-card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; }
 
@@ -551,16 +551,16 @@ async function removePago(id) {
 .fp-trio-item { display: flex; flex-direction: column; gap: 2px; }
 .fp-trio-label { font-size: 10px; color: #94A3B8; font-weight: 600; text-transform: uppercase; }
 .fp-trio-val { font-size: 14px; font-weight: 700; color: #0F172A; }
-.fp-trio-total .fp-trio-val { color: #054EAF; font-size: 15px; }
+.fp-trio-total .fp-trio-val { color: #27C8D8; font-size: 15px; }
 .fp-trio-desc { color: #DC2626; }
 
 /* Add button */
 .fp-add-btn {
-  font-size: 11px; font-weight: 600; color: #054EAF; background: #EFF6FF;
-  border: 1px solid #BFDBFE; border-radius: 6px; padding: 4px 10px; cursor: pointer;
+  font-size: 11px; font-weight: 600; color: #27C8D8; background: #E0F9FA;
+  border: 1px solid #A7EEF5; border-radius: 6px; padding: 4px 10px; cursor: pointer;
   transition: background 0.15s;
 }
-.fp-add-btn:hover { background: #DBEAFE; }
+.fp-add-btn:hover { background: #CCEFF2; }
 
 /* Form */
 .fp-form { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 12px; }
@@ -573,7 +573,7 @@ async function removePago(id) {
   font-size: 12px; color: #0F172A; background: #fff;
   outline: none; transition: border 0.15s;
 }
-.fp-field input:focus, .fp-field select:focus, .fp-field textarea:focus { border-color: #054EAF; }
+.fp-field input:focus, .fp-field select:focus, .fp-field textarea:focus { border-color: #27C8D8; }
 .fp-readonly { background: #F1F5F9 !important; color: #64748B !important; }
 .fp-check-field { justify-content: center; }
 .fp-check-label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: #0F172A; cursor: pointer; }
@@ -584,10 +584,10 @@ async function removePago(id) {
 }
 .fp-btn-save {
   padding: 6px 16px; border-radius: 6px; border: none;
-  font-size: 12px; font-weight: 600; color: #fff; background: #054EAF; cursor: pointer;
+  font-size: 12px; font-weight: 600; color: #fff; background: #27C8D8; cursor: pointer;
   transition: background 0.15s;
 }
-.fp-btn-save:hover:not(:disabled) { background: #0342A0; }
+.fp-btn-save:hover:not(:disabled) { background: #1BAEBB; }
 .fp-btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* Items list */
@@ -619,7 +619,7 @@ async function removePago(id) {
   text-transform: uppercase; letter-spacing: 0.3px;
 }
 .fp-tipo-anticipo { background: #FFF7ED; color: #C2410C; }
-.fp-tipo-parcial  { background: #EFF6FF; color: #1D4ED8; }
+.fp-tipo-parcial  { background: #E0F9FA; color: #27C8D8; }
 .fp-tipo-total    { background: #F0FDF4; color: #166534; }
 .fp-interno-badge { font-size: 10px; font-weight: 700; background: #FDF4FF; color: #7E22CE; padding: 2px 7px; border-radius: 99px; }
 
@@ -630,7 +630,7 @@ async function removePago(id) {
   padding-top: 8px; margin-top: 2px;
 }
 .fp-total-row span > b { color: #0F172A; }
-.fp-total-big { margin-left: auto; font-size: 14px; font-weight: 800; color: #054EAF; }
+.fp-total-big { margin-left: auto; font-size: 14px; font-weight: 800; color: #27C8D8; }
 
 .fp-empty { font-size: 12px; color: #94A3B8; padding: 4px 0; }
 .fp-error { font-size: 12px; color: #991B1B; background: #FEF2F2; padding: 8px 12px; border-radius: 6px; margin-top: 4px; }
@@ -646,8 +646,8 @@ async function removePago(id) {
   border-color: #FED7AA;
 }
 .fp-saldo-partial {
-  background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
-  border-color: #BFDBFE;
+  background: linear-gradient(135deg, #E0F9FA 0%, #CCEFF2 100%);
+  border-color: #A7EEF5;
 }
 .fp-saldo-paid {
   background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%);
@@ -663,7 +663,7 @@ async function removePago(id) {
   letter-spacing: 0.8px;
 }
 .fp-saldo-pending  .fp-saldo-eyebrow { color: #C2410C; }
-.fp-saldo-partial  .fp-saldo-eyebrow { color: #1D4ED8; }
+.fp-saldo-partial  .fp-saldo-eyebrow { color: #27C8D8; }
 .fp-saldo-paid     .fp-saldo-eyebrow { color: #166534; }
 
 .fp-saldo-monto {
@@ -671,7 +671,7 @@ async function removePago(id) {
   font-variant-numeric: tabular-nums;
 }
 .fp-saldo-pending .fp-saldo-monto { color: #C2410C; }
-.fp-saldo-partial .fp-saldo-monto { color: #1D4ED8; }
+.fp-saldo-partial .fp-saldo-monto { color: #27C8D8; }
 .fp-saldo-paid    .fp-saldo-monto { color: #166534; }
 
 .fp-saldo-overpaid { font-size: 11px; color: #7C3AED; font-style: italic; margin-top: 2px; }
@@ -682,7 +682,7 @@ async function removePago(id) {
   font-size: 18px; font-weight: 900; flex-shrink: 0;
 }
 .fp-saldo-pending .fp-saldo-icon { background: #FED7AA; color: #C2410C; }
-.fp-saldo-partial .fp-saldo-icon { background: #BFDBFE; color: #1D4ED8; }
+.fp-saldo-partial .fp-saldo-icon { background: #A7EEF5; color: #27C8D8; }
 .fp-saldo-paid    .fp-saldo-icon { background: #BBF7D0; color: #166534; }
 
 .fp-saldo-breakdown {
@@ -700,7 +700,7 @@ async function removePago(id) {
 }
 .fp-saldo-final-val { font-size: 14px; font-weight: 800; }
 .fp-saldo-pending .fp-saldo-final-val { color: #C2410C; }
-.fp-saldo-partial .fp-saldo-final-val { color: #1D4ED8; }
+.fp-saldo-partial .fp-saldo-final-val { color: #27C8D8; }
 .fp-saldo-paid    .fp-saldo-final-val { color: #166534; }
 
 /* Barra de progreso */
@@ -711,7 +711,7 @@ async function removePago(id) {
   height: 100%; border-radius: 99px; transition: width 0.5s ease;
 }
 .fp-saldo-pending .fp-saldo-bar-fill { background: #F97316; }
-.fp-saldo-partial .fp-saldo-bar-fill { background: #3B82F6; }
+.fp-saldo-partial .fp-saldo-bar-fill { background: #27C8D8; }
 .fp-saldo-paid    .fp-saldo-bar-fill { background: #22C55E; }
 
 .fp-saldo-bar-label {

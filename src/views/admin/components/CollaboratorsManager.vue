@@ -199,7 +199,7 @@ const quitarMiembro = async (userId) => {
 }
 
 // ─ Helpers Visuales ────────────────────────────
-const AVATAR_COLORS = ['#054EAF', '#7C3AED', '#B45309', '#B91C1C', '#16A34A', '#0891B2']
+const AVATAR_COLORS = ['#27C8D8', '#7C3AED', '#B45309', '#B91C1C', '#16A34A', '#27C8D8']
 const getAvatarColor = (name) => AVATAR_COLORS[(name?.charCodeAt(0) ?? 0) % AVATAR_COLORS.length]
 const getInitials = (name) => (name ?? '').trim().split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
 
@@ -230,7 +230,7 @@ const getInitials = (name) => (name ?? '').trim().split(' ').slice(0, 2).map(w =
 }
 
 .icon-brand {
-  color: #054EAF;
+  color: #27C8D8;
 }
 
 .collab-title {
@@ -246,8 +246,8 @@ const getInitials = (name) => (name ?? '').trim().split(' ').slice(0, 2).map(w =
   gap: 4px;
   font-size: 12px;
   font-weight: 500;
-  color: #054EAF;
-  background: #EBF3FC;
+  color: #27C8D8;
+  background: #F0FAFB;
   border: none;
   padding: 4px 10px;
   border-radius: 99px;
@@ -346,7 +346,7 @@ const getInitials = (name) => (name ?? '').trim().split(' ').slice(0, 2).map(w =
   width: 260px;
   background: white;
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(5,78,175,0.15);
+  box-shadow: 0 4px 20px rgba(39,200,216,0.15);
   border: 1px solid #E2EBF6;
   z-index: 50;
   overflow: hidden;
@@ -379,7 +379,7 @@ const getInitials = (name) => (name ?? '').trim().split(' ').slice(0, 2).map(w =
   outline: none;
 }
 .search-input:focus {
-  border-color: #054EAF;
+  border-color: #27C8D8;
 }
 
 .selector-users {

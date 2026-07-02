@@ -23,9 +23,9 @@
         </div>
 
         <div class="rf-field">
-          <label class="rf-label">Sede</label>
+          <label class="rf-label">Unidad de Ejecución</label>
           <select v-model="filtros.sede" class="rf-select">
-            <option value="">Todas las sedes</option>
+            <option value="">Todas las unidades</option>
             <option v-for="s in SEDES" :key="s" :value="s">{{ s }}</option>
           </select>
         </div>
@@ -146,7 +146,7 @@
       <div class="rf-section-card">
         <div class="rf-section-header">
           <MapPin :size="15" class="rf-chart-hico" />
-          <span>Rendimiento por Sede</span>
+          <span>Rendimiento por Unidad de Ejecución</span>
         </div>
 
         <template v-if="loading">
@@ -154,14 +154,14 @@
         </template>
 
         <div v-else-if="!data.sedes?.length" class="rf-no-data rf-no-data--pad">
-          Sin datos de sedes para el período
+          Sin datos de unidades de ejecución para el período
         </div>
 
         <div v-else class="rf-table-scroll">
           <table class="rf-table">
             <thead>
               <tr>
-                <th>Sede</th>
+                <th>Unidad de Ejecución</th>
                 <th class="rf-th-r">Cotizaciones</th>
                 <th class="rf-th-r">Valor Total</th>
                 <th class="rf-th-r">Aprobadas</th>
@@ -234,6 +234,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { formatCOP } from '@/utils/currency.js'
 import { Chart, registerables } from 'chart.js'
 import {
   BarChart2, TrendingUp, TrendingDown, PieChart,
@@ -289,7 +290,7 @@ const kpiList = computed(() => {
       value: k.totalCotizaciones ?? 0,
       trend: k.totalCotizacionesTrend ?? null,
       icon: FileText,
-      iconBg: '#EBF3FC', iconColor: '#054EAF',
+      iconBg: '#F0FAFB', iconColor: '#27C8D8',
     },
     {
       label: 'Valor Cotizado',
@@ -376,8 +377,8 @@ const initEvolucion = () => {
           type: 'bar',
           label: 'Valor Cotizado',
           data: d.map(x => x.valorCotizado),
-          backgroundColor: 'rgba(5, 78, 175, 0.16)',
-          borderColor: '#054EAF',
+          backgroundColor: 'rgba(39,200,216, 0.16)',
+          borderColor: '#27C8D8',
           borderWidth: 1.5,
           borderRadius: 4,
           order: 2,
@@ -466,8 +467,8 @@ const initProductos = () => {
       datasets: [{
         label: 'Veces cotizado',
         data:  d.map(x => x.cantidad),
-        backgroundColor: 'rgba(5, 78, 175, 0.16)',
-        borderColor: '#054EAF',
+        backgroundColor: 'rgba(39,200,216, 0.16)',
+        borderColor: '#27C8D8',
         borderWidth: 1.5,
         borderRadius: 4,
       }],
@@ -528,10 +529,7 @@ const initAgente = () => {
 }
 
 // ── Helpers ────────────────────────────────────────────────
-const fmt = (v) =>
-  new Intl.NumberFormat('es-CO', {
-    style: 'currency', currency: 'COP', maximumFractionDigits: 0,
-  }).format(v ?? 0)
+const fmt = formatCOP
 
 const fmtShort = (v) => {
   if (!v && v !== 0) return ''
@@ -575,7 +573,7 @@ onUnmounted(destroyCharts)
   border-radius: 18px;
   padding: 16px 20px;
   border: 1px solid #E2EBF6;
-  box-shadow: 0 1px 4px rgba(5, 78, 175, .06);
+  box-shadow: 0 1px 4px rgba(39,200,216, .06);
 }
 
 .rf-filter-grid {
@@ -612,14 +610,14 @@ onUnmounted(destroyCharts)
   cursor: pointer;
   transition: border-color 0.15s;
 }
-.rf-select:focus { border-color: #054EAF; }
+.rf-select:focus { border-color: #27C8D8; }
 
 .rf-btn-apply {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 9px 18px;
-  background: #054EAF;
+  background: #27C8D8;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -628,10 +626,10 @@ onUnmounted(destroyCharts)
   font-family: 'Inter', sans-serif;
   cursor: pointer;
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(5, 78, 175, 0.22);
+  box-shadow: 0 2px 8px rgba(39,200,216, 0.22);
   transition: background 0.15s;
 }
-.rf-btn-apply:hover:not(:disabled) { background: #03368A; }
+.rf-btn-apply:hover:not(:disabled) { background: #1BAEBB; }
 .rf-btn-apply:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* ── Error ─────────────────────────────────────────────── */
@@ -655,7 +653,7 @@ onUnmounted(destroyCharts)
 }
 .rf-btn-retry {
   padding: 8px 20px;
-  background: #054EAF;
+  background: #27C8D8;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -674,7 +672,7 @@ onUnmounted(destroyCharts)
 
 .rf-kpi-skel {
   height: 88px;
-  background: #EBF3FC;
+  background: #F0FAFB;
   border-radius: 16px;
   animation: rf-pulse 1.5s ease-in-out infinite;
 }
@@ -683,7 +681,7 @@ onUnmounted(destroyCharts)
   background: #fff;
   border-radius: 16px;
   border: 1px solid #E2EBF6;
-  box-shadow: 0 1px 4px rgba(5, 78, 175, .06);
+  box-shadow: 0 1px 4px rgba(39,200,216, .06);
   padding: 16px;
   display: flex;
   align-items: flex-start;
@@ -745,7 +743,7 @@ onUnmounted(destroyCharts)
   background: #fff;
   border-radius: 18px;
   border: 1px solid #E2EBF6;
-  box-shadow: 0 1px 4px rgba(5, 78, 175, .06), 0 4px 16px rgba(5, 78, 175, .08);
+  box-shadow: 0 1px 4px rgba(39,200,216, .06), 0 4px 16px rgba(39,200,216, .08);
   overflow: hidden;
 }
 
@@ -761,7 +759,7 @@ onUnmounted(destroyCharts)
   font-weight: 700;
   color: #0F172A;
 }
-.rf-chart-hico { color: #054EAF; flex-shrink: 0; }
+.rf-chart-hico { color: #27C8D8; flex-shrink: 0; }
 
 .rf-chart-body {
   padding: 20px;
@@ -776,7 +774,7 @@ onUnmounted(destroyCharts)
 .rf-chart-skel {
   width: 100%;
   height: 100%;
-  background: #EBF3FC;
+  background: #F0FAFB;
   border-radius: 12px;
   animation: rf-pulse 1.5s ease-in-out infinite;
 }
@@ -793,7 +791,7 @@ onUnmounted(destroyCharts)
   background: #fff;
   border-radius: 18px;
   border: 1px solid #E2EBF6;
-  box-shadow: 0 1px 4px rgba(5, 78, 175, .06), 0 4px 16px rgba(5, 78, 175, .08);
+  box-shadow: 0 1px 4px rgba(39,200,216, .06), 0 4px 16px rgba(39,200,216, .08);
   overflow: hidden;
 }
 
@@ -813,7 +811,7 @@ onUnmounted(destroyCharts)
 .rf-row-skel {
   height: 44px;
   margin: 8px 20px;
-  background: #EBF3FC;
+  background: #F0FAFB;
   border-radius: 8px;
   animation: rf-pulse 1.5s ease-in-out infinite;
 }
@@ -869,7 +867,7 @@ onUnmounted(destroyCharts)
 .rf-td-meta { color: #94A3B8; font-size: 12px; }
 .rf-td-r    { text-align: right; white-space: nowrap; }
 .rf-td-c    { text-align: center; }
-.rf-val     { font-weight: 700; color: #054EAF; }
+.rf-val     { font-weight: 700; color: #27C8D8; }
 
 /* ── Badges de estado ──────────────────────────────────── */
 .rf-status-badge {

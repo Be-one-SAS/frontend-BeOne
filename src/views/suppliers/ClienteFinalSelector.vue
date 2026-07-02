@@ -7,10 +7,10 @@
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[#94A3B8]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
         </div>
         <input v-model="search" @focus="openModal = true" placeholder="Buscar cliente..."
-          class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full pl-9 pr-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#054EAF]/20 focus:border-[#054EAF] cursor-pointer transition-colors" readonly />
+          class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full pl-9 pr-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] cursor-pointer transition-colors" readonly />
       </div>
       <button v-if="props.dataClient && props.dataClient.name" @click="abrirModalEdicion"
-        class="h-[37px] w-[37px] flex-shrink-0 bg-[#EEF4FF] hover:bg-[#DBEAFE] border border-[#BFDBFE] text-[#054EAF] flex items-center justify-center rounded-full transition-colors"
+        class="h-[37px] w-[37px] flex-shrink-0 bg-[#E0F9FA] hover:bg-[#CCEFF2] border border-[#A7EEF5] text-[#27C8D8] flex items-center justify-center rounded-full transition-colors"
         title="Editar cliente">
         <IconEdit class="w-[18px] h-[18px]" />
       </button>
@@ -26,13 +26,13 @@
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[#94A3B8]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
           </div>
           <input v-model="search" placeholder="Buscar cliente por nombre..."
-            class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full pl-9 pr-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#054EAF]/20 focus:border-[#054EAF] transition-colors" />
+            class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full pl-9 pr-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
         </div>
 
         <ul class="max-h-[240px] overflow-auto pr-2 space-y-1 mb-4 custom-scrollbar" v-if="filteredClientes.length">
           <li v-for="cliente in filteredClientes" :key="cliente.id"
             class="px-4 py-3 border border-transparent rounded-[12px] hover:bg-[#F8FAFC] hover:border-[#E5EAF0] cursor-pointer transition-all flex items-center gap-3" @click="seleccionarCliente(cliente)">
-            <div class="w-8 h-8 rounded-full bg-[#EEF4FF] text-[#054EAF] flex items-center justify-center font-bold text-[12px] flex-shrink-0">
+            <div class="w-8 h-8 rounded-full bg-[#E0F9FA] text-[#27C8D8] flex items-center justify-center font-bold text-[12px] flex-shrink-0">
                 {{ cliente.name ? cliente.name.charAt(0).toUpperCase() : 'C' }}
             </div>
             <div class="flex flex-col">
@@ -53,42 +53,42 @@
         <!-- Formulario nuevo cliente -->
         <div class="space-y-3 mb-5" v-if="!filteredClientes.length">
           <h3 class="text-[14px] font-semibold text-[#0F1A2E] mb-2 flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[#054EAF]"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[#27C8D8]"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
             Nuevo Cliente Final
           </h3>
           <div class="grid grid-cols-2 gap-3">
             <div class="col-span-2">
-              <input v-model="nuevoCliente.name" placeholder="Nombre completo *" class="w-full bg-white border border-[#E5EAF0] rounded-[8px] px-3 py-[8px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#054EAF]/20 focus:border-[#054EAF] transition-colors" />
+              <input v-model="nuevoCliente.name" placeholder="Nombre completo *" class="w-full bg-white border border-[#E5EAF0] rounded-[8px] px-3 py-[8px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
             </div>
             <div>
-              <input v-model="nuevoCliente.nit" placeholder="NIT" class="w-full bg-white border border-[#E5EAF0] rounded-[8px] px-3 py-[8px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#054EAF]/20 focus:border-[#054EAF] transition-colors" />
+              <input v-model="nuevoCliente.nit" placeholder="NIT" class="w-full bg-white border border-[#E5EAF0] rounded-[8px] px-3 py-[8px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
             </div>
             <div>
-              <input v-model="nuevoCliente.email" placeholder="Correo electrónico" class="w-full bg-white border border-[#E5EAF0] rounded-[8px] px-3 py-[8px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#054EAF]/20 focus:border-[#054EAF] transition-colors" />
+              <input v-model="nuevoCliente.email" placeholder="Correo electrónico" class="w-full bg-white border border-[#E5EAF0] rounded-[8px] px-3 py-[8px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
             </div>
             <div>
-              <input v-model="nuevoCliente.phone" placeholder="Contacto (Teléfono)" class="w-full bg-white border border-[#E5EAF0] rounded-[8px] px-3 py-[8px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#054EAF]/20 focus:border-[#054EAF] transition-colors" />
+              <input v-model="nuevoCliente.phone" placeholder="Contacto (Teléfono)" class="w-full bg-white border border-[#E5EAF0] rounded-[8px] px-3 py-[8px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
             </div>
             <div>
-              <input v-model="nuevoCliente.document" placeholder="Documento" class="w-full bg-white border border-[#E5EAF0] rounded-[8px] px-3 py-[8px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#054EAF]/20 focus:border-[#054EAF] transition-colors" />
+              <input v-model="nuevoCliente.document" placeholder="Documento" class="w-full bg-white border border-[#E5EAF0] rounded-[8px] px-3 py-[8px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
             </div>
             <div class="col-span-2">
-              <input v-model="nuevoCliente.contactName" placeholder="Contacto de referencia" class="w-full bg-white border border-[#E5EAF0] rounded-[8px] px-3 py-[8px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#054EAF]/20 focus:border-[#054EAF] transition-colors" />
+              <input v-model="nuevoCliente.contactName" placeholder="Contacto de referencia" class="w-full bg-white border border-[#E5EAF0] rounded-[8px] px-3 py-[8px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
             </div>
             <div class="col-span-2">
-              <input v-model="nuevoCliente.reference" placeholder="Referencia" class="w-full bg-white border border-[#E5EAF0] rounded-[8px] px-3 py-[8px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#054EAF]/20 focus:border-[#054EAF] transition-colors" />
+              <input v-model="nuevoCliente.reference" placeholder="Referencia" class="w-full bg-white border border-[#E5EAF0] rounded-[8px] px-3 py-[8px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
             </div>
           </div>
           <div class="mt-2">
-            <span class="text-[11px] font-medium text-[#054EAF] bg-[#EEF4FF] px-2 py-0.5 rounded border border-[#BFDBFE]">TIPO: {{ nuevoCliente.type }}</span>
+            <span class="text-[11px] font-medium text-[#27C8D8] bg-[#E0F9FA] px-2 py-0.5 rounded border border-[#A7EEF5]">TIPO: {{ nuevoCliente.type }}</span>
           </div>
         </div>
 
         <div class="flex justify-end gap-3 mt-5 pt-4 border-t border-[#F1F5F9]">
-          <button class="px-[16px] py-[9px] text-[13px] font-semibold bg-[#F8FAFC] text-[#64748B] border border-[#E5EAF0] rounded-full hover:bg-[#EEF4FF] hover:text-[#054EAF] hover:border-[#BFDBFE] transition-colors" @click="openModal = false">
+          <button class="px-[16px] py-[9px] text-[13px] font-semibold bg-[#F8FAFC] text-[#64748B] border border-[#E5EAF0] rounded-full hover:bg-[#E0F9FA] hover:text-[#27C8D8] hover:border-[#A7EEF5] transition-colors" @click="openModal = false">
             Cancelar
           </button>
-          <button v-if="!filteredClientes.length" class="px-[16px] py-[9px] text-[13px] font-semibold bg-[#054EAF] text-white rounded-full hover:bg-[#03368A] shadow-[0_2px_8px_rgba(5,78,175,0.18)] transition-all disabled:opacity-50 disabled:cursor-not-allowed" @click="agregarNuevoCliente"
+          <button v-if="!filteredClientes.length" class="px-[16px] py-[9px] text-[13px] font-semibold bg-[#27C8D8] text-white rounded-full hover:bg-[#1BAEBB] shadow-[0_2px_8px_rgba(39,200,216,0.18)] transition-all disabled:opacity-50 disabled:cursor-not-allowed" @click="agregarNuevoCliente"
             :disabled="!nuevoCliente.name">
             Agregar nuevo cliente
           </button>
@@ -104,40 +104,40 @@
         <div class="grid grid-cols-2 gap-3 mb-4">
           <div class="col-span-2">
             <label class="text-[12px] text-[#64748B] mb-1 block">Nombre</label>
-            <input v-model="nuevoCliente.name" placeholder="Nombre completo" class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full px-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#054EAF]/20 focus:border-[#054EAF] transition-colors" />
+            <input v-model="nuevoCliente.name" placeholder="Nombre completo" class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full px-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
           </div>
           <div>
             <label class="text-[12px] text-[#64748B] mb-1 block">NIT</label>
-            <input v-model="nuevoCliente.nit" placeholder="NIT" class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full px-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#054EAF]/20 focus:border-[#054EAF] transition-colors" />
+            <input v-model="nuevoCliente.nit" placeholder="NIT" class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full px-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
           </div>
           <div>
             <label class="text-[12px] text-[#64748B] mb-1 block">Correo electrónico</label>
-            <input v-model="nuevoCliente.email" placeholder="Correo electrónico" class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full px-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#054EAF]/20 focus:border-[#054EAF] transition-colors" />
+            <input v-model="nuevoCliente.email" placeholder="Correo electrónico" class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full px-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
           </div>
           <div>
             <label class="text-[12px] text-[#64748B] mb-1 block">Contacto</label>
-            <input v-model="nuevoCliente.phone" placeholder="Contacto (Teléfono)" class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full px-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#054EAF]/20 focus:border-[#054EAF] transition-colors" />
+            <input v-model="nuevoCliente.phone" placeholder="Contacto (Teléfono)" class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full px-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
           </div>
           <div>
             <label class="text-[12px] text-[#64748B] mb-1 block">Documento</label>
-            <input v-model="nuevoCliente.document" placeholder="Documento" class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full px-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#054EAF]/20 focus:border-[#054EAF] transition-colors" />
+            <input v-model="nuevoCliente.document" placeholder="Documento" class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full px-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
           </div>
           <div>
             <label class="text-[12px] text-[#64748B] mb-1 block">Contacto de ref.</label>
-            <input v-model="nuevoCliente.contactName" placeholder="Contacto de referencia" class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full px-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#054EAF]/20 focus:border-[#054EAF] transition-colors" />
+            <input v-model="nuevoCliente.contactName" placeholder="Contacto de referencia" class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full px-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
           </div>
           <div>
             <label class="text-[12px] text-[#64748B] mb-1 block">Referencia</label>
-            <input v-model="nuevoCliente.reference" placeholder="Referencia" class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full px-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#054EAF]/20 focus:border-[#054EAF] transition-colors" />
+            <input v-model="nuevoCliente.reference" placeholder="Referencia" class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full px-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
           </div>
         </div>
         
         <div class="mb-2">
-          <span class="text-[11px] font-medium text-[#054EAF] bg-[#EEF4FF] px-2 py-0.5 rounded border border-[#BFDBFE]">TIPO: {{ nuevoCliente.type }}</span>
+          <span class="text-[11px] font-medium text-[#27C8D8] bg-[#E0F9FA] px-2 py-0.5 rounded border border-[#A7EEF5]">TIPO: {{ nuevoCliente.type }}</span>
         </div>
 
         <div class="flex justify-end gap-3 mt-5 pt-4 border-t border-[#F1F5F9]">
-          <button class="px-[16px] py-[9px] text-[13px] font-semibold bg-[#F8FAFC] text-[#64748B] border border-[#E5EAF0] rounded-full hover:bg-[#EEF4FF] hover:text-[#054EAF] hover:border-[#BFDBFE] transition-colors" @click="modalEditar = false">
+          <button class="px-[16px] py-[9px] text-[13px] font-semibold bg-[#F8FAFC] text-[#64748B] border border-[#E5EAF0] rounded-full hover:bg-[#E0F9FA] hover:text-[#27C8D8] hover:border-[#A7EEF5] transition-colors" @click="modalEditar = false">
             Cancelar
           </button>
           <button class="px-[16px] py-[9px] text-[13px] font-semibold bg-[#16A34A] text-white rounded-full hover:bg-[#15803D] shadow-[0_2px_8px_rgba(22,163,74,0.18)] transition-all disabled:opacity-50 disabled:cursor-not-allowed" @click="actualizarCliente"

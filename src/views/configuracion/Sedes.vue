@@ -4,11 +4,11 @@
     <!-- Header -->
     <div class="sedes-header">
       <div>
-        <h1 class="sedes-title">Sedes</h1>
-        <p class="sedes-sub">Unidades de ejecución · gestión de equipos y visibilidad financiera</p>
+        <h1 class="sedes-title">Unidades de Ejecución</h1>
+        <p class="sedes-sub">Gestión de equipos, visibilidad financiera y estructura organizacional</p>
       </div>
       <button class="sedes-btn-primary" @click="openCreate">
-        <Plus :size="15" /> Nueva sede
+        <Plus :size="15" /> Nueva unidad
       </button>
     </div>
 
@@ -23,15 +23,15 @@
 
     <!-- Loading -->
     <div v-if="loading" class="sedes-loading">
-      <div class="sedes-spinner" /><span>Cargando sedes…</span>
+      <div class="sedes-spinner" /><span>Cargando unidades de ejecución…</span>
     </div>
 
     <!-- Empty -->
     <div v-else-if="!sedes.length" class="sedes-empty">
       <Building2 :size="48" class="sedes-empty-icon" />
-      <h3>Sin sedes configuradas</h3>
-      <p>Crea la primera sede para organizar equipos y aislar información financiera por unidad.</p>
-      <button class="sedes-btn-primary" @click="openCreate"><Plus :size="14" /> Crear primera sede</button>
+      <h3>Sin unidades de ejecución configuradas</h3>
+      <p>Crea la primera unidad para organizar equipos y aislar información financiera.</p>
+      <button class="sedes-btn-primary" @click="openCreate"><Plus :size="14" /> Crear primera unidad</button>
     </div>
 
     <!-- Cards grid -->
@@ -99,7 +99,7 @@
       <div v-if="showForm" class="sedes-overlay" @click.self="closeForm">
         <div class="sedes-modal">
           <div class="sedes-modal-header">
-            <h2>{{ editingSede ? 'Editar sede' : 'Nueva sede' }}</h2>
+            <h2>{{ editingSede ? 'Editar unidad de ejecución' : 'Nueva unidad de ejecución' }}</h2>
             <button class="sedes-modal-close" @click="closeForm"><X :size="18" /></button>
           </div>
 
@@ -109,26 +109,15 @@
               <input v-model="form.nombre" class="sedes-input" placeholder="Ej. Bogotá Centro" />
             </div>
             <div class="sedes-field">
-              <label>Unidad de ejecución *</label>
-              <select v-model="form.ciudad" class="sedes-input">
-                <option value="" disabled>Seleccionar unidad…</option>
-                <option v-for="u in unidadesEjecucion" :key="u" :value="u">{{ u }}</option>
-                <option value="__custom__">— Otra (escribir) —</option>
-              </select>
-              <input
-                v-if="form.ciudad === '__custom__'"
-                v-model="ciudadCustom"
-                class="sedes-input"
-                style="margin-top:6px"
-                placeholder="Escribe la unidad de ejecución…"
-              />
+              <label>Ciudad / Región *</label>
+              <input v-model="form.ciudad" class="sedes-input" placeholder="Ej. Medellín, Bogotá, Cali…" />
             </div>
             <div class="sedes-field">
               <label>Descripción</label>
-              <textarea v-model="form.descripcion" class="sedes-input sedes-textarea" rows="2" placeholder="Descripción opcional de la sede…" />
+              <textarea v-model="form.descripcion" class="sedes-input sedes-textarea" rows="2" placeholder="Descripción opcional de la unidad de ejecución…" />
             </div>
             <div class="sedes-field">
-              <label>Líder de sede</label>
+              <label>Líder de la unidad</label>
               <select v-model="form.liderUserId" class="sedes-input">
                 <option :value="null">— Sin líder —</option>
                 <option v-for="u in allUsuarios" :key="u.id" :value="u.id">
@@ -156,7 +145,7 @@
             <button class="sedes-btn-primary" :disabled="saving || !form.nombre || !form.ciudad" @click="saveForm">
               <Loader2 v-if="saving" :size="14" class="spin" />
               <Check v-else :size="14" />
-              {{ editingSede ? 'Guardar cambios' : 'Crear sede' }}
+              {{ editingSede ? 'Guardar cambios' : 'Crear unidad' }}
             </button>
           </div>
         </div>
@@ -214,7 +203,7 @@
                   <span class="vis-icon vis-icon--green"><DollarSign :size="13" /></span>
                   <div>
                     <span class="vis-label">Financiero</span>
-                    <span class="vis-desc">Solo visible para el líder de esta sede y roles ADMIN / DIRECCIÓN</span>
+                    <span class="vis-desc">Solo visible para el líder de esta unidad y roles ADMIN / DIRECCIÓN</span>
                   </div>
                   <span class="vis-badge vis-badge--restricted">Aislado</span>
                 </div>
@@ -222,7 +211,7 @@
                   <span class="vis-icon vis-icon--blue"><Truck :size="13" /></span>
                   <div>
                     <span class="vis-label">Operativo</span>
-                    <span class="vis-desc">Visible para todas las sedes (coordinación entre equipos)</span>
+                    <span class="vis-desc">Visible para todas las unidades (coordinación entre equipos)</span>
                   </div>
                   <span class="vis-badge vis-badge--shared">Compartido</span>
                 </div>
@@ -240,12 +229,12 @@
             <!-- Usuarios asignados -->
             <div class="detail-users-section">
               <div class="detail-section-header">
-                <h3 class="detail-section-title"><Users :size="14" /> Equipo de la sede</h3>
+                <h3 class="detail-section-title"><Users :size="14" /> Equipo de la unidad</h3>
               </div>
 
               <div class="detail-users-list">
                 <div v-if="!detailData.usuarios.length" class="detail-empty">
-                  <span>Sin usuarios asignados a esta sede</span>
+                  <span>Sin usuarios asignados a esta unidad</span>
                 </div>
                 <div v-for="u in detailData.usuarios" :key="u.id" class="detail-user-row">
                   <div class="detail-user-avatar">
@@ -283,8 +272,8 @@
                     Asignar
                   </button>
                 </div>
-                <p v-if="!sinSede.length && !addingUser" class="detail-add-note">
-                  Todos los usuarios activos ya están asignados a una sede.
+                <p v-if="!availableUsers.length && !addingUser" class="detail-add-note">
+                  Todos los usuarios activos ya pertenecen a esta unidad.
                 </p>
               </div>
             </div>
@@ -333,7 +322,7 @@ import {
 import {
   getSedes, getSede, createSede, updateSede, deleteSede,
   asignarUsuario, desasignarUsuario, getUsuariosSinSede, getAllUsuarios,
-  getUnidadesEjecucion,
+  getRegionesOperativas,
 } from '@/services/sedes.service.js'
 import OrgChart from '@/components/configuracion/OrgChart.vue'
 
@@ -364,7 +353,7 @@ const deleting     = ref(false)
 
 // ── Computed ─────────────────────────────────────────────────────
 const assignedIds = computed(() => new Set((detailData.value?.usuarios ?? []).map(u => u.id)))
-const availableUsers = computed(() => sinSede.value.filter(u => !assignedIds.value.has(u.id)))
+const availableUsers = computed(() => allUsuarios.value.filter(u => !assignedIds.value.has(u.id)))
 
 // Sedes enriquecidas con usuarios del detailData si está abierto
 const sedesConUsuarios = computed(() => {
@@ -383,7 +372,7 @@ onMounted(load)
 async function load() {
   loading.value = true
   try {
-    const [sedesRes, usersRes, unidadesRes] = await Promise.all([getSedes(), getAllUsuarios(), getUnidadesEjecucion()])
+    const [sedesRes, usersRes, unidadesRes] = await Promise.all([getSedes(), getAllUsuarios(), getRegionesOperativas()])
     sedes.value             = sedesRes.data ?? []
     allUsuarios.value       = usersRes.data ?? []
     unidadesEjecucion.value = unidadesRes.data ?? []
@@ -392,11 +381,15 @@ async function load() {
 }
 
 async function refreshSinSede() {
-  try { sinSede.value = (await getUsuariosSinSede()).data ?? [] } catch (_) {}
+  try {
+    const [sinRes, allRes] = await Promise.all([getUsuariosSinSede(), getAllUsuarios()])
+    sinSede.value     = sinRes.data  ?? []
+    allUsuarios.value = allRes.data  ?? []
+  } catch (_) {}
 }
 
 // ── Colores de avatar por sede ────────────────────────────────────
-const PALETTE = ['#054EAF','#0369A1','#0F766E','#6D28D9','#BE185D','#D97706','#047857','#B45309']
+const PALETTE = ['#27C8D8','#138E9C','#0F766E','#6D28D9','#BE185D','#D97706','#047857','#B45309']
 function sedeColor(nombre) {
   let h = 0
   for (let i = 0; i < nombre.length; i++) h = (h * 31 + nombre.charCodeAt(i)) & 0xFFFFFF
@@ -512,7 +505,7 @@ async function removeUser(u) {
 
 /* Loading / empty */
 .sedes-loading { display: flex; align-items: center; gap: 10px; padding: 48px; color: #64748B; font-size: 14px; justify-content: center; }
-.sedes-spinner { width: 24px; height: 24px; border: 2.5px solid #E2E8F0; border-top-color: #054EAF; border-radius: 50%; animation: spin .8s linear infinite; }
+.sedes-spinner { width: 24px; height: 24px; border: 2.5px solid #E2E8F0; border-top-color: #27C8D8; border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .spin { animation: spin .8s linear infinite; }
 .sedes-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 64px 20px; text-align: center; }
@@ -530,8 +523,8 @@ async function removeUser(u) {
 .sedes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
 
 /* Card */
-.sede-card { background: #fff; border-radius: 16px; box-shadow: 0 1px 4px rgba(5,78,175,.06), 0 2px 10px rgba(5,78,175,.07); padding: 20px; display: flex; flex-direction: column; gap: 12px; transition: box-shadow .15s; }
-.sede-card:hover { box-shadow: 0 4px 16px rgba(5,78,175,.12); }
+.sede-card { background: #fff; border-radius: 16px; box-shadow: 0 1px 4px rgba(39,200,216,.06), 0 2px 10px rgba(39,200,216,.07); padding: 20px; display: flex; flex-direction: column; gap: 12px; transition: box-shadow .15s; }
+.sede-card:hover { box-shadow: 0 4px 16px rgba(39,200,216,.12); }
 .sede-card--inactive { opacity: .65; }
 
 .sede-card-top { display: flex; align-items: center; gap: 12px; }
@@ -558,7 +551,7 @@ async function removeUser(u) {
 .sede-card-actions { display: flex; gap: 6px; margin-top: 4px; }
 
 /* Buttons */
-.sedes-btn-primary { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: #054EAF; color: #fff; border: none; border-radius: 9px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s; }
+.sedes-btn-primary { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: #27C8D8; color: #fff; border: none; border-radius: 9px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s; }
 .sedes-btn-primary:hover:not(:disabled) { background: #0F1A2E; }
 .sedes-btn-primary:disabled { opacity: .6; cursor: not-allowed; }
 .sedes-btn-ghost { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; background: none; color: #64748B; border: 1.5px solid #E2E8F0; border-radius: 9px; font-size: 13px; font-weight: 500; cursor: pointer; }
@@ -569,8 +562,8 @@ async function removeUser(u) {
 
 .sedes-btn-sm { display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px; font-size: 11px; font-weight: 600; border-radius: 7px; cursor: pointer; border: 1.5px solid #E2E8F0; background: #F8FAFC; color: #374151; }
 .sedes-btn-sm:hover { background: #F1F5F9; }
-.sedes-btn-sm--primary { background: #EFF6FF; color: #1D4ED8; border-color: #BFDBFE; }
-.sedes-btn-sm--primary:hover { background: #DBEAFE; }
+.sedes-btn-sm--primary { background: #E0F9FA; color: #27C8D8; border-color: #A7EEF5; }
+.sedes-btn-sm--primary:hover { background: #CCEFF2; }
 .sedes-btn-sm--danger { background: #FEF2F2; color: #DC2626; border-color: #FCA5A5; }
 .sedes-btn-sm--danger:hover { background: #FEE2E2; }
 
@@ -591,7 +584,7 @@ async function removeUser(u) {
 .sedes-field { display: flex; flex-direction: column; gap: 5px; }
 .sedes-field label { font-size: 12px; font-weight: 600; color: #374151; }
 .sedes-input { border: 1.5px solid #E2E8F0; border-radius: 9px; padding: 9px 12px; font-size: 13px; color: #0F172A; outline: none; width: 100%; box-sizing: border-box; background: #fff; }
-.sedes-input:focus { border-color: #054EAF; }
+.sedes-input:focus { border-color: #27C8D8; }
 .sedes-textarea { resize: none; font-family: inherit; }
 
 /* Toggle */
@@ -611,7 +604,7 @@ async function removeUser(u) {
 .sedes-detail-loading { display: flex; align-items: center; gap: 10px; padding: 32px; justify-content: center; color: #64748B; font-size: 13px; }
 .detail-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .detail-kpi { display: flex; align-items: center; gap: 10px; background: #F8FAFC; border-radius: 10px; padding: 12px 14px; }
-.detail-kpi svg { color: #054EAF; flex-shrink: 0; }
+.detail-kpi svg { color: #27C8D8; flex-shrink: 0; }
 .detail-kpi-val { display: block; font-size: 15px; font-weight: 700; color: #0F172A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
 .detail-kpi-label { display: block; font-size: 10px; color: #94A3B8; font-weight: 500; margin-top: 1px; }
 
@@ -623,13 +616,13 @@ async function removeUser(u) {
 .detail-vis-row:last-child { border-bottom: none; }
 .vis-icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .vis-icon--green { background: #F0FDF4; color: #166534; }
-.vis-icon--blue { background: #EFF6FF; color: #1D4ED8; }
+.vis-icon--blue { background: #E0F9FA; color: #27C8D8; }
 .vis-icon--orange { background: #FFFBEB; color: #92400E; }
 .vis-label { display: block; font-size: 12px; font-weight: 600; color: #0F172A; }
 .vis-desc { display: block; font-size: 11px; color: #94A3B8; margin-top: 2px; }
 .vis-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px; white-space: nowrap; margin-left: auto; }
 .vis-badge--restricted { background: #FEF2F2; color: #DC2626; border: 1px solid #FCA5A5; }
-.vis-badge--shared { background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; }
+.vis-badge--shared { background: #E0F9FA; color: #27C8D8; border: 1px solid #A7EEF5; }
 .vis-badge--admin { background: #F5F3FF; color: #6D28D9; border: 1px solid #DDD6FE; }
 
 /* Users section */

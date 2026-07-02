@@ -98,7 +98,7 @@ const onConfirm = () => {
 // ── Helpers visuales ──────────────────────────────────────
 const roleBadgeClass = {
   ADMIN:       'bg-[#FEE2E2] text-[#B91C1C]',
-  COMERCIAL:   'bg-[#DBEAFE] text-[#1D4ED8]',
+  COMERCIAL:   'bg-[#CCEFF2] text-[#27C8D8]',
   SUPERVISOR:  'bg-[#EDE9FE] text-[#7C3AED]',
   LOGISTICA:   'bg-[#DCFCE7] text-[#16A34A]',
   COORDINADOR: 'bg-[#FEF3C7] text-[#B45309]',
@@ -106,7 +106,7 @@ const roleBadgeClass = {
   SOPORTE:     'bg-[#F1F5F9] text-[#64748B]',
 }
 
-const AVATAR_COLORS = ['#054EAF','#7C3AED','#B45309','#B91C1C','#16A34A','#0891B2','#C2410C']
+const AVATAR_COLORS = ['#27C8D8','#7C3AED','#B45309','#B91C1C','#16A34A','#27C8D8','#C2410C']
 const getAvatarColor = (name) => AVATAR_COLORS[(name?.charCodeAt(0) ?? 0) % AVATAR_COLORS.length]
 const getInitials = (name) =>
   (name ?? '').trim().split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
@@ -262,7 +262,7 @@ const getInitials = (name) =>
   box-sizing: border-box;
 }
 
-.del-confirm-input:focus { border-color: #054EAF; }
+.del-confirm-input:focus { border-color: #27C8D8; }
 
 .del-input-ready {
   border-color: #16A34A !important;
@@ -276,7 +276,7 @@ const getInitials = (name) =>
   justify-content: flex-end;
   gap: 10px;
   padding-top: 4px;
-  border-top: 1px solid #EBF3FC;
+  border-top: 1px solid #F0FAFB;
 }
 
 .btn-ghost {
