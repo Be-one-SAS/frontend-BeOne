@@ -34,7 +34,7 @@
       <div class="tp-roster">
         <div
           v-for="row in roster"
-          :key="row.user.id"
+          :key="row.isExternal ? `ext-${row.registro.id}` : row.user.id"
           class="tp-card"
           :class="{
             'tp-card--in':   row.registro?.horaIngreso && !row.registro?.horaSalida,
@@ -43,10 +43,10 @@
         >
           <!-- Avatar + nombre -->
           <div class="tp-card-person">
-            <div class="tp-avatar">{{ initials(row.user.fullName) }}</div>
+            <div class="tp-avatar">{{ initials(row.isExternal ? row.registro.nombreExterno : row.user.fullName) }}</div>
             <div>
-              <div class="tp-person-name">{{ row.user.fullName }}</div>
-              <div class="tp-person-role">{{ row.user.role }}</div>
+              <div class="tp-person-name">{{ row.isExternal ? row.registro.nombreExterno : row.user.fullName }}</div>
+              <div class="tp-person-role">{{ row.isExternal ? (row.registro.telefonoExterno ?? 'Externo') : row.user.role }}</div>
             </div>
             <div class="tp-status-chip" :class="statusChipClass(row)">{{ statusLabel(row) }}</div>
           </div>
@@ -81,12 +81,27 @@
           <!-- Notas -->
           <div v-if="row.registro?.notas" class="tp-notas">{{ row.registro.notas }}</div>
 
+          <!-- Cumplido -->
+          <label
+            class="tp-cumplido"
+            :class="{ 'tp-cumplido--disabled': !puedeMarcarCumplido(row) }"
+            :title="puedeMarcarCumplido(row) ? '' : 'Requiere ingreso y salida registrados'"
+          >
+            <input
+              type="checkbox"
+              :checked="!!row.registro?.cumplido"
+              :disabled="!puedeMarcarCumplido(row) || savingCumplidoId === row.registro?.id"
+              @change="toggleCumplido(row, $event.target.checked)"
+            />
+            Turno cumplido
+          </label>
+
           <!-- Botones de acción -->
           <div class="tp-actions">
             <button
               class="tp-btn tp-btn--ingreso"
               :class="{ 'tp-btn--done': !!row.registro?.horaIngreso }"
-              @click="openModal(row.user, 'ingreso', row.registro)"
+              @click="openModal(row, 'ingreso')"
             >
               <span class="tp-btn-icon">↓</span>
               {{ row.registro?.horaIngreso ? 'Editar ingreso' : 'Registrar ingreso' }}
@@ -94,7 +109,7 @@
             <button
               class="tp-btn tp-btn--salida"
               :class="{ 'tp-btn--done': !!row.registro?.horaSalida }"
-              @click="openModal(row.user, 'salida', row.registro)"
+              @click="openModal(row, 'salida')"
             >
               <span class="tp-btn-icon">↑</span>
               {{ row.registro?.horaSalida ? 'Editar salida' : 'Registrar salida' }}
@@ -111,7 +126,7 @@
           <div class="tp-modal-header">
             <div>
               <div class="tp-modal-title">
-                {{ modal.tipo === 'ingreso' ? 'Ingreso' : 'Salida' }} — {{ modal.user.fullName }}
+                {{ modal.tipo === 'ingreso' ? 'Ingreso' : 'Salida' }} — {{ modalPersonName }}
               </div>
               <div v-if="originalForModal" class="tp-modal-original">
                 Hora configurada: {{ originalForModal }}
@@ -149,9 +164,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { getTurnoPublico, registrarTurnoPublico } from '@/services/registros-turno.service'
+import { getTurnoPublico, registrarTurnoPublico, registrarTurnoExternoPublico, marcarCumplidoTurnoPublico } from '@/services/registros-turno.service'
 
-const RT_OP_ROLES = ['LOGISTICA', 'OPERATIVO']
+const RT_OP_ROLES = ['LOGISTICO', 'OPERATIVO']
 
 const route   = useRoute()
 const token   = route.params.token
@@ -160,23 +175,56 @@ const error   = ref(null)
 const data    = ref(null)
 const saving  = ref(false)
 
-const modal     = ref(null)  // { user, tipo: 'ingreso'|'salida', registro }
+const modal     = ref(null)  // { row, tipo: 'ingreso'|'salida' }
 const modalTime = ref('')
+const savingCumplidoId = ref(null)
 
 const roster = computed(() => {
   if (!data.value) return []
-  const registroByUser = new Map((data.value.registrosTurno ?? []).map(r => [r.userId, r]))
-  return (data.value.members ?? [])
-    .map(m => m.user ?? m)
-    .filter(u => u && RT_OP_ROLES.includes(u.role))
-    .map(u => ({ user: u, registro: registroByUser.get(u.id) ?? null }))
+  const registroByUser = new Map(
+    (data.value.registrosTurno ?? []).filter(r => r.userId).map(r => [r.userId, r])
+  )
+  const seen = new Set()
+  const rows = []
+
+  // Miembros de la cotización con rol operativo
+  for (const m of (data.value.members ?? [])) {
+    const u = m.user ?? m
+    if (!u?.id || !RT_OP_ROLES.includes(u.role) || seen.has(u.id)) continue
+    seen.add(u.id)
+    rows.push({ user: u, registro: registroByUser.get(u.id) ?? null, isExternal: false })
+  }
+
+  // Usuarios del sistema con registro pero no en members
+  for (const r of (data.value.registrosTurno ?? [])) {
+    if (r.userId && !seen.has(r.userId) && r.user) {
+      seen.add(r.userId)
+      rows.push({ user: r.user, registro: r, isExternal: false })
+    }
+  }
+
+  // Personas externas
+  for (const r of (data.value.registrosTurno ?? [])) {
+    if (!r.userId && r.nombreExterno) {
+      rows.push({ user: null, registro: r, isExternal: true })
+    }
+  }
+
+  return rows
+})
+
+const modalPersonName = computed(() => {
+  if (!modal.value) return ''
+  const row = modal.value.row
+  return row.isExternal ? row.registro.nombreExterno : row.user.fullName
 })
 
 const originalForModal = computed(() => {
-  if (!modal.value?.registro) return null
+  const registro = modal.value?.row?.registro
+  if (!registro) return null
   const iso = modal.value.tipo === 'ingreso'
-    ? modal.value.registro.horaIngresoOriginal
-    : modal.value.registro.horaSalidaOriginal
+    ? registro.horaIngresoOriginal
+    : registro.horaSalidaOriginal
   return iso ? formatTime(iso) : null
 })
 
@@ -218,7 +266,26 @@ const statusChipClass = (row) => {
   return 'tp-chip--blue'
 }
 
-const openModal = (user, tipo, registro) => {
+const puedeMarcarCumplido = (row) => !!(row.registro?.horaIngreso && row.registro?.horaSalida)
+
+const toggleCumplido = async (row, checked) => {
+  const registroId = row.registro?.id
+  if (!registroId) return
+  savingCumplidoId.value = registroId
+  try {
+    const updated = await marcarCumplidoTurnoPublico(token, registroId, checked)
+    const registros = data.value.registrosTurno ?? []
+    const idx = registros.findIndex(r => r.id === registroId)
+    if (idx >= 0) data.value.registrosTurno[idx] = { ...registros[idx], ...updated }
+  } catch (e) {
+    alert(e?.response?.data?.message ?? 'Error al actualizar el turno')
+  } finally {
+    savingCumplidoId.value = null
+  }
+}
+
+const openModal = (row, tipo) => {
+  const registro = row.registro
   const currentIso = tipo === 'ingreso' ? registro?.horaIngreso : registro?.horaSalida
   if (currentIso) {
     const d = new Date(currentIso)
@@ -227,7 +294,7 @@ const openModal = (user, tipo, registro) => {
     const now = new Date()
     modalTime.value = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
   }
-  modal.value = { user, tipo, registro }
+  modal.value = { row, tipo }
 }
 
 const confirmarRegistro = async () => {
@@ -238,19 +305,33 @@ const confirmarRegistro = async () => {
     const now = new Date()
     now.setHours(h, m, 0, 0)
 
-    const updated = await registrarTurnoPublico(token, {
-      userId: modal.value.user.id,
-      tipo:   modal.value.tipo,
-      hora:   now.toISOString(),
-    })
+    const { row, tipo } = modal.value
+    let updated
 
-    // Update local state
-    const registros = data.value.registrosTurno ?? []
-    const idx = registros.findIndex(r => r.userId === modal.value.user.id)
-    if (idx >= 0) {
-      data.value.registrosTurno[idx] = updated
+    if (row.isExternal) {
+      updated = await registrarTurnoExternoPublico(token, {
+        registroId: row.registro.id,
+        tipo,
+        hora: now.toISOString(),
+      })
+      // Update local state for external
+      const registros = data.value.registrosTurno ?? []
+      const idx = registros.findIndex(r => r.id === row.registro.id)
+      if (idx >= 0) data.value.registrosTurno[idx] = { ...registros[idx], ...updated }
     } else {
-      data.value.registrosTurno = [...registros, updated]
+      updated = await registrarTurnoPublico(token, {
+        userId: row.user.id,
+        tipo,
+        hora:   now.toISOString(),
+      })
+      // Update local state for system user
+      const registros = data.value.registrosTurno ?? []
+      const idx = registros.findIndex(r => r.userId === row.user.id)
+      if (idx >= 0) {
+        data.value.registrosTurno[idx] = updated
+      } else {
+        data.value.registrosTurno = [...registros, updated]
+      }
     }
 
     modal.value = null
@@ -321,7 +402,7 @@ const confirmarRegistro = async () => {
   transition: border-color .2s;
 }
 .tp-card--in   { border-color: #BBF7D0; }
-.tp-card--done { border-color: #BFDBFE; }
+.tp-card--done { border-color: #A7EEF5; }
 
 .tp-card-person {
   display: flex;
@@ -331,7 +412,7 @@ const confirmarRegistro = async () => {
 }
 .tp-avatar {
   width: 40px; height: 40px; border-radius: 50%;
-  background: #EFF6FF; color: #2563EB;
+  background: #E0F9FA; color: #27C8D8;
   display: flex; align-items: center; justify-content: center;
   font-size: 14px; font-weight: 700; flex-shrink: 0;
 }
@@ -346,7 +427,7 @@ const confirmarRegistro = async () => {
 }
 .tp-chip--gray  { background: #F1F5F9; color: #64748B; }
 .tp-chip--green { background: #D1FAE5; color: #065F46; }
-.tp-chip--blue  { background: #DBEAFE; color: #1D4ED8; }
+.tp-chip--blue  { background: #CCEFF2; color: #27C8D8; }
 
 .tp-times {
   display: flex;
@@ -371,6 +452,29 @@ const confirmarRegistro = async () => {
   background: #FFFBEB; border-radius: 8px; padding: 8px 12px;
   margin-bottom: 14px; border-left: 3px solid #FCD34D;
 }
+
+.tp-cumplido {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #166534;
+  margin-bottom: 14px;
+  cursor: pointer;
+  user-select: none;
+}
+.tp-cumplido input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #16A34A;
+  cursor: pointer;
+}
+.tp-cumplido--disabled {
+  color: #94A3B8;
+  cursor: not-allowed;
+}
+.tp-cumplido--disabled input[type="checkbox"] { cursor: not-allowed; }
 
 .tp-actions {
   display: grid;

@@ -147,40 +147,6 @@
           </div>
         </div>
 
-        <!-- ── Observaciones y anclajes ────────────────── -->
-        <div v-if="obsConfigHasFields" class="cl-section">
-          <button class="cl-section-header" @click="openSection = openSection === 'observaciones' ? null : 'observaciones'">
-            <span class="cl-section-dot cl-dot-pending" />
-            <span class="cl-section-title">Observaciones y anclajes</span>
-            <span class="cl-section-badge" v-if="data.checkin && openSection !== 'observaciones'">Guardado</span>
-            <svg class="cl-chevron" :class="{ open: openSection === 'observaciones' }" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-              <path fill-rule="evenodd" d="M7.293 4.707a1 1 0 010 1.414L4.414 9H15a1 1 0 110 2H4.414l2.879 2.879a1 1 0 01-1.414 1.414l-4.586-4.586a1 1 0 010-1.414l4.586-4.586a1 1 0 011.414 0z" clip-rule="evenodd" transform="rotate(270, 10, 10)"/>
-            </svg>
-          </button>
-          <div v-if="openSection === 'observaciones'" class="cl-section-body">
-            <div v-if="obsConfig.puntosAnclajeTotal?.activo" class="cl-field">
-              <label class="cl-label">{{ obsConfig.puntosAnclajeTotal.label }}</label>
-              <input v-model="form.puntosAnclajeTotal" type="number" class="cl-input" placeholder="0" />
-            </div>
-            <div v-if="obsConfig.puntosAnclajeSinAnclar?.activo" class="cl-field">
-              <label class="cl-label">{{ obsConfig.puntosAnclajeSinAnclar.label }}</label>
-              <input v-model="form.puntosAnclajeSinAnclar" type="number" class="cl-input" placeholder="0" />
-            </div>
-            <div v-if="obsConfig.cremalleras?.activo" class="cl-field">
-              <label class="cl-label">{{ obsConfig.cremalleras.label }}</label>
-              <input v-model="form.cremalleras" type="number" class="cl-input" placeholder="0" />
-            </div>
-            <div v-if="obsConfig.observacionesDinamizador?.activo" class="cl-field">
-              <label class="cl-label">{{ obsConfig.observacionesDinamizador.label }}</label>
-              <textarea v-model="form.observacionesDinamizador" class="cl-textarea" rows="3" placeholder="Observaciones…" />
-            </div>
-            <div v-if="obsConfig.observacionesCliente?.activo" class="cl-field">
-              <label class="cl-label">{{ obsConfig.observacionesCliente.label }}</label>
-              <textarea v-model="form.observacionesCliente" class="cl-textarea" rows="3" placeholder="Observaciones…" />
-            </div>
-          </div>
-        </div>
-
         <!-- ── Checklist por juego ─────────────────────── -->
         <div v-if="juegosList.length === 0" class="cl-empty">
           <p>Este evento no tiene dispositivos con lista de chequeo configurada.</p>
@@ -242,52 +208,83 @@
                 {{ asp.texto }}
               </span>
             </label>
-          </div>
-        </div>
 
-        <!-- ── Fotos de evidencia ─────────────────────── -->
-        <div class="cl-section">
-          <button class="cl-section-header" @click="openSection = openSection === 'fotos' ? null : 'fotos'">
-            <span class="cl-section-dot" :class="(photos.length > 0 || existingPhotos.length > 0) ? 'cl-dot-ok' : 'cl-dot-pending'" />
-            <span class="cl-section-title">Fotos de evidencia</span>
-            <span class="cl-section-badge" v-if="existingPhotos.length > 0 && openSection !== 'fotos'">{{ existingPhotos.length }} foto{{ existingPhotos.length > 1 ? 's' : '' }}</span>
-            <svg class="cl-chevron" :class="{ open: openSection === 'fotos' }" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-              <path fill-rule="evenodd" d="M7.293 4.707a1 1 0 010 1.414L4.414 9H15a1 1 0 110 2H4.414l2.879 2.879a1 1 0 01-1.414 1.414l-4.586-4.586a1 1 0 010-1.414l4.586-4.586a1 1 0 011.414 0z" clip-rule="evenodd" transform="rotate(270, 10, 10)"/>
-            </svg>
-          </button>
-          <div v-if="openSection === 'fotos'" class="cl-section-body">
-            <!-- Fotos ya guardadas -->
-            <div v-if="existingPhotos.length > 0" class="cl-photos-existing">
-              <p class="cl-photos-label">Fotos guardadas</p>
+            <!-- Observaciones por juego -->
+            <div class="cl-juego-obs">
+              <label class="cl-label">Observaciones</label>
+              <textarea
+                v-model="juegoObs[juego.id]"
+                class="cl-textarea"
+                rows="3"
+                placeholder="Observaciones de este dispositivo…"
+              />
+            </div>
+
+            <!-- Fotos por juego -->
+            <div class="cl-juego-obs">
+              <label class="cl-label">Fotos de evidencia</label>
+              <div v-if="getExistingJuegoPhotos(juego.id).length > 0" class="cl-photos-existing" style="margin-bottom:8px">
+                <div class="cl-photos-grid">
+                  <a
+                    v-for="(url, i) in getExistingJuegoPhotos(juego.id)"
+                    :key="i"
+                    :href="url"
+                    target="_blank"
+                    class="cl-photo-thumb"
+                  >
+                    <img :src="url" :alt="`Foto ${i+1}`" />
+                  </a>
+                </div>
+              </div>
               <div class="cl-photos-grid">
-                <a
-                  v-for="(url, i) in existingPhotos"
+                <label
+                  v-for="(photo, i) in (juegoPhotos[juego.id] ?? [])"
                   :key="i"
-                  :href="url"
-                  target="_blank"
-                  class="cl-photo-thumb"
+                  class="cl-photo-slot cl-photo-filled"
                 >
-                  <img :src="url" :alt="`Foto ${i+1}`" />
-                </a>
+                  <img :src="photo.preview" :alt="`Nueva foto ${i+1}`" />
+                  <button class="cl-photo-remove" type="button" @click.prevent="removeJuegoPhoto(juego.id, i)">×</button>
+                </label>
+                <label v-if="(juegoPhotos[juego.id] ?? []).length < 10" class="cl-photo-slot cl-photo-empty">
+                  <input type="file" accept="image/jpeg,image/png" class="cl-file-native" @change="addJuegoPhoto(juego.id, $event)" />
+                  <span class="cl-photo-plus">+</span>
+                  <span class="cl-photo-hint">JPG / PNG</span>
+                </label>
               </div>
             </div>
 
-            <!-- Agregar nuevas fotos -->
-            <p class="cl-photos-label">{{ existingPhotos.length > 0 ? 'Agregar más fotos' : 'Agregar fotos' }}</p>
-            <div class="cl-photos-grid">
-              <label
-                v-for="(photo, i) in photos"
-                :key="i"
-                class="cl-photo-slot cl-photo-filled"
+            <!-- Anclajes y observaciones por juego -->
+            <div v-if="obsConfigHasFields && juegoAnclajes[juego.id]" class="cl-anclajes-block">
+              <div class="cl-anclajes-heading">Anclajes</div>
+
+              <!-- Numéricos: grid de 3 columnas -->
+              <div
+                v-if="obsConfig.puntosAnclajeTotal?.activo || obsConfig.puntosAnclajeSinAnclar?.activo || obsConfig.cremalleras?.activo"
+                class="cl-anclajes-grid"
               >
-                <img :src="photo.preview" :alt="`Nueva foto ${i+1}`" />
-                <button class="cl-photo-remove" type="button" @click.prevent="removePhoto(i)">×</button>
-              </label>
-              <label v-if="photos.length < 10" class="cl-photo-slot cl-photo-empty">
-                <input type="file" accept="image/jpeg,image/png" class="cl-file-native" @change="addPhoto" />
-                <span class="cl-photo-plus">+</span>
-                <span class="cl-photo-hint">JPG / PNG</span>
-              </label>
+                <div v-if="obsConfig.puntosAnclajeTotal?.activo" class="cl-anclaje-field">
+                  <span class="cl-anclaje-label">{{ obsConfig.puntosAnclajeTotal.label }}</span>
+                  <input v-model="juegoAnclajes[juego.id].puntosAnclajeTotal" type="number" inputmode="numeric" class="cl-anclaje-input" placeholder="0" />
+                </div>
+                <div v-if="obsConfig.puntosAnclajeSinAnclar?.activo" class="cl-anclaje-field">
+                  <span class="cl-anclaje-label">{{ obsConfig.puntosAnclajeSinAnclar.label }}</span>
+                  <input v-model="juegoAnclajes[juego.id].puntosAnclajeSinAnclar" type="number" inputmode="numeric" class="cl-anclaje-input" placeholder="0" />
+                </div>
+                <div v-if="obsConfig.cremalleras?.activo" class="cl-anclaje-field">
+                  <span class="cl-anclaje-label">{{ obsConfig.cremalleras.label }}</span>
+                  <input v-model="juegoAnclajes[juego.id].cremalleras" type="number" inputmode="numeric" class="cl-anclaje-input" placeholder="0" />
+                </div>
+              </div>
+
+              <!-- Textareas: full width -->
+              <div v-if="obsConfig.observacionesDinamizador?.activo" class="cl-anclaje-field">
+                <span class="cl-anclaje-label">{{ obsConfig.observacionesDinamizador.label }}</span>
+                <textarea v-model="juegoAnclajes[juego.id].obsDinamizador" class="cl-textarea" rows="3" placeholder="Observaciones del dinamizador…" />
+              </div>
+              <div v-if="obsConfig.observacionesCliente?.activo" class="cl-anclaje-field">
+                <span class="cl-anclaje-label">{{ obsConfig.observacionesCliente.label }}</span>
+                <textarea v-model="juegoAnclajes[juego.id].obsCliente" class="cl-textarea" rows="3" placeholder="Observaciones del cliente…" />
+              </div>
             </div>
           </div>
         </div>
@@ -355,11 +352,6 @@ const form = ref({
   otroDispositivo:            '',
   nombreRepresentanteCliente: '',
   telefonoCliente:            '',
-  cremalleras:                '',
-  puntosAnclajeTotal:         '',
-  puntosAnclajeSinAnclar:     '',
-  observacionesDinamizador:   '',
-  observacionesCliente:       '',
 })
 
 const obsConfig          = computed(() => data.value?.obsConfig ?? {})
@@ -373,29 +365,30 @@ const quotationDevices  = computed(() =>
   (data.value?.juegos ?? []).map(j => j.nombre).filter(Boolean)
 )
 
-// ── Fotos ─────────────────────────────────────────────────────────────────────
-const photos = ref([])  // { file: File, preview: string }[]
+// ── Fotos, observaciones y anclajes por juego ─────────────────────────────────
+const juegoObs     = ref({})  // { [juegoId]: string }
+const juegoPhotos  = ref({})  // { [juegoId]: { file: File, preview: string }[] }
+const juegoAnclajes = ref({}) // { [juegoId]: { puntosAnclajeTotal, puntosAnclajeSinAnclar, cremalleras, obsDinamizador, obsCliente } }
 
-const existingPhotos = computed(() => {
-  if (!data.value?.checkin) return []
-  const c = data.value.checkin
-  if (Array.isArray(c.fotosUrl) && c.fotosUrl.length) return c.fotosUrl
-  if (c.fotoUrl) return [c.fotoUrl]
-  return []
-})
+function getExistingJuegoPhotos(juegoId) {
+  const juego = data.value?.juegos?.find(j => j.id === juegoId)
+  if (!juego?.obsData?.fotosUrl) return []
+  return Array.isArray(juego.obsData.fotosUrl) ? juego.obsData.fotosUrl : []
+}
 
-function addPhoto(e) {
+function addJuegoPhoto(juegoId, e) {
   const file = e.target.files?.[0]
   if (!file) return
-  if (photos.value.length >= 10) return
+  if (!juegoPhotos.value[juegoId]) juegoPhotos.value[juegoId] = []
+  if (juegoPhotos.value[juegoId].length >= 10) return
   const preview = URL.createObjectURL(file)
-  photos.value.push({ file, preview })
+  juegoPhotos.value[juegoId].push({ file, preview })
   e.target.value = ''
 }
 
-function removePhoto(i) {
-  URL.revokeObjectURL(photos.value[i].preview)
-  photos.value.splice(i, 1)
+function removeJuegoPhoto(juegoId, i) {
+  URL.revokeObjectURL(juegoPhotos.value[juegoId][i].preview)
+  juegoPhotos.value[juegoId].splice(i, 1)
 }
 
 // ── Submit ─────────────────────────────────────────────────────────────────────
@@ -450,17 +443,39 @@ async function submitCheckin() {
       nombreDispositivo:          dispositivoFinal,
       nombreRepresentanteCliente: form.value.nombreRepresentanteCliente,
       telefonoCliente:            form.value.telefonoCliente,
-      cremalleras:                form.value.cremalleras || undefined,
-      puntosAnclajeTotal:         form.value.puntosAnclajeTotal || undefined,
-      puntosAnclajeSinAnclar:     form.value.puntosAnclajeSinAnclar || undefined,
-      observacionesDinamizador:   form.value.observacionesDinamizador || undefined,
-      observacionesCliente:       form.value.observacionesCliente || undefined,
+      // Per-juego observations as obs_<juegoId>
+      ...Object.fromEntries(
+        Object.entries(juegoObs.value)
+          .filter(([, v]) => v?.trim())
+          .map(([juegoId, obs]) => [`obs_${juegoId}`, obs.trim()])
+      ),
+      // Per-juego anclaje fields
+      ...Object.fromEntries(
+        Object.entries(juegoAnclajes.value).flatMap(([juegoId, fields]) => {
+          const entries = []
+          if (fields.puntosAnclajeTotal !== '' && fields.puntosAnclajeTotal != null)
+            entries.push([`puntosAnclajeTotal_${juegoId}`, fields.puntosAnclajeTotal])
+          if (fields.puntosAnclajeSinAnclar !== '' && fields.puntosAnclajeSinAnclar != null)
+            entries.push([`puntosAnclajeSinAnclar_${juegoId}`, fields.puntosAnclajeSinAnclar])
+          if (fields.cremalleras !== '' && fields.cremalleras != null)
+            entries.push([`cremalleras_${juegoId}`, fields.cremalleras])
+          if (fields.obsDinamizador?.trim())
+            entries.push([`obsDinamizador_${juegoId}`, fields.obsDinamizador.trim()])
+          if (fields.obsCliente?.trim())
+            entries.push([`obsCliente_${juegoId}`, fields.obsCliente.trim()])
+          return entries
+        })
+      ),
     }
-    const files = photos.value.map(p => p.file)
-    const result = await submitChecklistCheckin(quotationId, payload, files)
+    // Per-juego photos: { juegoId: File[] }
+    const juegoPhotosFiles = Object.fromEntries(
+      Object.entries(juegoPhotos.value)
+        .filter(([, list]) => list.length > 0)
+        .map(([juegoId, list]) => [juegoId, list.map(p => p.file)])
+    )
+    const result = await submitChecklistCheckin(quotationId, payload, juegoPhotosFiles)
     // Update local data with the saved checkin
     data.value = { ...data.value, checkin: result }
-    photos.value = []
     submitOk.value = true
     setTimeout(() => { submitOk.value = false }, 3000)
   } catch {
@@ -544,15 +559,12 @@ onMounted(async () => {
         nombreEvento:               c.nombreEvento ?? '',
         numeroEvento:               c.numeroEvento ?? '',
         nombreCoordinador:          c.nombreCoordinador ?? '',
+        otroCoordinador:            '',
         nombreDinamizador:          c.nombreDinamizador ?? '',
         nombreDispositivo:          c.nombreDispositivo ?? '',
+        otroDispositivo:            '',
         nombreRepresentanteCliente: c.nombreRepresentanteCliente ?? '',
         telefonoCliente:            c.telefonoCliente ?? '',
-        cremalleras:                c.cremalleras ?? '',
-        puntosAnclajeTotal:         c.puntosAnclajeTotal ?? '',
-        puntosAnclajeSinAnclar:     c.puntosAnclajeSinAnclar ?? '',
-        observacionesDinamizador:   c.observacionesDinamizador ?? '',
-        observacionesCliente:       c.observacionesCliente ?? '',
       }
     } else {
       // Pre-fill from quotation data
@@ -566,6 +578,20 @@ onMounted(async () => {
       if (res.quotation?.cliente) {
         form.value.nombreRepresentanteCliente = res.quotation.cliente.contacto || res.quotation.cliente.nombre || ''
         form.value.telefonoCliente            = res.quotation.cliente.telefono || ''
+      }
+    }
+
+    // Pre-fill per-juego observations and anclajes
+    for (const juego of res.juegos ?? []) {
+      if (juego.obsData?.observaciones) {
+        juegoObs.value[juego.id] = juego.obsData.observaciones
+      }
+      juegoAnclajes.value[juego.id] = {
+        puntosAnclajeTotal:    juego.obsData?.puntosAnclajeTotal    ?? '',
+        puntosAnclajeSinAnclar: juego.obsData?.puntosAnclajeSinAnclar ?? '',
+        cremalleras:           juego.obsData?.cremalleras           ?? '',
+        obsDinamizador:        juego.obsData?.observacionesDinamizador ?? '',
+        obsCliente:            juego.obsData?.observacionesCliente  ?? '',
       }
     }
 
@@ -606,7 +632,7 @@ onMounted(async () => {
 }
 .cl-spinner {
   width: 36px; height: 36px; border-radius: 50%;
-  border: 3px solid #E2E8F0; border-top-color: #054EAF;
+  border: 3px solid #E2E8F0; border-top-color: #27C8D8;
   animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -623,17 +649,17 @@ onMounted(async () => {
 
 /* Header */
 .cl-header {
-  background: linear-gradient(160deg, #0a2d6e 0%, #054EAF 100%);
+  background: linear-gradient(160deg, #138E9C 0%, #27C8D8 100%);
   padding: 20px 20px 24px;
   color: #fff;
 }
 .cl-logo-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 16px; }
 .cl-logo     { font-size: 20px; font-weight: 900; color: #fff; letter-spacing: -0.5px; }
-.cl-logo-sub { font-size: 10px; color: #93C5FD; letter-spacing: 3px; text-transform: uppercase; }
-.cl-event-num  { font-size: 11px; font-weight: 600; color: #93C5FD; letter-spacing: 0.5px; margin-bottom: 4px; }
+.cl-logo-sub { font-size: 10px; color: #8EEAF3; letter-spacing: 3px; text-transform: uppercase; }
+.cl-event-num  { font-size: 11px; font-weight: 600; color: #8EEAF3; letter-spacing: 0.5px; margin-bottom: 4px; }
 .cl-event-name { font-size: 20px; font-weight: 800; color: #fff; margin: 0 0 6px; line-height: 1.3; }
-.cl-event-meta { font-size: 12px; color: #BFDBFE; display: flex; flex-wrap: wrap; gap: 4px; }
-.cl-meta-dot   { color: #60A5FA; }
+.cl-event-meta { font-size: 12px; color: #A7EEF5; display: flex; flex-wrap: wrap; gap: 4px; }
+.cl-meta-dot   { color: #5DD8E5; }
 
 /* Progress */
 .cl-progress-wrap { margin-top: 16px; }
@@ -641,13 +667,13 @@ onMounted(async () => {
   height: 8px; background: rgba(255,255,255,0.2); border-radius: 99px; overflow: hidden; margin-bottom: 6px;
 }
 .cl-progress-fill {
-  height: 100%; background: #60A5FA; border-radius: 99px;
+  height: 100%; background: #5DD8E5; border-radius: 99px;
   transition: width 0.4s ease; min-width: 0;
 }
 .cl-progress-done { background: #34D399; }
 .cl-progress-label { display: flex; justify-content: space-between; }
-.cl-progress-count { font-size: 12px; color: #BFDBFE; }
-.cl-progress-pct   { font-size: 13px; font-weight: 700; color: #60A5FA; }
+.cl-progress-count { font-size: 12px; color: #A7EEF5; }
+.cl-progress-pct   { font-size: 13px; font-weight: 700; color: #5DD8E5; }
 .cl-pct-done       { color: #34D399; }
 
 /* Body */
@@ -695,14 +721,14 @@ onMounted(async () => {
   transition: border-color 0.15s;
   font-family: inherit;
 }
-.cl-input:focus { border-color: #054EAF; background: #fff; }
+.cl-input:focus { border-color: #27C8D8; background: #fff; }
 .cl-textarea {
   padding: 10px 12px; border-radius: 8px;
   border: 1.5px solid #E2E8F0; font-size: 14px; color: #0F172A;
   background: #F8FAFC; outline: none; resize: vertical;
   transition: border-color 0.15s; font-family: inherit;
 }
-.cl-textarea:focus { border-color: #054EAF; background: #fff; }
+.cl-textarea:focus { border-color: #27C8D8; background: #fff; }
 .cl-input-readonly {
   background: #F1F5F9; color: #64748B; cursor: default;
   user-select: text;
@@ -745,14 +771,14 @@ onMounted(async () => {
 /* Botón guardar */
 .cl-submit-btn {
   width: 100%; padding: 14px;
-  background: #054EAF; color: #fff;
+  background: #27C8D8; color: #fff;
   border: none; border-radius: 12px;
   font-size: 15px; font-weight: 700; cursor: pointer;
   display: flex; align-items: center; justify-content: center; gap: 8px;
   transition: background 0.15s;
   margin-top: 4px;
 }
-.cl-submit-btn:hover:not(:disabled) { background: #0a2d6e; }
+.cl-submit-btn:hover:not(:disabled) { background: #138E9C; }
 .cl-submit-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 .cl-submit-hint {
   font-size: 12px; color: #EF4444; text-align: center; margin: -4px 0 0;
@@ -776,8 +802,8 @@ onMounted(async () => {
   display: flex; align-items: center; justify-content: center;
 }
 .cl-jicon-done    { background: #16A34A; }
-.cl-jicon-pending { background: #EFF6FF; }
-.cl-jicon-num     { font-size: 11px; font-weight: 700; color: #054EAF; }
+.cl-jicon-pending { background: #E0F9FA; }
+.cl-jicon-num     { font-size: 11px; font-weight: 700; color: #27C8D8; }
 
 .cl-juego-info { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px; }
 .cl-juego-nombre {
@@ -791,15 +817,55 @@ onMounted(async () => {
   font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px;
 }
 .cl-badge-green { background: #DCFCE7; color: #16A34A; }
-.cl-badge-blue  { background: #DBEAFE; color: #1D4ED8; }
+.cl-badge-blue  { background: #CCEFF2; color: #27C8D8; }
 
 .cl-juego-chevron { color: #94A3B8; transition: transform 0.2s; }
 .cl-juego-chevron.open { transform: rotate(90deg); }
 
 .cl-juego-bar-bg  { height: 3px; background: #F1F5F9; margin: 0 14px 2px; }
-.cl-juego-bar-fill { height: 100%; background: #60A5FA; border-radius: 99px; transition: width 0.3s ease; }
+.cl-juego-bar-fill { height: 100%; background: #5DD8E5; border-radius: 99px; transition: width 0.3s ease; }
 
 .cl-aspectos { border-top: 1px solid #F1F5F9; padding: 8px 0; }
+.cl-juego-obs {
+  padding: 10px 14px 10px; border-top: 1px solid #F1F5F9;
+  display: flex; flex-direction: column; gap: 6px;
+}
+
+/* Bloque anclajes por juego */
+.cl-anclajes-block {
+  padding: 12px 14px 14px;
+  border-top: 2px solid #E0F9FA;
+  background: #F8FAFC;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.cl-anclajes-heading {
+  font-size: 10px; font-weight: 700; color: #94A3B8;
+  text-transform: uppercase; letter-spacing: 0.7px;
+}
+.cl-anclajes-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.cl-anclaje-field {
+  display: flex; flex-direction: column; gap: 4px;
+}
+.cl-anclaje-label {
+  font-size: 10px; font-weight: 500; color: #64748B;
+  line-height: 1.3; display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cl-anclaje-input {
+  padding: 9px 10px; border-radius: 8px;
+  border: 1.5px solid #E2E8F0; font-size: 15px; font-weight: 600;
+  color: #0F172A; background: #fff; outline: none; width: 100%;
+  text-align: center; font-family: inherit;
+  -moz-appearance: textfield;
+}
+.cl-anclaje-input:focus { border-color: #27C8D8; background: #fff; }
+.cl-anclaje-input::-webkit-inner-spin-button,
+.cl-anclaje-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 
 .cl-asp-row {
   display: flex; align-items: flex-start; gap: 10px;
@@ -827,7 +893,7 @@ onMounted(async () => {
 .cl-spin-sm {
   display: inline-block;
   width: 14px; height: 14px; border-radius: 50%;
-  border: 2px solid rgba(0,0,0,0.15); border-top-color: #054EAF;
+  border: 2px solid rgba(0,0,0,0.15); border-top-color: #27C8D8;
   animation: spin 0.7s linear infinite;
   flex-shrink: 0;
 }
@@ -844,7 +910,7 @@ onMounted(async () => {
   display: flex; justify-content: space-between; align-items: center;
   padding: 12px 4px 8px; font-size: 11px; color: #94A3B8;
 }
-.cl-footer-brand { font-weight: 700; color: #054EAF; }
+.cl-footer-brand { font-weight: 700; color: #27C8D8; }
 .cl-footer-saved { color: #16A34A; font-weight: 600; }
 
 /* Toasts */

@@ -16,6 +16,8 @@ export interface User {
   ciudad?: string
   zona?: string
   documento?: string
+  sedeId?: number | null
+  sedeName?: string | null
 }
 
 export const useAuth = createGlobalState(() => {

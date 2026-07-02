@@ -28,7 +28,7 @@ const colorClass = computed(() => {
     case 'OPERATIVO_50':
       return 'bg-[#FEF3C7] text-[#B45309]'
     case 'EN_MANTENIMIENTO':
-      return 'bg-[#DBEAFE] text-[#1D4ED8]'
+      return 'bg-[#CCEFF2] text-[#27C8D8]'
     case 'DEFECTUOSO':
       return 'bg-[#FEE2E2] text-[#B91C1C]'
     case 'NO_ACTIVO':

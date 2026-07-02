@@ -20,7 +20,7 @@ export const useMobileSidebar = createGlobalState(() => {
 /** Mapa de estilos inline para el badge de cada rol */
 const ROLE_BADGE_STYLES = {
   ADMIN:         'background:#FEE2E2;color:#B91C1C',
-  ADMINISTRADOR: 'background:#DBEAFE;color:#1D4ED8',
+  ADMINISTRADOR: 'background:#CCEFF2;color:#27C8D8',
   DIRECCION:     'background:#EDE9FE;color:#7C3AED',
   LIDER:         'background:#DCFCE7;color:#16A34A',
   SUPERVISOR:    'background:#FEF3C7;color:#B45309',
@@ -30,8 +30,8 @@ const ROLE_BADGE_STYLES = {
 
 /** Colores de avatar por letra inicial del username */
 const AVATAR_COLORS = [
-  '#054EAF', '#7C3AED', '#B45309', '#B91C1C',
-  '#16A34A', '#0891B2', '#C2410C',
+  '#27C8D8', '#7C3AED', '#B45309', '#B91C1C',
+  '#16A34A', '#27C8D8', '#C2410C',
 ]
 
 export const useSidebarPermissions = () => {
@@ -83,6 +83,14 @@ export const useSidebarPermissions = () => {
     user.value?.fullName ?? user.value?.username ?? user.value?.email ?? '—'
   )
 
+  /** Nombre de la sede activa, o null si es nivel organización */
+  const sedeName = computed(() => user.value?.sedeName ?? null)
+
+  /** true cuando el usuario es admin de nivel organización (sin sede) */
+  const isOrgAdmin = computed(() =>
+    user.value?.roles?.includes('ADMIN') && !user.value?.sedeId
+  )
+
   return {
     userRole,
     canSee,
@@ -90,5 +98,7 @@ export const useSidebarPermissions = () => {
     userInitials,
     avatarColor,
     displayName,
+    sedeName,
+    isOrgAdmin,
   }
 }

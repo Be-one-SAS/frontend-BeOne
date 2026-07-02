@@ -111,6 +111,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { formatCOP } from '@/utils/currency.js'
 import { Search, X, Eye, Pencil, FileText, Trash2, MapPin } from 'lucide-vue-next'
 import BaseTable   from '@/components/ui/BaseTable.vue'
 import BadgeStatus from '@/components/ui/BadgeStatus.vue'
@@ -164,7 +165,7 @@ const filtered = computed(() => {
 })
 
 // ── Avatar helpers ────────────────────────────────────────
-const PALETTE = ['#054EAF', '#6D28D9', '#0F766E', '#B45309', '#9D174D', '#065F46']
+const PALETTE = ['#27C8D8', '#6D28D9', '#0F766E', '#B45309', '#9D174D', '#065F46']
 
 const initials = (name) => {
   const parts = name.trim().split(' ')
@@ -184,9 +185,6 @@ const avatarStyle = (name) => {
   return { background: bg, color: '#FFFFFF' }
 }
 
-// ── Helpers ───────────────────────────────────────────────
-const formatCOP = (n) =>
-  new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n)
 
 const onRowClick = (row) => emit('row-click', row)
 
@@ -307,7 +305,7 @@ const mockRows = [
   transition: border-color 0.15s;
 }
 
-.fs-input:focus { border-color: #054EAF; }
+.fs-input:focus { border-color: #27C8D8; }
 
 .filter-select {
   padding: 8px 12px;
@@ -322,7 +320,7 @@ const mockRows = [
   transition: border-color 0.15s;
 }
 
-.filter-select:focus { border-color: #054EAF; color: #0F1A2E; }
+.filter-select:focus { border-color: #27C8D8; color: #0F1A2E; }
 
 .filter-clear {
   display: flex;
@@ -387,8 +385,8 @@ const mockRows = [
   display: inline-block;
   padding: 3px 10px;
   border-radius: 99px;
-  background: #EEF4FF;
-  color: #054EAF;
+  background: #E0F9FA;
+  color: #27C8D8;
   font-size: 12px;
   font-weight: 700;
 }
@@ -413,7 +411,7 @@ const mockRows = [
   transition: all 0.12s;
 }
 
-.act-btn:hover    { background: #EEF4FF; color: #054EAF; border-color: #BFDBFE; }
+.act-btn:hover    { background: #E0F9FA; color: #27C8D8; border-color: #A7EEF5; }
 .act-danger:hover { background: #FEE2E2; color: #B91C1C; border-color: #FCA5A5; }
 
 /* ── Expandido ────────────────────────────────────────── */
@@ -441,7 +439,7 @@ const mockRows = [
   border: 1px solid #EEF1F7;
 }
 
-.eq-num   { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #054EAF; font-weight: 600; min-width: 120px; }
+.eq-num   { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #27C8D8; font-weight: 600; min-width: 120px; }
 .eq-fecha { font-size: 12px; color: #64748B; min-width: 90px; }
 .eq-val   { font-size: 13px; font-weight: 600; color: #0F1A2E; flex: 1; }
 
@@ -454,5 +452,5 @@ const mockRows = [
 }
 
 .exp-label { font-size: 12px; color: #94A3B8; font-weight: 500; }
-.exp-total { font-size: 15px; font-weight: 700; color: #054EAF; }
+.exp-total { font-size: 15px; font-weight: 700; color: #27C8D8; }
 </style>

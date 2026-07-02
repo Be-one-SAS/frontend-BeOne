@@ -1,13 +1,13 @@
 <template>
   <div
     class="bg-white rounded-[18px] overflow-hidden
-           shadow-[0_1px_4px_rgba(5,78,175,.06),_0_4px_16px_rgba(5,78,175,.08)]"
+           shadow-[0_1px_4px_rgba(39,200,216,.06),_0_4px_16px_rgba(39,200,216,.08)]"
   >
     <table class="w-full table-auto">
 
       <!-- ── HEADER ────────────────────────────────── -->
       <thead>
-        <tr class="bg-[#EBF3FC] border-b border-[#E2EBF6]">
+        <tr class="bg-[#F0FAFB] border-b border-[#E2EBF6]">
           <th
             v-for="col in columns"
             :key="col.field"
@@ -25,7 +25,7 @@
         <tr
           v-for="(row, index) in data"
           :key="index"
-          class="border-b border-[#EBF3FC] hover:bg-[#F0F7FF] transition-colors duration-150"
+          class="border-b border-[#F0FAFB] hover:bg-[#F0F7FF] transition-colors duration-150"
         >
           <td
             v-for="col in columns"
@@ -62,7 +62,7 @@
             <a
               v-else-if="col.field === 'email'"
               :href="`mailto:${row[col.field]}`"
-              class="flex items-center gap-1.5 text-[#054EAF] hover:underline"
+              class="flex items-center gap-1.5 text-[#27C8D8] hover:underline"
             >
               <Mail class="w-3 h-3 shrink-0" />
               {{ row[col.field] || '—' }}
@@ -72,7 +72,7 @@
             <span
               v-else-if="col.field === 'zoneOperation'"
               class="inline-flex items-center px-2.5 py-0.5 rounded-full
-                     text-[11px] font-medium bg-[#EBF3FC] text-[#054EAF]"
+                     text-[11px] font-medium bg-[#F0FAFB] text-[#27C8D8]"
             >
               {{ row[col.field] || '—' }}
             </span>
@@ -121,7 +121,7 @@
 
     <!-- ── FOOTER: contador ───────────────────────── -->
     <div
-      class="px-4 py-3 border-t border-[#EBF3FC] bg-[#FAFCFF]
+      class="px-4 py-3 border-t border-[#F0FAFB] bg-[#FAFCFF]
              flex items-center justify-between"
     >
       <span class="text-[12px] text-text-3 font-['Inter',sans-serif]">

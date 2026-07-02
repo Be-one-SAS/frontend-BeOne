@@ -62,6 +62,7 @@ const estados = [
   { label: "Pendiente", value: "Pendiente" },
   { label: "Aprobada", value: "Aprobada" },
   { label: "Rechazada", value: "Rechazada" },
+  { label: "Vencida",   value: "Vencida"   },
 ];
 
 // ── Soft-lock countdown ──────────────────────────────────
@@ -78,7 +79,7 @@ const pendingLockInfo = (q) => {
   return { expired: false, hoursLeft, hoursElapsed }
 }
 const lockColor = (hoursLeft) => {
-  if (hoursLeft > 96) return { text: '#1D4ED8', track: '#DBEAFE', fill: '#3B82F6' }
+  if (hoursLeft > 96) return { text: '#27C8D8', track: '#CCEFF2', fill: '#27C8D8' }
   if (hoursLeft > 48) return { text: '#92400E', track: '#FEF3C7', fill: '#F59E0B' }
   return              { text: '#B91C1C', track: '#FEE2E2', fill: '#EF4444' }
 }
@@ -387,7 +388,7 @@ const formatDateTime = (iso) =>
     <!-- ══════════════════════════════════════════ -->
     <!-- FILTROS                                    -->
     <!-- ══════════════════════════════════════════ -->
-    <div class="bg-white rounded-[14px] p-4 mb-5 shadow-[0_1px_4px_rgba(5,78,175,.06)] grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="bg-white rounded-[14px] p-4 mb-5 shadow-[0_1px_4px_rgba(39,200,216,.06)] grid grid-cols-1 md:grid-cols-4 gap-4">
 
       <input
         v-model="search"
@@ -411,7 +412,7 @@ const formatDateTime = (iso) =>
     <!-- ══════════════════════════════════════════ -->
     <!-- TABLA                                      -->
     <!-- ══════════════════════════════════════════ -->
-    <div class="bg-white rounded-[18px] shadow-[0_1px_4px_rgba(5,78,175,.06),_0_4px_16px_rgba(5,78,175,.08)] overflow-hidden">
+    <div class="bg-white rounded-[18px] shadow-[0_1px_4px_rgba(39,200,216,.06),_0_4px_16px_rgba(39,200,216,.08)] overflow-hidden">
       <div class="overflow-x-auto">
         <table class="vc-table">
 
@@ -827,7 +828,7 @@ const formatDateTime = (iso) =>
       <div class="bg-white rounded-[20px] shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         
         <!-- Header del modal -->
-        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-[#054EAF] to-[#0A3D8F]">
+        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-[#27C8D8] to-[#1BAEBB]">
           <div class="flex items-center gap-3">
             <FileText class="text-white" :size="20" />
             <h3 class="text-[16px] font-semibold text-white font-['Plus_Jakarta_Sans',sans-serif]">
@@ -867,7 +868,7 @@ const formatDateTime = (iso) =>
       v-if="showPDFFullscreen && quotationPreview"
       class="fixed inset-0 bg-white z-[60] overflow-auto"
     >
-      <div class="sticky top-0 bg-gradient-to-r from-[#054EAF] to-[#0A3D8F] px-6 py-4 flex items-center justify-between shadow-lg">
+      <div class="sticky top-0 bg-gradient-to-r from-[#27C8D8] to-[#1BAEBB] px-6 py-4 flex items-center justify-between shadow-lg">
         <div class="flex items-center gap-3">
           <FileText class="text-white" :size="20" />
           <h3 class="text-[16px] font-semibold text-white">
@@ -910,7 +911,7 @@ const formatDateTime = (iso) =>
         <!-- Header -->
         <div class="vc-notas-header">
           <div class="flex items-center gap-2">
-            <StickyNote :size="18" class="text-[#054EAF]" />
+            <StickyNote :size="18" class="text-[#27C8D8]" />
             <div>
               <h3 class="vc-notas-title">Notas de cotización</h3>
               <p class="vc-notas-sub">#{{ selectedQuotationForNotas?.numero }}-2026 · {{ selectedQuotationForNotas?.empresa || '—' }}</p>
@@ -1017,8 +1018,8 @@ const formatDateTime = (iso) =>
 }
 
 .vc-input:focus {
-  border-color: var(--primary, #054EAF);
-  box-shadow: 0 0 0 3px rgba(5, 78, 175, 0.1);
+  border-color: var(--primary, #27C8D8);
+  box-shadow: 0 0 0 3px rgba(39,200,216, 0.1);
 }
 
 .vc-input::placeholder { color: var(--text-3, #94A3B8); }
@@ -1032,7 +1033,7 @@ const formatDateTime = (iso) =>
 }
 
 /* ─── Head ──────────────────────────────────────────── */
-.vc-head-row { background: #EBF3FC; }
+.vc-head-row { background: #F0FAFB; }
 
 .vc-th {
   padding: 12px 16px;
@@ -1061,7 +1062,7 @@ const formatDateTime = (iso) =>
   padding: 14px 16px;
   font-size: 13px;
   color: var(--text-1, #0F1A2E);
-  border-bottom: 1px solid #EBF3FC;
+  border-bottom: 1px solid #F0FAFB;
   vertical-align: middle;
   white-space: nowrap;
 }
@@ -1084,7 +1085,7 @@ const formatDateTime = (iso) =>
 
 .vc-chevron-open {
   transform: rotate(180deg);
-  color: #054EAF;
+  color: #27C8D8;
 }
 
 /* ─── Cell: cotización ──────────────────────────────── */
@@ -1097,7 +1098,7 @@ const formatDateTime = (iso) =>
 .vc-num {
   font-weight: 700;
   font-size: 13px;
-  color: #054EAF;
+  color: #27C8D8;
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   letter-spacing: -0.01em;
 }
@@ -1162,8 +1163,8 @@ const formatDateTime = (iso) =>
   line-height: 1;
 }
 
-.act-view            { background: #DBEAFE; color: #1D4ED8; }
-.act-view:hover      { background: #BFDBFE; }
+.act-view            { background: #CCEFF2; color: #27C8D8; }
+.act-view:hover      { background: #A7EEF5; }
 
 .act-confirm         { background: #DCFCE7; color: #16A34A; }
 .act-confirm:hover   { background: #BBF7D0; }
@@ -1186,7 +1187,7 @@ const formatDateTime = (iso) =>
 /* ─── Fila expandida ────────────────────────────────── */
 .vc-exp-td {
   padding: 0 !important;
-  border-bottom: 1px solid #EBF3FC;
+  border-bottom: 1px solid #F0FAFB;
 }
 
 /* El div interno hace la transición — el <tr> siempre está en el DOM */
@@ -1200,7 +1201,7 @@ const formatDateTime = (iso) =>
 
 .vc-exp-inner {
   background: #F8FBFF;
-  border-left: 3px solid #054EAF;
+  border-left: 3px solid #27C8D8;
   padding: 16px 24px;
 }
 
@@ -1268,17 +1269,17 @@ const formatDateTime = (iso) =>
 .vc-product-badge {
   font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 5px; white-space: nowrap;
 }
-.vc-badge-own { background: #EFF6FF; color: #1D4ED8; }
+.vc-badge-own { background: #E0F9FA; color: #27C8D8; }
 .vc-badge-tp  { background: #FFF7ED; color: #C2410C; }
 
 .vc-link {
-  color: #054EAF;
+  color: #27C8D8;
   text-decoration: underline;
   font-size: 13px;
   font-weight: 500;
 }
 
-.vc-link:hover { color: #0342A0; }
+.vc-link:hover { color: #1BAEBB; }
 
 /* ─── Botón Notas ───────────────────────────────────── */
 .act-notas          { background: #FEF9C3; color: #854D0E; }
@@ -1384,7 +1385,7 @@ const formatDateTime = (iso) =>
   width: fit-content;
   font-family: 'Inter', sans-serif;
 }
-.nota-area-badge[data-area="Comercial"]       { background: #DBEAFE; color: #1D4ED8; }
+.nota-area-badge[data-area="Comercial"]       { background: #CCEFF2; color: #27C8D8; }
 .nota-area-badge[data-area="Operativo"]       { background: #D1FAE5; color: #065F46; }
 .nota-area-badge[data-area="Administrativo"]  { background: #FEF3C7; color: #92400E; }
 .nota-area-badge[data-area="Logístico"]       { background: #EDE9FE; color: #5B21B6; }
@@ -1467,7 +1468,7 @@ const formatDateTime = (iso) =>
   cursor: pointer;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
-.vc-field-sel:focus { border-color: #054EAF; box-shadow: 0 0 0 2px rgba(5,78,175,.12); }
+.vc-field-sel:focus { border-color: #27C8D8; box-shadow: 0 0 0 2px rgba(39,200,216,.12); }
 
 .vc-nota-textarea {
   width: 100%;
@@ -1484,7 +1485,7 @@ const formatDateTime = (iso) =>
   line-height: 1.5;
   box-sizing: border-box;
 }
-.vc-nota-textarea:focus { border-color: #054EAF; box-shadow: 0 0 0 2px rgba(5,78,175,.12); }
+.vc-nota-textarea:focus { border-color: #27C8D8; box-shadow: 0 0 0 2px rgba(39,200,216,.12); }
 .vc-nota-textarea::placeholder { color: #94A3B8; }
 
 .vc-nota-add-btn {
@@ -1495,20 +1496,20 @@ const formatDateTime = (iso) =>
   font-size: 13px;
   font-weight: 600;
   font-family: 'Inter', sans-serif;
-  background: #054EAF;
+  background: #27C8D8;
   color: white;
   border: none;
   border-radius: 10px;
   cursor: pointer;
   transition: background 0.15s, opacity 0.15s;
 }
-.vc-nota-add-btn:hover:not(:disabled) { background: #03368A; }
+.vc-nota-add-btn:hover:not(:disabled) { background: #1BAEBB; }
 .vc-nota-add-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .vc-unidad-badge {
   display: inline-block;
   font-size: 11px; font-weight: 600;
-  background: #EFF6FF; color: #1D4ED8;
+  background: #E0F9FA; color: #27C8D8;
   padding: 2px 8px; border-radius: 99px;
   white-space: nowrap;
 }

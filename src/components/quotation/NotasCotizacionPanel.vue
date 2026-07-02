@@ -182,7 +182,7 @@ watch(() => props.quotationId, (val) => { if (val) cargar() }, { immediate: true
   box-shadow: 0 1px 3px rgba(0,0,0,.05);
 }
 
-.ncp-nota[data-area="Comercial"]      { border-left-color: #3B82F6; }
+.ncp-nota[data-area="Comercial"]      { border-left-color: #27C8D8; }
 .ncp-nota[data-area="Operativo"]      { border-left-color: #10B981; }
 .ncp-nota[data-area="Administrativo"] { border-left-color: #F59E0B; }
 .ncp-nota[data-area="Logístico"]      { border-left-color: #8B5CF6; }
@@ -202,7 +202,7 @@ watch(() => props.quotationId, (val) => { if (val) cargar() }, { immediate: true
   border-radius: 99px;
   font-family: 'Inter', sans-serif;
 }
-.ncp-area-badge[data-area="Comercial"]      { background: #DBEAFE; color: #1D4ED8; }
+.ncp-area-badge[data-area="Comercial"]      { background: #CCEFF2; color: #27C8D8; }
 .ncp-area-badge[data-area="Operativo"]      { background: #D1FAE5; color: #065F46; }
 .ncp-area-badge[data-area="Administrativo"] { background: #FEF3C7; color: #92400E; }
 .ncp-area-badge[data-area="Logístico"]      { background: #EDE9FE; color: #5B21B6; }

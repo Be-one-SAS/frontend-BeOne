@@ -53,7 +53,7 @@ defineProps({
   inset: 0;
   border-radius: 50%;
   border: 3px solid #E5EAF0;
-  border-top-color: #054EAF;
+  border-top-color: #27C8D8;
   animation: spin 0.8s linear infinite;
 }
 
@@ -61,7 +61,7 @@ defineProps({
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 14px;
   font-weight: 800;
-  color: #054EAF;
+  color: #27C8D8;
   letter-spacing: -0.5px;
 }
 

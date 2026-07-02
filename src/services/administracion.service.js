@@ -5,8 +5,17 @@ export const getAdminCotizaciones = async (params = {}) => {
   return res.data
 }
 
-export const getAdminDashboard = async () => {
-  const res = await api.get('/administracion/dashboard')
+export const getAdminDashboard = async (sedeId) => {
+  const res = await api.get('/administracion/dashboard', { params: sedeId ? { sedeId } : {} })
+  return res.data
+}
+
+export const getMovimientos = async ({ sedeId, fechaInicio, fechaFin } = {}) => {
+  const params = {}
+  if (sedeId)       params.sedeId = sedeId
+  if (fechaInicio)  params.fechaInicio = fechaInicio
+  if (fechaFin)      params.fechaFin = fechaFin
+  const res = await api.get('/administracion/movimientos', { params })
   return res.data
 }
 

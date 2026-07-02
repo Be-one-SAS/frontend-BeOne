@@ -116,7 +116,7 @@
           <div class="modal-box">
             <div class="modal-header">
               <div class="modal-title-wrap">
-                <ClipboardList :size="20" color="#054EAF" />
+                <ClipboardList :size="20" color="#27C8D8" />
                 <h2 class="modal-title">{{ editingTask ? 'Editar tarea' : 'Nueva tarea' }}</h2>
               </div>
               <button class="close-btn" @click="closeModal"><X :size="18" /></button>
@@ -391,18 +391,18 @@ onMounted(() => {
   font-size: 13px; color: #0F172A; background: #fff;
   font-family: 'Inter', sans-serif; box-sizing: border-box;
 }
-.search-input:focus { outline: none; border-color: #054EAF; }
+.search-input:focus { outline: none; border-color: #27C8D8; }
 .sel {
   padding: 9px 12px;
   border: 1.5px solid #E2E8F0; border-radius: 10px;
   font-size: 13px; color: #0F172A; background: #fff;
   font-family: 'Inter', sans-serif; cursor: pointer;
 }
-.sel:focus { outline: none; border-color: #054EAF; }
+.sel:focus { outline: none; border-color: #27C8D8; }
 
 .table-card {
   background: #fff; border-radius: 18px;
-  box-shadow: 0 1px 4px rgba(5,78,175,.06), 0 4px 16px rgba(5,78,175,.08);
+  box-shadow: 0 1px 4px rgba(39,200,216,.06), 0 4px 16px rgba(39,200,216,.08);
   overflow: hidden;
 }
 .sort-header-table, .data-table {
@@ -417,7 +417,7 @@ onMounted(() => {
   text-align: left; white-space: nowrap; user-select: none;
 }
 .sortable { cursor: pointer; }
-.sortable:hover { color: #054EAF; }
+.sortable:hover { color: #27C8D8; }
 .sortable svg { vertical-align: middle; margin-left: 3px; }
 
 .data-table tbody tr { border-bottom: 1px solid #F1F5F9; transition: background .12s; }
@@ -439,7 +439,7 @@ onMounted(() => {
   font-family: 'Inter', sans-serif; cursor: pointer;
   width: 100%;
 }
-.status-sel:focus { outline: none; border-color: #054EAF; }
+.status-sel:focus { outline: none; border-color: #27C8D8; }
 
 .badge {
   display: inline-block; padding: 3px 10px;
@@ -447,7 +447,7 @@ onMounted(() => {
   font-family: 'Inter', sans-serif;
 }
 .badge-slate  { background: #F1F5F9; color: #475569; }
-.badge-blue   { background: #EFF6FF; color: #1D4ED8; }
+.badge-blue   { background: #E0F9FA; color: #27C8D8; }
 .badge-orange { background: #FFF7ED; color: #C2410C; }
 .badge-red    { background: #FEF2F2; color: #B91C1C; }
 
@@ -458,7 +458,7 @@ onMounted(() => {
   color: #64748B; display: flex; align-items: center;
   transition: all .15s;
 }
-.icon-btn:hover { border-color: #054EAF; color: #054EAF; background: #EFF6FF; }
+.icon-btn:hover { border-color: #27C8D8; color: #27C8D8; background: #E0F9FA; }
 .icon-btn--danger:hover { border-color: #EF4444; color: #EF4444; background: #FEF2F2; }
 
 .skeleton-wrap { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
@@ -477,13 +477,13 @@ onMounted(() => {
 
 .btn-primary {
   display: flex; align-items: center; gap: 8px;
-  padding: 10px 20px; background: #054EAF; color: #fff;
+  padding: 10px 20px; background: #27C8D8; color: #fff;
   border: none; border-radius: 10px;
   font-size: 14px; font-weight: 600;
   cursor: pointer; font-family: 'Inter', sans-serif;
   transition: background .15s;
 }
-.btn-primary:hover:not(:disabled) { background: #043d8a; }
+.btn-primary:hover:not(:disabled) { background: #1BAEBB; }
 .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
 .btn-ghost {
   padding: 10px 20px; background: transparent;
@@ -514,7 +514,7 @@ onMounted(() => {
 .modal-box {
   background: #fff; border-radius: 20px;
   width: 100%; max-width: 560px;
-  box-shadow: 0 20px 60px rgba(5,78,175,.18);
+  box-shadow: 0 20px 60px rgba(39,200,216,.18);
   display: flex; flex-direction: column; overflow: hidden;
 }
 .modal-box--sm { max-width: 400px; }
@@ -546,7 +546,7 @@ onMounted(() => {
   font-family: 'Inter', sans-serif; transition: border-color .15s;
   resize: vertical;
 }
-.field-input:focus { outline: none; border-color: #054EAF; }
+.field-input:focus { outline: none; border-color: #27C8D8; }
 .field-error { border-color: #EF4444 !important; }
 .err-msg { font-size: 11px; color: #EF4444; }
 

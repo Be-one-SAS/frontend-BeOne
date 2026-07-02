@@ -112,6 +112,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { formatCOP } from '@/utils/currency.js'
 import { Package, Trash2 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -148,14 +149,7 @@ const subtotalItems = computed(() =>
   totalesFilas.value.reduce((sum, t) => sum + t, 0)
 )
 
-const format = (value) => {
-  if (!value) return "$ 0"
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0
-  }).format(value)
-}
+const format = formatCOP
 </script>
 
 <style scoped>
@@ -181,7 +175,7 @@ const format = (value) => {
   background: #FFFFFF;
   border-radius: 18px;
   border: 1px solid #E2EBF6;
-  box-shadow: 0 1px 4px rgba(5, 78, 175, .06), 0 4px 16px rgba(5, 78, 175, .08);
+  box-shadow: 0 1px 4px rgba(39,200,216, .06), 0 4px 16px rgba(39,200,216, .08);
   overflow: hidden;
 }
 
@@ -298,7 +292,7 @@ const format = (value) => {
 .td-center { text-align: center; white-space: nowrap; }
 
 .prd-price { color: #374151; font-weight: 500; }
-.prd-total { font-weight: 700; color: #054EAF; }
+.prd-total { font-weight: 700; color: #27C8D8; }
 
 /* Input de descuento */
 .prd-discount-input {
@@ -315,8 +309,8 @@ const format = (value) => {
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .prd-discount-input:focus {
-  border-color: #054EAF;
-  box-shadow: 0 0 0 2px rgba(5, 78, 175, 0.12);
+  border-color: #27C8D8;
+  box-shadow: 0 0 0 2px rgba(39,200,216, 0.12);
 }
 .prd-discount-input::-webkit-outer-spin-button,
 .prd-discount-input::-webkit-inner-spin-button {
@@ -364,7 +358,7 @@ const format = (value) => {
 .td-subtotal-val {
   font-size: 14px;
   font-weight: 800;
-  color: #054EAF;
+  color: #27C8D8;
   text-align: right;
   font-family: 'Inter', sans-serif;
   white-space: nowrap;

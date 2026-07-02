@@ -92,7 +92,7 @@ onMounted(async () => {
     <!-- ══════════════════════════════════════════ -->
     <!-- FILTROS                                    -->
     <!-- ══════════════════════════════════════════ -->
-    <div class="bg-white rounded-[14px] p-4 mb-5 shadow-[0_1px_4px_rgba(5,78,175,.06)] grid grid-cols-1 gap-4">
+    <div class="bg-white rounded-[14px] p-4 mb-5 shadow-[0_1px_4px_rgba(39,200,216,.06)] grid grid-cols-1 gap-4">
       <input
         v-model="searchQuery"
         type="text"
@@ -104,7 +104,7 @@ onMounted(async () => {
     <!-- ══════════════════════════════════════════ -->
     <!-- TABLA                                      -->
     <!-- ══════════════════════════════════════════ -->
-    <div class="bg-white rounded-[18px] shadow-[0_1px_4px_rgba(5,78,175,.06),_0_4px_16px_rgba(5,78,175,.08)] overflow-hidden">
+    <div class="bg-white rounded-[18px] shadow-[0_1px_4px_rgba(39,200,216,.06),_0_4px_16px_rgba(39,200,216,.08)] overflow-hidden">
       <div class="overflow-x-auto">
         <table class="sp-table">
 
@@ -292,8 +292,8 @@ onMounted(async () => {
   appearance: auto;
 }
 .sp-input:focus {
-  border-color: var(--primary, #054EAF);
-  box-shadow: 0 0 0 3px rgba(5, 78, 175, 0.1);
+  border-color: var(--primary, #27C8D8);
+  box-shadow: 0 0 0 3px rgba(39,200,216, 0.1);
 }
 .sp-input::placeholder { color: var(--text-3, #94A3B8); }
 .sp-input--sm { width: 70px; text-align: center; }
@@ -307,7 +307,7 @@ onMounted(async () => {
 }
 
 /* ─── Head ──────────────────────────────────────────────── */
-.sp-head-row { background: #EBF3FC; }
+.sp-head-row { background: #F0FAFB; }
 
 .sp-th {
   padding: 12px 16px;
@@ -334,7 +334,7 @@ onMounted(async () => {
   padding: 14px 16px;
   font-size: 13px;
   color: var(--text-1, #0F1A2E);
-  border-bottom: 1px solid #EBF3FC;
+  border-bottom: 1px solid #F0FAFB;
   vertical-align: middle;
   white-space: nowrap;
 }
@@ -352,13 +352,13 @@ onMounted(async () => {
 }
 .sp-chevron-open {
   transform: rotate(180deg);
-  color: #054EAF;
+  color: #27C8D8;
 }
 
 /* ─── Fila expandida ────────────────────────────────────── */
 .sp-exp-td {
   padding: 0 !important;
-  border-bottom: 1px solid #EBF3FC;
+  border-bottom: 1px solid #F0FAFB;
 }
 
 .sp-exp-panel {
@@ -370,7 +370,7 @@ onMounted(async () => {
 
 .sp-exp-inner {
   background: #F8FBFF;
-  border-left: 3px solid #054EAF;
+  border-left: 3px solid #27C8D8;
   padding: 16px 24px;
 }
 
@@ -420,7 +420,7 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   padding: 12px 20px;
-  border-top: 1px solid #EBF3FC;
+  border-top: 1px solid #F0FAFB;
   flex-wrap: wrap;
   gap: 8px;
 }
@@ -441,8 +441,8 @@ onMounted(async () => {
   justify-content: center;
   transition: all 0.12s ease;
 }
-.pg-btn:hover:not(:disabled) { background: #EEF4FF; color: #054EAF; border-color: #BFDBFE; }
+.pg-btn:hover:not(:disabled) { background: #E0F9FA; color: #27C8D8; border-color: #A7EEF5; }
 .pg-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-.pg-active { background: #054EAF !important; color: #FFFFFF !important; border-color: #054EAF !important; font-weight: 600; }
+.pg-active { background: #27C8D8 !important; color: #FFFFFF !important; border-color: #27C8D8 !important; font-weight: 600; }
 .pg-ellipsis { color: #94A3B8; font-size: 13px; padding: 0 4px; }
 </style>

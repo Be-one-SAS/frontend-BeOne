@@ -120,8 +120,8 @@ function handleClick(n) {
   transition: background 0.15s, color 0.15s;
 }
 .nb-trigger:hover {
-  background: #EBF3FC;
-  color: #054EAF;
+  background: #F0FAFB;
+  color: #27C8D8;
 }
 
 .nb-badge {
@@ -172,7 +172,7 @@ function handleClick(n) {
 }
 .nb-mark-all {
   font-size: 11px;
-  color: #054EAF;
+  color: #27C8D8;
   background: none;
   border: none;
   cursor: pointer;
@@ -211,7 +211,7 @@ function handleClick(n) {
   flex-shrink: 0;
   margin-top: 1px;
 }
-.nb-icon--cotizacion_nueva  { background: #DBEAFE; color: #1D4ED8; }
+.nb-icon--cotizacion_nueva  { background: #CCEFF2; color: #27C8D8; }
 .nb-icon--cotizacion_estado { background: #D1FAE5; color: #065F46; }
 .nb-icon--tarea_asignada    { background: #FEF3C7; color: #92400E; }
 .nb-icon--tarea_estado      { background: #D1FAE5; color: #065F46; }
@@ -250,7 +250,7 @@ function handleClick(n) {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #3B82F6;
+  background: #27C8D8;
   flex-shrink: 0;
   margin-top: 6px;
 }

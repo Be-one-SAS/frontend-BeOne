@@ -279,7 +279,7 @@ const skWidth = () => {
   background: #FFFFFF;
   border-radius: 18px;
   border: 1px solid #EEF1F7;
-  box-shadow: 0 2px 12px rgba(5, 78, 175, 0.06);
+  box-shadow: 0 2px 12px rgba(39,200,216, 0.06);
   overflow: hidden;
 }
 
@@ -324,7 +324,7 @@ const skWidth = () => {
 
 .bt-row:hover { background: #F8FAFC; }
 
-.bt-row-selected { background: #EEF4FF; }
+.bt-row-selected { background: #E0F9FA; }
 
 .bt-td {
   padding: 14px 16px;
@@ -345,7 +345,7 @@ const skWidth = () => {
 .bt-checkbox {
   width: 15px;
   height: 15px;
-  accent-color: #054EAF;
+  accent-color: #27C8D8;
   cursor: pointer;
   border-radius: 4px;
 }
@@ -360,7 +360,7 @@ const skWidth = () => {
 
 .exp-open {
   transform: rotate(180deg);
-  color: #054EAF;
+  color: #27C8D8;
 }
 
 /* ─── Panel expandido ───────────────────────────────── */
@@ -452,9 +452,9 @@ const skWidth = () => {
 }
 
 .pg-btn:hover:not(:disabled) {
-  background: #EEF4FF;
-  color: #054EAF;
-  border-color: #BFDBFE;
+  background: #E0F9FA;
+  color: #27C8D8;
+  border-color: #A7EEF5;
 }
 
 .pg-btn:disabled {
@@ -463,9 +463,9 @@ const skWidth = () => {
 }
 
 .pg-active {
-  background: #054EAF !important;
+  background: #27C8D8 !important;
   color: #FFFFFF !important;
-  border-color: #054EAF !important;
+  border-color: #27C8D8 !important;
   font-weight: 600;
 }
 

@@ -587,7 +587,7 @@ function buildMaterialsPDFHTML(ev) {
     <tr style="border-bottom:1px solid #F1F5F9;">
       <td style="padding:8px 10px;font-size:12px;font-weight:600;color:#0F172A;">${item.nombre}</td>
       <td style="padding:8px 10px;font-size:12px;color:#64748B;">${item.dispositivo || item.categoria || '—'}</td>
-      <td style="padding:8px 10px;font-size:12px;text-align:center;font-weight:700;color:#054EAF;">${item.cantidad}</td>
+      <td style="padding:8px 10px;font-size:12px;text-align:center;font-weight:700;color:#27C8D8;">${item.cantidad}</td>
       ${item.qPersonalMontaje ? `<td style="padding:8px 10px;font-size:12px;text-align:center;color:#6D28D9;">${item.qPersonalMontaje}</td>` : '<td style="padding:8px 10px;font-size:12px;text-align:center;color:#94A3B8;">—</td>'}
       <td style="padding:8px 10px;text-align:center;">${statusBadge(item.check.completado)}</td>
     </tr>
@@ -597,7 +597,7 @@ function buildMaterialsPDFHTML(ev) {
     <tr style="border-bottom:1px solid #F1F5F9;">
       <td style="padding:8px 10px;font-size:12px;font-weight:600;color:#0F172A;">${item.nombre}</td>
       <td style="padding:8px 10px;font-size:12px;color:#64748B;">${item.categoria || '—'}</td>
-      <td style="padding:8px 10px;font-size:12px;text-align:center;font-weight:700;color:#054EAF;">${item.cantidad}</td>
+      <td style="padding:8px 10px;font-size:12px;text-align:center;font-weight:700;color:#27C8D8;">${item.cantidad}</td>
       <td style="padding:8px 10px;text-align:center;">${statusBadge(item.check.completado)}</td>
     </tr>
   `).join('')
@@ -606,7 +606,7 @@ function buildMaterialsPDFHTML(ev) {
     <tr style="border-bottom:1px solid #F1F5F9;">
       <td style="padding:8px 10px;font-size:12px;font-weight:600;color:#0F172A;">${item.nombre}</td>
       <td style="padding:8px 10px;font-size:12px;color:#64748B;">${item.categoria?.nombre || '—'}</td>
-      <td style="padding:8px 10px;font-size:12px;text-align:center;font-weight:700;color:#054EAF;">${item.cantidad}</td>
+      <td style="padding:8px 10px;font-size:12px;text-align:center;font-weight:700;color:#27C8D8;">${item.cantidad}</td>
       <td style="padding:8px 10px;font-size:12px;text-align:center;color:#64748B;">${item.unidad || '—'}</td>
       <td style="padding:8px 10px;text-align:center;">${statusBadge(item.check.completado)}</td>
     </tr>
@@ -664,17 +664,17 @@ function buildMaterialsPDFHTML(ev) {
 
   return `
     <div style="font-family:Arial,Helvetica,sans-serif;padding:24px;color:#0F172A;max-width:780px;">
-      <table style="width:100%;border-collapse:collapse;padding-bottom:16px;border-bottom:2.5px solid #054EAF;margin-bottom:12px;">
+      <table style="width:100%;border-collapse:collapse;padding-bottom:16px;border-bottom:2.5px solid #27C8D8;margin-bottom:12px;">
         <tr>
           <td style="vertical-align:top;padding:0;">
-            <div style="font-size:22px;font-weight:800;color:#054EAF;letter-spacing:-0.5px;">Lista de Materiales</div>
+            <div style="font-size:22px;font-weight:800;color:#27C8D8;letter-spacing:-0.5px;">Lista de Materiales</div>
             <div style="font-size:16px;font-weight:700;color:#0F172A;margin-top:4px;">${nombre}</div>
             <div style="font-size:12px;color:#64748B;margin-top:3px;">
               #${ev.numero}${fecha ? ' &middot; ' + fecha : ''}${ev.ubicacion ? ' &middot; ' + ev.ubicacion : ''}
             </div>
           </td>
           <td style="vertical-align:top;text-align:right;padding:0;white-space:nowrap;">
-            <div style="font-size:24px;font-weight:800;color:${pct === 100 ? '#16A34A' : '#054EAF'};">${pct}%</div>
+            <div style="font-size:24px;font-weight:800;color:${pct === 100 ? '#16A34A' : '#27C8D8'};">${pct}%</div>
             <div style="font-size:11px;color:#64748B;">${ev.progress.completados} / ${ev.progress.total} completados</div>
           </td>
         </tr>
@@ -802,9 +802,9 @@ async function downloadMaterialsPDF(ev) {
   transition: all 0.15s;
 }
 .mont-tab.active {
-  background: #054EAF;
+  background: #27C8D8;
   color: #fff;
-  border-color: #054EAF;
+  border-color: #27C8D8;
 }
 
 /* Search */
@@ -832,7 +832,7 @@ async function downloadMaterialsPDF(ev) {
   background: #fff;
   transition: border-color 0.15s;
 }
-.mont-search:focus { border-color: #054EAF; }
+.mont-search:focus { border-color: #27C8D8; }
 
 /* Loading / error / empty */
 .mont-loading {
@@ -848,7 +848,7 @@ async function downloadMaterialsPDF(ev) {
   width: 28px;
   height: 28px;
   border: 3px solid #E2E8F0;
-  border-top-color: #054EAF;
+  border-top-color: #27C8D8;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -911,7 +911,7 @@ async function downloadMaterialsPDF(ev) {
 .mont-event-num {
   font-size: 11px;
   font-weight: 600;
-  color: #054EAF;
+  color: #27C8D8;
   letter-spacing: 0.4px;
 }
 .mont-event-name {
@@ -938,7 +938,7 @@ async function downloadMaterialsPDF(ev) {
 }
 .mont-progress-bar {
   height: 100%;
-  background: #054EAF;
+  background: #27C8D8;
   border-radius: 99px;
   transition: width 0.3s ease;
 }
@@ -1075,7 +1075,7 @@ async function downloadMaterialsPDF(ev) {
 }
 .mont-item-qty {
   font-weight: 700;
-  color: #054EAF;
+  color: #27C8D8;
 }
 .mont-item-cat { color: #94A3B8; }
 .mont-item-badge {
@@ -1105,7 +1105,7 @@ async function downloadMaterialsPDF(ev) {
   flex-shrink: 0;
   transition: all 0.15s;
 }
-.mont-note-btn:hover { border-color: #054EAF; color: #054EAF; }
+.mont-note-btn:hover { border-color: #27C8D8; color: #27C8D8; }
 .mont-note-btn.active { border-color: #F59E0B; color: #F59E0B; background: #FFFBEB; }
 
 /* Modal */
@@ -1151,7 +1151,7 @@ async function downloadMaterialsPDF(ev) {
   box-sizing: border-box;
   line-height: 1.5;
 }
-.mont-modal-textarea:focus { border-color: #054EAF; }
+.mont-modal-textarea:focus { border-color: #27C8D8; }
 .mont-modal-actions {
   display: flex;
   gap: 10px;
@@ -1173,7 +1173,7 @@ async function downloadMaterialsPDF(ev) {
   padding: 10px;
   border: none;
   border-radius: 10px;
-  background: #054EAF;
+  background: #27C8D8;
   font-size: 14px;
   font-weight: 600;
   color: #fff;
@@ -1196,16 +1196,16 @@ async function downloadMaterialsPDF(ev) {
   transition: all 0.15s;
 }
 .mont-pdf-btn:hover:not(:disabled) {
-  border-color: #054EAF;
-  color: #054EAF;
-  background: #EFF6FF;
+  border-color: #27C8D8;
+  color: #27C8D8;
+  background: #E0F9FA;
 }
 .mont-pdf-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .mont-pdf-spinner {
   width: 12px;
   height: 12px;
   border: 2px solid #CBD5E1;
-  border-top-color: #054EAF;
+  border-top-color: #27C8D8;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -1232,7 +1232,7 @@ async function downloadMaterialsPDF(ev) {
   align-self: center;
   transition: color 0.2s;
 }
-.mont-vconnector.active { color: #3B82F6; }
+.mont-vconnector.active { color: #27C8D8; }
 
 /* ── Botón de acción (estado pendiente) ── */
 .mont-vstep-action {
@@ -1253,10 +1253,10 @@ async function downloadMaterialsPDF(ev) {
   transition: all 0.18s ease;
 }
 .mont-vstep-action:hover:not(:disabled) {
-  border-color: #3B82F6;
+  border-color: #27C8D8;
   border-style: solid;
-  background: #EFF6FF;
-  color: #1D4ED8;
+  background: #E0F9FA;
+  color: #27C8D8;
 }
 .mont-vstep-action:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -1274,8 +1274,8 @@ async function downloadMaterialsPDF(ev) {
   gap: 10px;
   padding: 10px 12px;
   border-radius: 12px;
-  background: #EFF6FF;
-  border: 1.5px solid #93C5FD;
+  background: #E0F9FA;
+  border: 1.5px solid #8EEAF3;
 }
 /* Variante verde para retorno */
 .mont-vstep-done--green {
@@ -1286,7 +1286,7 @@ async function downloadMaterialsPDF(ev) {
 .mont-vstep-done-icon {
   width: 28px; height: 28px;
   border-radius: 50%;
-  background: #3B82F6;
+  background: #27C8D8;
   color: #fff;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
@@ -1305,7 +1305,7 @@ async function downloadMaterialsPDF(ev) {
 .mont-vstep-done-label {
   font-size: 13px;
   font-weight: 700;
-  color: #1D4ED8;
+  color: #27C8D8;
   font-family: 'Inter', sans-serif;
   white-space: nowrap;
 }
@@ -1314,7 +1314,7 @@ async function downloadMaterialsPDF(ev) {
 .mont-vstep-done-sub {
   font-size: 10px;
   font-weight: 500;
-  color: #60A5FA;
+  color: #5DD8E5;
   font-family: 'Inter', sans-serif;
   white-space: nowrap;
 }
@@ -1324,18 +1324,18 @@ async function downloadMaterialsPDF(ev) {
 .mont-vstep-undo {
   width: 26px; height: 26px;
   border-radius: 8px;
-  border: 1px solid #BFDBFE;
+  border: 1px solid #A7EEF5;
   background: transparent;
-  color: #93C5FD;
+  color: #8EEAF3;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
   transition: all 0.15s;
 }
 .mont-vstep-undo:hover:not(:disabled) {
-  background: #DBEAFE;
-  color: #1D4ED8;
-  border-color: #93C5FD;
+  background: #CCEFF2;
+  color: #27C8D8;
+  border-color: #8EEAF3;
 }
 .mont-vstep-done--green .mont-vstep-undo { border-color: #86EFAC; color: #4ADE80; }
 .mont-vstep-done--green .mont-vstep-undo:hover:not(:disabled) {
@@ -1367,9 +1367,9 @@ async function downloadMaterialsPDF(ev) {
   gap: 4px;
   font-size: 10px;
   font-weight: 700;
-  color: #1D4ED8;
-  background: #EFF6FF;
-  border: 1px solid #93C5FD;
+  color: #27C8D8;
+  background: #E0F9FA;
+  border: 1px solid #8EEAF3;
   padding: 3px 8px;
   border-radius: 20px;
   white-space: nowrap;

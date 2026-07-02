@@ -67,17 +67,27 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="row in rtRoster" :key="row.user.id" :class="{ 'rt-row--pending': !row.registro }">
+            <tr
+              v-for="row in rtRoster"
+              :key="row.isExternal ? `ext-${row.registro.id}` : row.user.id"
+              :class="{ 'rt-row--pending': !row.registro }"
+            >
               <td>
                 <div class="rt-user-cell">
                   <div class="rt-avatar" :class="row.registro ? 'rt-avatar--active' : ''">
-                    {{ initials(row.user.fullName) }}
+                    {{ initials(row.isExternal ? row.registro.nombreExterno : row.user.fullName) }}
                   </div>
-                  <span class="rt-user-name">{{ row.user.fullName }}</span>
+                  <div class="rt-user-info-cell">
+                    <span class="rt-user-name">{{ row.isExternal ? row.registro.nombreExterno : row.user.fullName }}</span>
+                    <span v-if="row.isExternal && row.registro.telefonoExterno" class="rt-user-phone">
+                      {{ row.registro.telefonoExterno }}
+                    </span>
+                  </div>
                 </div>
               </td>
               <td>
-                <span class="rt-role-badge" :class="rtRoleClass(row.user.role)">{{ row.user.role }}</span>
+                <span v-if="row.isExternal" class="rt-role-badge rt-role--ext">LOGISTICA</span>
+                <span v-else class="rt-role-badge" :class="rtRoleClass(row.user.role)">{{ row.user.role }}</span>
               </td>
               <td class="rt-time">
                 <span v-if="row.registro?.horaIngreso">{{ formatTime(row.registro.horaIngreso) }}</span>
@@ -96,21 +106,47 @@
               <td class="rt-total">{{ calcTotal(row.registro) }}</td>
               <td class="rt-notas">{{ row.registro?.notas ?? '—' }}</td>
               <td v-if="canManageTurnos" class="rt-actions-cell">
-                <button v-if="!row.registro" class="rt-btn-registrar" @click="openRtModalForUser(row.user)">
-                  <Plus :size="11" /> Registrar
-                </button>
-                <template v-else>
-                  <button class="rt-action-btn" title="Editar" @click="openRtModal(row.registro)">
-                    <Pencil :size="12" />
-                  </button>
+                <!-- External person: Registrar si no tiene horas, editar/eliminar si ya las tiene -->
+                <template v-if="row.isExternal">
                   <button
-                    v-if="canDeleteTurnos"
-                    class="rt-action-btn rt-action-btn--danger"
-                    title="Eliminar"
-                    @click="confirmDeleteRegistro(row.registro)"
+                    v-if="!row.registro.horaIngreso"
+                    class="rt-btn-registrar"
+                    @click="openRtModalForExternal(row.registro.nombreExterno, row.registro.telefonoExterno, row.registro)"
                   >
-                    <Trash2 :size="12" />
+                    <Plus :size="11" /> Registrar
                   </button>
+                  <template v-else>
+                    <button class="rt-action-btn" title="Editar" @click="openRtModal(row.registro)">
+                      <Pencil :size="12" />
+                    </button>
+                    <button
+                      v-if="canDeleteTurnos"
+                      class="rt-action-btn rt-action-btn--danger"
+                      title="Eliminar"
+                      @click="confirmDeleteRegistro(row.registro)"
+                    >
+                      <Trash2 :size="12" />
+                    </button>
+                  </template>
+                </template>
+                <!-- System user: register / edit / delete -->
+                <template v-else>
+                  <button v-if="!row.registro" class="rt-btn-registrar" @click="openRtModalForUser(row.user)">
+                    <Plus :size="11" /> Registrar
+                  </button>
+                  <template v-else>
+                    <button class="rt-action-btn" title="Editar" @click="openRtModal(row.registro)">
+                      <Pencil :size="12" />
+                    </button>
+                    <button
+                      v-if="canDeleteTurnos"
+                      class="rt-action-btn rt-action-btn--danger"
+                      title="Eliminar"
+                      @click="confirmDeleteRegistro(row.registro)"
+                    >
+                      <Trash2 :size="12" />
+                    </button>
+                  </template>
                 </template>
               </td>
             </tr>
@@ -143,7 +179,21 @@
             <!-- Persona -->
             <div class="rt-form-group">
               <label class="rt-label">Persona <span class="rt-req">*</span></label>
-              <select v-model="rtForm.userId" class="rt-input" :disabled="!!rtEditing">
+              <div v-if="rtIsExternal" class="rt-external-name">
+                <span class="rt-role-badge rt-role--ext">LOGISTICA</span>
+                <span class="rt-user-name">{{ rtExternalNombre }}</span>
+                <span v-if="rtExternalTelefono" class="rt-user-phone">{{ rtExternalTelefono }}</span>
+              </div>
+              <div v-if="rtIsExternal" class="rt-form-group" style="margin-top:8px">
+                <label class="rt-label">Correo</label>
+                <input
+                  v-model="rtExternalEmail"
+                  type="email"
+                  class="rt-input"
+                  placeholder="Correo para enviarle su reporte de turnos"
+                />
+              </div>
+              <select v-else v-model="rtForm.userId" class="rt-input" :disabled="!!rtEditing">
                 <option :value="null" disabled>Seleccionar…</option>
                 <optgroup label="Personal del evento">
                   <option v-for="u in rosterUsers" :key="u.id" :value="u.id">
@@ -209,7 +259,7 @@
               <button class="rt-btn rt-btn-ghost" @click="closeRtModal">Cancelar</button>
               <button
                 class="rt-btn rt-btn-primary"
-                :disabled="rtSaving || !rtForm.userId || !rtForm.fecha"
+                :disabled="rtSaving || (!rtIsExternal && !rtForm.userId) || !rtForm.fecha"
                 @click="saveRegistro"
               >
                 <Loader2 v-if="rtSaving" :size="12" class="spin" />
@@ -231,43 +281,99 @@
             <button class="rt-modal-close" @click="addPersonOpen = false">✕</button>
           </div>
           <div class="rt-form">
-            <p class="rt-add-desc">Selecciona a la persona que quieres agregar. Al confirmar se abrirá el formulario de turno con su nombre pre-cargado.</p>
 
-            <div class="rt-form-group">
-              <label class="rt-label">Buscar</label>
-              <input
-                v-model="addPersonSearch"
-                class="rt-input"
-                placeholder="Nombre o rol…"
-                autofocus
-              />
-            </div>
-
-            <div class="rt-user-list">
+            <!-- Tabs -->
+            <div class="rt-tabs">
               <button
-                v-for="u in filteredAllUsers"
-                :key="u.id"
-                class="rt-user-option"
-                :class="{ 'rt-user-option--selected': addPersonSelected?.id === u.id }"
-                @click="addPersonSelected = u"
-              >
-                <div class="rt-avatar rt-avatar--sm">{{ initials(u.fullName) }}</div>
-                <div class="rt-user-info">
-                  <span class="rt-user-name">{{ u.fullName }}</span>
-                  <span class="rt-role-badge rt-role-badge--sm" :class="rtRoleClass(u.role)">{{ u.role }}</span>
-                </div>
-              </button>
-              <p v-if="!filteredAllUsers.length" class="rt-user-empty">Sin resultados</p>
+                class="rt-tab"
+                :class="{ 'rt-tab--active': addPersonTab === 'sistema' }"
+                @click="addPersonTab = 'sistema'"
+              >Usuario del sistema</button>
+              <button
+                class="rt-tab"
+                :class="{ 'rt-tab--active': addPersonTab === 'externa' }"
+                @click="addPersonTab = 'externa'"
+              >Persona externa</button>
             </div>
+
+            <!-- Tab: sistema -->
+            <template v-if="addPersonTab === 'sistema'">
+              <div class="rt-form-group">
+                <label class="rt-label">Buscar</label>
+                <input
+                  v-model="addPersonSearch"
+                  class="rt-input"
+                  placeholder="Nombre o rol…"
+                  autofocus
+                />
+              </div>
+
+              <div class="rt-user-list">
+                <button
+                  v-for="u in filteredAllUsers"
+                  :key="u.id"
+                  class="rt-user-option"
+                  :class="{ 'rt-user-option--selected': addPersonSelected?.id === u.id }"
+                  @click="addPersonSelected = u"
+                >
+                  <div class="rt-avatar rt-avatar--sm">{{ initials(u.fullName) }}</div>
+                  <div class="rt-user-info">
+                    <span class="rt-user-name">{{ u.fullName }}</span>
+                    <span class="rt-role-badge rt-role-badge--sm" :class="rtRoleClass(u.role)">{{ u.role }}</span>
+                  </div>
+                </button>
+                <p v-if="!filteredAllUsers.length" class="rt-user-empty">Sin resultados</p>
+              </div>
+            </template>
+
+            <!-- Tab: externa -->
+            <template v-else>
+              <p class="rt-add-desc">Agrega una persona que no está en el sistema. Solo se guarda su nombre y teléfono.</p>
+              <div class="rt-form-group">
+                <label class="rt-label">Nombre completo <span class="rt-req">*</span></label>
+                <input
+                  v-model="extNombre"
+                  class="rt-input"
+                  placeholder="Nombre de la persona…"
+                  autofocus
+                />
+              </div>
+              <div class="rt-form-group">
+                <label class="rt-label">Teléfono</label>
+                <input
+                  v-model="extTelefono"
+                  class="rt-input"
+                  placeholder="Opcional"
+                />
+              </div>
+              <div class="rt-form-group">
+                <label class="rt-label">Correo</label>
+                <input
+                  v-model="extEmail"
+                  type="email"
+                  class="rt-input"
+                  placeholder="Opcional — para enviarle su reporte de turnos"
+                />
+              </div>
+            </template>
 
             <div class="rt-form-footer">
               <button class="rt-btn rt-btn-ghost" @click="addPersonOpen = false">Cancelar</button>
               <button
+                v-if="addPersonTab === 'sistema'"
                 class="rt-btn rt-btn-primary"
                 :disabled="!addPersonSelected"
                 @click="confirmAddPerson"
               >
                 Continuar con turno
+              </button>
+              <button
+                v-else
+                class="rt-btn rt-btn-primary"
+                :disabled="!extNombre.trim()"
+                @click="confirmAddPerson"
+              >
+                Agregar
               </button>
             </div>
           </div>
@@ -280,6 +386,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { formatCOP } from '@/utils/currency.js'
 import {
   Clock as ClockIcon, Check, Copy, Plus, Pencil, Trash2,
   Loader2, UserPlus, Users,
@@ -314,15 +421,23 @@ const allUsers      = ref([])
 const rosterUsers   = ref([])   // users from quotation members/coordinadores
 
 // Turno modal
-const rtModalOpen   = ref(false)
-const rtEditing     = ref(null)
-const rtSaving      = ref(false)
-const rtLinkCopied  = ref(false)
+const rtModalOpen        = ref(false)
+const rtEditing          = ref(null)
+const rtSaving           = ref(false)
+const rtLinkCopied       = ref(false)
+const rtIsExternal       = ref(false)
+const rtExternalNombre   = ref('')
+const rtExternalTelefono = ref('')
+const rtExternalEmail    = ref('')
 
 // Add person modal
 const addPersonOpen     = ref(false)
 const addPersonSearch   = ref('')
 const addPersonSelected = ref(null)
+const addPersonTab      = ref('sistema') // 'sistema' | 'externa'
+const extNombre         = ref('')
+const extTelefono       = ref('')
+const extEmail          = ref('')
 
 const rtFormDefault = () => ({
   userId: null, fecha: '', horaIngreso: '', horaSalida: '',
@@ -334,26 +449,31 @@ const rtForm = ref(rtFormDefault())
 const rosterUserIds = computed(() => new Set(rosterUsers.value.map(u => u.id)))
 
 const extraUsers = computed(() =>
-  allUsers.value.filter(u => !rosterUserIds.value.has(u.id))
+  allUsers.value.filter(u => u.role === 'LOGISTICA' && !rosterUserIds.value.has(u.id))
 )
 
 const filteredAllUsers = computed(() => {
   const q = addPersonSearch.value.toLowerCase().trim()
   return allUsers.value.filter(u =>
-    !q ||
-    u.fullName?.toLowerCase().includes(q) ||
-    u.role?.toLowerCase().includes(q)
+    u.role === 'LOGISTICA' &&
+    (!q || u.fullName?.toLowerCase().includes(q))
   )
 })
 
 const rtRoster = computed(() => {
-  const byUser = new Map(rtRegistros.value.map(r => [r.userId, r]))
+  const byUser = new Map(rtRegistros.value.filter(r => r.userId).map(r => [r.userId, r]))
   // Start with roster from quotation
-  const rows = rosterUsers.value.map(u => ({ user: u, registro: byUser.get(u.id) ?? null }))
-  // Add anyone who has a registro but isn't in the quotation members
+  const rows = rosterUsers.value.map(u => ({ user: u, registro: byUser.get(u.id) ?? null, isExternal: false }))
+  // Add LOGISTICA users with a registro but not in quotation members
   for (const r of rtRegistros.value) {
-    if (!rosterUserIds.value.has(r.userId) && r.user) {
-      rows.push({ user: r.user, registro: r })
+    if (r.userId && !rosterUserIds.value.has(r.userId) && r.user?.role === 'LOGISTICA') {
+      rows.push({ user: r.user, registro: r, isExternal: false })
+    }
+  }
+  // Add external persons (no userId, has nombreExterno)
+  for (const r of rtRegistros.value) {
+    if (!r.userId && r.nombreExterno) {
+      rows.push({ user: null, registro: r, isExternal: true })
     }
   }
   return rows
@@ -394,10 +514,7 @@ const calcHoursNum = (inIso, outIso) => {
   return h > 0 ? h : 0
 }
 
-const formatCurrency = (val) =>
-  val != null && !isNaN(val)
-    ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val)
-    : '—'
+const formatCurrency = (val) => val != null && !isNaN(val) ? formatCOP(val) : '—'
 
 const calcTotal = (r) => {
   if (!r?.horaIngreso || !r?.horaSalida || !r?.valorHoraContratada) return '—'
@@ -447,7 +564,7 @@ const loadRegistros = async () => {
     const coordUsers  = (q?.coordinadores ?? []).map(c => c.user ?? c).filter(Boolean)
     const seen = new Set()
     rosterUsers.value = [...memberUsers, ...coordUsers].filter(u => {
-      if (!u?.id || seen.has(u.id)) return false
+      if (!u?.id || seen.has(u.id) || u.role !== 'LOGISTICA') return false
       seen.add(u.id); return true
     })
   } catch (_) { rtRegistros.value = [] }
@@ -466,13 +583,28 @@ const copyTurnoLink = async () => {
 
 // ── Modal turno ────────────────────────────────────────────────────
 const openRtModalForUser = (u) => {
-  rtEditing.value = null
-  rtForm.value = { ...rtFormDefault(), userId: u.id }
-  rtModalOpen.value = true
+  rtEditing.value    = null
+  rtIsExternal.value = false
+  rtForm.value       = { ...rtFormDefault(), userId: u.id }
+  rtModalOpen.value  = true
+}
+
+const openRtModalForExternal = (nombre, telefono, registroExistente = null) => {
+  rtEditing.value          = registroExistente
+  rtIsExternal.value       = true
+  rtExternalNombre.value   = nombre
+  rtExternalTelefono.value = telefono ?? ''
+  rtExternalEmail.value    = registroExistente?.emailExterno ?? ''
+  rtForm.value             = rtFormDefault()
+  rtModalOpen.value        = true
 }
 
 const openRtModal = (registro) => {
-  rtEditing.value = registro
+  rtEditing.value          = registro
+  rtIsExternal.value       = !registro.userId && !!registro.nombreExterno
+  rtExternalNombre.value   = registro.nombreExterno ?? ''
+  rtExternalTelefono.value = registro.telefonoExterno ?? ''
+  rtExternalEmail.value    = registro.emailExterno ?? ''
   const toDate = (iso) => iso ? new Date(iso).toISOString().slice(0, 10) : ''
   const toTime = (iso) => iso ? new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : ''
   rtForm.value = {
@@ -488,17 +620,21 @@ const openRtModal = (registro) => {
 }
 
 const closeRtModal = () => {
-  rtModalOpen.value = false
-  rtEditing.value   = null
+  rtModalOpen.value        = false
+  rtEditing.value          = null
+  rtIsExternal.value       = false
+  rtExternalNombre.value   = ''
+  rtExternalTelefono.value = ''
+  rtExternalEmail.value    = ''
 }
 
 const saveRegistro = async () => {
-  if (!rtForm.value.userId || !rtForm.value.fecha) return
+  if (!rtForm.value.fecha) return
+  if (!rtIsExternal.value && !rtForm.value.userId) return
   rtSaving.value = true
   try {
-    const payload = {
+    const base = {
       quotationId:         rtQuotationId.value,
-      userId:              rtForm.value.userId,
       fecha:               new Date(`${rtForm.value.fecha}T00:00:00`).toISOString(),
       horaIngreso:         buildDateTime(rtForm.value.fecha, rtForm.value.horaIngreso),
       horaSalida:          buildDateTime(rtForm.value.fecha, rtForm.value.horaSalida),
@@ -506,6 +642,9 @@ const saveRegistro = async () => {
       porcentajeAdicional: rtForm.value.porcentajeAdicional ?? 0,
       notas:               rtForm.value.notas || null,
     }
+    const payload = rtIsExternal.value
+      ? { ...base, nombreExterno: rtExternalNombre.value, telefonoExterno: rtExternalTelefono.value || null, emailExterno: rtExternalEmail.value.trim() || null }
+      : { ...base, userId: rtForm.value.userId }
     if (rtEditing.value) {
       await updateRegistro(rtEditing.value.id, payload)
     } else {
@@ -518,7 +657,8 @@ const saveRegistro = async () => {
 }
 
 const confirmDeleteRegistro = async (r) => {
-  if (!confirm(`¿Eliminar el registro de turno de ${r.user?.fullName ?? 'esta persona'}?`)) return
+  const name = r.nombreExterno ?? r.user?.fullName ?? 'esta persona'
+  if (!confirm(`¿Eliminar el registro de turno de ${name}?`)) return
   try {
     await deleteRegistro(r.id)
     rtRegistros.value = rtRegistros.value.filter(x => x.id !== r.id)
@@ -529,6 +669,10 @@ const confirmDeleteRegistro = async (r) => {
 const openAddPersonModal = async () => {
   addPersonSearch.value   = ''
   addPersonSelected.value = null
+  addPersonTab.value      = 'sistema'
+  extNombre.value         = ''
+  extTelefono.value       = ''
+  extEmail.value          = ''
   addPersonOpen.value     = true
   if (!allUsers.value.length) {
     try {
@@ -538,10 +682,26 @@ const openAddPersonModal = async () => {
   }
 }
 
-const confirmAddPerson = () => {
-  if (!addPersonSelected.value) return
-  addPersonOpen.value = false
-  openRtModalForUser(addPersonSelected.value)
+const confirmAddPerson = async () => {
+  if (addPersonTab.value === 'sistema') {
+    if (!addPersonSelected.value) return
+    addPersonOpen.value = false
+    openRtModalForUser(addPersonSelected.value)
+  } else {
+    if (!extNombre.value.trim()) return
+    try {
+      const today = new Date().toISOString().slice(0, 10)
+      await createRegistro({
+        quotationId:     rtQuotationId.value,
+        nombreExterno:   extNombre.value.trim(),
+        telefonoExterno: extTelefono.value.trim() || null,
+        emailExterno:    extEmail.value.trim() || null,
+        fecha:           new Date(`${today}T00:00:00`).toISOString(),
+      })
+      addPersonOpen.value = false
+      await loadRegistros()
+    } catch (_) {}
+  }
 }
 
 // ── Mount ──────────────────────────────────────────────────────────
@@ -619,7 +779,7 @@ onMounted(() => Promise.all([loadRtQuotations()]))
   width: 22px; height: 22px;
   border-radius: 50%;
   border: 2px solid #e2e8f0;
-  border-top-color: #0f3460;
+  border-top-color: #073B42;
   animation: spin 0.8s linear infinite;
   flex-shrink: 0;
 }
@@ -672,12 +832,14 @@ onMounted(() => Promise.all([loadRtQuotations()]))
 .rt-table tr:last-child td { border-bottom: none; }
 .rt-row--pending td { opacity: 0.7; }
 
-.rt-user-cell  { display: flex; align-items: center; gap: 8px; }
-.rt-user-name  { font-weight: 500; white-space: nowrap; }
+.rt-user-cell      { display: flex; align-items: center; gap: 8px; }
+.rt-user-info-cell { display: flex; flex-direction: column; gap: 1px; }
+.rt-user-name      { font-weight: 500; white-space: nowrap; }
+.rt-user-phone     { font-size: 11px; color: #94a3b8; white-space: nowrap; }
 .rt-avatar {
   width: 30px; height: 30px;
   border-radius: 50%;
-  background: #EFF6FF; color: #2563EB;
+  background: #E0F9FA; color: #27C8D8;
   display: flex; align-items: center; justify-content: center;
   font-size: 10px; font-weight: 700; flex-shrink: 0;
 }
@@ -693,11 +855,12 @@ onMounted(() => Promise.all([loadRtQuotations()]))
   white-space: nowrap;
 }
 .rt-role-badge--sm { padding: 1px 6px; font-size: 10px; }
-.rt-role--blue   { background: #DBEAFE; color: #1D4ED8; }
+.rt-role--blue   { background: #CCEFF2; color: #27C8D8; }
 .rt-role--green  { background: #D1FAE5; color: #065F46; }
 .rt-role--purple { background: #EDE9FE; color: #6D28D9; }
 .rt-role--orange { background: #FEF3C7; color: #92400E; }
 .rt-role--gray   { background: #F1F5F9; color: #475569; }
+.rt-role--ext    { background: #FFF7ED; color: #C2410C; }
 
 .rt-time  { font-family: monospace; font-size: 12px; color: #334155; white-space: nowrap; }
 .rt-hours { font-weight: 700; color: #0F1A2E; white-space: nowrap; }
@@ -719,11 +882,11 @@ onMounted(() => Promise.all([loadRtQuotations()]))
 .rt-action-btn--danger:hover { background: #FEF2F2; color: #DC2626; border-color: #FECACA; }
 .rt-btn-registrar {
   display: inline-flex; align-items: center; gap: 4px;
-  background: #EFF6FF; color: #2563EB; border: 1px solid #BFDBFE;
+  background: #E0F9FA; color: #27C8D8; border: 1px solid #A7EEF5;
   border-radius: 6px; padding: 5px 9px;
   font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap;
 }
-.rt-btn-registrar:hover { background: #DBEAFE; }
+.rt-btn-registrar:hover { background: #CCEFF2; }
 
 .rt-summary {
   display: flex;
@@ -794,6 +957,43 @@ onMounted(() => Promise.all([loadRtQuotations()]))
 
 /* ── Add person modal ── */
 .rt-add-desc { font-size: 12px; color: #64748b; margin: 0; line-height: 1.5; }
+
+/* ── Tabs ── */
+.rt-tabs {
+  display: flex;
+  gap: 4px;
+  background: #F1F5F9;
+  border-radius: 10px;
+  padding: 3px;
+}
+.rt-tab {
+  flex: 1;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 0.13s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.rt-tab:hover { color: #0F1A2E; }
+.rt-tab--active { background: white; color: #0F1A2E; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+/* ── External person display in turno modal ── */
+.rt-external-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: #FFF7ED;
+  border: 1px solid #FED7AA;
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
 .rt-user-list {
   display: flex; flex-direction: column; gap: 4px;
   max-height: 260px; overflow-y: auto;
@@ -806,7 +1006,7 @@ onMounted(() => Promise.all([loadRtQuotations()]))
   transition: background 0.1s; font-family: inherit;
 }
 .rt-user-option:hover { background: #F8FAFC; }
-.rt-user-option--selected { background: #EFF6FF; }
+.rt-user-option--selected { background: #E0F9FA; }
 .rt-user-info { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
 .rt-user-empty { font-size: 12px; color: #94a3b8; text-align: center; padding: 12px 0; margin: 0; }
 

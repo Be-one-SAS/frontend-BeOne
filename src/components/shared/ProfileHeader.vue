@@ -28,6 +28,8 @@
           <div class="ph-dd-info">
             <p class="ph-dd-name">{{ displayName }}</p>
             <p class="ph-dd-email">{{ user?.email }}</p>
+            <span v-if="isOrgAdmin" class="ph-sede-chip ph-sede-chip--org" title="Nivel organización">🏢 Organización</span>
+            <span v-else-if="sedeName" class="ph-sede-chip ph-sede-chip--sede" title="Unidad de Ejecución">📍 {{ sedeName }}</span>
           </div>
         </div>
 
@@ -59,7 +61,7 @@ import { useAuth } from '@/composables/useAuth'
 import { useSidebarPermissions } from '@/composables/useSidebarPermissions'
 
 const { user, setLogout } = useAuth()
-const { userRole, roleBadgeStyle, userInitials, avatarColor, displayName } = useSidebarPermissions()
+const { userRole, roleBadgeStyle, userInitials, avatarColor, displayName, sedeName, isOrgAdmin } = useSidebarPermissions()
 const router = useRouter()
 
 const open = ref(false)
@@ -100,7 +102,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
 }
 
 .ph-trigger:hover {
-  background: #EBF3FC;
+  background: #F0FAFB;
 }
 
 .ph-avatar {
@@ -224,6 +226,19 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
   text-overflow: ellipsis;
 }
 
+.ph-sede-chip {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  padding: 2px 8px;
+  border-radius: 99px;
+  margin-top: 4px;
+  line-height: 1.5;
+}
+.ph-sede-chip--sede { background: #E0F9FA; color: #27C8D8; }
+.ph-sede-chip--org  { background: #EDE9FE; color: #7C3AED; }
+
 .ph-dd-sep {
   height: 1px;
   background: #F1F5FA;
@@ -249,8 +264,8 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
 }
 
 .ph-dd-item:hover {
-  background: #EBF3FC;
-  color: #054EAF;
+  background: #F0FAFB;
+  color: #27C8D8;
 }
 
 .ph-dd-item--danger {

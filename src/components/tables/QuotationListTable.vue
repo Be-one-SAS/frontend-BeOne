@@ -131,6 +131,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { formatCOP } from '@/utils/currency.js'
 import { Search, X, Eye, Pencil, Copy, Trash2, FileText, Clock, CheckCircle2, AlertCircle } from 'lucide-vue-next'
 import BaseTable   from '@/components/ui/BaseTable.vue'
 import BadgeStatus from '@/components/ui/BadgeStatus.vue'
@@ -203,9 +204,6 @@ const kpis = computed(() => {
   ]
 })
 
-// ── Helpers ───────────────────────────────────────────────
-const formatCOP = (n) =>
-  new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n)
 
 const onRowClick = (row) => emit('row-click', row)
 
@@ -248,7 +246,7 @@ const mockRows = [
 .kpi-val { font-size: 15px; font-weight: 700; }
 .kpi-lbl { font-weight: 500; opacity: 0.85; }
 
-.kpi-blue   { background: #EEF4FF; color: #1D4ED8; }
+.kpi-blue   { background: #E0F9FA; color: #27C8D8; }
 .kpi-green  { background: #DCFCE7; color: #15803D; }
 .kpi-amber  { background: #FEF3C7; color: #B45309; }
 .kpi-red    { background: #FEE2E2; color: #B91C1C; }
@@ -289,7 +287,7 @@ const mockRows = [
   transition: border-color 0.15s;
 }
 
-.fs-input:focus { border-color: #054EAF; }
+.fs-input:focus { border-color: #27C8D8; }
 
 .filter-select {
   padding: 8px 12px;
@@ -304,7 +302,7 @@ const mockRows = [
   transition: border-color 0.15s;
 }
 
-.filter-select:focus { border-color: #054EAF; color: #0F1A2E; }
+.filter-select:focus { border-color: #27C8D8; color: #0F1A2E; }
 
 .filter-clear {
   display: flex;
@@ -325,7 +323,7 @@ const mockRows = [
 .filter-clear:hover { background: #FECACA; }
 
 /* ── Cell: numero ─────────────────────────────────────── */
-.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #054EAF; font-weight: 600; }
+.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #27C8D8; font-weight: 600; }
 
 /* ── Cell: cliente ────────────────────────────────────── */
 .client-cell { display: flex; flex-direction: column; gap: 2px; }
@@ -376,7 +374,7 @@ const mockRows = [
   transition: all 0.12s;
 }
 
-.act-btn:hover { background: #EEF4FF; color: #054EAF; border-color: #BFDBFE; }
+.act-btn:hover { background: #E0F9FA; color: #27C8D8; border-color: #A7EEF5; }
 .act-danger:hover { background: #FEE2E2; color: #B91C1C; border-color: #FCA5A5; }
 
 /* ── Expandido ────────────────────────────────────────── */
@@ -400,7 +398,7 @@ const mockRows = [
   padding: 8px 16px;
   border-radius: 10px;
   border: none;
-  background: #054EAF;
+  background: #27C8D8;
   color: #FFFFFF;
   font-size: 12px;
   font-weight: 600;
@@ -409,5 +407,5 @@ const mockRows = [
   transition: background 0.15s;
 }
 
-.exp-btn-primary:hover { background: #0342A0; }
+.exp-btn-primary:hover { background: #1BAEBB; }
 </style>

@@ -42,6 +42,29 @@
         </div>
       </div>
 
+      <!-- Estado cotización multi-select -->
+      <div class="adm-filter-estados" ref="cotStatusRef">
+        <button class="adm-input adm-estado-trigger" @click="cotStatusOpen = !cotStatusOpen">
+          <span v-if="!filters.estadoCot.length" class="adm-placeholder">Estado cotización</span>
+          <span v-else class="adm-estado-pills">
+            <span v-for="e in filters.estadoCot.slice(0,3)" :key="e" class="adm-mini-badge"
+              :class="cotStatusCls(e)">{{ e }}</span>
+            <span v-if="filters.estadoCot.length > 3" class="adm-mini-badge adm-mini-more">+{{ filters.estadoCot.length - 3 }}</span>
+          </span>
+          <ChevronDown :size="13" />
+        </button>
+        <div v-if="cotStatusOpen" class="adm-estado-dropdown">
+          <div v-for="e in ['Pendiente', 'Aprobada', 'Rechazada', 'Vencida']" :key="e" class="adm-estado-opt"
+            :class="{ selected: filters.estadoCot.includes(e) }" @click="toggleCotStatus(e)">
+            <span class="adm-estado-check">
+              <Check v-if="filters.estadoCot.includes(e)" :size="12" />
+            </span>
+            <span class="adm-estado-badge" :class="cotStatusCls(e)">{{ e }}</span>
+          </div>
+          <button v-if="filters.estadoCot.length" class="adm-clear-btn" @click="filters.estadoCot = []; onFilter()">Limpiar</button>
+        </div>
+      </div>
+
       <!-- VAL ADM filter -->
       <select v-model="filters.valAdm" class="adm-input" @change="onFilter" style="width:140px">
         <option value="">VAL ADM: Todos</option>
@@ -78,7 +101,7 @@
               <th class="adm-th sortable" @click="sort('numero')">#</th>
               <th class="adm-th sortable" @click="sort('fechaCotizacion')">Fecha cot.</th>
               <th class="adm-th">Evento</th>
-              <th class="adm-th">Unidad</th>
+              <th class="adm-th">Región</th>
               <th class="adm-th">Fecha evento</th>
               <th class="adm-th sortable" @click="sort('empresa')">Cliente</th>
               <th class="adm-th sortable" @click="sort('total')">Total</th>
@@ -156,7 +179,7 @@
       </div>
 
       <!-- Pagination -->
-      <div v-if="total > 0" class="adm-pagination">
+      <div v-if="totalPages > 1" class="adm-pagination">
         <span class="adm-pag-info">{{ (page-1)*pageLimit + 1 }}–{{ Math.min(page*pageLimit, total) }} de {{ total }}</span>
         <div class="adm-pag-btns">
           <button class="adm-pag-btn" :disabled="page <= 1" @click="changePage(page - 1)">‹</button>
@@ -269,7 +292,7 @@
             <!-- Rest of info -->
             <div class="evt-kv-grid" style="margin-top:10px">
               <div class="evt-kv"><span class="evt-k">Descripción</span><span class="evt-v">{{ drawerRow.description || '—' }}</span></div>
-              <div class="evt-kv"><span class="evt-k">Unidad</span><span class="evt-v">{{ drawerRow.unidadEjecucion || '—' }}</span></div>
+              <div class="evt-kv"><span class="evt-k">Región</span><span class="evt-v">{{ drawerRow.unidadEjecucion || '—' }}</span></div>
               <div class="evt-kv"><span class="evt-k">Fecha evento</span><span class="evt-v">{{ fmtDate(drawerRow.operationWindow?.eventStartAt) }}</span></div>
               <div class="evt-kv"><span class="evt-k">Fecha fin</span><span class="evt-v">{{ fmtDate(drawerRow.operationWindow?.eventEndAt) }}</span></div>
               <div class="evt-kv"><span class="evt-k">Ejecutivo</span><span class="evt-v">{{ drawerRow.agenteComercial || '—' }}</span></div>
@@ -325,7 +348,7 @@
               <input type="text" class="dso-input" v-model="infoForm[drawerRow.id].description" @blur="saveInfoGeneral(drawerRow)" placeholder="—" />
             </div>
             <div class="evt-field">
-              <label class="evt-fl">Unidad</label>
+              <label class="evt-fl">Región</label>
               <input type="text" class="dso-input" v-model="infoForm[drawerRow.id].unidadEjecucion" @blur="saveInfoGeneral(drawerRow)" placeholder="—" />
             </div>
             <div class="evt-field">
@@ -511,6 +534,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { formatCOP } from '@/utils/currency.js'
 import {
   Download, Search, ChevronDown, Check, AlertCircle, FileX,
   Pencil, Users, DollarSign, FileText, CheckCircle, XCircle,
@@ -556,13 +580,10 @@ function resolveUser(id, nestedObj) {
   return nestedObj?.fullName || null
 }
 
-function fmtMoney(n) {
-  if (n == null) return '—'
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n)
-}
+function fmtMoney(n) { return n == null ? '—' : formatCOP(n) }
 
 function cotStatusCls(s) {
-  return { 'Aprobada': 'cot-aprobada', 'En Proceso': 'cot-en-proceso', 'Vencida': 'cot-vencida', 'Cancelada': 'cot-cancelada' }[s] ?? 'cot-default'
+  return { 'Pendiente': 'cot-pendiente', 'Aprobada': 'cot-aprobada', 'Rechazada': 'cot-rechazada', 'En Proceso': 'cot-en-proceso', 'Vencida': 'cot-vencida', 'Cancelada': 'cot-cancelada' }[s] ?? 'cot-default'
 }
 
 function calcEjec(row) {
@@ -645,11 +666,17 @@ async function loadDetail(id) {
 const filters = ref({
   search:      '',
   estados:     [],
+  estadoCot:   [],
   valAdm:      '',
   fechaInicio: '',
   fechaFin:    '',
   responsable: '',
 })
+
+const cotStatusOpen = ref(false)
+const cotStatusRef  = ref(null)
+
+const ESTADOS_COT = ['Pendiente', 'Aprobada', 'Rechazada', 'Vencida']
 
 // ── Pagination ────────────────────────────────────────────
 const totalPages   = computed(() => Math.max(1, Math.ceil(total.value / pageLimit)))
@@ -701,7 +728,8 @@ async function load() {
   try {
     const params = {
       search:      filters.value.search     || undefined,
-      estadoAdmin: filters.value.estados.join(',') || undefined,
+      estadoAdmin: filters.value.estados.join(',')    || undefined,
+      estadoCot:   filters.value.estadoCot.join(',')  || undefined,
       fechaInicio: filters.value.fechaInicio || undefined,
       fechaFin:    filters.value.fechaFin   || undefined,
       responsable: filters.value.responsable || undefined,
@@ -859,7 +887,8 @@ onUnmounted(() => {
 })
 
 function onClickOutside(e) {
-  if (estadosRef.value && !estadosRef.value.contains(e.target)) estadosOpen.value = false
+  if (estadosRef.value    && !estadosRef.value.contains(e.target))    estadosOpen.value    = false
+  if (cotStatusRef.value  && !cotStatusRef.value.contains(e.target))  cotStatusOpen.value  = false
 }
 
 // ── Sort ──────────────────────────────────────────────────
@@ -874,6 +903,13 @@ function toggleEstado(e) {
   const idx = filters.value.estados.indexOf(e)
   if (idx >= 0) filters.value.estados.splice(idx, 1)
   else          filters.value.estados.push(e)
+  onFilter()
+}
+
+function toggleCotStatus(e) {
+  const idx = filters.value.estadoCot.indexOf(e)
+  if (idx >= 0) filters.value.estadoCot.splice(idx, 1)
+  else          filters.value.estadoCot.push(e)
   onFilter()
 }
 
@@ -1026,7 +1062,7 @@ async function saveDatosFinancieros(row) {
 
 // ── CSV export ────────────────────────────────────────────
 function exportCSV() {
-  const headers = ['#', 'Fecha cot.', 'Evento', 'Unidad', 'Fecha evento', 'Cliente', 'Total', 'Estado cot.', 'Estado admin.', 'VAL ADM', '% Ejec.', 'Comercial']
+  const headers = ['#', 'Fecha cot.', 'Evento', 'Región', 'Fecha evento', 'Cliente', 'Total', 'Estado cot.', 'Estado admin.', 'VAL ADM', '% Ejec.', 'Comercial']
   const csvRows = rows.value.map(r => [
     r.numero,
     fmtDate(r.fechaCotizacion),
@@ -1067,7 +1103,7 @@ function exportCSV() {
   background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 10px;
   font-size: 13px; font-weight: 500; color: #374151; cursor: pointer; transition: all 0.15s;
 }
-.adm-btn-export:hover:not(:disabled) { background: #EFF6FF; border-color: #054EAF; color: #054EAF; }
+.adm-btn-export:hover:not(:disabled) { background: #E0F9FA; border-color: #27C8D8; color: #27C8D8; }
 .adm-btn-export:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .adm-filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
@@ -1080,7 +1116,7 @@ function exportCSV() {
   font-size: 13px; font-family: 'Inter', sans-serif; color: #0F172A; background: #fff;
   outline: none; box-sizing: border-box; transition: border-color 0.15s; min-width: 0;
 }
-.adm-input:focus { border-color: #054EAF; }
+.adm-input:focus { border-color: #27C8D8; }
 
 .adm-filter-estados { position: relative; }
 .adm-estado-trigger {
@@ -1095,7 +1131,7 @@ function exportCSV() {
 .adm-estado-dropdown {
   position: absolute; top: calc(100% + 4px); left: 0; z-index: 200;
   background: #fff; border: 1.5px solid #E2E8F0; border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(5,78,175,.12); width: 260px; max-height: 360px;
+  box-shadow: 0 8px 24px rgba(39,200,216,.12); width: 260px; max-height: 360px;
   overflow-y: auto; padding: 6px;
 }
 .adm-estado-opt {
@@ -1103,10 +1139,10 @@ function exportCSV() {
   border-radius: 8px; cursor: pointer; transition: background 0.1s;
 }
 .adm-estado-opt:hover { background: #F8FAFC; }
-.adm-estado-opt.selected { background: #EBF3FC; }
+.adm-estado-opt.selected { background: #F0FAFB; }
 .adm-estado-check {
   width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid #CBD5E1;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #054EAF;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #27C8D8;
 }
 .adm-estado-badge { font-size: 12px; font-weight: 500; padding: 2px 8px; border-radius: 6px; }
 .adm-clear-btn {
@@ -1117,7 +1153,7 @@ function exportCSV() {
 
 .adm-table-wrap {
   background: #fff; border-radius: 16px;
-  box-shadow: 0 1px 4px rgba(5,78,175,.06), 0 4px 16px rgba(5,78,175,.08); overflow: hidden;
+  box-shadow: 0 1px 4px rgba(39,200,216,.06), 0 4px 16px rgba(39,200,216,.08); overflow: hidden;
 }
 .adm-scroll { overflow-x: auto; }
 
@@ -1140,14 +1176,14 @@ function exportCSV() {
   background: #F8FAFC; border-bottom: 1.5px solid #E2E8F0; white-space: nowrap;
 }
 .adm-th.sortable { cursor: pointer; user-select: none; }
-.adm-th.sortable:hover { color: #054EAF; }
+.adm-th.sortable:hover { color: #27C8D8; }
 
 .adm-tr { border-bottom: 1px solid #F1F5F9; transition: background 0.1s; }
 .adm-tr:hover { background: #F8FAFC; }
 .adm-tr-expanded { background: #F0F7FF; }
 
 .adm-td { padding: 10px 14px; color: #374151; vertical-align: middle; }
-.adm-num  { font-weight: 600; color: #054EAF; white-space: nowrap; }
+.adm-num  { font-weight: 600; color: #27C8D8; white-space: nowrap; }
 .adm-date { white-space: nowrap; color: #64748B; }
 .adm-desc { max-width: 200px; }
 .adm-unit { white-space: nowrap; color: #64748B; font-size: 12px; }
@@ -1155,8 +1191,10 @@ function exportCSV() {
 .adm-cliente-name { font-weight: 500; }
 
 .adm-cot-status { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px; white-space: nowrap; }
+.cot-pendiente  { background: #F1F5F9; color: #475569; }
 .cot-aprobada   { background: #F0FDF4; color: #166534; }
-.cot-en-proceso { background: #EFF6FF; color: #1D4ED8; }
+.cot-rechazada  { background: #FEF2F2; color: #991B1B; }
+.cot-en-proceso { background: #E0F9FA; color: #27C8D8; }
 .cot-vencida    { background: #FEFCE8; color: #854D0E; }
 .cot-cancelada  { background: #FEF2F2; color: #991B1B; }
 .cot-default    { background: #F1F5F9; color: #64748B; }
@@ -1164,7 +1202,7 @@ function exportCSV() {
 .adm-estado-cell { min-width: 150px; }
 .adm-inline-wrap { min-width: 150px; }
 .adm-inline-select {
-  width: 100%; padding: 4px 8px; border: 1.5px solid #054EAF;
+  width: 100%; padding: 4px 8px; border: 1.5px solid #27C8D8;
   border-radius: 6px; font-size: 12px; font-family: 'Inter', sans-serif; outline: none;
 }
 .adm-estado-btn {
@@ -1191,7 +1229,7 @@ function exportCSV() {
 /* Ejecución */
 .ejec-wrap { display: flex; align-items: center; gap: 6px; min-width: 80px; }
 .ejec-bar { flex: 1; height: 5px; background: #E2E8F0; border-radius: 99px; overflow: hidden; }
-.ejec-fill { height: 100%; background: #054EAF; border-radius: 99px; transition: width 0.3s; }
+.ejec-fill { height: 100%; background: #27C8D8; border-radius: 99px; transition: width 0.3s; }
 .ejec-full { background: #16A34A; }
 .ejec-pct { font-size: 11px; color: #64748B; white-space: nowrap; }
 
@@ -1201,11 +1239,11 @@ function exportCSV() {
   width: 28px; height: 28px; border-radius: 8px; border: 1.5px solid #E2E8F0;
   background: #F8FAFC; color: #64748B; cursor: pointer; transition: all 0.15s;
 }
-.adm-expand-btn:hover { border-color: #054EAF; color: #054EAF; background: #EFF6FF; }
+.adm-expand-btn:hover { border-color: #27C8D8; color: #27C8D8; background: #E0F9FA; }
 
 /* DSO panel */
 .adm-detail-row { background: #F0F7FF; }
-.adm-detail-row td { padding: 0; border-bottom: 2px solid #BFDBFE; }
+.adm-detail-row td { padding: 0; border-bottom: 2px solid #A7EEF5; }
 
 .dso-panel { padding: 20px 24px; }
 
@@ -1220,7 +1258,7 @@ function exportCSV() {
   font-size: 12px; font-weight: 500; color: #374151; background: #F8FAFC;
   cursor: pointer; transition: all 0.15s;
 }
-.dso-edit-toggle:hover { border-color: #054EAF; color: #054EAF; background: #EFF6FF; }
+.dso-edit-toggle:hover { border-color: #27C8D8; color: #27C8D8; background: #E0F9FA; }
 
 .dso-view-row {
   display: flex; align-items: baseline; gap: 8px; margin-bottom: 7px;
@@ -1243,7 +1281,7 @@ function exportCSV() {
 .dso-section {}
 .dso-section-title {
   display: flex; align-items: center; gap: 5px; margin: 0 0 12px;
-  font-size: 11px; font-weight: 700; color: #054EAF; text-transform: uppercase; letter-spacing: 0.5px;
+  font-size: 11px; font-weight: 700; color: #27C8D8; text-transform: uppercase; letter-spacing: 0.5px;
 }
 
 .dso-field-row {
@@ -1264,14 +1302,14 @@ select.dso-select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 8px center; padding-right: 26px;
 }
-.dso-input:focus, .dso-select:focus { border-color: #054EAF; }
+.dso-input:focus, .dso-select:focus { border-color: #27C8D8; }
 .dso-input::placeholder { color: #94A3B8; }
 .dso-textarea {
   width: 100%; padding: 6px 8px; border: 1.5px solid #E2E8F0; border-radius: 6px;
   font-size: 12px; font-family: 'Inter', sans-serif; color: #0F172A;
   background: #fff; outline: none; resize: vertical; transition: border-color 0.15s; box-sizing: border-box;
 }
-.dso-textarea:focus { border-color: #054EAF; }
+.dso-textarea:focus { border-color: #27C8D8; }
 
 .dso-saving { font-size: 11px; color: #64748B; margin-top: 8px; }
 .dso-save-err {
@@ -1295,8 +1333,8 @@ select.dso-select {
   border-radius: 8px; background: #fff; font-size: 13px; cursor: pointer;
   color: #374151; transition: all 0.15s;
 }
-.adm-pag-btn:hover:not(:disabled) { border-color: #054EAF; color: #054EAF; }
-.adm-pag-btn.active { background: #054EAF; color: #fff; border-color: #054EAF; }
+.adm-pag-btn:hover:not(:disabled) { border-color: #27C8D8; color: #27C8D8; }
+.adm-pag-btn.active { background: #27C8D8; color: #fff; border-color: #27C8D8; }
 .adm-pag-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 @media (max-width: 900px) {
@@ -1316,7 +1354,7 @@ select.dso-select {
   position: fixed; top: 0; right: 0; bottom: 0; z-index: 950;
   width: 520px; max-width: 100vw;
   background: #fff;
-  box-shadow: -4px 0 40px rgba(5, 78, 175, 0.15);
+  box-shadow: -4px 0 40px rgba(39,200,216, 0.15);
   display: flex; flex-direction: column;
   transform: translateX(100%);
   transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1326,7 +1364,7 @@ select.dso-select {
 
 /* Header */
 .evt-hd {
-  background: linear-gradient(135deg, #0a2d6e 0%, #054EAF 100%);
+  background: linear-gradient(135deg, #138E9C 0%, #27C8D8 100%);
   padding: 18px 20px 16px;
   flex-shrink: 0;
   position: relative;
@@ -1350,12 +1388,12 @@ select.dso-select {
 }
 .evt-copy-link:hover { background: rgba(255,255,255,0.28); }
 .evt-hd-body { padding-right: 110px; }
-.evt-hd-num { font-size: 11px; font-weight: 600; color: #93C5FD; letter-spacing: 0.5px; margin-bottom: 4px; }
+.evt-hd-num { font-size: 11px; font-weight: 600; color: #8EEAF3; letter-spacing: 0.5px; margin-bottom: 4px; }
 .evt-hd-title {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 17px; font-weight: 700; color: #fff; margin: 0 0 4px; line-height: 1.35;
 }
-.evt-hd-meta { font-size: 12px; color: #BFDBFE; margin: 0 0 12px; }
+.evt-hd-meta { font-size: 12px; color: #A7EEF5; margin: 0 0 12px; }
 .evt-hd-badges { display: flex; flex-wrap: wrap; gap: 6px; }
 
 /* Scrollable body */
@@ -1372,7 +1410,7 @@ select.dso-select {
 }
 .evt-sec-title {
   display: flex; align-items: center; gap: 6px;
-  font-size: 11px; font-weight: 700; color: #054EAF;
+  font-size: 11px; font-weight: 700; color: #27C8D8;
   text-transform: uppercase; letter-spacing: 0.6px;
   margin: 0 0 12px;
 }
@@ -1385,19 +1423,19 @@ select.dso-select {
   font-size: 11px; font-weight: 500; color: #374151; background: #F8FAFC;
   cursor: pointer; transition: all 0.13s; flex-shrink: 0;
 }
-.evt-edit-btn:hover { border-color: #054EAF; color: #054EAF; background: #EFF6FF; }
+.evt-edit-btn:hover { border-color: #27C8D8; color: #27C8D8; background: #E0F9FA; }
 
 /* Ejecución */
 .evt-ejec-pct-tag {
-  font-size: 12px; font-weight: 700; color: #054EAF;
-  background: #EFF6FF; padding: 2px 8px; border-radius: 99px;
+  font-size: 12px; font-weight: 700; color: #27C8D8;
+  background: #E0F9FA; padding: 2px 8px; border-radius: 99px;
 }
 .evt-ejec-pct-tag.ejec-done { background: #F0FDF4; color: #16A34A; }
 .evt-ejec-bar-wrap {
   height: 6px; background: #E2E8F0; border-radius: 99px;
   overflow: hidden; margin-bottom: 12px;
 }
-.evt-ejec-fill { height: 100%; background: #054EAF; border-radius: 99px; transition: width 0.3s; }
+.evt-ejec-fill { height: 100%; background: #27C8D8; border-radius: 99px; transition: width 0.3s; }
 .evt-ejec-full { background: #16A34A; }
 .evt-flags-grid { display: flex; flex-wrap: wrap; gap: 6px; }
 .evt-flag {
@@ -1424,11 +1462,11 @@ select.dso-select {
 .evt-cliente-card {
   display: flex; align-items: flex-start; gap: 10px;
   background: #F0F7FF; border-radius: 10px; padding: 10px 12px;
-  border: 1.5px solid #BFDBFE;
+  border: 1.5px solid #A7EEF5;
 }
 .evt-cliente-icon {
   width: 32px; height: 32px; border-radius: 8px;
-  background: #054EAF; color: #fff;
+  background: #27C8D8; color: #fff;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 .evt-cliente-info { display: flex; flex-direction: column; gap: 2px; }
@@ -1457,7 +1495,7 @@ select.dso-select {
 }
 .evt-item-name { flex: 1; font-weight: 500; color: #0F172A; }
 .evt-item-qty  { color: #64748B; white-space: nowrap; }
-.evt-item-price { font-weight: 600; color: #054EAF; white-space: nowrap; }
+.evt-item-price { font-weight: 600; color: #27C8D8; white-space: nowrap; }
 .evt-item-third { border-left: 3px solid #A78BFA; }
 .evt-item-badge-tp {
   font-size: 9px; font-weight: 700; background: #EDE9FE; color: #6D28D9;
@@ -1477,9 +1515,9 @@ select.dso-select {
   font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.18s;
 }
 .evt-val-btn-ok {
-  background: #054EAF; color: #fff;
+  background: #27C8D8; color: #fff;
 }
-.evt-val-btn-ok:hover { background: #0a3d8f; }
+.evt-val-btn-ok:hover { background: #1BAEBB; }
 .evt-val-btn-revert {
   background: #F0FDF4; color: #166534;
   border: 1.5px solid #BBF7D0;
@@ -1518,10 +1556,10 @@ select.dso-select {
 .docs-zip-btn {
   display: flex; align-items: center; gap: 4px;
   font-size: 11px; font-weight: 600; color: #fff;
-  background: #054EAF; border: none; border-radius: 6px;
+  background: #27C8D8; border: none; border-radius: 6px;
   padding: 4px 10px; cursor: pointer; transition: background 0.15s;
 }
-.docs-zip-btn:hover:not(:disabled) { background: #0369a1; }
+.docs-zip-btn:hover:not(:disabled) { background: #138E9C; }
 .docs-zip-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
 .docs-box {
@@ -1544,7 +1582,7 @@ select.dso-select {
   border: 1px solid #E2E8F0; border-radius: 7px;
   transition: background 0.1s; min-width: 0;
 }
-.docs-chip:hover { background: #EFF6FF; border-color: #BFDBFE; }
+.docs-chip:hover { background: #E0F9FA; border-color: #A7EEF5; }
 
 .docs-chip-tipo {
   font-size: 9px; font-weight: 700; color: #fff;
@@ -1563,7 +1601,7 @@ select.dso-select {
   color: #475569; background: #F1F5F9; border: 1px solid #E2E8F0;
   transition: background 0.1s;
 }
-.docs-chip-btn:hover { background: #DBEAFE; color: #054EAF; border-color: #BFDBFE; }
+.docs-chip-btn:hover { background: #CCEFF2; color: #27C8D8; border-color: #A7EEF5; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 .spin { animation: spin 0.8s linear infinite; }
@@ -1586,8 +1624,8 @@ select.dso-select {
   padding: 7px 10px; font-size: 12px; color: #334155; cursor: pointer;
   transition: background 0.1s;
 }
-.ss-option:hover { background: #EFF6FF; }
-.ss-option-active { background: #EFF6FF; font-weight: 600; color: #054EAF; }
+.ss-option:hover { background: #E0F9FA; }
+.ss-option-active { background: #E0F9FA; font-weight: 600; color: #27C8D8; }
 .ss-option-none { color: #94A3B8; font-style: italic; }
 .ss-no-results { color: #94A3B8; font-style: italic; cursor: default; }
 </style>

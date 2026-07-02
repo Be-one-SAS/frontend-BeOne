@@ -378,7 +378,7 @@
                     v-for="(val, key) in desgloseVisible"
                     :key="key"
                     class="tq-result-item"
-                    :class="{ 'tq-result-item--highlight': key === 'total' || key === 'utilidadFinal' }"
+                    :class="{ 'tq-result-item--highlight': key === 'total' }"
                   >
                     <span class="tq-result-label">{{ fieldLabel(key) }}</span>
                     <span class="tq-result-val">{{ formatVal(key, val) }}</span>
@@ -429,6 +429,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { formatCOP } from '@/utils/currency.js'
 import { watchDebounced } from '@vueuse/core'
 import { Package, Truck, X, Calculator, Loader2, Plus, BarChart2, Cpu, FileText, ImageIcon, Upload, ChevronDown, Search } from 'lucide-vue-next'
 import { calculateFromCost } from '@/services/quotation.service'
@@ -482,8 +483,6 @@ const selectedProductLabel = computed(() => {
   return item ? (item.dispositivo || item.nombre || item.descripcion || `Producto #${item.id}`) : ''
 })
 
-const formatCOP = (val) =>
-  new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(val)
 
 const onFileChangeNew = (e) => {
   const file = e.target.files[0]
@@ -715,19 +714,20 @@ const calcular = async () => {
 }
 
 // ── Display helpers ───────────────────────────────────────────────────────────
-const RESULT_KEYS = ['costoUnitario', 'precioUnitario', 'subtotalVenta', 'costoTotal', 'comisionPct', 'comisionMonto', 'iva', 'total', 'utilidadProyectada', 'utilidadFinal']
+// Solo se muestra al vendedor: costo, precio de venta, margen comercial,
+// comisión visible y total (spec Motor de Pricing V2, sección 13). Los campos
+// administrativos (utilidad, margen equivalente, comisión estructural,
+// reserva, retención, 4x1000) viven en el resumen de administración de la
+// cotización, no en este modal de captura.
+const RESULT_KEYS = ['costoUnitario', 'precioUnitario', 'margenComercial', 'comisionPct', 'comisionMonto', 'total']
 
 const FIELD_LABELS = {
-  costoUnitario:      'Costo unitario',
-  precioUnitario:     'Precio unitario',
-  subtotalVenta:      'Subtotal venta',
-  costoTotal:         'Costo total',
-  comisionPct:        'Comisión %',
-  comisionMonto:      'Comisión (monto)',
-  iva:                'IVA (19%)',
-  total:              'Total con IVA',
-  utilidadProyectada: 'Utilidad proyectada',
-  utilidadFinal:      'Utilidad final',
+  costoUnitario:   'Costo unitario',
+  precioUnitario:  'Precio de venta unitario',
+  margenComercial: 'Margen comercial',
+  comisionPct:     'Comisión %',
+  comisionMonto:   'Comisión (monto)',
+  total:           'Total con IVA',
 }
 
 const desgloseVisible = computed(() => {
@@ -738,8 +738,8 @@ const desgloseVisible = computed(() => {
   return result
 })
 
-const PCT_KEYS = new Set(['comisionPct'])
-const COP_KEYS = new Set(['costoUnitario', 'precioUnitario', 'subtotalVenta', 'costoTotal', 'comisionMonto', 'iva', 'total', 'utilidadProyectada', 'utilidadFinal'])
+const PCT_KEYS = new Set(['comisionPct', 'margenComercial'])
+const COP_KEYS = new Set(['costoUnitario', 'precioUnitario', 'comisionMonto', 'total'])
 
 const fieldLabel = (key) => FIELD_LABELS[key] || key
 
@@ -814,7 +814,7 @@ const agregar = () => {
   align-items: center;
   gap: 12px;
 }
-.tq-icon { color: #054EAF; }
+.tq-icon { color: #27C8D8; }
 .tq-title {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 17px;
@@ -858,7 +858,7 @@ const agregar = () => {
   letter-spacing: 0.8px;
   font-family: 'Inter', sans-serif;
 }
-.tq-ico-blue { color: #054EAF; }
+.tq-ico-blue { color: #27C8D8; }
 
 .tq-field {
   display: flex;
@@ -898,8 +898,8 @@ const agregar = () => {
   background-color: #F8FAFC;
 }
 .tq-select-wrap--open .tq-select-btn {
-  border-color: #054EAF;
-  box-shadow: 0 0 0 4px rgba(5, 78, 175, 0.08);
+  border-color: #27C8D8;
+  box-shadow: 0 0 0 4px rgba(39,200,216, 0.08);
 }
 .tq-select-value {
   flex: 1;
@@ -918,7 +918,7 @@ const agregar = () => {
 }
 .tq-select-wrap--open .tq-select-chevron {
   transform: rotate(180deg);
-  color: #054EAF;
+  color: #27C8D8;
 }
 .tq-select-btn:disabled {
   opacity: 0.6;
@@ -932,9 +932,9 @@ const agregar = () => {
   left: 0;
   right: 0;
   background: #FFFFFF;
-  border: 1.5px solid #054EAF;
+  border: 1.5px solid #27C8D8;
   border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(5, 78, 175, 0.15);
+  box-shadow: 0 8px 24px rgba(39,200,216, 0.15);
   z-index: 100;
   overflow: hidden;
 }
@@ -979,14 +979,14 @@ const agregar = () => {
   background: #F1F5F9;
 }
 .tq-dropdown-item--active {
-  background: #EBF3FC;
-  border: 1px solid #BFDBFE;
+  background: #F0FAFB;
+  border: 1px solid #A7EEF5;
 }
 .tq-dropdown-item--new {
-  color: #054EAF;
+  color: #27C8D8;
   font-weight: 600;
   background: #F0F9FF;
-  border: 1px dashed #BAE6FD;
+  border: 1px dashed #A7EEF5;
 }
 .tq-dropdown-item--new:hover {
   background: #E0F2FE;
@@ -996,10 +996,10 @@ const agregar = () => {
   flex-shrink: 0;
 }
 .tq-dropdown-item--active .tq-dropdown-item-icon {
-  color: #054EAF;
+  color: #27C8D8;
 }
 .tq-dropdown-item--new .tq-dropdown-item-icon {
-  color: #054EAF;
+  color: #27C8D8;
 }
 .tq-dropdown-item-label {
   flex: 1;
@@ -1012,7 +1012,7 @@ const agregar = () => {
 .tq-dropdown-item-price {
   font-size: 13px;
   font-weight: 600;
-  color: #054EAF;
+  color: #27C8D8;
   flex-shrink: 0;
   margin-left: 8px;
 }
@@ -1045,13 +1045,13 @@ const agregar = () => {
   cursor: pointer;
 }
 .tq-input:focus, .tq-input:hover {
-  border-color: #054EAF;
+  border-color: #27C8D8;
 }
 
 .tq-input--money {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 600;
-  color: #054EAF;
+  color: #27C8D8;
 }
 
 .tq-grid-2 {
@@ -1089,7 +1089,7 @@ const agregar = () => {
 .tq-chk {
   width: 16px;
   height: 16px;
-  accent-color: #054EAF;
+  accent-color: #27C8D8;
   cursor: pointer;
 }
 
@@ -1120,7 +1120,7 @@ const agregar = () => {
 /* Results Card */
 .tq-results-card {
   background: #F0F9FF;
-  border: 1.5px solid #BAE6FD;
+  border: 1.5px solid #A7EEF5;
   border-radius: 16px;
   padding: 20px;
   display: flex;
@@ -1139,7 +1139,7 @@ const agregar = () => {
   gap: 8px;
   font-size: 14px;
   font-weight: 700;
-  color: #0369A1;
+  color: #138E9C;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 .tq-loading-inline {
@@ -1148,7 +1148,7 @@ const agregar = () => {
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  color: #0369A1;
+  color: #138E9C;
   font-weight: 600;
 }
 
@@ -1177,7 +1177,7 @@ const agregar = () => {
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 .tq-result-item--highlight .tq-result-val {
-  color: #054EAF;
+  color: #27C8D8;
   font-size: 16px;
 }
 
@@ -1212,14 +1212,14 @@ const agregar = () => {
   font-size: 14px;
   font-weight: 700;
   color: white;
-  background: #054EAF;
+  background: #27C8D8;
   border: none;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(5, 78, 175, 0.2);
+  box-shadow: 0 4px 12px rgba(39,200,216, 0.2);
 }
-.tq-btn-add:hover { background: #03368A; transform: translateY(-1px); }
+.tq-btn-add:hover { background: #1BAEBB; transform: translateY(-1px); }
 .tq-btn-add:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
 
 /* Transitions */
@@ -1236,8 +1236,8 @@ const agregar = () => {
 /* ── Sub-formulario nuevo producto ───────────────────────────── */
 .tq-new-product-form {
   margin-top: 10px;
-  background: #EEF4FF;
-  border: 1.5px solid #BFDBFE;
+  background: #E0F9FA;
+  border: 1.5px solid #A7EEF5;
   border-radius: 14px;
   padding: 16px;
   display: flex;
@@ -1251,7 +1251,7 @@ const agregar = () => {
   gap: 7px;
   font-size: 13px;
   font-weight: 700;
-  color: #054EAF;
+  color: #27C8D8;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
@@ -1313,7 +1313,7 @@ const agregar = () => {
 
 .tq-upload-area:hover {
   background: #F1F5F9;
-  border-color: #054EAF;
+  border-color: #27C8D8;
 }
 
 .tq-upload-placeholder {

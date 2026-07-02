@@ -47,7 +47,7 @@
         <tr class="info-row"><td class="info-label">Ubicación</td><td class="info-value">{{ quotation.ubicacion || '—' }}</td></tr>
         <tr class="info-row"><td class="info-label">Link Maps</td><td class="info-value"><span v-if="quotation.linkMaps" class="maps-link">{{ quotation.linkMaps }}</span><span v-else>—</span></td></tr>
         <tr class="info-row"><td class="info-label">Asistentes</td><td class="info-value">{{ quotation.asistentes || '—' }}</td></tr>
-        <tr class="info-row"><td class="info-label">Unidad Ejecución</td><td class="info-value">{{ quotation.unidadEjecucion || '—' }}{{ quotation.tipoSuelo ? ' · ' + quotation.tipoSuelo : '' }}</td></tr>
+        <tr class="info-row"><td class="info-label">Región operativa</td><td class="info-value">{{ quotation.unidadEjecucion || '—' }}{{ quotation.tipoSuelo ? ' · ' + quotation.tipoSuelo : '' }}</td></tr>
         <tr class="info-row"><td class="info-label">Vigencia</td><td class="info-value">{{ quotation.vigencia || '—' }}</td></tr>
       </tbody>
     </table>
@@ -161,6 +161,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
+import { formatCOP } from '@/utils/currency.js'
 
 const props = defineProps({
   quotation: {
@@ -188,14 +189,7 @@ const formatTime = (iso) => {
   })
 }
 
-const formatCurrency = (value) => {
-  if (!value && value !== 0) return '$ 0'
-  const numValue = typeof value === 'number' ? value : parseFloat(value) || 0
-  return '$ ' + numValue.toLocaleString('es-CO', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  })
-}
+const formatCurrency = formatCOP
 
 const calculateItemTotal = (item) => {
   const unitPrice = item.unitPrice || item.precioUnitario || item.costo || 0

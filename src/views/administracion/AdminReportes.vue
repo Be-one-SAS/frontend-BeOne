@@ -111,8 +111,8 @@
 
       <!-- 3. Por cliente -->
       <div class="rep-card">
-        <div class="rep-card-icon" style="background:#EFF6FF">
-          <Building2 :size="22" color="#1D4ED8" />
+        <div class="rep-card-icon" style="background:#E0F9FA">
+          <Building2 :size="22" color="#27C8D8" />
         </div>
         <div class="rep-card-body">
           <h3 class="rep-card-title">Historial por cliente</h3>
@@ -191,25 +191,66 @@
         <div class="po-header-left">
           <div class="po-header-icon"><Users :size="20" color="#166534" /></div>
           <div>
-            <h2 class="po-title">Personal operativo y logístico</h2>
-            <p class="po-sub">Horas trabajadas, valor por hora y costo total por evento</p>
+            <h2 class="po-title">Personal logístico</h2>
+            <p class="po-sub">Horas trabajadas, valor por hora y costo total por evento — personal logístico interno y externo</p>
           </div>
         </div>
         <div class="po-header-right">
-          <select v-model="personal.quotationId" class="po-select" @change="runPersonal">
-            <option :value="null">Todos los eventos</option>
-            <option v-for="q in personal.quotations" :key="q.id" :value="q.id">
-              #{{ q.numero }} — {{ q.cliente?.name ?? q.empresa ?? '—' }}
-            </option>
-          </select>
-          <button v-if="personal.data?.length" class="rep-btn-export" @click="exportPersonal">
+          <button
+            v-if="personalFiltrado.length && personal.personKey"
+            class="rep-btn-export"
+            :class="{ 'rep-btn-export--sent': personaYaEnviada }"
+            @click="openEnviarCorreoModal"
+          >
+            <Mail :size="13" /> {{ personaYaEnviada ? 'Reenviar correo' : 'Enviar correo' }}
+          </button>
+          <button v-if="personalFiltrado.length" class="rep-btn-export" @click="exportPersonal">
             <Download :size="13" /> Exportar CSV
           </button>
         </div>
       </div>
 
+      <!-- Filtros -->
+      <div class="po-filters">
+        <div class="po-filter-group">
+          <label class="po-filter-label">Evento</label>
+          <select v-model="personal.quotationId" class="po-filter-input" @change="runPersonal">
+            <option :value="null">Todos los eventos</option>
+            <option v-for="q in personal.quotations" :key="q.id" :value="q.id">
+              #{{ q.numero }} — {{ q.cliente?.name ?? q.empresa ?? '—' }}
+            </option>
+          </select>
+        </div>
+        <div class="po-filter-group">
+          <label class="po-filter-label">Personal</label>
+          <select v-model="personal.personKey" class="po-filter-input">
+            <option :value="null">Todo el personal</option>
+            <option v-for="u in personalDisponible" :key="u.id" :value="u.id">
+              {{ u.fullName }} · {{ u.role }}
+            </option>
+          </select>
+        </div>
+        <div class="po-filter-group">
+          <label class="po-filter-label">Estado</label>
+          <select v-model="personal.estado" class="po-filter-input">
+            <option value="cumplido">Cumplidos</option>
+            <option value="pendiente">Pendientes</option>
+            <option value="todos">Todos</option>
+          </select>
+        </div>
+        <div class="po-filter-group">
+          <label class="po-filter-label">Desde</label>
+          <input v-model="personal.fechaInicio" type="date" class="po-filter-input po-filter-date" />
+        </div>
+        <div class="po-filter-group">
+          <label class="po-filter-label">Hasta</label>
+          <input v-model="personal.fechaFin" type="date" class="po-filter-input po-filter-date" />
+        </div>
+        <button class="po-filter-clear" @click="clearPersonalFiltros" title="Limpiar filtros">✕ Limpiar</button>
+      </div>
+
       <!-- KPIs -->
-      <div v-if="personal.data?.length" class="po-kpis">
+      <div v-if="personalFiltrado.length" class="po-kpis">
         <div class="po-kpi">
           <span class="po-kpi-val">{{ personalKpis.personas }}</span>
           <span class="po-kpi-lbl">Personas</span>
@@ -237,12 +278,12 @@
       <p v-else-if="personal.error" class="rep-err" style="padding:16px 0">{{ personal.error }}</p>
 
       <!-- Vacío -->
-      <div v-else-if="personal.data && !personal.data.length" class="po-empty">
-        Sin registros de turno para el filtro seleccionado
+      <div v-else-if="personal.data && !personalFiltrado.length" class="po-empty">
+        Sin registros para los filtros seleccionados
       </div>
 
       <!-- Tabla -->
-      <div v-else-if="personal.data?.length" class="po-table-wrap">
+      <div v-else-if="personalFiltrado.length" class="po-table-wrap">
         <table class="po-table">
           <thead>
             <tr>
@@ -255,16 +296,18 @@
               <th>Horas reales</th>
               <th>Valor / hora</th>
               <th>% Extra</th>
+              <th>Estado</th>
+              <th>Correo</th>
               <th class="po-th-right">Total</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="r in personal.data" :key="r.id" :class="{ 'po-row-incomplete': !r.horaIngreso || !r.horaSalida }">
+            <tr v-for="r in personalFiltrado" :key="r.id" :class="{ 'po-row-incomplete': !r.horaIngreso || !r.horaSalida }">
               <td class="po-td-person">
-                <div class="po-avatar">{{ (r.user?.fullName ?? '?').split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase() }}</div>
-                <span>{{ r.user?.fullName ?? '—' }}</span>
+                <div class="po-avatar">{{ (r.user?.fullName ?? r.nombreExterno ?? '?').split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase() }}</div>
+                <span>{{ r.user?.fullName ?? r.nombreExterno ?? '—' }}</span>
               </td>
-              <td><span class="rep-role" :class="repRoleClass(r.user?.role)">{{ r.user?.role ?? '—' }}</span></td>
+              <td><span class="rep-role" :class="repRoleClass(r.user?.role)">{{ r.user?.role ?? 'Externo' }}</span></td>
               <td v-if="!personal.quotationId" class="po-td-event">
                 <span class="po-event-num">#{{ r.quotation?.numero }}</span>
                 {{ r.quotation?.cliente?.name ?? r.quotation?.empresa ?? '—' }}
@@ -275,6 +318,14 @@
               <td class="po-td-hours">{{ calcHours(r.horaIngreso, r.horaSalida) }}</td>
               <td class="po-td-rate">{{ r.valorHoraContratada ? fmtMoney(Number(r.valorHoraContratada)) : '—' }}</td>
               <td class="po-td-pct">{{ r.porcentajeAdicional ? r.porcentajeAdicional + '%' : '—' }}</td>
+              <td><span class="po-cumplido-chip" :class="r.cumplido ? 'po-cumplido-chip--si' : 'po-cumplido-chip--no'">{{ r.cumplido ? 'Cumplido' : 'Pendiente' }}</span></td>
+              <td>
+                <span
+                  class="po-cumplido-chip"
+                  :class="r.emailEnviado ? 'po-cumplido-chip--si' : 'po-cumplido-chip--no'"
+                  :title="r.emailEnviado && r.emailEnviadoAt ? `Enviado ${fmtDate(r.emailEnviadoAt)}` : 'Aún no enviado'"
+                >{{ r.emailEnviado ? 'Enviado' : 'Pendiente' }}</span>
+              </td>
               <td class="po-td-total">{{ calcTotal(r) }}</td>
             </tr>
           </tbody>
@@ -282,7 +333,7 @@
             <tr>
               <td :colspan="personal.quotationId ? 6 : 7" class="po-tfoot-label">Totales</td>
               <td class="po-td-hours po-tfoot-val">{{ personalKpis.horas }}h</td>
-              <td colspan="2"></td>
+              <td colspan="4"></td>
               <td class="po-td-total po-tfoot-val">{{ fmtMoney(personalKpis.costo) }}</td>
             </tr>
           </tfoot>
@@ -290,14 +341,55 @@
       </div>
 
     </div>
+
+    <!-- ══ Modal: Enviar reporte por correo ══════════════════════════ -->
+    <div v-if="enviarCorreo.open" class="po-modal-overlay" @click.self="closeEnviarCorreoModal">
+      <div class="po-modal">
+        <div class="po-modal-header">
+          <h3 class="po-modal-title">{{ personaYaEnviada ? 'Reenviar reporte por correo' : 'Enviar reporte por correo' }}</h3>
+          <button class="po-modal-close" @click="closeEnviarCorreoModal">✕</button>
+        </div>
+        <div class="po-modal-body">
+          <p class="po-modal-desc">
+            Se enviará el detalle de <strong>{{ personalFiltrado.length }}</strong> día{{ personalFiltrado.length !== 1 ? 's' : '' }}
+            trabajado{{ personalFiltrado.length !== 1 ? 's' : '' }} por un total de <strong>{{ fmtMoney(personalKpis.costo) }}</strong>
+            a <strong>{{ personalDisponibleSeleccionado?.fullName }}</strong>.
+          </p>
+          <div class="po-filter-group">
+            <label class="po-filter-label">Correo destinatario</label>
+            <input
+              v-model="enviarCorreo.destinatario"
+              type="email"
+              class="po-filter-input"
+              placeholder="correo@ejemplo.com"
+              :readonly="enviarCorreo.esInterno"
+            />
+            <p v-if="enviarCorreo.esInterno" class="po-modal-hint">Correo del usuario registrado en el sistema.</p>
+          </div>
+          <p v-if="enviarCorreo.error" class="rep-err">{{ enviarCorreo.error }}</p>
+        </div>
+        <div class="po-modal-footer">
+          <button class="po-btn-ghost" @click="closeEnviarCorreoModal">Cancelar</button>
+          <button
+            class="rep-btn-export"
+            :disabled="enviarCorreo.enviando || !enviarCorreo.destinatario"
+            @click="confirmEnviarCorreo"
+          >
+            <Loader2 v-if="enviarCorreo.enviando" :size="13" class="spin" />
+            {{ personaYaEnviada ? 'Reenviar' : 'Enviar' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { formatCOP } from '@/utils/currency.js'
 import {
   Clock, Users, Building2, CalendarDays,
-  Download, Play, Loader2,
+  Download, Play, Loader2, Mail,
 } from 'lucide-vue-next'
 import {
   getReporteCuentasPorCobrar,
@@ -306,13 +398,10 @@ import {
   getAdminCotizaciones,
 } from '@/services/administracion.service.js'
 import { getQuotations } from '@/services/quotation.service'
-import { getReportePersonal } from '@/services/registros-turno.service'
+import { getReportePersonal, enviarReportePersonalCorreo } from '@/services/registros-turno.service'
 
 // ── Helpers ───────────────────────────────────────────────
-function fmtMoney(n) {
-  if (n == null || n === 0) return '$0'
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n)
-}
+function fmtMoney(n) { return (n == null || n === 0) ? '$0' : formatCOP(n) }
 
 function fmtDate(d) {
   if (!d) return ''
@@ -466,7 +555,17 @@ function exportPeriodo() {
 function today() { return new Date().toISOString().slice(0, 10) }
 
 // ── Personal operativo ────────────────────────────────────
-const personal = ref({ quotationId: null, quotations: [], data: null, loading: false, error: null })
+const personal = ref({
+  quotationId: null,
+  personKey:   null,
+  estado:      'cumplido', // 'cumplido' | 'pendiente' | 'todos'
+  fechaInicio: '',
+  fechaFin:    '',
+  quotations:  [],
+  data:        null,
+  loading:     false,
+  error:       null,
+})
 
 onMounted(async () => {
   try {
@@ -490,9 +589,76 @@ async function runPersonal() {
   }
 }
 
-const personalKpis = computed(() => {
+// Esta sección debe mostrar personal logístico: usuarios internos con rol
+// LOGISTICO y personal externo (nombreExterno) contratado para el evento,
+// ya que este último no tiene cuenta ni rol asignado — se filtra en el
+// origen para que KPIs, tabla, exportación y el selector de personas
+// queden todos consistentes.
+const personalLogistico = computed(() => {
   const rows = personal.value.data ?? []
-  const personas = new Set(rows.map(r => r.userId)).size
+  return rows.filter(r => r.user?.role === 'LOGISTICO' || (!r.userId && r.nombreExterno))
+})
+
+// Identificador único de persona: userId para internos, nombre para externos
+function personKey(r) {
+  return r.userId ? `u:${r.userId}` : `x:${r.nombreExterno}`
+}
+
+// Lista de personas únicas disponibles en los datos cargados
+const personalDisponible = computed(() => {
+  const rows = personalLogistico.value
+  const seen = new Map()
+  rows.forEach(r => {
+    const key = personKey(r)
+    if (!seen.has(key)) {
+      seen.set(key, {
+        id:       key,
+        fullName: r.user?.fullName ?? r.nombreExterno ?? '—',
+        role:     r.user?.role ?? 'Externo',
+      })
+    }
+  })
+  return Array.from(seen.values()).sort((a, b) => a.fullName.localeCompare(b.fullName))
+})
+
+// Persona actualmente seleccionada en el filtro "Personal"
+const personalDisponibleSeleccionado = computed(() =>
+  personalDisponible.value.find(u => u.id === personal.value.personKey) ?? null
+)
+
+// Datos filtrados por fecha, persona seleccionada y estado (cumplido/pendiente)
+const personalFiltrado = computed(() => {
+  const rows = personalLogistico.value
+  const { personKey: selectedKey, fechaInicio, fechaFin, estado } = personal.value
+  return rows.filter(r => {
+    if (selectedKey && personKey(r) !== selectedKey) return false
+    if (estado === 'cumplido' && !r.cumplido) return false
+    if (estado === 'pendiente' && r.cumplido) return false
+    if (fechaInicio && r.fecha) {
+      if (r.fecha.slice(0, 10) < fechaInicio) return false
+    }
+    if (fechaFin && r.fecha) {
+      if (r.fecha.slice(0, 10) > fechaFin) return false
+    }
+    return true
+  })
+})
+
+// El botón muestra "Reenviar" solo si TODOS los días visibles ya fueron enviados
+const personaYaEnviada = computed(() =>
+  personalFiltrado.value.length > 0 && personalFiltrado.value.every(r => r.emailEnviado)
+)
+
+function clearPersonalFiltros() {
+  personal.value.personKey   = null
+  personal.value.estado      = 'cumplido'
+  personal.value.fechaInicio = ''
+  personal.value.fechaFin    = ''
+}
+
+const personalKpis = computed(() => {
+  const rows = personalFiltrado.value
+  const personas = new Set(rows.map(r => personKey(r))).size
   const horas = rows.reduce((s, r) => s + calcHoursNum(r.horaIngreso, r.horaSalida), 0)
   const costo = rows.reduce((s, r) => s + calcTotalNum(r), 0)
   return { personas, horas: horas.toFixed(1), costo }
@@ -520,16 +686,16 @@ function fmtTime(iso) {
   return new Date(iso).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false })
 }
 function repRoleClass(role) {
-  const map = { LOGISTICA: 'rep-role--blue', OPERATIVO: 'rep-role--green', SUPERVISOR: 'rep-role--purple', COORDINADOR: 'rep-role--orange' }
+  const map = { LOGISTICO: 'rep-role--blue', OPERATIVO: 'rep-role--green', SUPERVISOR: 'rep-role--purple', COORDINADOR: 'rep-role--orange' }
   return map[role] ?? 'rep-role--gray'
 }
 
 function exportPersonal() {
-  const rows = personal.value.data ?? []
-  const headers = ['Persona', 'Rol', 'Evento', 'Fecha', 'Ingreso', 'Salida', 'Horas', 'Valor/hora', '% Extra', 'Total']
+  const rows = personalFiltrado.value
+  const headers = ['Persona', 'Rol', 'Evento', 'Fecha', 'Ingreso', 'Salida', 'Horas', 'Valor/hora', '% Extra', 'Estado', 'Total']
   const csv = rows.map(r => [
-    r.user?.fullName ?? '',
-    r.user?.role ?? '',
+    r.user?.fullName ?? r.nombreExterno ?? '',
+    r.user?.role ?? 'Externo',
     `#${r.quotation?.numero} ${r.quotation?.cliente?.name ?? r.quotation?.empresa ?? ''}`,
     fmtDate(r.fecha),
     r.horaIngreso ? fmtTime(r.horaIngreso) : '',
@@ -537,9 +703,54 @@ function exportPersonal() {
     calcHours(r.horaIngreso, r.horaSalida),
     r.valorHoraContratada ? Number(r.valorHoraContratada) : '',
     r.porcentajeAdicional ?? 0,
+    r.cumplido ? 'Cumplido' : 'Pendiente',
     calcTotalNum(r).toFixed(0),
   ])
   downloadCSV(csv, headers, `personal-operativo-${today()}.csv`)
+}
+
+// ── Enviar reporte por correo ───────────────────────────────────────
+const enviarCorreo = ref({
+  open:         false,
+  destinatario: '',
+  esInterno:    false,
+  enviando:     false,
+  error:        null,
+})
+
+function openEnviarCorreoModal() {
+  const rows = personalFiltrado.value
+  if (!rows.length) return
+  const primero = rows[0]
+  enviarCorreo.value = {
+    open:         true,
+    destinatario: primero.user?.email ?? primero.emailExterno ?? '',
+    esInterno:    !!primero.user,
+    enviando:     false,
+    error:        null,
+  }
+}
+
+function closeEnviarCorreoModal() {
+  enviarCorreo.value.open = false
+}
+
+async function confirmEnviarCorreo() {
+  const rows = personalFiltrado.value
+  if (!rows.length || !enviarCorreo.value.destinatario) return
+  enviarCorreo.value.enviando = true
+  enviarCorreo.value.error    = null
+  try {
+    const registroIds = rows.map(r => r.id)
+    const actualizados = await enviarReportePersonalCorreo(registroIds, enviarCorreo.value.destinatario)
+    const porId = new Map(actualizados.map(r => [r.id, r]))
+    personal.value.data = (personal.value.data ?? []).map(r => porId.get(r.id) ?? r)
+    enviarCorreo.value.open = false
+  } catch (e) {
+    enviarCorreo.value.error = e?.response?.data?.message ?? 'No se pudo enviar el correo'
+  } finally {
+    enviarCorreo.value.enviando = false
+  }
 }
 </script>
 
@@ -578,7 +789,7 @@ function exportPersonal() {
   padding: 20px;
   background: #fff;
   border-radius: 16px;
-  box-shadow: 0 1px 4px rgba(5,78,175,.06), 0 2px 8px rgba(5,78,175,.06);
+  box-shadow: 0 1px 4px rgba(39,200,216,.06), 0 2px 8px rgba(39,200,216,.06);
 }
 .rep-card-icon {
   width: 48px; height: 48px;
@@ -612,7 +823,7 @@ function exportPersonal() {
   color: #0F172A;
   outline: none;
 }
-.rep-input:focus { border-color: #054EAF; }
+.rep-input:focus { border-color: #27C8D8; }
 
 /* Summary */
 .rep-summary {
@@ -640,7 +851,7 @@ function exportPersonal() {
 .rep-btn-run {
   display: flex; align-items: center; gap: 6px;
   padding: 7px 14px;
-  background: #054EAF;
+  background: #27C8D8;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -649,7 +860,7 @@ function exportPersonal() {
   cursor: pointer;
   transition: background 0.15s;
 }
-.rep-btn-run:hover:not(:disabled) { background: #0442A0; }
+.rep-btn-run:hover:not(:disabled) { background: #1BAEBB; }
 .rep-btn-run:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .rep-btn-export {
@@ -664,9 +875,45 @@ function exportPersonal() {
   cursor: pointer;
   transition: all 0.15s;
 }
-.rep-btn-export:hover { background: #EFF6FF; border-color: #054EAF; color: #054EAF; }
+.rep-btn-export:hover { background: #E0F9FA; border-color: #27C8D8; color: #27C8D8; }
+.rep-btn-export:disabled { opacity: 0.6; cursor: not-allowed; }
+.rep-btn-export--sent { background: #EFF6FF; border-color: #BFDBFE; color: #1D4ED8; }
+.rep-btn-export--sent:hover { background: #DBEAFE; border-color: #93C5FD; color: #1D4ED8; }
 
 .rep-err { font-size: 12px; color: #DC2626; margin: 4px 0 0; }
+
+/* Modal enviar correo */
+.po-modal-overlay {
+  position: fixed; inset: 0; background: rgba(15,26,46,0.5);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000; padding: 16px;
+}
+.po-modal {
+  background: #fff; border-radius: 14px; width: 100%; max-width: 440px;
+  overflow: hidden;
+}
+.po-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px; border-bottom: 1px solid #F1F5F9;
+}
+.po-modal-title { font-size: 15px; font-weight: 700; color: #0F1A2E; margin: 0; }
+.po-modal-close {
+  background: #F1F5F9; border: none; border-radius: 50%;
+  width: 26px; height: 26px; cursor: pointer; font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+}
+.po-modal-body { padding: 18px 20px; }
+.po-modal-desc { font-size: 13px; color: #475569; line-height: 1.6; margin: 0 0 16px; }
+.po-modal-hint { font-size: 11px; color: #94A3B8; margin: 6px 0 0; }
+.po-modal-footer {
+  display: flex; justify-content: flex-end; gap: 10px;
+  padding: 14px 20px; border-top: 1px solid #F1F5F9;
+}
+.po-btn-ghost {
+  padding: 7px 14px; background: #F8FAFC; border: 1.5px solid #E2E8F0;
+  border-radius: 8px; font-size: 13px; font-weight: 500; color: #64748B; cursor: pointer;
+}
+.po-btn-ghost:hover { background: #F1F5F9; }
 
 /* Spin */
 .spin { animation: spin 1s linear infinite; }
@@ -707,11 +954,15 @@ function exportPersonal() {
 /* Shared */
 .rep-mono { font-family: monospace; }
 .rep-role { display: inline-block; padding: 2px 7px; border-radius: 99px; font-size: 10px; font-weight: 600; }
-.rep-role--blue   { background: #DBEAFE; color: #1D4ED8; }
+.rep-role--blue   { background: #CCEFF2; color: #27C8D8; }
 .rep-role--green  { background: #D1FAE5; color: #065F46; }
 .rep-role--purple { background: #EDE9FE; color: #6D28D9; }
 .rep-role--orange { background: #FEF3C7; color: #92400E; }
 .rep-role--gray   { background: #F1F5F9; color: #475569; }
+
+.po-cumplido-chip { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 10px; font-weight: 600; white-space: nowrap; }
+.po-cumplido-chip--si { background: #D1FAE5; color: #065F46; }
+.po-cumplido-chip--no { background: #FEF3C7; color: #92400E; }
 
 /* ── Personal operativo ── */
 .po-section {
@@ -768,7 +1019,7 @@ function exportPersonal() {
 .po-loading { display: flex; align-items: center; gap: 10px; padding: 40px 24px; color: #64748B; font-size: 13px; }
 .po-spinner {
   width: 20px; height: 20px; border: 2.5px solid #E2E8F0;
-  border-top-color: #054EAF; border-radius: 50%;
+  border-top-color: #27C8D8; border-radius: 50%;
   animation: spin 0.8s linear infinite; flex-shrink: 0;
 }
 .po-empty { text-align: center; padding: 40px 24px; color: #94A3B8; font-size: 13px; }
@@ -799,7 +1050,7 @@ function exportPersonal() {
 .po-td-person { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
 .po-avatar {
   width: 30px; height: 30px; border-radius: 50%;
-  background: #EFF6FF; color: #2563EB;
+  background: #E0F9FA; color: #27C8D8;
   display: flex; align-items: center; justify-content: center;
   font-size: 10px; font-weight: 700; flex-shrink: 0;
 }
@@ -810,4 +1061,56 @@ function exportPersonal() {
 .po-td-rate    { color: #475569; font-size: 12px; }
 .po-td-pct     { color: #475569; font-size: 12px; }
 .po-td-total   { font-weight: 700; color: #059669; text-align: right; white-space: nowrap; }
+
+/* ── Filtros personal ── */
+.po-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-bottom: 1px solid #F1F5F9;
+  background: #FAFBFC;
+}
+.po-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.po-filter-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94A3B8;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.po-filter-input {
+  height: 34px;
+  padding: 0 10px;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  color: #0F172A;
+  background: #fff;
+  outline: none;
+  min-width: 200px;
+}
+.po-filter-input:focus { border-color: #27C8D8; }
+.po-filter-date { min-width: 140px; }
+.po-filter-clear {
+  height: 34px;
+  padding: 0 12px;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  color: #64748B;
+  background: #fff;
+  cursor: pointer;
+  transition: all .15s;
+  align-self: flex-end;
+}
+.po-filter-clear:hover { border-color: #27C8D8; color: #27C8D8; background: #E0F9FA; }
 </style>

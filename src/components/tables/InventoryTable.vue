@@ -38,7 +38,7 @@
       <template #cell-nombre="{ row }">
         <div class="item-cell">
           <div class="item-photo">
-            <Package :size="18" color="#054EAF" />
+            <Package :size="18" color="#27C8D8" />
           </div>
           <div class="item-info">
             <span class="item-name">{{ row.nombre }}</span>
@@ -127,6 +127,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { formatCOP } from '@/utils/currency.js'
 import { Search, X, Eye, Pencil, Clock, Archive, Package, CalendarDays } from 'lucide-vue-next'
 import BaseTable   from '@/components/ui/BaseTable.vue'
 import BadgeStatus from '@/components/ui/BadgeStatus.vue'
@@ -177,9 +178,6 @@ const avail = (row) => Math.round((row.disponibles  / row.total) * 100)
 const inUse = (row) => Math.round((row.enUso        / row.total) * 100)
 const maint = (row) => Math.round((row.mantenimiento/ row.total) * 100)
 
-// ── Helpers ───────────────────────────────────────────────
-const formatCOP = (n) =>
-  new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n)
 
 const onRowClick = (row) => emit('row-click', row)
 
@@ -284,7 +282,7 @@ const mockRows = [
   transition: border-color 0.15s;
 }
 
-.fs-input:focus { border-color: #054EAF; }
+.fs-input:focus { border-color: #27C8D8; }
 
 .filter-select {
   padding: 8px 12px;
@@ -298,7 +296,7 @@ const mockRows = [
   cursor: pointer;
 }
 
-.filter-select:focus { border-color: #054EAF; color: #0F1A2E; }
+.filter-select:focus { border-color: #27C8D8; color: #0F1A2E; }
 
 .filter-clear {
   display: flex;
@@ -324,7 +322,7 @@ const mockRows = [
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: #EBF3FC;
+  background: #F0FAFB;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -367,7 +365,7 @@ const mockRows = [
 }
 
 .avail-green { background: #22C55E; }
-.avail-blue  { background: #3B82F6; }
+.avail-blue  { background: #27C8D8; }
 .avail-amber { background: #F59E0B; }
 
 .avail-text { font-size: 12px; font-weight: 600; color: #64748B; white-space: nowrap; }
@@ -393,7 +391,7 @@ const mockRows = [
   transition: all 0.12s;
 }
 
-.act-btn:hover    { background: #EEF4FF; color: #054EAF; border-color: #BFDBFE; }
+.act-btn:hover    { background: #E0F9FA; color: #27C8D8; border-color: #A7EEF5; }
 .act-danger:hover { background: #FEE2E2; color: #B91C1C; border-color: #FCA5A5; }
 
 /* ── Expandido ────────────────────────────────────────── */
@@ -444,7 +442,7 @@ const mockRows = [
   border: 1px solid #EEF1F7;
 }
 
-.ev-ico    { color: #054EAF; flex-shrink: 0; }
+.ev-ico    { color: #27C8D8; flex-shrink: 0; }
 .ev-fecha  { font-size: 11px; color: #64748B; min-width: 80px; }
 .ev-nombre { font-size: 12px; color: #0F1A2E; font-weight: 500; }
 .ev-empty  { font-size: 12px; color: #94A3B8; margin: 0; }

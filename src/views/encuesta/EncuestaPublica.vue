@@ -225,7 +225,7 @@ const enviar = async () => {
 <style scoped>
 .eq-bg {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0f3460 0%, #16213e 60%, #0d1b2a 100%);
+  background: linear-gradient(135deg, #073B42 0%, #16213e 60%, #0d1b2a 100%);
   display: flex; align-items: center; justify-content: center;
   padding: 24px 16px;
   font-family: 'Segoe UI', Arial, sans-serif;
@@ -249,7 +249,7 @@ const enviar = async () => {
 }
 .eq-spinner {
   width: 36px; height: 36px; border-radius: 50%;
-  border: 3px solid #e2e8f0; border-top-color: #0f3460;
+  border: 3px solid #e2e8f0; border-top-color: #073B42;
   animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -268,12 +268,12 @@ const enviar = async () => {
 .eq-icon-red   { background: #fee2e2; color: #991b1b; }
 .eq-state h2 { font-size: 20px; font-weight: 700; color: #0f1a2e; margin: 0 0 10px; }
 .eq-state p  { font-size: 14px; color: #64748b; margin: 0 0 6px; }
-.eq-brand { font-weight: 700; color: #0f3460 !important; }
+.eq-brand { font-weight: 700; color: #073B42 !important; }
 
 /* Header */
-.eq-header { background: #0f3460; padding: 20px 32px 18px; text-align: center; }
+.eq-header { background: #073B42; padding: 20px 32px 18px; text-align: center; }
 .eq-logo     { font-size: 26px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px; }
-.eq-logo-sub { font-size: 10px; color: #93c5fd; letter-spacing: 3px; text-transform: uppercase; margin-top: 3px; }
+.eq-logo-sub { font-size: 10px; color: #8EEAF3; letter-spacing: 3px; text-transform: uppercase; margin-top: 3px; }
 
 /* Body */
 .eq-body    { padding: 24px 32px 32px; }
@@ -294,7 +294,7 @@ const enviar = async () => {
   background: #f8faff; font-size: 13px; font-weight: 700; color: #475569;
   cursor: pointer; transition: all 0.13s;
 }
-.eq-nps-btn:hover { border-color: #0f3460; color: #0f3460; }
+.eq-nps-btn:hover { border-color: #073B42; color: #073B42; }
 .eq-nps-selected.eq-nps-green  { background: #d1fae5; border-color: #16a34a; color: #065f46; }
 .eq-nps-selected.eq-nps-yellow { background: #fef3c7; border-color: #d97706; color: #92400e; }
 .eq-nps-selected.eq-nps-red    { background: #fee2e2; border-color: #dc2626; color: #991b1b; }
@@ -315,7 +315,7 @@ const enviar = async () => {
   background: #f8faff; font-size: 13px; font-weight: 600; color: #475569;
   cursor: pointer; transition: all 0.13s;
 }
-.eq-yn-btn:hover { border-color: #0f3460; }
+.eq-yn-btn:hover { border-color: #073B42; }
 .eq-yn-selected.eq-yn-yes { background: #d1fae5; border-color: #16a34a; color: #065f46; }
 .eq-yn-selected.eq-yn-no  { background: #fee2e2; border-color: #dc2626; color: #991b1b; }
 
@@ -326,7 +326,7 @@ const enviar = async () => {
   font-family: inherit; resize: vertical; outline: none;
   transition: border-color 0.13s; box-sizing: border-box;
 }
-.eq-textarea:focus { border-color: #0f3460; }
+.eq-textarea:focus { border-color: #073B42; }
 .eq-textarea::placeholder { color: #94a3b8; }
 
 /* Empty / Submit */
@@ -334,10 +334,10 @@ const enviar = async () => {
 
 .eq-submit {
   width: 100%; padding: 14px; border-radius: 10px; border: none;
-  background: #0f3460; color: #ffffff; font-size: 15px; font-weight: 700;
+  background: #073B42; color: #ffffff; font-size: 15px; font-weight: 700;
   cursor: pointer; transition: background 0.15s; font-family: inherit;
 }
-.eq-submit:hover:not(:disabled) { background: #1a4a80; }
+.eq-submit:hover:not(:disabled) { background: #138E9C; }
 .eq-submit:disabled { background: #94a3b8; cursor: not-allowed; }
 .eq-hint { text-align: center; font-size: 11px; color: #94a3b8; margin-top: 10px; }
 </style>

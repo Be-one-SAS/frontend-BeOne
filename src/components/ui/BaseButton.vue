@@ -66,7 +66,7 @@ const buttonClasses = computed(() => {
     primary:
       "bg-primary text-white shadow-[var(--shadow-btn)] hover:bg-primary-dark active:scale-[0.98]",
     secondary:
-      "bg-primary-light text-primary border border-[#BFDBFE] hover:bg-[#DBEAFE] active:scale-[0.98]",
+      "bg-primary-light text-primary border border-[#A7EEF5] hover:bg-[#CCEFF2] active:scale-[0.98]",
   }
 
   return [

@@ -6,7 +6,7 @@
       </div>
       <h1 class="unauth-title">Acceso no autorizado</h1>
       <p class="unauth-sub">No tienes permisos para ver esta página.</p>
-      <button class="unauth-btn" @click="router.back()">Volver atrás</button>
+      <button class="unauth-btn" @click="goHome">Ir al inicio</button>
     </div>
   </div>
 </template>
@@ -14,7 +14,26 @@
 <script setup>
 import { useRouter } from 'vue-router'
 import { ShieldOff } from 'lucide-vue-next'
+import { useAuth } from '@/composables/useAuth'
+
 const router = useRouter()
+const { user } = useAuth()
+
+const ROLE_HOME = {
+  OPERATIVO:    '/admin/control',
+  LOGISTICO:    '/admin/control',
+  COORDINADOR:  '/admin/control',
+  SUPERVISOR:   '/dashboard',
+  LIDER:        '/dashboard',
+  DIRECCION:    '/dashboard',
+  ADMINISTRADOR:'/dashboard',
+  ADMIN:        '/dashboard',
+}
+
+function goHome() {
+  const role = user.value?.roles?.[0] ?? user.value?.role
+  router.replace(ROLE_HOME[role] ?? '/login')
+}
 </script>
 
 <style scoped>
@@ -30,7 +49,7 @@ const router = useRouter()
   border-radius: 20px;
   padding: 48px 56px;
   text-align: center;
-  box-shadow: 0 4px 32px rgba(5,78,175,.09);
+  box-shadow: 0 4px 32px rgba(39,200,216,.09);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -52,7 +71,7 @@ const router = useRouter()
 .unauth-btn {
   margin-top: 8px;
   padding: 10px 28px;
-  background: #054EAF;
+  background: #27C8D8;
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -62,5 +81,5 @@ const router = useRouter()
   font-family: 'Inter', sans-serif;
   transition: background .15s;
 }
-.unauth-btn:hover { background: #043d8a; }
+.unauth-btn:hover { background: #1BAEBB; }
 </style>

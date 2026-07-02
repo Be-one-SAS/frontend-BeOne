@@ -221,7 +221,7 @@ const isMsDone    = (row, key) => (estadoMs[row.estado] ?? 0) > msOrder[key]
 const isMsCurrent = (row, key) => (estadoMs[row.estado] ?? 0) === msOrder[key]
 
 // ── Avatar helpers ────────────────────────────────────────
-const PALETTE = ['#054EAF', '#6D28D9', '#0F766E', '#B45309', '#9D174D', '#065F46']
+const PALETTE = ['#27C8D8', '#6D28D9', '#0F766E', '#B45309', '#9D174D', '#065F46']
 
 const initials = (name) => {
   const parts = name.trim().split(' ')
@@ -354,7 +354,7 @@ const mockRows = [
   transition: border-color 0.15s;
 }
 
-.fs-input:focus { border-color: #054EAF; }
+.fs-input:focus { border-color: #27C8D8; }
 
 .filter-select {
   padding: 8px 12px;
@@ -368,7 +368,7 @@ const mockRows = [
   cursor: pointer;
 }
 
-.filter-select:focus { border-color: #054EAF; color: #0F1A2E; }
+.filter-select:focus { border-color: #27C8D8; color: #0F1A2E; }
 
 .filter-clear {
   display: flex;
@@ -440,9 +440,9 @@ const mockRows = [
 }
 
 .stack-more {
-  background: #EEF4FF;
-  color: #054EAF;
-  border-color: #BFDBFE;
+  background: #E0F9FA;
+  color: #27C8D8;
+  border-color: #A7EEF5;
   font-size: 9px;
 }
 
@@ -465,7 +465,7 @@ const mockRows = [
   transition: all 0.12s;
 }
 
-.act-btn:hover    { background: #EEF4FF; color: #054EAF; border-color: #BFDBFE; }
+.act-btn:hover    { background: #E0F9FA; color: #27C8D8; border-color: #A7EEF5; }
 .act-success:hover { background: #DCFCE7; color: #15803D; border-color: #86EFAC; }
 
 /* ── Expandido: milestone timeline ────────────────────── */
@@ -526,13 +526,13 @@ const mockRows = [
 }
 
 .ms-done .ms-dot {
-  background: #054EAF;
-  border-color: #054EAF;
+  background: #27C8D8;
+  border-color: #27C8D8;
 }
 
 .ms-current .ms-dot {
-  border-color: #054EAF;
-  background: #EEF4FF;
+  border-color: #27C8D8;
+  background: #E0F9FA;
   position: relative;
 }
 
@@ -540,7 +540,7 @@ const mockRows = [
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #054EAF;
+  background: #27C8D8;
   animation: pulse 1.6s ease infinite;
   display: block;
 }
@@ -550,7 +550,7 @@ const mockRows = [
   50%       { opacity: 0.5; transform: scale(0.6); }
 }
 
-.ms-line-done { background: #054EAF; }
+.ms-line-done { background: #27C8D8; }
 
 .ms-label {
   font-size: 10px;
@@ -561,7 +561,7 @@ const mockRows = [
 }
 
 .ms-done    .ms-label,
-.ms-current .ms-label { color: #054EAF; }
+.ms-current .ms-label { color: #27C8D8; }
 
 .ms-date {
   font-size: 10px;

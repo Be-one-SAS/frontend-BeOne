@@ -23,3 +23,27 @@ export const updateParam = async (key: string, value: any) => {
         throw error
     }
 }
+
+export const getCommissionTiers = async () => {
+    try {
+        const response = await api.get('/commission-tiers', {
+            headers: { 'Content-Type': 'application/json' },
+        })
+        return response
+    } catch (error) {
+        throw error
+    }
+}
+
+export const updateCommissionTier = async (id: number, data: { minPct?: number; maxPct?: number; comisionPct?: number }) => {
+    try {
+        const response = await api.put(
+            `/commission-tiers/${id}`,
+            data,
+            { headers: { 'Content-Type': 'application/json' } }
+        )
+        return response
+    } catch (error) {
+        throw error
+    }
+}

@@ -6,15 +6,15 @@
 ───────────────────────────────────────────── */
 @theme {
   /* Brand */
-  --color-primary:       #054EAF;
-  --color-primary-light: #EEF4FF;
-  --color-primary-dark:  #03368A;
+  --color-primary:       #27C8D8;
+  --color-primary-light: #E0F9FA;
+  --color-primary-dark:  #1BAEBB;
 
   /* Accent */
   --color-accent:        #6EE7A0;
 
   /* Surfaces */
-  --color-app-bg:        #EBF3FC;
+  --color-app-bg:        #F0FAFB;
   --color-card:          #FFFFFF;
 
   /* Borders */
@@ -39,9 +39,9 @@
   --r-2xl:  24px;
 
   /* Shadows */
-  --shadow-card:  0 1px 4px rgba(5,78,175,.06), 0 4px 16px rgba(5,78,175,.08);
-  --shadow-btn:   0 2px 8px  rgba(5, 78, 175, 0.18);
-  --shadow-modal: 0 8px 40px rgba(5, 78, 175, 0.14);
+  --shadow-card:  0 1px 4px rgba(39,200,216,.06), 0 4px 16px rgba(39,200,216,.08);
+  --shadow-btn:   0 2px 8px  rgba(39, 200, 216, 0.18);
+  --shadow-modal: 0 8px 40px rgba(39, 200, 216, 0.14);
 
   /* Layout */
   --sidebar-w: 200px;
@@ -52,7 +52,7 @@
   --sp-xl: 24px;
 
   /* Surface aliases (uso directo en CSS) */
-  --bg-app:  #EBF3FC;
+  --bg-app:  #F0FAFB;
   --bg-card: #FFFFFF;
 }
 

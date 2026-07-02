@@ -29,7 +29,7 @@ const colorClass = computed(() => {
     case 'EN_RESERVA':
     case 'PENDIENTE':
     case 'EN_PROCESO':
-      return 'bg-[#DBEAFE] text-[#1D4ED8]'
+      return 'bg-[#CCEFF2] text-[#27C8D8]'
 
     case 'DISPONIBLE':
     case 'APROBADA':

@@ -8,12 +8,15 @@ export const getChecklistEvento = (quotationId) =>
 export const toggleChecklistItem = (quotationId, juegoId, aspectoId, completado) =>
   api.post(`${base(quotationId)}/check`, { juegoId, aspectoId, completado }).then(r => r.data)
 
-export const submitChecklistCheckin = (quotationId, payload, files = [], onProgress = null) => {
+export const submitChecklistCheckin = (quotationId, payload, juegoPhotos = {}, onProgress = null) => {
   const form = new FormData()
   for (const [k, v] of Object.entries(payload)) {
     if (v != null && v !== '') form.append(k, String(v))
   }
-  for (const f of files) form.append('foto', f)
+  // Per-juego photos: fieldname = foto_<juegoId>
+  for (const [juegoId, photoList] of Object.entries(juegoPhotos)) {
+    for (const f of photoList) form.append(`foto_${juegoId}`, f)
+  }
   return api.post(`${base(quotationId)}/submit`, form, {
     headers: { 'Content-Type': 'multipart/form-data' },
     onUploadProgress: onProgress

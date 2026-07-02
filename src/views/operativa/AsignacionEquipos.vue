@@ -361,7 +361,7 @@ onMounted(async () => {
 /* Header */
 .ae-header-icon {
   width: 40px; height: 40px;
-  background: #EBF3FC; color: #054EAF;
+  background: #F0FAFB; color: #27C8D8;
   border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
@@ -398,7 +398,7 @@ onMounted(async () => {
 }
 
 .ae-tab:hover { color: #0F1A2E; background: rgba(255,255,255,.6); }
-.ae-tab--active { background: #FFFFFF; color: #054EAF; box-shadow: 0 1px 4px rgba(15,26,46,.1); }
+.ae-tab--active { background: #FFFFFF; color: #27C8D8; box-shadow: 0 1px 4px rgba(15,26,46,.1); }
 
 /* Filters */
 .ae-filters {
@@ -431,7 +431,7 @@ onMounted(async () => {
   transition: border-color 0.15s, box-shadow 0.15s;
   appearance: auto;
 }
-.ae-input:focus { border-color: #054EAF; box-shadow: 0 0 0 3px rgba(5,78,175,.1); }
+.ae-input:focus { border-color: #27C8D8; box-shadow: 0 0 0 3px rgba(39,200,216,.1); }
 .ae-input::placeholder { color: #94A3B8; }
 .ae-input--search { padding-left: 34px; }
 
@@ -439,7 +439,7 @@ onMounted(async () => {
 .ae-table-wrap {
   background: #FFFFFF;
   border-radius: 18px;
-  box-shadow: 0 1px 4px rgba(5,78,175,.06), 0 4px 16px rgba(5,78,175,.08);
+  box-shadow: 0 1px 4px rgba(39,200,216,.06), 0 4px 16px rgba(39,200,216,.08);
   overflow: hidden;
 }
 
@@ -448,7 +448,7 @@ onMounted(async () => {
   font-family: 'Inter', sans-serif;
 }
 
-.ae-thead-row { background: #EBF3FC; }
+.ae-thead-row { background: #F0FAFB; }
 
 .ae-th {
   padding: 10px 14px;
@@ -468,7 +468,7 @@ onMounted(async () => {
 .ae-td {
   padding: 12px 14px;
   font-size: 13px; color: #0F1A2E;
-  border-bottom: 1px solid #EBF3FC;
+  border-bottom: 1px solid #F0FAFB;
   vertical-align: middle;
 }
 
@@ -477,7 +477,7 @@ onMounted(async () => {
 
 /* Event num */
 .ae-num {
-  font-weight: 700; font-size: 13px; color: #054EAF;
+  font-weight: 700; font-size: 13px; color: #27C8D8;
   font-family: 'JetBrains Mono', monospace;
 }
 
@@ -498,7 +498,7 @@ onMounted(async () => {
 
 .badge-yellow { background: #FEFCE8; color: #854D0E; }
 .badge-green  { background: #F0FDF4; color: #166534; }
-.badge-blue   { background: #EFF6FF; color: #1D4ED8; }
+.badge-blue   { background: #E0F9FA; color: #27C8D8; }
 .badge-gray   { background: #F1F5F9; color: #64748B; }
 
 /* Coord chips */
@@ -512,7 +512,7 @@ onMounted(async () => {
 
 .ae-avatar-sm {
   width: 20px; height: 20px; border-radius: 50%;
-  background: #EBF3FC; color: #054EAF;
+  background: #F0FAFB; color: #27C8D8;
   display: flex; align-items: center; justify-content: center;
   font-size: 8px; font-weight: 800; flex-shrink: 0;
 }
@@ -547,20 +547,20 @@ onMounted(async () => {
 .ae-mini-fill { height: 100%; border-radius: 999px; transition: width .4s ease; }
 .mini-red   { background: #F97316; }
 .mini-amber { background: #EAB308; }
-.mini-blue  { background: #3B82F6; }
+.mini-blue  { background: #27C8D8; }
 .mini-green { background: #22C55E; }
 
 /* Action buttons */
 .ae-btn-manage {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 6px 11px;
-  background: #EBF3FC; color: #054EAF;
+  background: #F0FAFB; color: #27C8D8;
   border: none; border-radius: 8px;
   font-size: 12px; font-weight: 600;
   font-family: 'Inter', sans-serif;
   cursor: pointer; transition: all 0.15s;
 }
-.ae-btn-manage:hover { background: #054EAF; color: #FFFFFF; }
+.ae-btn-manage:hover { background: #27C8D8; color: #FFFFFF; }
 
 /* Skeleton */
 .ae-skeleton { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
@@ -590,7 +590,7 @@ onMounted(async () => {
 .ae-persona-card {
   background: #FFFFFF;
   border-radius: 16px;
-  box-shadow: 0 1px 4px rgba(5,78,175,.06), 0 4px 12px rgba(5,78,175,.06);
+  box-shadow: 0 1px 4px rgba(39,200,216,.06), 0 4px 12px rgba(39,200,216,.06);
   overflow: hidden;
 }
 
@@ -603,7 +603,7 @@ onMounted(async () => {
 
 .ae-persona-avatar {
   width: 36px; height: 36px; border-radius: 50%;
-  background: #EBF3FC; color: #054EAF;
+  background: #F0FAFB; color: #27C8D8;
   display: flex; align-items: center; justify-content: center;
   font-size: 12px; font-weight: 800; flex-shrink: 0;
 }
@@ -617,8 +617,8 @@ onMounted(async () => {
 .ae-persona-count {
   margin-left: auto;
   font-size: 11px; font-weight: 700;
-  color: #054EAF;
-  background: #EBF3FC;
+  color: #27C8D8;
+  background: #F0FAFB;
   padding: 3px 10px; border-radius: 999px;
 }
 
@@ -634,7 +634,7 @@ onMounted(async () => {
 
 .ae-persona-ev-num {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px; font-weight: 700; color: #054EAF;
+  font-size: 11px; font-weight: 700; color: #27C8D8;
   flex-shrink: 0;
 }
 .ae-persona-ev-name {

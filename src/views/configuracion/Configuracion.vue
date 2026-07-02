@@ -8,11 +8,19 @@
 
     <!-- Módulos de configuración -->
     <div class="cfg-modules">
-      <RouterLink to="/configuracion/sedes" class="cfg-module-card">
+      <RouterLink to="/configuracion/unidades-ejecucion" class="cfg-module-card">
         <div class="cfg-module-icon">🏢</div>
         <div>
-          <p class="cfg-module-title">Sedes</p>
-          <p class="cfg-module-desc">Unidades de ejecución, equipos y visibilidad financiera</p>
+          <p class="cfg-module-title">Unidades de Ejecución</p>
+          <p class="cfg-module-desc">Gestión de equipos, visibilidad financiera y estructura organizacional</p>
+        </div>
+        <span class="cfg-module-arrow">→</span>
+      </RouterLink>
+      <RouterLink to="/admin/quotation-params" class="cfg-module-card">
+        <div class="cfg-module-icon">⚙️</div>
+        <div>
+          <p class="cfg-module-title">Parámetros de cotización</p>
+          <p class="cfg-module-desc">Configura los parámetros, variables y valores por defecto de cotizaciones</p>
         </div>
         <span class="cfg-module-arrow">→</span>
       </RouterLink>
@@ -174,10 +182,10 @@ async function runImport(mod, file) {
   transition: border-color .15s, box-shadow .15s;
   max-width: 500px;
 }
-.cfg-module-card:hover { border-color: #054EAF; box-shadow: 0 2px 10px rgba(5,78,175,.1); }
+.cfg-module-card:hover { border-color: #27C8D8; box-shadow: 0 2px 10px rgba(39,200,216,.1); }
 .cfg-module-icon { font-size: 24px; flex-shrink: 0; }
 .cfg-module-title { font-size: 14px; font-weight: 700; color: #0F172A; margin: 0 0 2px; }
 .cfg-module-desc { font-size: 12px; color: #64748B; margin: 0; }
 .cfg-module-arrow { font-size: 18px; color: #CBD5E1; margin-left: auto; }
-.cfg-module-card:hover .cfg-module-arrow { color: #054EAF; }
+.cfg-module-card:hover .cfg-module-arrow { color: #27C8D8; }
 </style>

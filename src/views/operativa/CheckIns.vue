@@ -204,8 +204,17 @@
         <div v-if="detailChecklistJuegos.length > 0" class="chk-card chk-checklist-section">
           <div class="chk-section-header"><ClipboardList :size="15" /> Lista de chequeo por juego</div>
           <div class="chk-juegos-grid">
-            <div v-for="juego in detailChecklistJuegos" :key="juego.id" class="chk-juego-card chk-juego-card--readonly">
-              <div class="chk-juego-header">
+            <div
+              v-for="juego in detailChecklistJuegos"
+              :key="juego.id"
+              class="chk-juego-card chk-juego-card--readonly"
+              :class="{ 'chk-juego-card--expanded': checklistExpandedId === juego.id }"
+            >
+              <!-- Header — botón acordeón -->
+              <button
+                class="chk-juego-header chk-juego-header--btn"
+                @click="checklistExpandedId = checklistExpandedId === juego.id ? null : juego.id"
+              >
                 <div class="chk-juego-icon">
                   <Package :size="14" />
                 </div>
@@ -219,15 +228,77 @@
                 >
                   {{ Object.values(detailChecklistState[juego.id] ?? {}).filter(Boolean).length }}/{{ aspectosChecklist.length }}
                 </span>
-              </div>
-              <div class="chk-puntos-list chk-puntos-readonly">
-                <div v-for="asp in aspectosChecklist" :key="asp.id" class="chk-punto-row-ro"
-                  :class="detailChecklistState[juego.id]?.[asp.id] ? 'chk-punto-ro--done' : ''">
-                  <Check v-if="detailChecklistState[juego.id]?.[asp.id]" :size="13" class="chk-punto-ro-check" />
-                  <span v-else class="chk-punto-ro-dot" />
-                  <span class="chk-punto-ro-label">{{ asp.texto }}</span>
+                <!-- Chips colapsados: fotos y obs si existen -->
+                <span v-if="checklistExpandedId !== juego.id" class="chk-obs-chips">
+                  <span v-if="juego.obsData?.fotosUrl?.length" class="chk-obs-chip">
+                    <Camera :size="10" />{{ juego.obsData.fotosUrl.length }}
+                  </span>
+                  <span
+                    v-if="juego.obsData?.puntosAnclajeSinAnclar != null"
+                    class="chk-obs-chip chk-obs-chip--warn"
+                  >{{ juego.obsData.puntosAnclajeSinAnclar }} s/a</span>
+                  <span
+                    v-if="juego.obsData?.observaciones || juego.obsData?.observacionesDinamizador || juego.obsData?.observacionesCliente"
+                    class="chk-obs-chip"
+                  ><MessageSquare :size="10" /></span>
+                </span>
+                <ChevronRight
+                  :size="14"
+                  class="chk-obs-chevron"
+                  :class="{ 'chk-obs-chevron--open': checklistExpandedId === juego.id }"
+                  style="flex-shrink:0"
+                />
+              </button>
+
+              <!-- Contenido colapsable -->
+              <template v-if="checklistExpandedId === juego.id">
+                <div class="chk-puntos-list chk-puntos-readonly">
+                  <div v-for="asp in aspectosChecklist" :key="asp.id" class="chk-punto-row-ro"
+                    :class="detailChecklistState[juego.id]?.[asp.id] ? 'chk-punto-ro--done' : ''">
+                    <Check v-if="detailChecklistState[juego.id]?.[asp.id]" :size="13" class="chk-punto-ro-check" />
+                    <span v-else class="chk-punto-ro-dot" />
+                    <span class="chk-punto-ro-label">{{ asp.texto }}</span>
+                  </div>
                 </div>
-              </div>
+
+                <!-- Evidencias por juego -->
+                <template v-if="juego.obsData && (juego.obsData.fotosUrl?.length || juego.obsData.observaciones || juego.obsData.puntosAnclajeTotal != null || juego.obsData.puntosAnclajeSinAnclar != null || juego.obsData.cremalleras != null || juego.obsData.observacionesDinamizador || juego.obsData.observacionesCliente)">
+                  <div class="chk-jrd-sep"><span>Evidencias</span></div>
+                  <div class="chk-jrd-content">
+                    <div v-if="juego.obsData.fotosUrl?.length" class="chk-jrd-photos">
+                      <a v-for="(url, i) in juego.obsData.fotosUrl" :key="i" :href="url" target="_blank" rel="noopener" class="chk-jrd-photo">
+                        <img :src="url" :alt="`Foto ${i+1}`" loading="lazy" />
+                      </a>
+                    </div>
+                    <div v-if="juego.obsData.puntosAnclajeTotal != null || juego.obsData.puntosAnclajeSinAnclar != null || juego.obsData.cremalleras != null" class="chk-jrd-nums">
+                      <div v-if="juego.obsData.puntosAnclajeTotal != null" class="chk-jrd-num-item">
+                        <span class="chk-jrd-num-val">{{ juego.obsData.puntosAnclajeTotal }}</span>
+                        <span class="chk-jrd-num-lbl">Anclajes</span>
+                      </div>
+                      <div v-if="juego.obsData.puntosAnclajeSinAnclar != null" class="chk-jrd-num-item chk-jrd-num-item--warn">
+                        <span class="chk-jrd-num-val">{{ juego.obsData.puntosAnclajeSinAnclar }}</span>
+                        <span class="chk-jrd-num-lbl">Sin anclar</span>
+                      </div>
+                      <div v-if="juego.obsData.cremalleras != null" class="chk-jrd-num-item">
+                        <span class="chk-jrd-num-val">{{ juego.obsData.cremalleras }}</span>
+                        <span class="chk-jrd-num-lbl">Cremalleras</span>
+                      </div>
+                    </div>
+                    <div v-if="juego.obsData.observaciones" class="chk-jrd-obs-row">
+                      <span class="chk-jrd-obs-lbl">Observaciones</span>
+                      <p class="chk-jrd-obs-text">{{ juego.obsData.observaciones }}</p>
+                    </div>
+                    <div v-if="juego.obsData.observacionesDinamizador" class="chk-jrd-obs-row">
+                      <span class="chk-jrd-obs-lbl">Obs. dinamizador</span>
+                      <p class="chk-jrd-obs-text">{{ juego.obsData.observacionesDinamizador }}</p>
+                    </div>
+                    <div v-if="juego.obsData.observacionesCliente" class="chk-jrd-obs-row">
+                      <span class="chk-jrd-obs-lbl">Obs. cliente</span>
+                      <p class="chk-jrd-obs-text">{{ juego.obsData.observacionesCliente }}</p>
+                    </div>
+                  </div>
+                </template>
+              </template>
             </div>
           </div>
         </div>
@@ -257,30 +328,101 @@
           </div>
         </div>
 
-        <!-- ── Observaciones y anclajes ── -->
-        <div class="chk-card">
-          <div class="chk-section-header"><MessageSquare :size="15" /> Observaciones y anclajes</div>
-          <div class="chk-detail-grid">
-            <div class="chk-detail-field chk-field-full">
-              <span class="chk-detail-label">Observaciones del dinamizador</span>
-              <span class="chk-detail-val">{{ selected.observacionesDinamizador || '—' }}</span>
-            </div>
-            <div class="chk-detail-field">
-              <span class="chk-detail-label">Total puntos de anclaje</span>
-              <span class="chk-detail-val">{{ selected.puntosAnclajeTotal ?? '—' }}</span>
-            </div>
-            <div class="chk-detail-field">
-              <span class="chk-detail-label">Puntos sin anclar</span>
-              <span class="chk-detail-val">{{ selected.puntosAnclajeSinAnclar ?? '—' }}</span>
-            </div>
-            <div class="chk-detail-field chk-field-full">
-              <span class="chk-detail-label">Observaciones del cliente</span>
-              <span class="chk-detail-val">{{ selected.observacionesCliente || '—' }}</span>
-            </div>
+        <!-- ── Observaciones y anclajes por producto ── -->
+        <div
+          v-if="detailAllJuegos.some(j => j.obsData && (j.obsData.observaciones || j.obsData.observacionesDinamizador || j.obsData.observacionesCliente || j.obsData.puntosAnclajeTotal != null || j.obsData.puntosAnclajeSinAnclar != null || j.obsData.cremalleras != null || j.obsData.fotosUrl?.length))"
+          class="chk-card"
+        >
+          <div class="chk-section-header"><MessageSquare :size="15" /> Observaciones y anclajes por producto</div>
+
+          <div class="chk-obs-juegos-list">
+            <template v-for="juego in detailAllJuegos" :key="juego.id">
+              <div
+                v-if="juego.obsData && (juego.obsData.observaciones || juego.obsData.observacionesDinamizador || juego.obsData.observacionesCliente || juego.obsData.puntosAnclajeTotal != null || juego.obsData.puntosAnclajeSinAnclar != null || juego.obsData.cremalleras != null || juego.obsData.fotosUrl?.length)"
+                class="chk-obs-juego-block"
+                :class="{ 'chk-obs-juego-block--open': obsExpandedId === juego.id }"
+              >
+                <!-- Header / acordeón -->
+                <button
+                  class="chk-obs-juego-name"
+                  @click="obsExpandedId = obsExpandedId === juego.id ? null : juego.id"
+                >
+                  <Package :size="14" style="flex-shrink:0" />
+                  <span class="chk-obs-juego-nombre-text">{{ juego.nombre }}</span>
+                  <span v-if="juego.qty > 1" class="chk-obs-juego-qty">×{{ juego.qty }}</span>
+
+                  <!-- Mini-chips visibles cuando está colapsado -->
+                  <span v-if="obsExpandedId !== juego.id" class="chk-obs-chips">
+                    <span v-if="juego.obsData.fotosUrl?.length" class="chk-obs-chip">
+                      <Camera :size="10" />{{ juego.obsData.fotosUrl.length }}
+                    </span>
+                    <span
+                      v-if="juego.obsData.puntosAnclajeSinAnclar != null"
+                      class="chk-obs-chip chk-obs-chip--warn"
+                    >{{ juego.obsData.puntosAnclajeSinAnclar }} s/a</span>
+                    <span
+                      v-else-if="juego.obsData.puntosAnclajeTotal != null"
+                      class="chk-obs-chip"
+                    >{{ juego.obsData.puntosAnclajeTotal }} anc</span>
+                    <span
+                      v-if="juego.obsData.observaciones || juego.obsData.observacionesDinamizador || juego.obsData.observacionesCliente"
+                      class="chk-obs-chip"
+                    ><MessageSquare :size="10" /></span>
+                  </span>
+
+                  <ChevronRight
+                    :size="15"
+                    class="chk-obs-chevron"
+                    :class="{ 'chk-obs-chevron--open': obsExpandedId === juego.id }"
+                    style="flex-shrink:0;margin-left:2px"
+                  />
+                </button>
+
+                <!-- Contenido colapsable -->
+                <div v-if="obsExpandedId === juego.id" class="chk-obs-juego-content">
+                  <!-- Fotos -->
+                  <div v-if="juego.obsData.fotosUrl?.length" class="chk-jrd-photos">
+                    <a v-for="(url, i) in juego.obsData.fotosUrl" :key="i" :href="url" target="_blank" rel="noopener" class="chk-jrd-photo">
+                      <img :src="url" :alt="`Foto ${i+1}`" loading="lazy" />
+                    </a>
+                  </div>
+
+                  <!-- Numéricos: anclajes -->
+                  <div v-if="juego.obsData.puntosAnclajeTotal != null || juego.obsData.puntosAnclajeSinAnclar != null || juego.obsData.cremalleras != null" class="chk-jrd-nums">
+                    <div v-if="juego.obsData.puntosAnclajeTotal != null" class="chk-jrd-num-item">
+                      <span class="chk-jrd-num-val">{{ juego.obsData.puntosAnclajeTotal }}</span>
+                      <span class="chk-jrd-num-lbl">Anclajes</span>
+                    </div>
+                    <div v-if="juego.obsData.puntosAnclajeSinAnclar != null" class="chk-jrd-num-item chk-jrd-num-item--warn">
+                      <span class="chk-jrd-num-val">{{ juego.obsData.puntosAnclajeSinAnclar }}</span>
+                      <span class="chk-jrd-num-lbl">Sin anclar</span>
+                    </div>
+                    <div v-if="juego.obsData.cremalleras != null" class="chk-jrd-num-item">
+                      <span class="chk-jrd-num-val">{{ juego.obsData.cremalleras }}</span>
+                      <span class="chk-jrd-num-lbl">Cremalleras</span>
+                    </div>
+                  </div>
+
+                  <!-- Observaciones -->
+                  <div v-if="juego.obsData.observaciones" class="chk-jrd-obs-row">
+                    <span class="chk-jrd-obs-lbl">Observaciones</span>
+                    <p class="chk-jrd-obs-text">{{ juego.obsData.observaciones }}</p>
+                  </div>
+                  <div v-if="juego.obsData.observacionesDinamizador" class="chk-jrd-obs-row">
+                    <span class="chk-jrd-obs-lbl">Obs. dinamizador</span>
+                    <p class="chk-jrd-obs-text">{{ juego.obsData.observacionesDinamizador }}</p>
+                  </div>
+                  <div v-if="juego.obsData.observacionesCliente" class="chk-jrd-obs-row">
+                    <span class="chk-jrd-obs-lbl">Obs. cliente</span>
+                    <p class="chk-jrd-obs-text">{{ juego.obsData.observacionesCliente }}</p>
+                  </div>
+                </div>
+              </div>
+            </template>
           </div>
         </div>
 
-        <!-- ── Fotos de evidencia ── -->
+        <!-- ── Fotos globales (solo checkins anteriores a migración) ── -->
         <div v-if="detailPhotoUrls.length" class="chk-card">
           <div class="chk-section-header"><Camera :size="15" /> Fotos de evidencia</div>
           <div class="chk-foto-grid">
@@ -911,11 +1053,14 @@ async function loadCheckins() {
 const selected               = ref(null)
 const detailLoading          = ref(false)
 const detailChecklistJuegos  = ref([])
+const detailAllJuegos        = ref([])   // todos los juegos (incluso sin checklist), con obsData
 const detailChecklistState   = ref({})   // { [juegoId]: { [aspectoId]: boolean } }
+const obsExpandedId          = ref(null) // accordion: id del producto abierto (sección obs)
+const checklistExpandedId    = ref(null) // accordion: id del juego abierto (sección checklist)
 
 const FIXED_STAGES = [
   { id: 'inicio',  label: 'Inicio del evento',    color: '#16A34A', iconComp: Play  },
-  { id: 'despues', label: 'Después de un tiempo',  color: '#0284C7', iconComp: Clock },
+  { id: 'despues', label: 'Después de un tiempo',  color: '#27C8D8', iconComp: Clock },
   { id: 'mitad',   label: 'Mitad del evento',       color: '#D97706', iconComp: Timer },
   { id: 'final',   label: 'Final del evento',        color: '#7C3AED', iconComp: Flag  },
 ]
@@ -1065,6 +1210,7 @@ async function goToDetail(id) {
   detailLoading.value         = true
   selected.value              = null
   detailChecklistJuegos.value = []
+  detailAllJuegos.value       = []
   detailChecklistState.value  = {}
   try {
     selected.value = await getCheckinById(id)
@@ -1072,7 +1218,8 @@ async function goToDetail(id) {
     if (quotationId) {
       try {
         const clData = await getChecklistEvento(quotationId)
-        detailChecklistJuegos.value = (clData.juegos ?? []).filter(j => j.requiereChecklist)
+        detailAllJuegos.value       = clData.juegos ?? []
+        detailChecklistJuegos.value = detailAllJuegos.value.filter(j => j.requiereChecklist)
         // state: { [juegoId]: { [aspectoId]: boolean } }
         const stateMap = {}
         for (const j of detailChecklistJuegos.value) {
@@ -1209,7 +1356,7 @@ loadCheckins()
   align-items: center;
   gap: 6px;
   padding: 9px 18px;
-  background: #054EAF;
+  background: #27C8D8;
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -1219,7 +1366,7 @@ loadCheckins()
   font-family: 'Inter', sans-serif;
   transition: background 0.15s;
 }
-.chk-new-btn:hover { background: #03368A; }
+.chk-new-btn:hover { background: #1BAEBB; }
 .chk-back-btn {
   display: flex;
   align-items: center;
@@ -1235,7 +1382,7 @@ loadCheckins()
   font-family: 'Inter', sans-serif;
   transition: all 0.15s;
 }
-.chk-back-btn:hover { border-color: #054EAF; color: #054EAF; }
+.chk-back-btn:hover { border-color: #27C8D8; color: #27C8D8; }
 
 /* ── Search ── */
 .chk-search-wrap {
@@ -1261,7 +1408,7 @@ loadCheckins()
   background: #fff;
   transition: border-color 0.15s;
 }
-.chk-search:focus { border-color: #054EAF; }
+.chk-search:focus { border-color: #27C8D8; }
 
 /* ── Estados (loading / error / vacío) ── */
 .chk-state {
@@ -1277,7 +1424,7 @@ loadCheckins()
   width: 28px;
   height: 28px;
   border: 3px solid #E2E8F0;
-  border-top-color: #054EAF;
+  border-top-color: #27C8D8;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -1323,15 +1470,15 @@ loadCheckins()
   gap: 16px;
 }
 .chk-card-item:hover {
-  border-color: #054EAF;
-  box-shadow: 0 2px 10px rgba(5,78,175,.08);
+  border-color: #27C8D8;
+  box-shadow: 0 2px 10px rgba(39,200,216,.08);
 }
 .chk-card-main { flex: 1; min-width: 0; }
 .chk-card-meta { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
 .chk-card-num {
   font-size: 11px;
   font-weight: 700;
-  color: #054EAF;
+  color: #27C8D8;
   letter-spacing: 0.4px;
 }
 .chk-card-name {
@@ -1426,7 +1573,7 @@ loadCheckins()
   box-sizing: border-box;
 }
 .chk-select { cursor: pointer; }
-.chk-input:focus, .chk-select:focus { border-color: #054EAF; background: #fff; }
+.chk-input:focus, .chk-select:focus { border-color: #27C8D8; background: #fff; }
 .chk-input-error { border-color: #EF4444 !important; }
 .chk-error-msg { font-size: 11px; color: #EF4444; }
 .chk-textarea {
@@ -1444,7 +1591,7 @@ loadCheckins()
   box-sizing: border-box;
   line-height: 1.5;
 }
-.chk-textarea:focus { border-color: #054EAF; background: #fff; }
+.chk-textarea:focus { border-color: #27C8D8; background: #fff; }
 
 /* ── Selector de dispositivo ── */
 .chk-device-btn {
@@ -1463,7 +1610,7 @@ loadCheckins()
   transition: border-color 0.15s;
   color: #94A3B8;
 }
-.chk-device-btn:hover { border-color: #054EAF; }
+.chk-device-btn:hover { border-color: #27C8D8; }
 .chk-device-selected { color: #0F172A; }
 .chk-device-placeholder { color: #94A3B8; }
 
@@ -1552,7 +1699,7 @@ loadCheckins()
   transition: all 0.12s;
   font-family: 'Inter', sans-serif;
 }
-.chk-resp-btn:hover { border-color: #054EAF; color: #054EAF; }
+.chk-resp-btn:hover { border-color: #27C8D8; color: #27C8D8; }
 .chk-resp-btn.active.resp-si        { background: #DCFCE7; border-color: #16A34A; color: #16A34A; }
 .chk-resp-btn.active.resp-no        { background: #FEE2E2; border-color: #DC2626; color: #DC2626; }
 .chk-resp-btn.active.resp-no_aplica { background: #F1F5F9; border-color: #64748B; color: #64748B; }
@@ -1588,7 +1735,7 @@ loadCheckins()
   transition: border-color 0.15s;
   background: #F8FAFC;
 }
-.chk-foto-drop:hover { border-color: #054EAF; }
+.chk-foto-drop:hover { border-color: #27C8D8; }
 .chk-foto-label { font-size: 13px; font-weight: 600; color: #64748B; }
 .chk-foto-hint  { font-size: 11px; color: #94A3B8; text-align: center; padding: 0 8px; }
 .chk-foto-input { display: none; }
@@ -1636,9 +1783,9 @@ loadCheckins()
   flex-shrink: 0;
 }
 .chk-foto-add-btn:hover {
-  border-color: #054EAF;
-  color: #054EAF;
-  background: #EFF6FF;
+  border-color: #27C8D8;
+  color: #27C8D8;
+  background: #E0F9FA;
 }
 .chk-foto-placeholder {
   width: 160px;
@@ -1666,7 +1813,7 @@ loadCheckins()
 }
 .chk-upload-bar {
   height: 100%;
-  background: #054EAF;
+  background: #27C8D8;
   border-radius: 99px;
   transition: width 0.2s ease;
 }
@@ -1716,7 +1863,7 @@ loadCheckins()
   padding: 11px 24px;
   border: none;
   border-radius: 10px;
-  background: #054EAF;
+  background: #27C8D8;
   font-size: 14px;
   font-weight: 600;
   color: #fff;
@@ -1724,7 +1871,7 @@ loadCheckins()
   font-family: 'Inter', sans-serif;
   transition: background 0.15s;
 }
-.chk-btn-submit:hover:not(:disabled) { background: #03368A; }
+.chk-btn-submit:hover:not(:disabled) { background: #1BAEBB; }
 .chk-btn-submit:disabled { opacity: 0.65; cursor: not-allowed; }
 
 /* ── Detalle ── */
@@ -1771,7 +1918,7 @@ loadCheckins()
   box-sizing: border-box;
   transition: border-color 0.15s;
 }
-.chk-picker-search:focus { border-color: #054EAF; }
+.chk-picker-search:focus { border-color: #27C8D8; }
 .chk-picker-list {
   max-height: 340px;
   overflow-y: auto;
@@ -1796,8 +1943,8 @@ loadCheckins()
   transition: background 0.12s;
 }
 .chk-picker-item:hover { background: #F1F5F9; }
-.chk-picker-item.active { background: #EEF4FF; color: #054EAF; font-weight: 600; }
-.chk-picker-check { margin-left: auto; color: #054EAF; }
+.chk-picker-item.active { background: #E0F9FA; color: #27C8D8; font-weight: 600; }
+.chk-picker-check { margin-left: auto; color: #27C8D8; }
 
 .spin { animation: spin 0.8s linear infinite; }
 
@@ -1827,7 +1974,7 @@ loadCheckins()
   right: -60px;
   width: 260px;
   height: 260px;
-  background: radial-gradient(circle, rgba(5,78,175,.5) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(39,200,216,.5) 0%, transparent 70%);
   pointer-events: none;
 }
 .chk-live-top {
@@ -1902,7 +2049,7 @@ loadCheckins()
   margin-bottom: 8px;
 }
 .chk-live-progress-label { font-size: 11px; color: #475569; font-weight: 500; }
-.chk-live-progress-pct   { font-size: 16px; font-weight: 800; color: #38BDF8; line-height: 1; }
+.chk-live-progress-pct   { font-size: 16px; font-weight: 800; color: #27C8D8; line-height: 1; }
 .chk-live-bar {
   height: 6px;
   background: rgba(255,255,255,.08);
@@ -1912,7 +2059,7 @@ loadCheckins()
 }
 .chk-live-fill {
   height: 100%;
-  background: linear-gradient(90deg, #054EAF 0%, #38BDF8 100%);
+  background: linear-gradient(90deg, #27C8D8 0%, #27C8D8 100%);
   border-radius: 99px;
   transition: width 0.5s cubic-bezier(.4,0,.2,1);
   position: relative;
@@ -1926,7 +2073,7 @@ loadCheckins()
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #38BDF8;
+  background: #27C8D8;
   box-shadow: 0 0 10px rgba(56,189,248,.9);
   animation: live-pulse 1.6s ease-in-out infinite;
 }
@@ -1949,7 +2096,7 @@ loadCheckins()
   border: 1.5px solid rgba(255,255,255,.2);
   transition: all 0.4s;
 }
-.chk-live-marker.done   { background: #38BDF8; border-color: #38BDF8; box-shadow: 0 0 6px rgba(56,189,248,.6); }
+.chk-live-marker.done   { background: #27C8D8; border-color: #27C8D8; box-shadow: 0 0 6px rgba(56,189,248,.6); }
 .chk-live-marker.active { background: #fff; border-color: #fff; box-shadow: 0 0 8px rgba(255,255,255,.7); }
 
 /* ── Timeline ── */
@@ -1992,7 +2139,7 @@ loadCheckins()
   z-index: 1;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
-.chk-ln-num.active { box-shadow: 0 0 0 4px color-mix(in srgb, var(--c, #054EAF) 20%, transparent); }
+.chk-ln-num.active { box-shadow: 0 0 0 4px color-mix(in srgb, var(--c, #27C8D8) 20%, transparent); }
 .chk-ln-num.done   { }
 
 /* Línea conectora */
@@ -2011,7 +2158,7 @@ loadCheckins()
   background: #16A34A;
 }
 .chk-ln-line.active {
-  background: linear-gradient(180deg, var(--c, #054EAF) 0%, #E2E8F0 100%);
+  background: linear-gradient(180deg, var(--c, #27C8D8) 0%, #E2E8F0 100%);
 }
 .chk-ln-line.active::after {
   content: '';
@@ -2064,8 +2211,8 @@ loadCheckins()
   opacity: 0.88;
 }
 .chk-ln-card.active {
-  border-color: var(--c, #054EAF);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--c, #054EAF) 10%, transparent),
+  border-color: var(--c, #27C8D8);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--c, #27C8D8) 10%, transparent),
               0 4px 24px rgba(0,0,0,.06);
 }
 .chk-ln-card.pending {
@@ -2116,7 +2263,7 @@ loadCheckins()
   flex-shrink: 0;
 }
 .chk-ln-status.done    { background: #DCFCE7; color: #15803D; }
-.chk-ln-status.active  { background: #EFF6FF; color: #054EAF; }
+.chk-ln-status.active  { background: #E0F9FA; color: #27C8D8; }
 .chk-ln-status.pending { background: #F1F5F9; color: #94A3B8; }
 
 /* Pulso "En curso" */
@@ -2125,7 +2272,7 @@ loadCheckins()
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #054EAF;
+  background: #27C8D8;
   animation: live-pulse 1.2s ease-in-out infinite;
 }
 
@@ -2156,7 +2303,7 @@ loadCheckins()
   line-height: 1.5;
   transition: border-color 0.15s;
 }
-.chk-ln-note:focus { border-color: #054EAF; background: #fff; }
+.chk-ln-note:focus { border-color: #27C8D8; background: #fff; }
 .chk-ln-note::placeholder { color: #CBD5E1; }
 .chk-ln-note--spont { margin-top: 10px; }
 
@@ -2193,7 +2340,7 @@ loadCheckins()
   padding: 8px 18px;
   border: none;
   border-radius: 10px;
-  background: var(--c, #054EAF);
+  background: var(--c, #27C8D8);
   color: #fff;
   font-size: 13px;
   font-weight: 600;
@@ -2266,21 +2413,21 @@ loadCheckins()
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: #054EAF;
+  background: #27C8D8;
   color: #fff;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 24px rgba(5,78,175,.5);
+  box-shadow: 0 4px 24px rgba(39,200,216,.5);
   z-index: 200;
   transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
 }
 .chk-flow-fab:hover {
-  background: #03368A;
+  background: #1BAEBB;
   transform: scale(1.07);
-  box-shadow: 0 6px 32px rgba(5,78,175,.6);
+  box-shadow: 0 6px 32px rgba(39,200,216,.6);
 }
 
 /* ── Botón "Abrir flujo" ── */
@@ -2344,14 +2491,14 @@ loadCheckins()
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .chk-qt-card:hover {
-  border-color: #054EAF;
-  box-shadow: 0 2px 10px rgba(5,78,175,.08);
+  border-color: #27C8D8;
+  box-shadow: 0 2px 10px rgba(39,200,216,.08);
 }
 .chk-qt-card-main { flex: 1; min-width: 0; }
 .chk-qt-num {
   font-size: 11px;
   font-weight: 700;
-  color: #054EAF;
+  color: #27C8D8;
   letter-spacing: 0.4px;
   margin-bottom: 3px;
 }
@@ -2401,11 +2548,11 @@ loadCheckins()
   align-items: center;
   gap: 12px;
   padding: 12px 18px;
-  background: #EFF6FF;
-  border: 1.5px solid #BFDBFE;
+  background: #E0F9FA;
+  border: 1.5px solid #A7EEF5;
   border-radius: 12px;
 }
-.chk-qt-banner-icon { color: #054EAF; flex-shrink: 0; }
+.chk-qt-banner-icon { color: #27C8D8; flex-shrink: 0; }
 .chk-qt-banner-info {
   flex: 1;
   display: flex;
@@ -2416,14 +2563,14 @@ loadCheckins()
 .chk-qt-banner-tag {
   font-size: 10px;
   font-weight: 700;
-  color: #3B82F6;
+  color: #27C8D8;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 .chk-qt-banner-detail {
   font-size: 14px;
   font-weight: 600;
-  color: #1D4ED8;
+  color: #27C8D8;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2431,17 +2578,17 @@ loadCheckins()
 .chk-qt-banner-change {
   flex-shrink: 0;
   padding: 5px 12px;
-  border: 1.5px solid #93C5FD;
+  border: 1.5px solid #8EEAF3;
   border-radius: 8px;
   background: #fff;
   font-size: 12px;
   font-weight: 600;
-  color: #054EAF;
+  color: #27C8D8;
   cursor: pointer;
   font-family: 'Inter', sans-serif;
   transition: background 0.15s;
 }
-.chk-qt-banner-change:hover { background: #DBEAFE; }
+.chk-qt-banner-change:hover { background: #CCEFF2; }
 
 /* Badge de cotización en tarjetas de la lista */
 .chk-card-qt {
@@ -2449,7 +2596,7 @@ loadCheckins()
   align-items: center;
   gap: 4px;
   font-size: 11px;
-  color: #3B82F6;
+  color: #27C8D8;
   margin-top: 4px;
 }
 
@@ -2459,7 +2606,7 @@ loadCheckins()
   align-items: center;
   gap: 5px;
   font-size: 11px;
-  color: #38BDF8;
+  color: #27C8D8;
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid rgba(255,255,255,.06);
@@ -2485,10 +2632,11 @@ loadCheckins()
   background: #fff;
   border: 1.5px solid #E2E8F0;
   border-radius: 14px;
-  padding: 14px;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
+  overflow: hidden;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
@@ -2502,6 +2650,23 @@ loadCheckins()
   display: flex;
   align-items: center;
   gap: 8px;
+}
+.chk-juego-header--btn {
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 12px 14px;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 12px 12px 0 0;
+  transition: background 0.15s;
+}
+.chk-juego-header--btn:active {
+  background: #E0F9FA;
+}
+.chk-juego-card--expanded .chk-juego-header--btn {
+  border-bottom: 1px solid #F1F5F9;
+  border-radius: 12px 12px 0 0;
 }
 
 .chk-juego-icon {
@@ -2578,7 +2743,7 @@ loadCheckins()
 
 .chk-juego-bar-fill {
   height: 100%;
-  background: #38BDF8;
+  background: #27C8D8;
   border-radius: 99px;
   transition: width 0.3s ease, background 0.3s;
 }
@@ -2676,13 +2841,15 @@ loadCheckins()
   text-transform: uppercase;
   padding: 2px 8px;
   border-radius: 99px;
-  background: #EFF6FF;
-  color: #1D4ED8;
+  background: #E0F9FA;
+  color: #27C8D8;
   flex-shrink: 0;
   font-family: 'Inter', sans-serif;
 }
 
-.chk-puntos-readonly { gap: 0; }
+.chk-puntos-readonly { gap: 0; padding: 8px 10px; }
+.chk-juego-card--readonly .chk-jrd-sep { margin: 0; padding: 6px 14px; }
+.chk-juego-card--readonly .chk-jrd-content { padding: 10px 14px 14px; }
 
 .chk-punto-row-ro {
   display: flex;
@@ -2787,7 +2954,7 @@ loadCheckins()
 .ckv-dot {
   width: 9px; height: 9px; border-radius: 50%;
 }
-.ckv-dot--blue  { background: #3B82F6; }
+.ckv-dot--blue  { background: #27C8D8; }
 .ckv-dot--green { background: #10B981; }
 .ckv-dot--gray  { background: #CBD5E1; }
 
@@ -2848,10 +3015,10 @@ loadCheckins()
   display: inline-flex; align-items: center; gap: 5px;
   padding: 4px 10px; border-radius: 99px;
   font-size: 11px; font-weight: 600; cursor: pointer;
-  border: 1.5px solid #BFDBFE; background: #EFF6FF; color: #1D4ED8;
+  border: 1.5px solid #A7EEF5; background: #E0F9FA; color: #27C8D8;
   transition: all 0.18s; white-space: nowrap;
 }
-.ckv-share-btn:hover { background: #DBEAFE; border-color: #93C5FD; }
+.ckv-share-btn:hover { background: #CCEFF2; border-color: #8EEAF3; }
 .ckv-share-copied {
   background: #F0FDF4 !important; border-color: #BBF7D0 !important; color: #166534 !important;
 }
@@ -2930,7 +3097,7 @@ button.ckv-jrow-main:active { background: rgba(0,0,0,0.03); }
   flex-shrink: 0;
   transition: background 0.2s;
 }
-.ckv-jrow--blue  .ckv-jrow-icon { background: #EFF6FF; color: #3B82F6; }
+.ckv-jrow--blue  .ckv-jrow-icon { background: #E0F9FA; color: #27C8D8; }
 .ckv-jrow--green .ckv-jrow-icon { background: #D1FAE5; color: #059669; }
 .ckv-jrow--gray  .ckv-jrow-icon { background: #F1F5F9; color: #CBD5E1; }
 
@@ -2962,7 +3129,7 @@ button.ckv-jrow-main:active { background: rgba(0,0,0,0.03); }
   font-family: 'Inter', sans-serif;
   white-space: nowrap;
 }
-.ckv-badge--blue  { background: #EFF6FF; color: #1D4ED8; }
+.ckv-badge--blue  { background: #E0F9FA; color: #27C8D8; }
 .ckv-badge--green { background: #D1FAE5; color: #059669; }
 .ckv-badge--gray  { background: #F1F5F9; color: #94A3B8; }
 
@@ -2985,7 +3152,7 @@ button.ckv-jrow-main:active { background: rgba(0,0,0,0.03); }
 }
 .ckv-jrow-minibar-fill {
   height: 100%;
-  background: #3B82F6;
+  background: #27C8D8;
   border-radius: 99px;
   transition: width 0.3s ease;
 }
@@ -3079,5 +3246,246 @@ button.ckv-jrow-main:active { background: rgba(0,0,0,0.03); }
 /* Espacio seguro al final (notch móvil) */
 .ckv-safe-bottom {
   height: calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ════════════════════════════════════════════════
+   EVIDENCIAS POR JUEGO — readonly detail + sección global
+   ════════════════════════════════════════════════ */
+
+/* ── Separador "Evidencias" dentro de la tarjeta de checklist ── */
+.chk-jrd-sep {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 0;
+}
+.chk-jrd-sep::before,
+.chk-jrd-sep::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #E2E8F0;
+}
+.chk-jrd-sep span {
+  font-size: 9px;
+  font-weight: 700;
+  color: #CBD5E1;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  white-space: nowrap;
+}
+
+/* ── Contenedor de evidencias (dentro de checklist card) ── */
+.chk-jrd-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Fotos: scroll horizontal nativo en móvil ── */
+.chk-jrd-photos {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+  margin: 0 -2px;
+  padding-left: 2px;
+}
+.chk-jrd-photos::-webkit-scrollbar { display: none; }
+.chk-jrd-photo {
+  flex-shrink: 0;
+  width: 80px;
+  height: 80px;
+  border-radius: 10px;
+  overflow: hidden;
+  display: block;
+  border: 1.5px solid #E2E8F0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  transition: transform 0.15s;
+}
+.chk-jrd-photo:active { transform: scale(0.97); }
+.chk-jrd-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ── Stats de anclajes: 3 celdas en fila ── */
+.chk-jrd-nums {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  background: #E0F9FA;
+  border-radius: 12px;
+  padding: 10px 8px;
+}
+.chk-jrd-num-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+.chk-jrd-num-val {
+  font-size: 22px;
+  font-weight: 800;
+  color: #27C8D8;
+  line-height: 1;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  letter-spacing: -0.5px;
+}
+.chk-jrd-num-lbl {
+  font-size: 9px;
+  font-weight: 700;
+  color: #8EEAF3;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.3;
+}
+/* Sin anclar = alerta naranja */
+.chk-jrd-num-item--warn .chk-jrd-num-val { color: #C2410C; }
+.chk-jrd-num-item--warn .chk-jrd-num-lbl { color: #FDBA74; }
+.chk-jrd-nums:has(.chk-jrd-num-item--warn) { background: #FFF7ED; }
+
+/* ── Observaciones: quote-card ── */
+.chk-jrd-obs-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.chk-jrd-obs-lbl {
+  font-size: 9px;
+  font-weight: 700;
+  color: #94A3B8;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+}
+.chk-jrd-obs-text {
+  font-size: 13px;
+  color: #334155;
+  line-height: 1.6;
+  margin: 0;
+  padding: 8px 12px;
+  background: #F8FAFC;
+  border-left: 3px solid #CBD5E1;
+  border-radius: 0 8px 8px 0;
+  white-space: pre-wrap;
+}
+
+/* ══════════════════════════════════════════════════
+   SECCIÓN GLOBAL "Observaciones y anclajes por producto"
+   ══════════════════════════════════════════════════ */
+.chk-obs-juegos-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chk-obs-juego-block {
+  border: 1.5px solid #E2E8F0;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+  position: relative;
+}
+/* Accent bar lateral izquierdo */
+.chk-obs-juego-block::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #27C8D8 0%, #27C8D8 100%);
+  border-radius: 14px 0 0 14px;
+}
+
+/* Header: nombre del producto — botón acordeón */
+.chk-obs-juego-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 14px 11px 20px;
+  background: #F8FAFC;
+  border: none;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+  color: #64748B;
+  transition: background 0.15s;
+}
+.chk-obs-juego-block--open .chk-obs-juego-name {
+  border-bottom-color: #F1F5F9;
+}
+.chk-obs-juego-name:active {
+  background: #E0F9FA;
+}
+.chk-obs-juego-nombre-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0F172A;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chk-obs-juego-qty {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  color: #94A3B8;
+  background: #E2E8F0;
+  padding: 1px 6px;
+  border-radius: 99px;
+}
+
+/* Mini-chips en estado colapsado */
+.chk-obs-chips {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.chk-obs-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #27C8D8;
+  background: #E0F9FA;
+  border: 1px solid #A7EEF5;
+  padding: 1px 5px;
+  border-radius: 99px;
+  line-height: 1.4;
+}
+.chk-obs-chip--warn {
+  color: #EA580C;
+  background: #FFF7ED;
+  border-color: #FED7AA;
+}
+
+/* Chevron rotatable */
+.chk-obs-chevron {
+  color: #94A3B8;
+  transition: transform 0.2s ease;
+}
+.chk-obs-chevron--open {
+  transform: rotate(90deg);
+  color: #27C8D8;
+}
+
+/* Área de contenido */
+.chk-obs-juego-content {
+  padding: 14px 16px 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 </style>
