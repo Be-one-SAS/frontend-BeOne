@@ -10,6 +10,9 @@
             class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full pl-9 pr-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] cursor-pointer transition-colors" readonly />
       </div>
     </div>
+    <p v-if="props.dataClient?.name && props.dataClient.id !== 'cliente_directo'" class="text-[12px] text-[#64748B] mt-1">
+      Se factura a: <span class="font-semibold text-[#0F1A2E]">{{ props.dataClient.name }}</span>
+    </p>
 
     <!-- Modal de búsqueda -->
     <ModalReutilizable :show="openModal" @close="openModal = false">
@@ -135,12 +138,14 @@ async function cargarClientes() {
     if (clientesCargados.value) return
     try {
         const response = await getBox()
-        const data = response.data || []
+        const data = response.data || {}
 
-        // ---  NUEVO: Tomamos solo el primer grupo ---
-        const primerGrupo = data[1]
+        // El endpoint agrupa las cajas de precio por productId (claves dinámicas,
+        // no necesariamente "1") — tomamos el primer grupo que exista, o ninguno
+        // si todavía no hay productos con cajas cargadas.
+        const grupos = Object.values(data)
+        const primerGrupo = grupos.length ? grupos[0] : []
 
-        // --- Transformamos a lista de nombres ---
         clientes.value = primerGrupo.map(box => ({
             id: box.id,
             name: box.boxName   // mostramos CAFAM, COLSUBSIDIO, etc.

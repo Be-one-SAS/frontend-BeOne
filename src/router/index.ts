@@ -293,7 +293,7 @@ const routes = [
         path: 'admin/quotation-params',
         name: 'QuotationParams',
         component: () => import('../views/admin/QuotationParams.vue'),
-        meta: { roles: ['ADMIN'] },
+        meta: { roles: ['ADMIN', 'DIRECCION', 'ADMINISTRADOR', 'LIDER', 'SUPERVISOR'] },
       },
       // NOTA: /users/roles eliminado — módulo consolidado en /users/list
 

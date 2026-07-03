@@ -29,12 +29,17 @@ export function useUsers() {
   const statusFiltro = ref('')
 
   // ── Carga ──────────────────────────────────────────────
+  // El backend solo puede alternar el booleano `isActive` (endpoint
+  // toggle-active); el campo `status` de texto no se actualiza en ningún
+  // otro endpoint, así que se deriva aquí para que siempre refleje el
+  // estado real tras crear/editar/activar/desactivar un usuario.
   const loadUsers = async () => {
     loading.value = true
     error.value   = null
     try {
-      const data    = await getUsers()
-      users.value   = Array.isArray(data) ? data : (data?.data ?? [])
+      const data  = await getUsers()
+      const raw   = Array.isArray(data) ? data : (data?.data ?? [])
+      users.value = raw.map((u: any) => ({ ...u, status: u.isActive ? 'Activo' : 'Inactivo' }))
     } catch (e: any) {
       error.value = e?.message ?? 'Error al cargar usuarios'
     } finally {
@@ -95,8 +100,7 @@ export function useUsers() {
   const toggleStatus = async (u: any) => {
     error.value = null
     try {
-      const newStatus = u.status === 'Activo' ? 'Inactivo' : 'Activo'
-      await toggleUserStatus(u.id, newStatus)
+      await toggleUserStatus(u.id)
       await loadUsers()
     } catch (e: any) {
       const msg = parseUserError(e, 'Error al cambiar el estado del usuario')

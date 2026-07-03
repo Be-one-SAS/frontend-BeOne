@@ -83,17 +83,32 @@ export const updateUserRole = async (id, role) => {
 }
 
 /**
- * PATCH /users/:id/status
- * Activa o desactiva un usuario.
+ * PATCH /users/:id/toggle-active
+ * Activa o desactiva un usuario (invierte el campo isActive).
  * @param {number|string} id
- * @param {string} status - 'Activo' | 'Inactivo' | 'Suspendido'
  */
-export const toggleUserStatus = async (id, status) => {
+export const toggleUserStatus = async (id) => {
   try {
-    const response = await api.patch(`/users/${id}/status`, { status })
+    const response = await api.patch(`/users/${id}/toggle-active`)
     return response.data
   } catch (error) {
     console.error(`[users.service] Error en toggleUserStatus(${id}):`, error)
+    throw error
+  }
+}
+
+/**
+ * PATCH /users/:id/reassign
+ * Reasigna el superior (parentId) de un usuario.
+ * @param {number|string} id
+ * @param {number} newParentId
+ */
+export const reassignUser = async (id, newParentId) => {
+  try {
+    const response = await api.patch(`/users/${id}/reassign`, { newParentId })
+    return response.data
+  } catch (error) {
+    console.error(`[users.service] Error en reassignUser(${id}):`, error)
     throw error
   }
 }

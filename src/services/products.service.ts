@@ -65,6 +65,15 @@ export const updateProduct = async (id: number | string, data: object) => {
     }
 };
 
+export const createProduct = async (data: object) => {
+    try {
+        return await api.post("/producto", data);
+    } catch (error) {
+        console.error("Fallo el servicio para crear el producto", error);
+        throw error;
+    }
+};
+
 // TERCEROS
 export const getThirdPartyCatalog = async () => {
     try {

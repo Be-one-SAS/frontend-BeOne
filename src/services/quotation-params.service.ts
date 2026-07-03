@@ -1,9 +1,10 @@
 import api from './api'
 
-export const getParams = async () => {
+export const getParams = async (sedeId?: number | null) => {
     try {
         const response = await api.get('/quotation-params', {
             headers: { 'Content-Type': 'application/json' },
+            params: sedeId ? { sedeId } : undefined,
         })
         return response
     } catch (error) {
@@ -11,11 +12,11 @@ export const getParams = async () => {
     }
 }
 
-export const updateParam = async (key: string, value: any) => {
+export const updateParam = async (key: string, value: any, sedeId?: number | null) => {
     try {
         const response = await api.put(
             `/quotation-params/${key}`,
-            { value },
+            { value, ...(sedeId ? { sedeId } : {}) },
             { headers: { 'Content-Type': 'application/json' } }
         )
         return response

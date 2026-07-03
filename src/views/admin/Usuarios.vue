@@ -97,8 +97,8 @@
           <col style="width:120px" />
         </colgroup>
         <tbody>
-          <tr v-for="(u, idx) in filteredSorted" :key="u.id">
-            <td class="td-num">{{ idx + 1 }}</td>
+          <tr v-for="(u, idx) in pagedUsers" :key="u.id">
+            <td class="td-num">{{ (currentPage - 1) * itemsPerPage + idx + 1 }}</td>
             <td>
               <div class="user-cell">
                 <div class="avatar" :style="{ background: avatarBg(u.fullName) }">
@@ -132,6 +132,12 @@
           </tr>
         </tbody>
       </table>
+
+      <div v-if="!loading && filteredSorted.length > 0" class="pagination-wrap">
+        <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">Ant</button>
+        <span class="page-info">Pág {{ currentPage }} de {{ totalPages }}</span>
+        <button class="page-btn" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">Sig</button>
+      </div>
     </div>
 
     <!-- Modal crear/editar -->
@@ -231,7 +237,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import {
   UserPlus, Search, Users, AlertCircle, Pencil,
   UserX, UserCheck, ArrowLeftRight, UserCog, X,
@@ -239,8 +245,9 @@ import {
 } from 'lucide-vue-next'
 import { useUsers } from '@/composables/useUsers'
 import { useAuth } from '@/composables/useAuth'
+import { reassignUser } from '@/services/users.service'
 
-const { users, loading, error, fetchUsers, addUser, editUser, toggleActive, reassign } = useUsers()
+const { users, loading, error, loadUsers: fetchUsers, upsertUser, toggleStatus } = useUsers()
 const { user: authUser } = useAuth()
 
 const roles = ['ADMIN', 'COMERCIAL', 'SUPERVISOR', 'LOGISTICA', 'COORDINADOR', 'FINANCIERO', 'SOPORTE']
@@ -279,6 +286,20 @@ const filteredSorted = computed(() => {
     return sortDir.value === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
   })
 })
+
+// ── Paginación ───────────────────────────────────────
+const currentPage  = ref(1)
+const itemsPerPage = ref(10)
+
+const pagedUsers = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value
+  return filteredSorted.value.slice(start, start + itemsPerPage.value)
+})
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredSorted.value.length / itemsPerPage.value)))
+const changePage = (p) => {
+  if (p >= 1 && p <= totalPages.value) currentPage.value = p
+}
+watch([search, filterRole, filterActive], () => { currentPage.value = 1 })
 
 // Role check
 const canReassign = computed(() => {
@@ -335,9 +356,9 @@ const handleSave = async () => {
   actionError.value = ''
   try {
     if (editingUser.value) {
-      await editUser(editingUser.value.id, { fullName, email, role })
+      await upsertUser({ id: editingUser.value.id, fullName, email, role })
     } else {
-      await addUser({ fullName, email, password, role })
+      await upsertUser({ fullName, email, password, role })
     }
     closeModal()
   } catch (e) {
@@ -351,7 +372,7 @@ const handleSave = async () => {
 const handleToggle = async (u) => {
   actionError.value = ''
   try {
-    await toggleActive(u.id)
+    await toggleStatus(u)
   } catch (e) {
     actionError.value = e?.message ?? 'El usuario no fue encontrado.'
   }
@@ -373,10 +394,11 @@ const handleReassign = async () => {
   saving.value = true
   actionError.value = ''
   try {
-    await reassign(reassignTarget.value.id, newParentId.value)
+    await reassignUser(reassignTarget.value.id, newParentId.value)
+    await fetchUsers()
     showReassign.value = false
   } catch (e) {
-    actionError.value = e?.message ?? 'El usuario no fue encontrado.'
+    actionError.value = e?.response?.data?.message ?? e?.message ?? 'No se pudo reasignar el usuario.'
   } finally {
     saving.value = false
   }
@@ -464,6 +486,28 @@ onMounted(async () => { await fetchUsers() })
   border-collapse: collapse;
   table-layout: fixed;
 }
+.pagination-wrap {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-top: 1px solid #E2E8F0;
+}
+.page-btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #E2E8F0;
+  background: #F8FAFC;
+  color: #0F172A;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.page-btn:hover:not(:disabled) { background: #E2EBF6; color: #27C8D8; }
+.page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.page-info { font-size: 13px; color: #64748B; font-weight: 500; font-family: 'Inter', sans-serif; }
 .sort-header-table thead th {
   padding: 13px 14px;
   font-size: 11px;

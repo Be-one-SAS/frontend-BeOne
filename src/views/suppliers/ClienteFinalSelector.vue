@@ -15,6 +15,9 @@
         <IconEdit class="w-[18px] h-[18px]" />
       </button>
     </div>
+    <p v-if="props.dataClient && props.dataClient.name" class="text-[12px] text-[#64748B] mt-1">
+      Se factura a: <span class="font-semibold text-[#0F1A2E]">{{ props.dataClient.name }}</span>
+    </p>
 
     <!-- Modal de búsqueda/creación -->
     <ModalReutilizable :show="openModal" @close="openModal = false">
@@ -76,7 +79,13 @@
               <input v-model="nuevoCliente.contactName" placeholder="Contacto de referencia" class="w-full bg-white border border-[#E5EAF0] rounded-[8px] px-3 py-[8px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
             </div>
             <div class="col-span-2">
+              <input v-model="nuevoCliente.direccion" placeholder="Dirección" class="w-full bg-white border border-[#E5EAF0] rounded-[8px] px-3 py-[8px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
+            </div>
+            <div class="col-span-2">
               <input v-model="nuevoCliente.reference" placeholder="Referencia" class="w-full bg-white border border-[#E5EAF0] rounded-[8px] px-3 py-[8px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
+            </div>
+            <div class="col-span-2">
+              <textarea v-model="nuevoCliente.notas" placeholder="Notas / Observaciones" rows="2" class="w-full bg-white border border-[#E5EAF0] rounded-[8px] px-3 py-[8px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors resize-none"></textarea>
             </div>
           </div>
           <div class="mt-2">
@@ -130,8 +139,16 @@
             <label class="text-[12px] text-[#64748B] mb-1 block">Referencia</label>
             <input v-model="nuevoCliente.reference" placeholder="Referencia" class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full px-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
           </div>
+          <div class="col-span-2">
+            <label class="text-[12px] text-[#64748B] mb-1 block">Dirección</label>
+            <input v-model="nuevoCliente.direccion" placeholder="Dirección" class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full px-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
+          </div>
+          <div class="col-span-2">
+            <label class="text-[12px] text-[#64748B] mb-1 block">Notas / Observaciones</label>
+            <textarea v-model="nuevoCliente.notas" placeholder="Notas / Observaciones" rows="2" class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-[16px] px-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors resize-none"></textarea>
+          </div>
         </div>
-        
+
         <div class="mb-2">
           <span class="text-[11px] font-medium text-[#27C8D8] bg-[#E0F9FA] px-2 py-0.5 rounded border border-[#A7EEF5]">TIPO: {{ nuevoCliente.type }}</span>
         </div>
@@ -176,6 +193,8 @@ const nuevoCliente = ref({
   document: undefined,
   contactName: undefined,
   reference: undefined,
+  direccion: undefined,
+  notas: undefined,
   type: 'INDIRECTO'
 })
 
@@ -263,6 +282,8 @@ async function actualizarCliente() {
       document: nuevoCliente.value.document,
       contactName: nuevoCliente.value.contactName,
       reference: nuevoCliente.value.reference,
+      direccion: nuevoCliente.value.direccion,
+      notas: nuevoCliente.value.notas,
       type: nuevoCliente.value.type
     })
     const clienteActualizado = response.data
