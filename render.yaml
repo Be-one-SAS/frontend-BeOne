@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: beone-frontend
+    env: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    routes:
+      # SPA fallback: Vue Router maneja las rutas del lado del cliente, así
+      # que cualquier ruta que no sea un archivo estático real (ej.
+      # /admin/cotizar, o un refresh en esa ruta) debe servir index.html en
+      # vez de un 404 — el router de Vue toma el control desde ahí.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        value: https://api.beonecolombia.com/api
