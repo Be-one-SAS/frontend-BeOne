@@ -27,6 +27,8 @@ const nuevoCliente = ref({
   document:    undefined,
   contactName: undefined,
   reference:   undefined,
+  direccion:   undefined,
+  notas:       undefined,
   type:        'INDIRECTO',
 })
 
@@ -85,6 +87,8 @@ const openCustomerModal = (row) => {
   nuevoCliente.value.document    = row.document    || ''
   nuevoCliente.value.contactName = row.contactName || ''
   nuevoCliente.value.reference   = row.reference   || ''
+  nuevoCliente.value.direccion   = row.direccion   || ''
+  nuevoCliente.value.notas       = row.notas       || ''
   nuevoCliente.value.type        = row.type
   showModal.value = true
 }
@@ -99,7 +103,7 @@ const openCreateModal = () => {
   nuevoCliente.value = {
     name: undefined, nit: undefined, email: undefined,
     phone: undefined, document: undefined, contactName: undefined,
-    reference: undefined, type: 'INDIRECTO',
+    reference: undefined, direccion: undefined, notas: undefined, type: 'INDIRECTO',
   }
   showCreateModal.value = true
 }
@@ -114,6 +118,8 @@ const openNewCustomerModal = async () => {
       document:    nuevoCliente.value.document,
       contactName: nuevoCliente.value.contactName,
       reference:   nuevoCliente.value.reference,
+      direccion:   nuevoCliente.value.direccion,
+      notas:       nuevoCliente.value.notas,
       type:        nuevoCliente.value.type,
     })
     showCreateModal.value = false
@@ -135,6 +141,8 @@ async function actualizarCliente() {
       document:    nuevoCliente.value.document,
       contactName: nuevoCliente.value.contactName,
       reference:   nuevoCliente.value.reference,
+      direccion:   nuevoCliente.value.direccion,
+      notas:       nuevoCliente.value.notas,
       type:        nuevoCliente.value.type,
     })
     console.log('Cliente actualizado:', response.data)
@@ -306,9 +314,9 @@ onMounted(async () => {
                             <span class="cu-exp-label">Teléfono 2</span>
                             <span class="cu-exp-val">{{ row.phoneTwo }}</span>
                           </div>
-                          <div v-if="row.address" class="cu-exp-field">
+                          <div v-if="row.direccion" class="cu-exp-field">
                             <span class="cu-exp-label">Dirección</span>
-                            <span class="cu-exp-val">{{ row.address }}</span>
+                            <span class="cu-exp-val">{{ row.direccion }}</span>
                           </div>
                           <div v-if="row.city" class="cu-exp-field">
                             <span class="cu-exp-label">Ciudad</span>
@@ -321,6 +329,10 @@ onMounted(async () => {
                           <div v-if="row.reference" class="cu-exp-field cu-exp-field--wide">
                             <span class="cu-exp-label">Referencia</span>
                             <span class="cu-exp-val">{{ row.reference }}</span>
+                          </div>
+                          <div v-if="row.notas" class="cu-exp-field cu-exp-field--wide">
+                            <span class="cu-exp-label">Notas / Observaciones</span>
+                            <span class="cu-exp-val">{{ row.notas }}</span>
                           </div>
 
                         </div>
@@ -392,6 +404,8 @@ onMounted(async () => {
           <input v-model="nuevoCliente.document"    placeholder="Documento"           class="cu-input" />
           <input v-model="nuevoCliente.contactName" placeholder="Nombre de contacto"  class="cu-input" />
           <input v-model="nuevoCliente.reference"   placeholder="Referencia"          class="cu-input" />
+          <input v-model="nuevoCliente.direccion"   placeholder="Dirección"           class="cu-input" />
+          <textarea v-model="nuevoCliente.notas"    placeholder="Notas / Observaciones" rows="2" class="cu-input cu-textarea"></textarea>
           <select v-model="nuevoCliente.type"       class="cu-input">
             <option value="DIRECTO">Directo</option>
             <option value="INDIRECTO">Indirecto</option>
@@ -425,6 +439,8 @@ onMounted(async () => {
           <input v-model="nuevoCliente.document"    placeholder="Documento"           class="cu-input" />
           <input v-model="nuevoCliente.contactName" placeholder="Nombre de contacto"  class="cu-input" />
           <input v-model="nuevoCliente.reference"   placeholder="Referencia / Nota"   class="cu-input" />
+          <input v-model="nuevoCliente.direccion"   placeholder="Dirección"           class="cu-input" />
+          <textarea v-model="nuevoCliente.notas"    placeholder="Notas / Observaciones" rows="2" class="cu-input cu-textarea"></textarea>
           <select v-model="nuevoCliente.type"       class="cu-input">
             <option value="DIRECTO">Directo</option>
             <option value="INDIRECTO">Indirecto</option>
@@ -514,6 +530,14 @@ select.cu-input {
   box-shadow: 0 0 0 3px rgba(39,200,216, 0.1);
 }
 .cu-input::placeholder { color: var(--text-3, #94A3B8); }
+.cu-textarea {
+  height: auto;
+  min-height: 60px;
+  border-radius: 12px;
+  padding: 10px 16px;
+  resize: vertical;
+  font-family: 'Inter', sans-serif;
+}
 .cu-input--sm { width: 70px; text-align: center; }
 
 /* ─── Tabla ─────────────────────────────────────────────── */

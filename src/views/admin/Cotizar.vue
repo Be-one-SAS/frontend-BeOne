@@ -145,15 +145,11 @@
             </div>
             <div class="g3">
               <InputLabel label="Agente Comercial" v-model="cotizacion.agenteComercial" disabled />
-              <div class="field-wrap">
-                <label class="field-lbl">Región operativa</label>
-                <select v-model="cotizacion.unidadEjecucion" class="field-sel">
-                  <option>Antioquia</option>
-                  <option>Cundinamarca</option>
-                  <option>Colombia</option>
-                  <option>Israel</option>
-                </select>
-              </div>
+              <SelectLabel
+                label="Región operativa"
+                v-model="cotizacion.unidadEjecucion"
+                :options="['Antioquia', 'Cundinamarca', 'Colombia', 'Israel']"
+              />
               <InputLabel label="Vigencia de Cotización" v-model="cotizacion.vigencia" />
             </div>
 
@@ -190,13 +186,11 @@
                 @update:address="cotizacion.ubicacion = $event"
               />
               <InputLabel label="Número de Asistentes" v-model="cotizacion.asistentes" type="number" />
-              <div class="field-wrap">
-                <label class="field-lbl">Tipo de Suelo</label>
-                <select v-model="cotizacion.tipoSuelo" class="field-sel">
-                  <option>Zona Cesped</option>
-                  <option>Zona Dura</option>
-                </select>
-              </div>
+              <SelectLabel
+                label="Tipo de Suelo"
+                v-model="cotizacion.tipoSuelo"
+                :options="['Zona Cesped', 'Zona Dura']"
+              />
             </div>
           </div>
 
@@ -401,7 +395,7 @@
                 <div v-else class="cart-items">
                   <!-- Equipos Propios -->
                   <div v-for="(it, i) in items" :key="'own-' + i" class="cart-row">
-                    <p class="cart-name">{{ it.nombre || it.dispositivo || it.descripcion }}</p>
+                    <p class="cart-name" :title="it.nombre || it.dispositivo || it.descripcion">{{ it.nombre || it.dispositivo || it.descripcion }}</p>
                     <div class="cart-meta">
                       <span class="cart-qty">{{ it.cantidadJornada }}j × {{ it.cantidadProducto }}u</span>
                       <span class="cart-price">{{ formatCOP(Math.round(totalesFilasPropias[i] || 0)) }}</span>
@@ -410,7 +404,7 @@
 
                   <!-- Productos Terceros -->
                   <div v-for="(it, i) in itemsTerceros" :key="'third-' + i" class="cart-row cart-row--tercero">
-                    <p class="cart-name">
+                    <p class="cart-name" :title="it.nombre || it.dispositivo || '—'">
                       <Truck :size="10" class="inline-icon" />
                       {{ it.nombre || it.dispositivo || '—' }}
                     </p>
@@ -1030,6 +1024,7 @@
 <script setup>
 // ── Imports originales — NO modificar ──────────────────────────────────────
 import InputLabel from '@/components/input/InputLabel.vue';
+import SelectLabel from '@/components/input/SelectLabel.vue';
 import CollaboratorsManager from './components/CollaboratorsManager.vue';
 import QuotationVersions from './components/QuotationVersions.vue';
 import { ref, onMounted, watch, computed } from 'vue';   // añadido: computed
@@ -2036,6 +2031,7 @@ watch(modalCotizacionExitosa, (val) => {
 .cart-col {
   position: sticky;
   top: 20px;
+  min-width: 0;
 }
 
 .cart-card {
@@ -2875,7 +2871,7 @@ watch(modalCotizacionExitosa, (val) => {
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
-.fin-bar-val--disc { color: #FCA5A5; }
+.fin-bar-val--disc { color: #7A1212; }
 .fin-bar-val--iva  { color: #80E5EF; }
 
 .fin-bar-val--total {

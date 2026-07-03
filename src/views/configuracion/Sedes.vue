@@ -125,6 +125,19 @@
                 </option>
               </select>
             </div>
+            <div class="sedes-field">
+              <label>Coordenadas (opcional)</label>
+              <div class="sedes-coords-row">
+                <input v-model.number="form.latitud" type="number" step="0.000001" class="sedes-input" placeholder="Latitud" />
+                <input v-model.number="form.longitud" type="number" step="0.000001" class="sedes-input" placeholder="Longitud" />
+                <button type="button" class="sedes-btn-ghost sedes-geo-btn" :disabled="locating" @click="useCurrentLocation">
+                  <Loader2 v-if="locating" :size="14" class="spin" />
+                  <MapPin v-else :size="14" />
+                  Usar mi ubicación
+                </button>
+              </div>
+              <p class="sedes-field-hint">Se usa para detectar automáticamente qué sede ejecutó un checklist según el GPS del dispositivo.</p>
+            </div>
             <div v-if="editingSede" class="sedes-field">
               <label>Estado</label>
               <div class="sedes-toggle-row">
@@ -338,7 +351,8 @@ const ciudadCustom      = ref('')     // valor libre si no está en la lista
 const showForm    = ref(false)
 const editingSede = ref(null)
 const saving      = ref(false)
-const form        = ref({ nombre: '', ciudad: '', descripcion: '', liderUserId: null, activa: true })
+const form        = ref({ nombre: '', ciudad: '', descripcion: '', liderUserId: null, activa: true, latitud: null, longitud: null })
+const locating    = ref(false)
 
 // Detail modal
 const detailSede    = ref(null)
@@ -400,7 +414,7 @@ function sedeColor(nombre) {
 function openCreate() {
   editingSede.value = null
   ciudadCustom.value = ''
-  form.value = { nombre: '', ciudad: '', descripcion: '', liderUserId: null, activa: true }
+  form.value = { nombre: '', ciudad: '', descripcion: '', liderUserId: null, activa: true, latitud: null, longitud: null }
   showForm.value = true
 }
 
@@ -408,11 +422,33 @@ function openEdit(s) {
   editingSede.value = s
   const esConocida = unidadesEjecucion.value.includes(s.ciudad)
   ciudadCustom.value = esConocida ? '' : (s.ciudad ?? '')
-  form.value = { nombre: s.nombre, ciudad: esConocida ? s.ciudad : '__custom__', descripcion: s.descripcion ?? '', liderUserId: s.lider?.id ?? null, activa: s.activa }
+  form.value = {
+    nombre: s.nombre,
+    ciudad: esConocida ? s.ciudad : '__custom__',
+    descripcion: s.descripcion ?? '',
+    liderUserId: s.lider?.id ?? null,
+    activa: s.activa,
+    latitud: s.latitud ?? null,
+    longitud: s.longitud ?? null,
+  }
   showForm.value = true
 }
 
 function closeForm() { showForm.value = false; editingSede.value = null }
+
+function useCurrentLocation() {
+  if (!('geolocation' in navigator)) return
+  locating.value = true
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      form.value.latitud = pos.coords.latitude
+      form.value.longitud = pos.coords.longitude
+      locating.value = false
+    },
+    () => { locating.value = false },
+    { enableHighAccuracy: true, timeout: 8000 },
+  )
+}
 
 async function saveForm() {
   const ciudadFinal = form.value.ciudad === '__custom__' ? ciudadCustom.value.trim() : form.value.ciudad
@@ -424,6 +460,8 @@ async function saveForm() {
       ciudad: ciudadFinal,
       descripcion: form.value.descripcion.trim() || undefined,
       liderUserId: form.value.liderUserId || undefined,
+      latitud: form.value.latitud !== null && form.value.latitud !== '' ? Number(form.value.latitud) : undefined,
+      longitud: form.value.longitud !== null && form.value.longitud !== '' ? Number(form.value.longitud) : undefined,
       ...(editingSede.value && { activa: form.value.activa }),
     }
     if (editingSede.value) {
@@ -559,6 +597,11 @@ async function removeUser(u) {
 .sedes-btn-danger { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; background: #FEF2F2; color: #DC2626; border: 1.5px solid #FCA5A5; border-radius: 9px; font-size: 13px; font-weight: 600; cursor: pointer; }
 .sedes-btn-danger:hover:not(:disabled) { background: #FEE2E2; }
 .sedes-btn-danger:disabled { opacity: .6; cursor: not-allowed; }
+.sedes-coords-row { display: flex; gap: 8px; }
+.sedes-coords-row .sedes-input { flex: 1; min-width: 0; }
+.sedes-geo-btn { white-space: nowrap; flex-shrink: 0; }
+.sedes-geo-btn:disabled { opacity: .6; cursor: not-allowed; }
+.sedes-field-hint { font-size: 11px; color: #94A3B8; margin: 4px 0 0; }
 
 .sedes-btn-sm { display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px; font-size: 11px; font-weight: 600; border-radius: 7px; cursor: pointer; border: 1.5px solid #E2E8F0; background: #F8FAFC; color: #374151; }
 .sedes-btn-sm:hover { background: #F1F5F9; }

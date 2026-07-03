@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getInventory } from '@/services/inventory.service'
 import BaseTable     from '@/components/ui/BaseTable.vue'
@@ -7,6 +7,7 @@ import ScanModal     from '@/components/inventory/ScanModal.vue'
 import SessionPanel  from '@/components/inventory/SessionPanel.vue'
 import {
   Search, RefreshCw, ChevronUp, ChevronDown,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   QrCode, Wifi, AlertTriangle, Eye, X,
   PackageCheck, PackageSearch, Clock, Wrench, Smartphone,
 } from 'lucide-vue-next'
@@ -29,6 +30,23 @@ const showScan        = ref(false)
 const showSession     = ref(false)
 const alertOpen   = ref(true)
 
+/* ─── paginación (server-side) ──────────────────────────── */
+const currentPage = ref(1)
+const pageSize    = ref(20)
+const total       = ref(0)
+const totalPages  = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)))
+const visiblePages = computed(() => {
+  const t = totalPages.value, cur = currentPage.value
+  if (t <= 7) return Array.from({ length: t }, (_, i) => i + 1)
+  if (cur <= 4)      return [1, 2, 3, 4, 5, '...', t]
+  if (cur >= t - 3)  return [1, '...', t-4, t-3, t-2, t-1, t]
+  return [1, '...', cur-1, cur, cur+1, '...', t]
+})
+
+/* ─── KPIs (cuentas reales, independientes de la página actual) ── */
+const kpiCounts = ref({ total: 0, disponibles: 0, enReserva: 0, mantenimiento: 0, alertas: 0 })
+const bodegas   = ref([])
+
 /* ─── options ────────────────────────────────────────────── */
 const availOptions = [
   { value: 'DISPONIBLE',    label: 'Disponible'    },
@@ -44,19 +62,7 @@ const condOptions = [
   { value: 'NO_ACTIVO',        label: 'No activo'        },
 ]
 
-const bodegas = computed(() => {
-  const set = new Set(items.value.map(i => i.bodega).filter(Boolean))
-  return [...set].sort()
-})
-
-/* ─── KPIs ───────────────────────────────────────────────── */
-const kpis = computed(() => ({
-  total:        items.value.length,
-  disponibles:  items.value.filter(i => i.availabilityStatus === 'DISPONIBLE').length,
-  enReserva:    items.value.filter(i => i.availabilityStatus === 'EN_RESERVA').length,
-  mantenimiento: items.value.filter(i => i.conditionStatus === 'EN_MANTENIMIENTO' || i.conditionStatus === 'DEFECTUOSO').length,
-  alertas:      items.value.filter(i => i.hasAlert).length,
-}))
+const kpis = computed(() => kpiCounts.value)
 
 /* ─── columns ────────────────────────────────────────────── */
 const columns = [
@@ -72,21 +78,11 @@ const columns = [
   { key: '_actions',         label: 'Acciones',       width: '80px' },
 ]
 
-/* ─── filter + sort ──────────────────────────────────────── */
-const filteredSorted = computed(() => {
-  const q = search.value.toLowerCase()
-  let list = items.value.filter(i => {
-    const matchSearch = !q ||
-      (i.nombre?.toLowerCase().includes(q))   ||
-      (i.categoria?.toLowerCase().includes(q)) ||
-      (i.bodega?.toLowerCase().includes(q))    ||
-      (i.serialNumber?.toLowerCase().includes(q))
-    const matchAvail  = !availFilter.value  || i.availabilityStatus === availFilter.value
-    const matchCond   = !condFilter.value   || i.conditionStatus    === condFilter.value
-    const matchBodega = !bodegaFilter.value || i.bodega             === bodegaFilter.value
-    return matchSearch && matchAvail && matchCond && matchBodega
-  })
-
+/* ─── sort (sobre la página actual) ──────────────────────── */
+// El backend ya filtra por search/disponibilidad/condición/bodega y pagina
+// (ver fetchItems) — aquí solo se ordena la página ya recibida.
+const sortedItems = computed(() => {
+  let list = items.value
   if (sortKey.value) {
     const dir = sortDir.value === 'asc' ? 1 : -1
     list = [...list].sort((a, b) => {
@@ -95,8 +91,8 @@ const filteredSorted = computed(() => {
       return av < bv ? -dir : av > bv ? dir : 0
     })
   }
-
-  return list.map((i, idx) => ({ ...i, _idx: idx + 1 }))
+  const base = (currentPage.value - 1) * pageSize.value
+  return list.map((i, idx) => ({ ...i, _idx: base + idx + 1 }))
 })
 
 /* ─── sort ───────────────────────────────────────────────── */
@@ -159,8 +155,16 @@ const fetchItems = async () => {
   loading.value = true
   error.value   = null
   try {
-    const res    = await getInventory()
-    items.value  = res.data || res || []
+    const res = await getInventory({
+      search:    search.value || undefined,
+      status:    availFilter.value || undefined,
+      condition: condFilter.value || undefined,
+      bodega:    bodegaFilter.value || undefined,
+      page:      currentPage.value,
+      limit:     pageSize.value,
+    })
+    items.value = res.data ?? []
+    total.value = res.total ?? items.value.length
   } catch (e) {
     console.error(e)
     error.value = 'No se pudo cargar el inventario'
@@ -169,14 +173,67 @@ const fetchItems = async () => {
   }
 }
 
+/** KPIs reales sobre TODO el inventario (no solo la página cargada) */
+const fetchKpis = async () => {
+  try {
+    const [tot, disp, res, mant, defc] = await Promise.all([
+      getInventory({ limit: 1 }),
+      getInventory({ status: 'DISPONIBLE', limit: 1 }),
+      getInventory({ status: 'EN_RESERVA', limit: 1 }),
+      getInventory({ condition: 'EN_MANTENIMIENTO', limit: 1 }),
+      getInventory({ condition: 'DEFECTUOSO', limit: 1 }),
+    ])
+    const mantenimiento = (mant.total ?? 0) + (defc.total ?? 0)
+    kpiCounts.value = {
+      total:         tot.total ?? 0,
+      disponibles:   disp.total ?? 0,
+      enReserva:     res.total ?? 0,
+      mantenimiento,
+      alertas:       mantenimiento, // mismo criterio que hasAlert() en el backend
+    }
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+/** Opciones de bodega para el filtro (muestreo amplio, no exhaustivo) */
+const fetchBodegas = async () => {
+  try {
+    const res = await getInventory({ limit: 100 })
+    const set = new Set((res.data ?? []).map(i => i.bodega).filter(Boolean))
+    bodegas.value = [...set].sort()
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+const refetchAll = () => Promise.all([fetchItems(), fetchKpis(), fetchBodegas()])
+
+let searchTimer = null
+watch(search, () => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => { currentPage.value = 1; fetchItems() }, 350)
+})
+watch([availFilter, condFilter, bodegaFilter], () => {
+  currentPage.value = 1
+  fetchItems()
+})
+watch(pageSize, () => {
+  currentPage.value = 1
+  fetchItems()
+})
+watch(currentPage, fetchItems)
+
 const clearFilters = () => {
   search.value       = ''
   availFilter.value  = ''
   condFilter.value   = ''
   bodegaFilter.value = ''
+  currentPage.value  = 1
+  fetchItems()
 }
 
-onMounted(fetchItems)
+onMounted(refetchAll)
 </script>
 
 <template>
@@ -186,7 +243,7 @@ onMounted(fetchItems)
     <div class="inv-head">
       <div>
         <h2 class="inv-title">Inventario</h2>
-        <p class="inv-subtitle">{{ filteredSorted.length }} elementos encontrados</p>
+        <p class="inv-subtitle">{{ total }} elementos encontrados</p>
       </div>
       <div class="inv-head-actions">
         <button class="inv-btn-scan" @click="showScan = true">
@@ -195,7 +252,7 @@ onMounted(fetchItems)
         <button class="inv-btn-session" @click="showSession = true">
           <Smartphone :size="14" /> Sesión móvil
         </button>
-        <button class="inv-btn-reload" @click="fetchItems">
+        <button class="inv-btn-reload" @click="refetchAll">
           <RefreshCw :size="13" /> Recargar
         </button>
       </div>
@@ -266,7 +323,7 @@ onMounted(fetchItems)
     <div v-if="error" class="inv-error-card">
       <AlertTriangle :size="18" />
       <span>{{ error }}</span>
-      <button class="inv-btn-reload" @click="fetchItems">Reintentar</button>
+      <button class="inv-btn-reload" @click="refetchAll">Reintentar</button>
     </div>
 
     <!-- ── Filters ────────────────────────────────────────────── -->
@@ -294,6 +351,13 @@ onMounted(fetchItems)
       <select v-model="bodegaFilter" class="pp-input">
         <option value="">Todas las bodegas</option>
         <option v-for="b in bodegas" :key="b" :value="b">{{ b }}</option>
+      </select>
+
+      <select v-model.number="pageSize" class="pp-input pp-input--sm">
+        <option :value="10">10 / pág.</option>
+        <option :value="20">20 / pág.</option>
+        <option :value="50">50 / pág.</option>
+        <option :value="100">100 / pág.</option>
       </select>
 
       <button
@@ -348,9 +412,9 @@ onMounted(fetchItems)
 
       <BaseTable
         :columns="columns"
-        :rows="filteredSorted"
+        :rows="sortedItems"
         :loading="loading"
-        :page-size="20"
+        :page-size="1000"
         empty-text="No se encontraron equipos en el inventario"
       >
         <!-- # -->
@@ -441,13 +505,30 @@ onMounted(fetchItems)
         </template>
 
       </BaseTable>
+
+      <div v-if="!loading && totalPages > 1" class="pp-pagination">
+        <span class="pg-info">
+          {{ (currentPage - 1) * pageSize + 1 }}–{{ Math.min(currentPage * pageSize, total) }}
+          de {{ total }}
+        </span>
+        <div class="pg-pages">
+          <button class="pg-btn" :disabled="currentPage === 1" @click="currentPage = 1"><ChevronsLeft :size="14" /></button>
+          <button class="pg-btn" :disabled="currentPage === 1" @click="currentPage--"><ChevronLeft :size="14" /></button>
+          <template v-for="p in visiblePages" :key="p">
+            <span v-if="p === '...'" class="pg-ellipsis">…</span>
+            <button v-else class="pg-btn pg-num" :class="{ 'pg-active': p === currentPage }" @click="currentPage = p">{{ p }}</button>
+          </template>
+          <button class="pg-btn" :disabled="currentPage === totalPages" @click="currentPage++"><ChevronRight :size="14" /></button>
+          <button class="pg-btn" :disabled="currentPage === totalPages" @click="currentPage = totalPages"><ChevronsRight :size="14" /></button>
+        </div>
+      </div>
     </div>
 
     <!-- ── Scan Modal ─────────────────────────────────────────── -->
     <ScanModal :show="showScan" @close="showScan = false" />
     <SessionPanel
       :show="showSession"
-      :total-items="items.length"
+      :total-items="kpis.total"
       @close="showSession = false"
     />
 
@@ -674,6 +755,17 @@ onMounted(fetchItems)
 }
 .pp-input:focus { border-color: #27C8D8; box-shadow: 0 0 0 3px rgba(39,200,216,0.1); }
 select.pp-input { padding-left: 12px; cursor: pointer; }
+.pp-input--sm { width: auto; min-width: 110px; flex: none; }
+
+/* ─── Paginación ──────────────────────────────────────────── */
+.pp-pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-top: 1px solid #F1F5FA; flex-wrap: wrap; gap: 8px; }
+.pg-info { font-size: 12px; color: #94A3B8; font-family: 'Inter', sans-serif; }
+.pg-pages { display: flex; align-items: center; gap: 4px; }
+.pg-btn { width: 30px; height: 30px; border-radius: 8px; border: 1px solid #E2EBF6; background: #FFFFFF; color: #64748B; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.12s; }
+.pg-btn:hover:not(:disabled) { background: #E0F9FA; color: #27C8D8; border-color: #A7EEF5; }
+.pg-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.pg-active { background: #27C8D8 !important; color: #FFFFFF !important; border-color: #27C8D8 !important; font-weight: 600; }
+.pg-ellipsis { color: #94A3B8; font-size: 13px; padding: 0 4px; }
 
 /* ─── Table wrap ──────────────────────────────────────────── */
 .inv-table-wrap {

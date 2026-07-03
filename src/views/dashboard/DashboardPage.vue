@@ -235,39 +235,58 @@
           <p class="card-title">Últimas Cotizaciones</p>
           <router-link to="/admin/ver-cotizaciones" class="see-all">Ver todas →</router-link>
         </div>
-        <div v-if="recentQuotations.length === 0" class="empty-mini" style="padding:24px 0">
+        <div v-if="allRecentQuotations.length === 0" class="empty-mini" style="padding:24px 0">
           No hay cotizaciones recientes.
           <router-link to="/admin/cotizar" class="see-all" style="margin-left:8px">Crear →</router-link>
         </div>
-        <div v-else class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Cliente</th>
-                <th>Empresa / Evento</th>
-                <th>Valor</th>
-                <th>Estado</th>
-                <th v-if="isAdmin">Agente</th>
-                <th>Fecha</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="q in recentQuotations" :key="q.id" class="tr-link" @click="$router.push(`/admin/cotizar/${q.id}`)">
-                <td class="td-id">#{{ q.numero ?? q.id }}</td>
-                <td>{{ q.customer?.name || q.customer?.businessName || q.empresa || '—' }}</td>
-                <td class="td-muted">{{ q.description || '—' }}</td>
-                <td class="td-val">{{ formatShort(q.total) }}</td>
-                <td><span class="status-pill" :class="statusPillClass(q.status?.name)">{{ q.status?.name || 'Creada' }}</span></td>
-                <td v-if="isAdmin">
-                  <span class="agent-av">{{ initials(q.user?.fullName) }}</span>
-                  {{ q.user?.fullName?.split(' ')[0] || '—' }}
-                </td>
-                <td class="td-muted">{{ formatDate(q.createdAt) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <template v-else>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Cliente</th>
+                  <th>Empresa / Evento</th>
+                  <th>Valor</th>
+                  <th>Estado</th>
+                  <th v-if="isAdmin">Agente</th>
+                  <th>Fecha</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="q in recentQuotations" :key="q.id" class="tr-link" @click="$router.push(`/admin/cotizar/${q.id}`)">
+                  <td class="td-id">#{{ q.numero ?? q.id }}</td>
+                  <td>{{ q.customer?.name || q.customer?.businessName || q.empresa || '—' }}</td>
+                  <td class="td-muted">{{ q.description || '—' }}</td>
+                  <td class="td-val">{{ formatShort(q.total) }}</td>
+                  <td><span class="status-pill" :class="statusPillClass(q.status?.name)">{{ q.status?.name || 'Creada' }}</span></td>
+                  <td v-if="isAdmin">
+                    <span class="agent-av">{{ initials(q.user?.fullName) }}</span>
+                    {{ q.user?.fullName?.split(' ')[0] || '—' }}
+                  </td>
+                  <td class="td-muted">{{ formatDate(q.createdAt) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div v-if="recentTotalPages > 1" class="pp-pagination">
+            <span class="pg-info">
+              {{ (recentPage - 1) * recentPageSize + 1 }}–{{ Math.min(recentPage * recentPageSize, allRecentQuotations.length) }}
+              de {{ allRecentQuotations.length }}
+            </span>
+            <div class="pg-pages">
+              <button class="pg-btn" :disabled="recentPage === 1" @click="recentPage = 1"><ChevronsLeft :size="14" /></button>
+              <button class="pg-btn" :disabled="recentPage === 1" @click="recentPage--"><ChevronLeft :size="14" /></button>
+              <template v-for="p in recentVisiblePages" :key="p">
+                <span v-if="p === '...'" class="pg-ellipsis">…</span>
+                <button v-else class="pg-btn pg-num" :class="{ 'pg-active': p === recentPage }" @click="recentPage = p">{{ p }}</button>
+              </template>
+              <button class="pg-btn" :disabled="recentPage === recentTotalPages" @click="recentPage++"><ChevronRight :size="14" /></button>
+              <button class="pg-btn" :disabled="recentPage === recentTotalPages" @click="recentPage = recentTotalPages"><ChevronsRight :size="14" /></button>
+            </div>
+          </div>
+        </template>
       </div>
 
     </template>
@@ -278,7 +297,8 @@
 import { ref, onMounted, computed, nextTick } from 'vue'
 import { formatCOP } from '@/utils/currency.js'
 import {
-  DollarSign, FileText, Users, CheckCircle2, ChevronRight
+  DollarSign, FileText, Users, CheckCircle2, ChevronRight,
+  ChevronLeft, ChevronsLeft, ChevronsRight,
 } from 'lucide-vue-next'
 import Loader from '@/components/ui/Loader.vue'
 import Chart from 'chart.js/auto'
@@ -300,7 +320,9 @@ const stats = ref({
   totals: { count: 0, value: 0 },
 })
 const totalClientes   = ref(0)
-const recentQuotations = ref([])
+const allRecentQuotations = ref([])
+const recentPage      = ref(1)
+const recentPageSize  = 10
 const upcomingEvents  = ref([])
 const myTasks         = ref([])
 
@@ -314,6 +336,20 @@ const isAdmin = computed(() =>
 )
 
 const firstName = computed(() => user.value?.fullName?.split(' ')[0] || 'Usuario')
+
+// ── Últimas Cotizaciones — paginación ──────────
+const recentQuotations = computed(() => {
+  const start = (recentPage.value - 1) * recentPageSize
+  return allRecentQuotations.value.slice(start, start + recentPageSize)
+})
+const recentTotalPages = computed(() => Math.ceil(allRecentQuotations.value.length / recentPageSize))
+const recentVisiblePages = computed(() => {
+  const total = recentTotalPages.value, cur = recentPage.value
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  if (cur <= 4)          return [1, 2, 3, 4, 5, '...', total]
+  if (cur >= total - 3)  return [1, '...', total-4, total-3, total-2, total-1, total]
+  return [1, '...', cur-1, cur, cur+1, '...', total]
+})
 
 // ── Greeting ──────────────────────────────────
 const greetingText = computed(() => {
@@ -514,7 +550,7 @@ onMounted(async () => {
       const filtered = isAdmin.value
         ? allQ
         : allQ.filter(q => q.userId === user.value?.id || q.coordinadorId === user.value?.id)
-      recentQuotations.value = [...filtered].sort((a, b) => b.id - a.id).slice(0, 8)
+      allRecentQuotations.value = [...filtered].sort((a, b) => b.id - a.id)
     }
 
     // Upcoming events (next 14 days)
@@ -776,6 +812,16 @@ onMounted(async () => {
 .prio-proc { background: #27C8D8; }
 .task-text { font-size: 11px; color: #0F1A2E; font-weight: 500; flex: 1; font-family: 'Inter', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .task-due  { font-size: 10px; color: #94A3B8; font-family: 'Inter', sans-serif; white-space: nowrap; }
+
+/* ── PAGINACIÓN ─────────────────────────────── */
+.pp-pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 4px 0; flex-wrap: wrap; gap: 8px; }
+.pg-info { font-size: 12px; color: #94A3B8; font-family: 'Inter', sans-serif; }
+.pg-pages { display: flex; align-items: center; gap: 4px; }
+.pg-btn { width: 30px; height: 30px; border-radius: 8px; border: 1px solid #E2EBF6; background: #FFFFFF; color: #64748B; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.12s; }
+.pg-btn:hover:not(:disabled) { background: #E0F9FA; color: #27C8D8; border-color: #A7EEF5; }
+.pg-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.pg-active { background: #27C8D8 !important; color: #FFFFFF !important; border-color: #27C8D8 !important; font-weight: 600; }
+.pg-ellipsis { color: #94A3B8; font-size: 13px; padding: 0 4px; }
 
 /* ── BOTTOM TABLE ───────────────────────────── */
 .table-wrap { overflow-x: auto; }

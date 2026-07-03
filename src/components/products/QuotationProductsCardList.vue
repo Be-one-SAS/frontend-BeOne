@@ -46,7 +46,7 @@
 
               <!-- Producto -->
               <td class="td-name">
-                <p class="prd-nombre">{{ item.nombre || item.dispositivo || item.descripcion || '—' }}</p>
+                <p class="prd-nombre" :title="item.nombre || item.dispositivo || item.descripcion || '—'">{{ item.nombre || item.dispositivo || item.descripcion || '—' }}</p>
                 <p v-if="item.category" class="prd-cat">{{ item.category }}</p>
               </td>
 
@@ -258,18 +258,26 @@ const format = formatCOP
   background: #F1F5F9;
 }
 
-.td-name { min-width: 160px; }
+.td-name { min-width: 160px; max-width: 260px; white-space: normal; }
 
 .prd-nombre {
   font-weight: 500;
   color: #0F1A2E;
   margin: 0;
   line-height: 1.4;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .prd-cat {
   font-size: 11px;
   color: #94A3B8;
   margin: 2px 0 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .prd-qty-badge {

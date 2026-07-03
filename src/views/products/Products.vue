@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { getProducts, updateProduct, deleteProduct, uploadProductFoto } from '@/services/products.service'
+import { useRouter } from 'vue-router'
+import { getProducts, createProduct, updateProduct, deleteProduct, uploadProductFoto } from '@/services/products.service'
 import { formatCOP } from '@/utils/currency.js'
 import {
   getMaterialCategorias, getMaterialesBase,
@@ -13,7 +14,24 @@ import {
   RefreshCw, ChevronUp, ChevronDown, Inbox,
   Pencil, Trash2, Plus, X, Camera, FileText,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
+  Calculator,
 } from 'lucide-vue-next'
+
+const router = useRouter()
+
+/** Lleva el costo (cop) y precio cliente directo (valorCuadroCotizador) de
+ * este producto propio al Simulador de /admin/quotation-params. */
+const simularProducto = (row) => {
+  router.push({
+    name: 'QuotationParams',
+    query: {
+      simTipo:    'propio',
+      simCosto:   row.cop ?? 0,
+      simPrecio:  row.valorCuadroCotizador ?? 0,
+      simNombre:  row.nombre ?? '',
+    },
+  })
+}
 
 /* ─── state ─────────────────────────────────────────────── */
 const products    = ref([])
@@ -36,10 +54,11 @@ const deleteModal     = ref(false)
 const deleteLoading   = ref(false)
 const productToDelete = ref(null)
 
-// modal editar
+// modal editar / crear
 const editModal   = ref(false)
 const editLoading = ref(false)
 const editError   = ref('')
+const isCreating  = ref(false)
 const editForm    = ref({
   nombre:             '',
   dispositivo:        '',
@@ -48,6 +67,7 @@ const editForm    = ref({
   bodega:             '',
   conditionStatus:    '',
   availabilityStatus: '',
+  valorCuadroCotizador: null,
   amperios:           null,
   medidas:            '',
   qMotores:           null,
@@ -74,9 +94,15 @@ const newAccesorio   = ref('')
 const productToEdit  = ref(null)
 
 // foto
-const fotoLoading   = ref(false)
-const fotoError     = ref('')
-const fotoInput     = ref(null)   // ref al <input type="file">
+const fotoLoading    = ref(false)
+const fotoError      = ref('')
+const fotoInput      = ref(null)   // ref al <input type="file">
+const newFotoFile     = ref(null)  // File pendiente de subir (modo creación)
+const newFotoLocalUrl = ref('')    // preview local (object URL) mientras no existe el producto
+
+const fotoPreviewUrl = computed(() =>
+  isCreating.value ? newFotoLocalUrl.value : (productToEdit.value?.linkFotoDispositivo || '')
+)
 
 // materiales del modal de edición
 const categoriasMat    = ref([])
@@ -236,9 +262,17 @@ async function executeDelete() {
 }
 
 /* ─── edit ───────────────────────────────────────────────── */
+function resetFotoPending() {
+  if (newFotoLocalUrl.value) URL.revokeObjectURL(newFotoLocalUrl.value)
+  newFotoFile.value     = null
+  newFotoLocalUrl.value = ''
+}
+
 function openEdit(product) {
+  isCreating.value    = false
   productToEdit.value = product
   editError.value     = ''
+  resetFotoPending()
   Object.keys(editForm.value).forEach(k => {
     editForm.value[k] = product[k] ?? (typeof editForm.value[k] === 'string' ? '' : null)
   })
@@ -262,6 +296,23 @@ function openEdit(product) {
     getMaterialCategorias().then(r => { categoriasMat.value = r })
 }
 
+function openCreate() {
+  isCreating.value    = true
+  productToEdit.value = null
+  editError.value     = ''
+  resetFotoPending()
+  Object.keys(editForm.value).forEach(k => {
+    editForm.value[k] = typeof editForm.value[k] === 'string' ? '' : null
+  })
+  editAccesorios.value = []
+  newAccesorio.value   = ''
+  editModal.value      = true
+  editMateriales.value = []
+  editParserOpen.value = false
+  if (!categoriasMat.value.length)
+    getMaterialCategorias().then(r => { categoriasMat.value = r })
+}
+
 function addAccesorio() {
   const n = newAccesorio.value.trim()
   if (n) { editAccesorios.value.push({ nombre: n }); newAccesorio.value = '' }
@@ -275,16 +326,32 @@ async function saveEdit() {
   try {
     const payload = {
       ...editForm.value,
+      conditionStatus:    editForm.value.conditionStatus || undefined,
+      availabilityStatus: editForm.value.availabilityStatus || undefined,
       accesorios: editAccesorios.value.map(a => a.nombre),
     }
-    const res     = await updateProduct(productToEdit.value.id, payload)
-    const updated = res.data
-    const idx     = products.value.findIndex(p => p.id === productToEdit.value.id)
-    if (idx !== -1) {
-      products.value[idx] = {
-        ...products.value[idx],
-        ...updated,
-        accesorios: editAccesorios.value.map((a, i) => ({ nombre: a.nombre, orden: i + 1 })),
+    if (isCreating.value) {
+      const res     = await createProduct(payload)
+      let   created = res.data
+      if (newFotoFile.value) {
+        try {
+          const fotoRes = await uploadProductFoto(created.id, newFotoFile.value)
+          created = { ...created, linkFotoDispositivo: fotoRes.data.imageUrl }
+        } catch {
+          // El producto ya se creó — la foto se puede subir después desde "Editar".
+        }
+      }
+      products.value.push(created)
+    } else {
+      const res     = await updateProduct(productToEdit.value.id, payload)
+      const updated = res.data
+      const idx     = products.value.findIndex(p => p.id === productToEdit.value.id)
+      if (idx !== -1) {
+        products.value[idx] = {
+          ...products.value[idx],
+          ...updated,
+          accesorios: editAccesorios.value.map((a, i) => ({ nombre: a.nombre, orden: i + 1 })),
+        }
       }
     }
     editModal.value = false
@@ -382,7 +449,18 @@ async function confirmEditParser() {
 
 async function handleFotoChange(event) {
   const file = event.target.files?.[0]
-  if (!file || !productToEdit.value) return
+  if (!file) return
+
+  // Modo creación: el producto todavía no existe — solo se guarda el archivo
+  // y se muestra un preview local; se sube de verdad en saveEdit() tras crear.
+  if (isCreating.value) {
+    if (newFotoLocalUrl.value) URL.revokeObjectURL(newFotoLocalUrl.value)
+    newFotoFile.value     = file
+    newFotoLocalUrl.value = URL.createObjectURL(file)
+    return
+  }
+
+  if (!productToEdit.value) return
   fotoLoading.value = true
   fotoError.value   = ''
   try {
@@ -424,6 +502,9 @@ onMounted(fetchProducts)
         </div>
         <button class="btn-reload" @click="resetFilters">
           <RefreshCw :size="13" /> Recargar
+        </button>
+        <button class="btn-new-product" @click="openCreate">
+          <Plus :size="13" /> Nuevo producto
         </button>
       </div>
     </div>
@@ -530,6 +611,7 @@ onMounted(fetchProducts)
                   <td class="pp-td"><span :class="availClass(row.availabilityStatus)">{{ availLabel(row.availabilityStatus) }}</span></td>
                   <td class="pp-td" @click.stop>
                     <div class="pp-actions">
+                      <button class="act-btn act-sim" title="Simular en Parámetros de Cotización" @click.stop="simularProducto(row)"><Calculator :size="12" /></button>
                       <button class="act-btn act-edit" title="Editar" @click.stop="openEdit(row)"><Pencil :size="12" /></button>
                       <button class="act-btn act-del"  title="Eliminar" @click.stop="confirmDelete(row)"><Trash2 :size="12" /></button>
                     </div>
@@ -574,6 +656,10 @@ onMounted(fetchProducts)
                         <!-- Precios -->
                         <p class="pp-exp-section">Precios por lista</p>
                         <div class="pp-prices-grid">
+                          <div class="pp-price-item pp-price-item--directo">
+                            <span class="pp-price-label">Cliente directo</span>
+                            <span class="pp-price-val">{{ fmt(row.valorCuadroCotizador) }}</span>
+                          </div>
                           <div v-for="pl in PRICE_LISTS" :key="pl.key" class="pp-price-item">
                             <span class="pp-price-label">{{ pl.label }}</span>
                             <span class="pp-price-val">{{ fmt(row[pl.key]) }}</span>
@@ -631,16 +717,16 @@ onMounted(fetchProducts)
     <!-- ══ MODAL: Editar producto ══ -->
     <ModalReutilizable :show="editModal" @close="editModal = false">
       <div class="edit-modal-wrap">
-        <h2 class="modal-title mb-1">Editar producto</h2>
-        <p class="edit-modal-sub">{{ productToEdit?.nombre }}</p>
+        <h2 class="modal-title mb-1">{{ isCreating ? 'Nuevo producto' : 'Editar producto' }}</h2>
+        <p class="edit-modal-sub">{{ isCreating ? 'Complete los datos del producto propio' : productToEdit?.nombre }}</p>
         <div v-if="editError" class="edit-error">{{ editError }}</div>
 
         <!-- Foto del producto -->
         <div class="edit-foto-section">
           <div class="edit-foto-preview">
             <img
-              v-if="productToEdit?.linkFotoDispositivo"
-              :src="productToEdit.linkFotoDispositivo"
+              v-if="fotoPreviewUrl"
+              :src="fotoPreviewUrl"
               class="edit-foto-img"
               alt=""
             />
@@ -663,8 +749,9 @@ onMounted(fetchProducts)
               @click="fotoInput.click()"
             >
               <Camera :size="13" />
-              {{ fotoLoading ? 'Subiendo…' : productToEdit?.linkFotoDispositivo ? 'Cambiar foto' : 'Subir foto' }}
+              {{ fotoLoading ? 'Subiendo…' : fotoPreviewUrl ? 'Cambiar foto' : 'Subir foto' }}
             </button>
+            <p v-if="isCreating && newFotoFile" class="edit-foto-hint">Se subirá al crear el producto.</p>
             <p v-if="fotoError" class="foto-error">{{ fotoError }}</p>
           </div>
         </div>
@@ -731,13 +818,17 @@ onMounted(fetchProducts)
 
           <!-- Precios -->
           <p class="edit-section-label" style="grid-column:1/-1">Precios por lista</p>
-          <div v-for="pl in PRICE_LISTS" :key="pl.key" class="edit-field">
-            <label class="edit-label">{{ pl.label }}</label>
-            <input v-model.number="editForm[pl.key]" type="number" step="1000" class="edit-input" placeholder="$ 0" />
+          <div class="edit-field">
+            <label class="edit-label">Precio cliente directo</label>
+            <input v-model.number="editForm.valorCuadroCotizador" type="number" step="1000" class="edit-input" placeholder="$ 0" />
           </div>
           <div class="edit-field">
             <label class="edit-label">COP (costo)</label>
             <input v-model.number="editForm.cop" type="number" step="1000" class="edit-input" placeholder="$ 0" />
+          </div>
+          <div v-for="pl in PRICE_LISTS" :key="pl.key" class="edit-field">
+            <label class="edit-label">{{ pl.label }}</label>
+            <input v-model.number="editForm[pl.key]" type="number" step="1000" class="edit-input" placeholder="$ 0" />
           </div>
 
           <!-- Descripción y notas -->
@@ -772,8 +863,8 @@ onMounted(fetchProducts)
             </div>
           </div>
 
-          <!-- Materiales del catálogo -->
-          <div style="grid-column:1/-1" class="mat-section">
+          <!-- Materiales del catálogo (solo al editar — requiere que el producto ya exista) -->
+          <div v-if="!isCreating" style="grid-column:1/-1" class="mat-section">
             <div class="mat-section-header">
               <span class="edit-section-label" style="margin:0">
                 Materiales del catálogo
@@ -939,7 +1030,7 @@ onMounted(fetchProducts)
           <button @click="editModal = false" class="btn-cancel" :disabled="editLoading">Cancelar</button>
           <button @click="saveEdit" class="btn-save" :disabled="editLoading">
             <span v-if="editLoading" class="edit-spinner"></span>
-            {{ editLoading ? 'Guardando…' : 'Guardar cambios' }}
+            {{ editLoading ? 'Guardando…' : (isCreating ? 'Crear producto' : 'Guardar cambios') }}
           </button>
         </div>
       </div>
@@ -992,6 +1083,15 @@ onMounted(fetchProducts)
   cursor: pointer; transition: background 0.15s;
 }
 .btn-reload:hover { background: #E2EBF6; }
+
+.btn-new-product {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; font-size: 12px; font-weight: 600;
+  font-family: 'Inter', sans-serif; border-radius: 8px;
+  border: none; background: #27C8D8; color: #fff;
+  cursor: pointer; transition: background 0.15s;
+}
+.btn-new-product:hover { background: #0F1A2E; }
 
 .per-page-wrap { display: flex; align-items: center; gap: 8px; }
 .per-page-lbl  { font-size: 12px; color: #94A3B8; font-family: 'Inter', sans-serif; white-space: nowrap; }
@@ -1059,6 +1159,8 @@ onMounted(fetchProducts)
   font-family: 'Inter', sans-serif; border-radius: 8px;
   border: none; cursor: pointer; transition: background 0.15s; white-space: nowrap; line-height: 1;
 }
+.act-sim        { background: #EDE9FE; color: #7C3AED; }
+.act-sim:hover  { background: #DDD6FE; }
 .act-edit       { background: #FEF3C7; color: #B45309; }
 .act-edit:hover { background: #FDE68A; }
 .act-del        { background: #FEE2E2; color: #B91C1C; }
@@ -1095,9 +1197,11 @@ onMounted(fetchProducts)
   padding: 8px 12px; display: flex; flex-direction: column; gap: 3px;
 }
 .pp-price-item--cop { border-color: #CBD5E1; background: #F8FAFC; }
+.pp-price-item--directo { border-color: #7C3AED; background: #F5F3FF; }
 .pp-price-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #64748B; }
 .pp-price-val   { font-size: 13px; font-weight: 700; color: #27C8D8; font-family: 'Inter', sans-serif; }
 .pp-price-item--cop .pp-price-val { color: #374151; }
+.pp-price-item--directo .pp-price-val { color: #7C3AED; }
 
 .pp-acc-list { display: flex; flex-wrap: wrap; gap: 6px; }
 .pp-acc-chip {
@@ -1197,6 +1301,7 @@ onMounted(fetchProducts)
 .btn-foto-upload:hover:not(:disabled) { background: #CCEFF2; }
 .btn-foto-upload:disabled { opacity: 0.6; cursor: not-allowed; }
 .foto-error { font-size: 12px; color: #B91C1C; margin: 0; }
+.edit-foto-hint { font-size: 12px; color: #64748B; margin: 0; }
 
 /* ─── materiales en modal ─────────────────────────────────── */
 .mat-section { position: relative; }

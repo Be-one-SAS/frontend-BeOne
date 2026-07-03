@@ -10,6 +10,21 @@
           <p class="qp-subtitle">Motor de Pricing V2 — ajusta los parámetros del cálculo sin tocar código</p>
         </div>
       </div>
+      <div v-if="sedes.length" class="qp-sede-picker">
+        <Building2 :size="14" class="qp-sede-ico" />
+        <select v-model="sedeSeleccionada" class="qp-sede-select">
+          <option :value="null">Global (valores por defecto)</option>
+          <option v-for="s in sedes" :key="s.id" :value="s.id">{{ s.nombre }}</option>
+        </select>
+      </div>
+    </div>
+
+    <div v-if="!loading && !puedeEditar" class="qp-readonly-banner">
+      <Lock :size="14" />
+      <span v-if="sedeSeleccionada">
+        Solo el líder de <strong>{{ sedeActual?.nombre }}</strong> puede editar estos valores — los estás viendo como referencia.
+      </span>
+      <span v-else>Solo ADMIN puede editar el set global — lo estás viendo como referencia.</span>
     </div>
 
     <!-- Skeleton -->
@@ -58,13 +73,14 @@
                       type="number"
                       step="0.001"
                       class="qp-input"
-                      :disabled="saving[param.key]"
+                      :disabled="saving[param.key] || !puedeEditar"
                       @keydown.enter="save(param)"
                     />
                   </td>
                   <td class="qp-td-action">
                     <div class="qp-action-row">
                       <button
+                        v-if="puedeEditar"
                         class="qp-btn-save"
                         :disabled="saving[param.key] || String(edited[param.key]) === String(param.value)"
                         @click="save(param)"
@@ -95,7 +111,27 @@
           Usa los valores que tengas escritos arriba aunque no los hayas guardado — sirve para ver el impacto de un cambio antes de confirmarlo.
         </p>
         <div v-show="open.sim" class="qp-card qp-sim">
-          <div class="qp-sim-inputs">
+          <div class="qp-sim-toggle">
+            <button
+              type="button"
+              class="qp-sim-tab"
+              :class="{ 'qp-sim-tab--active': sim.tipo === 'tercero' }"
+              @click="sim.tipo = 'tercero'"
+            >Producto de terceros</button>
+            <button
+              type="button"
+              class="qp-sim-tab"
+              :class="{ 'qp-sim-tab--active': sim.tipo === 'propio' }"
+              @click="sim.tipo = 'propio'"
+            >Producto propio</button>
+          </div>
+
+          <p v-if="sim.tipo === 'propio' && sim.productoNombre" class="qp-sim-producto">
+            Simulando: <strong>{{ sim.productoNombre }}</strong>
+          </p>
+
+          <!-- Producto de terceros: costo + margen ingresado por el vendedor -->
+          <div v-if="sim.tipo === 'tercero'" class="qp-sim-inputs">
             <div class="qp-field">
               <label class="qp-field-label">Costo unitario (COP)</label>
               <input v-model.number="sim.costo" type="number" min="0" class="qp-input" />
@@ -109,6 +145,26 @@
               <input v-model.number="sim.margenComercial" type="number" min="0" step="0.1" class="qp-input" />
             </div>
           </div>
+
+          <!-- Producto propio: precio y costo fijos (lista de precios), no usan la fórmula de margen -->
+          <div v-else class="qp-sim-inputs">
+            <div class="qp-field">
+              <label class="qp-field-label">Precio cliente directo (COP)</label>
+              <input v-model.number="sim.precioPropio" type="number" min="0" class="qp-input" />
+            </div>
+            <div class="qp-field">
+              <label class="qp-field-label">Costo (COP)</label>
+              <input v-model.number="sim.costoPropio" type="number" min="0" class="qp-input" />
+            </div>
+            <div class="qp-field">
+              <label class="qp-field-label">Cantidad</label>
+              <input v-model.number="sim.cantidad" type="number" min="1" class="qp-input" />
+            </div>
+          </div>
+          <p v-if="sim.tipo === 'propio'" class="qp-section-hint" style="margin:-6px 0 0">
+            Los productos propios no usan margen comercial — aportan un margen fijo de referencia
+            (<code class="qp-code">margenEquivalenteOwn</code>: {{ numOr(edited.margenEquivalenteOwn, 16) }}%) solo para ubicar la comisión.
+          </p>
 
           <div v-if="simResult.error" class="qp-sim-error">{{ simResult.error }}</div>
 
@@ -185,12 +241,12 @@
               </thead>
               <tbody>
                 <tr v-for="tier in visibleTiers" :key="tier.id" :class="{ 'qp-row--saving': savingTier[tier.id] }">
-                  <td class="qp-td-input"><input v-model="editedTiers[tier.id].minPct" type="number" step="0.01" class="qp-input" :disabled="savingTier[tier.id]" /></td>
-                  <td class="qp-td-input"><input v-model="editedTiers[tier.id].maxPct" type="number" step="0.01" class="qp-input" :disabled="savingTier[tier.id]" /></td>
-                  <td class="qp-td-input"><input v-model="editedTiers[tier.id].comisionPct" type="number" step="0.01" class="qp-input" :disabled="savingTier[tier.id]" /></td>
+                  <td class="qp-td-input"><input v-model="editedTiers[tier.id].minPct" type="number" step="0.01" class="qp-input" :disabled="savingTier[tier.id] || !isAdmin" /></td>
+                  <td class="qp-td-input"><input v-model="editedTiers[tier.id].maxPct" type="number" step="0.01" class="qp-input" :disabled="savingTier[tier.id] || !isAdmin" /></td>
+                  <td class="qp-td-input"><input v-model="editedTiers[tier.id].comisionPct" type="number" step="0.01" class="qp-input" :disabled="savingTier[tier.id] || !isAdmin" /></td>
                   <td class="qp-td-action">
                     <div class="qp-action-row">
-                      <button class="qp-btn-save" :disabled="savingTier[tier.id] || !tierChanged(tier)" @click="saveTier(tier)">
+                      <button v-if="isAdmin" class="qp-btn-save" :disabled="savingTier[tier.id] || !tierChanged(tier)" @click="saveTier(tier)">
                         <Loader2 v-if="savingTier[tier.id]" :size="13" class="qp-spin" />
                         <Save v-else :size="13" />
                         Guardar
@@ -227,12 +283,12 @@
               </thead>
               <tbody>
                 <tr v-for="tier in estructuralTiers" :key="tier.id" :class="{ 'qp-row--saving': savingTier[tier.id] }">
-                  <td class="qp-td-input"><input v-model="editedTiers[tier.id].minPct" type="number" step="0.01" class="qp-input" :disabled="savingTier[tier.id]" /></td>
-                  <td class="qp-td-input"><input v-model="editedTiers[tier.id].maxPct" type="number" step="0.01" class="qp-input" :disabled="savingTier[tier.id]" /></td>
-                  <td class="qp-td-input"><input v-model="editedTiers[tier.id].comisionPct" type="number" step="0.01" class="qp-input" :disabled="savingTier[tier.id]" /></td>
+                  <td class="qp-td-input"><input v-model="editedTiers[tier.id].minPct" type="number" step="0.01" class="qp-input" :disabled="savingTier[tier.id] || !isAdmin" /></td>
+                  <td class="qp-td-input"><input v-model="editedTiers[tier.id].maxPct" type="number" step="0.01" class="qp-input" :disabled="savingTier[tier.id] || !isAdmin" /></td>
+                  <td class="qp-td-input"><input v-model="editedTiers[tier.id].comisionPct" type="number" step="0.01" class="qp-input" :disabled="savingTier[tier.id] || !isAdmin" /></td>
                   <td class="qp-td-action">
                     <div class="qp-action-row">
-                      <button class="qp-btn-save" :disabled="savingTier[tier.id] || !tierChanged(tier)" @click="saveTier(tier)">
+                      <button v-if="isAdmin" class="qp-btn-save" :disabled="savingTier[tier.id] || !tierChanged(tier)" @click="saveTier(tier)">
                         <Loader2 v-if="savingTier[tier.id]" :size="13" class="qp-spin" />
                         <Save v-else :size="13" />
                         Guardar
@@ -310,10 +366,24 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { SlidersHorizontal, Save, Loader2, AlertCircle, CheckCircle2, ChevronDown, ChevronRight, Info } from 'lucide-vue-next'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import { SlidersHorizontal, Save, Loader2, AlertCircle, CheckCircle2, ChevronDown, ChevronRight, Info, Building2, Lock } from 'lucide-vue-next'
 import { getParams, updateParam, getCommissionTiers, updateCommissionTier } from '@/services/quotation-params.service'
+import { getSedes } from '@/services/sedes.service'
+import { useAuth } from '@/composables/useAuth'
 import { formatCOP } from '@/utils/currency.js'
+
+const { user } = useAuth()
+const isAdmin = computed(() => user.value?.roles?.includes('ADMIN') ?? false)
+
+// ── Sedes ────────────────────────────────────────────────
+// sedeSeleccionada = null representa el set global (fallback / valores por defecto)
+const sedes = ref([])
+const sedeSeleccionada = ref(null)
+const sedeActual = computed(() => sedes.value.find(s => s.id === sedeSeleccionada.value) ?? null)
+// Solo el líder de la sede puede editar sus valores; el set global solo lo edita ADMIN.
+const puedeEditar = computed(() => sedeSeleccionada.value ? sedeActual.value?.liderUserId === user.value?.id : isAdmin.value)
 
 const params = ref([])
 const tiers = ref([])
@@ -335,7 +405,15 @@ const toggle = (key) => { open.value[key] = !open.value[key] }
 // ── Simulador — replica la fórmula del backend usando los valores que estén
 // en los campos de edición (aunque no se hayan guardado), para previsualizar
 // el efecto de un cambio de parámetro antes de confirmarlo. ──
-const sim = ref({ costo: 1000000, cantidad: 1, margenComercial: 10 })
+const sim = ref({
+  tipo: 'tercero',
+  costo: 1000000,
+  cantidad: 1,
+  margenComercial: 10,
+  precioPropio: 0,
+  costoPropio: 0,
+  productoNombre: '',
+})
 
 const numOr = (val, fallback) => {
   const n = Number(val)
@@ -343,20 +421,31 @@ const numOr = (val, fallback) => {
 }
 
 const simResult = computed(() => {
-  const d              = numOr(edited.value.d, 3)
-  const margenBaseReal  = numOr(edited.value.margenBaseReal, 23.5)
   const iva             = numOr(edited.value.iva, 19)
   const utilidadMinima  = numOr(edited.value.utilidadMinima, 13)
-  const margenComercial = numOr(sim.value.margenComercial, 0)
-  const costo    = numOr(sim.value.costo, 0)
   const cantidad = numOr(sim.value.cantidad, 1)
 
-  const descuentoTotal = (d + margenBaseReal + margenComercial) / 100
-  if (descuentoTotal >= 1) {
-    return { error: `d (${d}) + margenBaseReal (${margenBaseReal}) + margenComercial (${margenComercial}) = ${(descuentoTotal * 100).toFixed(2)}% — debe ser menor a 100%` }
+  let precioUnitario, costo, margenComercial
+
+  if (sim.value.tipo === 'propio') {
+    // Producto propio: precio y costo fijos (lista de precios), no aplica la fórmula
+    // de margen. El margen equivalente para ubicar la comisión es el fijo margenEquivalenteOwn.
+    precioUnitario = numOr(sim.value.precioPropio, 0)
+    costo          = numOr(sim.value.costoPropio, 0)
+    margenComercial = numOr(edited.value.margenEquivalenteOwn, 16)
+  } else {
+    const d              = numOr(edited.value.d, 3)
+    const margenBaseReal = numOr(edited.value.margenBaseReal, 23.5)
+    margenComercial = numOr(sim.value.margenComercial, 0)
+    costo = numOr(sim.value.costo, 0)
+
+    const descuentoTotal = (d + margenBaseReal + margenComercial) / 100
+    if (descuentoTotal >= 1) {
+      return { error: `d (${d}) + margenBaseReal (${margenBaseReal}) + margenComercial (${margenComercial}) = ${(descuentoTotal * 100).toFixed(2)}% — debe ser menor a 100%` }
+    }
+    precioUnitario = costo / (1 - descuentoTotal)
   }
 
-  const precioUnitario = costo / (1 - descuentoTotal)
   const subtotalVenta  = precioUnitario * cantidad
   const costoTotal     = costo * cantidad
   const ivaVal = subtotalVenta * (iva / 100)
@@ -364,7 +453,7 @@ const simResult = computed(() => {
   const utilidadAntesRenta = subtotalVenta - costoTotal
 
   // Simulación de un solo producto: el margen equivalente de la cotización
-  // es el margen comercial de este ítem.
+  // es el margen comercial (o el ficticio de producto propio) de este ítem.
   const tierRows = tiers.value.map(t => ({ tipo: t.tipo, ...(editedTiers.value[t.id] || t) }))
   const findPct = (tipo) => {
     const match = tierRows
@@ -427,20 +516,15 @@ const v2Params = computed(() => params.value.filter(p => V2_KEYS.has(p.key)))
 const visibleTiers     = computed(() => tiers.value.filter(t => t.tipo === 'VISIBLE'))
 const estructuralTiers = computed(() => tiers.value.filter(t => t.tipo === 'ESTRUCTURAL'))
 
-const fetchAll = async () => {
+// Los parámetros V2 dependen de la sede seleccionada; comisión y sedes se cargan una sola vez.
+const fetchParams = async () => {
   loading.value = true
   loadError.value = ''
   try {
-    const [{ data: paramsData }, { data: tiersData }] = await Promise.all([getParams(), getCommissionTiers()])
+    const { data: paramsData } = await getParams(sedeSeleccionada.value)
     const list = Array.isArray(paramsData) ? paramsData : Object.entries(paramsData).map(([key, value]) => ({ key, value }))
     params.value = list
     list.forEach(p => { edited.value[p.key] = p.value })
-
-    tiers.value = tiersData
-    tiersData.forEach(t => {
-      editedTiers.value[t.id] = { minPct: t.minPct, maxPct: t.maxPct, comisionPct: t.comisionPct }
-    })
-
     sim.value.margenComercial = numOr(edited.value.margenComercialSugerido, 10)
   } catch (e) {
     loadError.value = e?.response?.data?.message || 'Error al cargar los parámetros'
@@ -449,12 +533,43 @@ const fetchAll = async () => {
   }
 }
 
+const fetchAll = async () => {
+  loading.value = true
+  loadError.value = ''
+  try {
+    const [{ data: sedesData }, { data: tiersData }] = await Promise.all([getSedes(), getCommissionTiers()])
+    sedes.value = (sedesData ?? []).filter(s => s.activa !== false)
+
+    // Por defecto: la primera sede que lidera el usuario actual; si no lidera
+    // ninguna, se queda en el set global (solo lectura salvo que sea ADMIN).
+    const propia = sedes.value.find(s => s.liderUserId === user.value?.id)
+    sedeSeleccionada.value = propia ? propia.id : null
+
+    tiers.value = tiersData
+    tiersData.forEach(t => {
+      editedTiers.value[t.id] = { minPct: t.minPct, maxPct: t.maxPct, comisionPct: t.comisionPct }
+    })
+
+    await fetchParams()
+    sedeWatchActivo = true
+  } catch (e) {
+    loadError.value = e?.response?.data?.message || 'Error al cargar los parámetros'
+    loading.value = false
+  }
+}
+
+// Evita un doble fetch inicial: fetchAll() ya hace la primera carga explícita;
+// este watcher solo reacciona a cambios del selector hechos por el usuario.
+let sedeWatchActivo = false
+watch(sedeSeleccionada, () => { if (sedeWatchActivo) fetchParams() })
+
 const save = async (param) => {
+  if (!puedeEditar.value) return
   saving.value[param.key] = true
   errors.value[param.key] = ''
   saved.value[param.key] = false
   try {
-    await updateParam(param.key, edited.value[param.key])
+    await updateParam(param.key, edited.value[param.key], sedeSeleccionada.value)
     param.value = edited.value[param.key]
     saved.value[param.key] = true
     setTimeout(() => { saved.value[param.key] = false }, 2500)
@@ -491,7 +606,21 @@ const saveTier = async (tier) => {
   }
 }
 
-onMounted(async () => { await fetchAll() })
+const route = useRoute()
+
+onMounted(async () => {
+  await fetchAll()
+
+  // Llegada desde /products → "Simular": pre-llena el simulador con el
+  // producto propio elegido y abre la sección directamente.
+  if (route.query.simTipo === 'propio') {
+    sim.value.tipo = 'propio'
+    sim.value.precioPropio = numOr(route.query.simPrecio, 0)
+    sim.value.costoPropio = numOr(route.query.simCosto, 0)
+    sim.value.productoNombre = route.query.simNombre || ''
+    open.value.sim = true
+  }
+})
 </script>
 
 <style scoped>
@@ -527,6 +656,43 @@ onMounted(async () => { await fetchAll() })
   font-size: 13px;
   color: #64748B;
   margin: 0;
+}
+
+/* Selector de sede */
+.qp-sede-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #F8FAFC;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 0 12px;
+  flex-shrink: 0;
+}
+.qp-sede-ico { color: #27C8D8; flex-shrink: 0; }
+.qp-sede-select {
+  border: none;
+  background: none;
+  outline: none;
+  padding: 9px 4px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  color: #0F1A2E;
+  cursor: pointer;
+}
+
+.qp-readonly-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  color: #92400E;
 }
 
 /* Sections */
@@ -620,6 +786,35 @@ onMounted(async () => { await fetchAll() })
   flex-wrap: wrap;
   gap: 16px;
 }
+.qp-sim-toggle {
+  display: flex;
+  gap: 8px;
+}
+.qp-sim-tab {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid #E2E8F0;
+  background: #F8FAFC;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.qp-sim-tab:hover { background: #EEF1F7; }
+.qp-sim-tab--active {
+  background: #7C3AED;
+  border-color: #7C3AED;
+  color: #fff;
+}
+.qp-sim-producto {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #475569;
+  margin: -8px 0 0;
+}
+.qp-sim-producto strong { color: #7C3AED; }
 .qp-field {
   display: flex;
   flex-direction: column;

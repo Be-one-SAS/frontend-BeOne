@@ -197,6 +197,13 @@
         </div>
         <div class="po-header-right">
           <button
+            v-if="personalFiltrado.length && !personal.personKey"
+            class="rep-btn-export"
+            @click="openBulkEnviarModal"
+          >
+            <Mail :size="13" /> Enviar a todos
+          </button>
+          <button
             v-if="personalFiltrado.length && personal.personKey"
             class="rep-btn-export"
             :class="{ 'rep-btn-export--sent': personaYaEnviada }"
@@ -377,6 +384,61 @@
           >
             <Loader2 v-if="enviarCorreo.enviando" :size="13" class="spin" />
             {{ personaYaEnviada ? 'Reenviar' : 'Enviar' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ Modal: Envío masivo por correo ═════════════════════════════ -->
+    <div v-if="bulkEnviar.open" class="po-modal-overlay" @click.self="closeBulkEnviarModal">
+      <div class="po-modal po-modal--wide">
+        <div class="po-modal-header">
+          <h3 class="po-modal-title">Enviar reportes por correo — envío masivo</h3>
+          <button class="po-modal-close" @click="closeBulkEnviarModal">✕</button>
+        </div>
+        <div class="po-modal-body">
+          <p class="po-modal-desc">
+            Se enviará un correo individual a cada una de las <strong>{{ bulkEnviar.groups.length }}</strong> personas,
+            con sus propios días trabajados y el total según el rango de fechas y filtros seleccionados.
+          </p>
+          <div class="bulk-list">
+            <div
+              v-for="g in bulkEnviar.groups"
+              :key="g.key"
+              class="bulk-row"
+              :class="{ 'bulk-row--done': g.status === 'ok', 'bulk-row--error': g.status === 'error' }"
+            >
+              <div class="bulk-row-main">
+                <span class="bulk-row-name">{{ g.fullName }}</span>
+                <span class="bulk-row-meta">{{ g.rows.length }} día{{ g.rows.length !== 1 ? 's' : '' }} · {{ fmtMoney(g.total) }}</span>
+              </div>
+              <input
+                v-model="g.destinatario"
+                type="email"
+                class="po-filter-input bulk-row-email"
+                placeholder="Sin correo — escríbelo para incluirlo"
+                :readonly="g.esInterno"
+                :disabled="bulkEnviar.enviando"
+              />
+              <span class="bulk-row-status">
+                <Loader2 v-if="g.status === 'sending'" :size="14" class="spin" />
+                <span v-else-if="g.status === 'ok'" class="bulk-status-ok">✓ Enviado</span>
+                <span v-else-if="g.status === 'error'" class="bulk-status-error" :title="g.error">✕ Error</span>
+                <span v-else-if="g.status === 'skipped'" class="bulk-status-skip">Sin correo</span>
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="po-modal-footer">
+          <button class="po-btn-ghost" @click="closeBulkEnviarModal">{{ bulkEnviar.finished ? 'Cerrar' : 'Cancelar' }}</button>
+          <button
+            v-if="!bulkEnviar.finished"
+            class="rep-btn-export"
+            :disabled="bulkEnviar.enviando || !bulkEnviar.groups.some(g => g.destinatario && g.status !== 'ok')"
+            @click="confirmBulkEnviar"
+          >
+            <Loader2 v-if="bulkEnviar.enviando" :size="13" class="spin" />
+            Enviar a todos
           </button>
         </div>
       </div>
@@ -752,6 +814,75 @@ async function confirmEnviarCorreo() {
     enviarCorreo.value.enviando = false
   }
 }
+
+// ── Envío masivo por correo ──────────────────────────────────────────
+// Agrupa los registros filtrados (Evento/Estado/Desde/Hasta) por persona;
+// cada quien recibe un correo separado solo con sus propios días y total.
+const bulkEnviar = ref({
+  open:     false,
+  groups:   [],
+  enviando: false,
+  finished: false,
+})
+
+function openBulkEnviarModal() {
+  const rows = personalFiltrado.value
+  if (!rows.length) return
+  const map = new Map()
+  rows.forEach(r => {
+    const key = personKey(r)
+    if (!map.has(key)) {
+      map.set(key, {
+        key,
+        fullName:     r.user?.fullName ?? r.nombreExterno ?? '—',
+        esInterno:    !!r.user,
+        destinatario: r.user?.email ?? r.emailExterno ?? '',
+        rows:         [],
+        total:        0,
+        status:       null, // null | 'sending' | 'ok' | 'error' | 'skipped'
+        error:        null,
+      })
+    }
+    const g = map.get(key)
+    g.rows.push(r)
+    g.total += calcTotalNum(r)
+  })
+  bulkEnviar.value = {
+    open:     true,
+    groups:   Array.from(map.values()).sort((a, b) => a.fullName.localeCompare(b.fullName)),
+    enviando: false,
+    finished: false,
+  }
+}
+
+function closeBulkEnviarModal() {
+  bulkEnviar.value.open = false
+}
+
+async function confirmBulkEnviar() {
+  const pendientes = bulkEnviar.value.groups.filter(g => g.destinatario && g.status !== 'ok')
+  if (!pendientes.length) return
+  bulkEnviar.value.enviando = true
+  for (const g of pendientes) {
+    g.status = 'sending'
+    g.error  = null
+    try {
+      const registroIds  = g.rows.map(r => r.id)
+      const actualizados = await enviarReportePersonalCorreo(registroIds, g.destinatario)
+      const porId = new Map(actualizados.map(r => [r.id, r]))
+      personal.value.data = (personal.value.data ?? []).map(r => porId.get(r.id) ?? r)
+      g.status = 'ok'
+    } catch (e) {
+      g.status = 'error'
+      g.error  = e?.response?.data?.message ?? 'No se pudo enviar'
+    }
+  }
+  bulkEnviar.value.groups
+    .filter(g => !g.destinatario && !g.status)
+    .forEach(g => { g.status = 'skipped' })
+  bulkEnviar.value.enviando = false
+  bulkEnviar.value.finished = true
+}
 </script>
 
 <style scoped>
@@ -892,6 +1023,28 @@ async function confirmEnviarCorreo() {
   background: #fff; border-radius: 14px; width: 100%; max-width: 440px;
   overflow: hidden;
 }
+.po-modal--wide { max-width: 560px; }
+
+/* Envío masivo */
+.bulk-list {
+  display: flex; flex-direction: column; gap: 8px;
+  max-height: 320px; overflow-y: auto; padding-right: 2px;
+}
+.bulk-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border: 1.5px solid #E2E8F0; border-radius: 10px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.bulk-row--done  { border-color: #A7EEF5; background: #F0FDFA; }
+.bulk-row--error { border-color: #FCA5A5; background: #FFF1F2; }
+.bulk-row-main { display: flex; flex-direction: column; min-width: 120px; flex-shrink: 0; }
+.bulk-row-name { font-size: 13px; font-weight: 600; color: #0F1A2E; }
+.bulk-row-meta { font-size: 11px; color: #94A3B8; }
+.bulk-row-email { flex: 1; min-width: 0; height: 34px; }
+.bulk-row-status { flex-shrink: 0; width: 76px; text-align: right; font-size: 12px; font-weight: 600; }
+.bulk-status-ok    { color: #166534; }
+.bulk-status-error { color: #B91C1C; cursor: help; }
+.bulk-status-skip  { color: #94A3B8; }
 .po-modal-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 18px 20px; border-bottom: 1px solid #F1F5F9;

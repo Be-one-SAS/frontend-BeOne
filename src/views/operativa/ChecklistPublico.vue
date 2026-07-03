@@ -420,11 +420,27 @@ function sectionFilled(key) {
   return false
 }
 
+/** Captura la geolocalización del dispositivo con fallback silencioso.
+ *  Nunca bloquea el envío: si el usuario niega el permiso, el navegador
+ *  no soporta geolocalización, o hay timeout, retorna null.
+ */
+function captureGeolocation(timeoutMs = 5000) {
+  return new Promise((resolve) => {
+    if (!('geolocation' in navigator)) return resolve(null)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => resolve(null),
+      { enableHighAccuracy: false, timeout: timeoutMs, maximumAge: 60000 },
+    )
+  })
+}
+
 async function submitCheckin() {
   submitAttempted.value = true
   if (!canSubmit.value || submitting.value) return
   submitting.value = true
   try {
+    const geo = await captureGeolocation()
     const quotationId = Number(route.params.id)
     const coordFinal = form.value.nombreCoordinador === '__otro__'
       ? form.value.otroCoordinador
@@ -443,6 +459,7 @@ async function submitCheckin() {
       nombreDispositivo:          dispositivoFinal,
       nombreRepresentanteCliente: form.value.nombreRepresentanteCliente,
       telefonoCliente:            form.value.telefonoCliente,
+      ...(geo ? { lat: geo.lat, lng: geo.lng } : {}),
       // Per-juego observations as obs_<juegoId>
       ...Object.fromEntries(
         Object.entries(juegoObs.value)
