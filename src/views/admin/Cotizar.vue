@@ -1177,9 +1177,18 @@ const updateSuccess = ref(false);
  * Guarda los cambios actuales vía PATCH a la cotización activa
  */
 const guardarEdicion = async () => {
+  // Si estamos editando una cotización existente pero su id nunca se cargó
+  // (p. ej. falló el GET inicial), saveQuotation() caería silenciosamente
+  // a la rama de "crear" y duplicaría la cotización. Cortamos acá con un
+  // error visible en vez de dejar que eso pase.
+  if (isEditMode.value && !quotationId.value) {
+    alert('No se pudo cargar la cotización original. Recarga la página antes de guardar para evitar crear un duplicado.');
+    return;
+  }
+
   isUpdating.value = true;
   updateSuccess.value = false;
-  
+
   try {
     await saveQuotation();
     modoEdicion.value = false;
@@ -1516,6 +1525,7 @@ const getCotizacion = async () => {
     console.log("Cotización cargada para edición:", data);
   } catch (error) {
     console.error("Error al cargar cotización", error);
+    alert('No se pudo cargar la cotización. Recarga la página antes de intentar guardar cambios.');
   }
 }
 
