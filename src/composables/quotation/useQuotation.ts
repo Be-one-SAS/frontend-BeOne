@@ -79,11 +79,12 @@ export function useQuotation() {
   const calcularSubtotalItem = (item: any) =>
     (item.unitPrice || 0) * (item.cantidadProducto || 0) * (item.cantidadJornada || 0)
 
-  // Calcular total de un item propio (con descuento)
+  // Calcular total de un item propio (con descuento y aumento)
   const calcularTotalItem = (item: any) => {
     const subtotal = calcularSubtotalItem(item)
     const descuento = (item.descuentoPct || 0)
-    return subtotal - (subtotal * descuento / 100)
+    const aumento   = (item.aumentoPct || 0)
+    return subtotal - (subtotal * descuento / 100) + (subtotal * aumento / 100)
   }
 
   // Calcular subtotal de un item tercero (sin descuento)
@@ -127,6 +128,13 @@ export function useQuotation() {
     )
     return descuentosPropios + descuentosTerceros
   })
+
+  // Total de aumentos aplicados (solo equipos propios — terceros no lo soportan aún)
+  const totalAumentos = computed(() =>
+    items.value.reduce(
+      (sum, item) => sum + (calcularSubtotalItem(item) * (item.aumentoPct || 0) / 100), 0
+    )
+  )
 
   // Subtotal CON descuentos (propios) - para mostrar
   const subtotalPropios = computed(() =>
@@ -190,6 +198,7 @@ export function useQuotation() {
         cantidadJornada:  it.cantidadJornada  ?? it.quantity ?? 1,
         cantidadProducto: it.cantidadProducto ?? 1,
         descuentoPct:     typeof it.descuentoPct === 'number' ? it.descuentoPct : 0,
+        aumentoPct:       typeof it.aumentoPct === 'number' ? it.aumentoPct : 0,
       }))
 
       cotizacion.members = data.members || [] // ✅ ADDED
@@ -293,6 +302,7 @@ export function useQuotation() {
             cantidadJornada:  it.cantidadJornada  ?? 1,
             cantidadProducto: it.cantidadProducto ?? 1,
             descuentoPct:     it.descuentoPct     ?? 0,
+            aumentoPct:       it.aumentoPct        ?? 0,
           }))
         if (ownItems.length > 0) {
           await addQuotationItems(quotationId.value, ownItems)
@@ -316,6 +326,7 @@ export function useQuotation() {
             cantidadJornada:  it.cantidadJornada  ?? 1,
             cantidadProducto: it.cantidadProducto ?? 1,
             descuentoPct:     it.descuentoPct     ?? 0,
+            aumentoPct:       it.aumentoPct        ?? 0,
           }))
         if (ownItems.length > 0) {
           await addQuotationItems(data.id, ownItems)
@@ -362,6 +373,7 @@ export function useQuotation() {
     // computed
     subtotal,
     totalDescuentos,
+    totalAumentos,
     total,
     subtotalPropios,
     subtotalTerceros,

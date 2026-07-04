@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { formatCOP as _fmt } from '@/utils/currency.js'
 import { getThirdPartyCatalog, updateThirdPartyCatalog } from '@/services/products.service'
 import ModalReutilizable from '@/components/modal/ModalReutilizable.vue'
+import SelectLabel from '@/components/input/SelectLabel.vue'
 import {
   Search, RefreshCw, ChevronUp, ChevronDown, Inbox,
   Pencil, Trash2,
@@ -533,7 +534,14 @@ onMounted(fetchProducts)
           </div>
           <div class="edit-field">
             <label class="edit-label">Categoría</label>
-            <input v-model="editForm.categoria" class="edit-input" placeholder="Ej: Iluminación, Audio…" />
+            <SelectLabel
+              class="edit-select"
+              v-model="editForm.categoria"
+              :options="categorias"
+              :creatable="true"
+              placeholder="Selecciona o crea una categoría"
+              search-placeholder="Buscar o crear categoría…"
+            />
           </div>
           <div class="edit-field">
             <label class="edit-label">Bodega</label>
@@ -1043,6 +1051,23 @@ onMounted(fetchProducts)
   box-shadow: 0 0 0 3px rgba(39,200,216,.1);
 }
 .edit-input::placeholder { color: #94A3B8; }
+
+/* ── Categoría (SelectLabel) para que combine con el resto del formulario ── */
+.edit-select :deep(.sl-trigger) {
+  background: #F8FAFC;
+  border: 1px solid #E2EBF6;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  color: #0F1A2E;
+}
+.edit-select :deep(.sl-trigger--open),
+.edit-select :deep(.sl-trigger:focus-visible) {
+  border-color: #27C8D8;
+  box-shadow: 0 0 0 3px rgba(39,200,216,.1);
+}
+.edit-select :deep(.sl-trigger-placeholder) { color: #94A3B8; }
 
 .edit-textarea {
   resize: vertical;
