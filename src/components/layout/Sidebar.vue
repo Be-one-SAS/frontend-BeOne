@@ -125,7 +125,7 @@ import {
   DollarSign, Activity, UserCog, Settings,
   LogOut, CheckSquare, ClipboardCheck, SlidersHorizontal,
   Landmark, TableProperties, FileBarChart, ShoppingCart, Layers,
-  Clock as ClockIcon, UserCircle2, ListOrdered,
+  Clock as ClockIcon, UserCircle2, ListOrdered, Target,
 } from 'lucide-vue-next'
 import { useAuth }               from '@/composables/useAuth'
 import { useSidebarPermissions, useMobileSidebar } from '@/composables/useSidebarPermissions'
@@ -244,6 +244,16 @@ const ALL_MENU_ITEMS = [
       { label: 'Reportes',             route: '/administracion/reportes',      icon: FileBarChart,    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
       { label: 'Órdenes de Compra',    route: '/administracion/ordenes-compra', icon: ShoppingCart,    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
     ],
+  },
+
+  // ── Desafíos comerciales — visible también para LIDER/SUPERVISOR,
+  // por eso va como grupo aparte y no dentro de "Administración" ──
+  {
+    separator: false,
+    icon:  Target,
+    label: 'Desafíos Comerciales',
+    route: '/administracion/desafios-comerciales',
+    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'],
   },
 
   // ── Grupo: Admin ──────────────────────────────────────

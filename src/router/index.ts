@@ -269,6 +269,12 @@ const routes = [
         component: () => import('../views/administracion/AdminMovimientos.vue'),
         meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
       },
+      {
+        path: 'administracion/desafios-comerciales',
+        name: 'DesafiosComerciales',
+        component: () => import('../views/administracion/DesafiosComerciales.vue'),
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'] },
+      },
 
       // ── Usuarios ───────────────────────────────────────
       {
