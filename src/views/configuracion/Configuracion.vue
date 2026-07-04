@@ -93,6 +93,58 @@
       />
     </div>
 
+    <template v-if="hasRole('ADMIN')">
+      <div class="cfg-section-label cfg-section-label--danger">Zona peligrosa</div>
+      <div class="cfg-card cfg-card--danger">
+        <div class="cfg-field-row">
+          <div>
+            <p class="cfg-field-title">Backup del sistema</p>
+            <p class="cfg-field-desc">
+              Descarga un volcado completo (.sql) de la base de datos de producción.
+            </p>
+          </div>
+          <div class="cfg-field-control">
+            <button class="cfg-btn-backup" :disabled="backupLoading" @click="downloadBackup">
+              {{ backupLoading ? 'Generando…' : 'Descargar backup' }}
+            </button>
+          </div>
+        </div>
+        <p v-if="backupDoneAt" class="cfg-field-saved">
+          Backup descargado a las {{ backupDoneAt }} — ya puedes eliminar los productos.
+        </p>
+        <p v-if="backupError" class="cfg-field-error">{{ backupError }}</p>
+
+        <div class="cfg-danger-divider" />
+
+        <div class="cfg-field-row">
+          <div>
+            <p class="cfg-field-title">Eliminar todos los productos</p>
+            <p class="cfg-field-desc">
+              Borra permanentemente todos los productos propios y de terceros, junto con sus
+              ítems de cotización, órdenes de compra ligadas, reservas y auditoría de inventario.
+              Las cotizaciones, facturas y pagos no se eliminan. Requiere haber descargado un
+              backup en esta sesión.
+            </p>
+          </div>
+          <div class="cfg-field-control">
+            <button
+              class="cfg-btn-danger"
+              :disabled="!backupDoneAt"
+              :title="!backupDoneAt ? 'Descarga un backup primero' : ''"
+              @click="showPurgeModal = true"
+            >
+              Eliminar todos los productos
+            </button>
+          </div>
+        </div>
+        <p v-if="purgeResult" class="cfg-field-saved">
+          Eliminado — productos: {{ purgeResult.products }}, productos de terceros: {{ purgeResult.thirdPartyCatalogProduct }},
+          ítems de cotización: {{ purgeResult.quotationItem + purgeResult.thirdPartyQuotationItem }},
+          órdenes de compra: {{ purgeResult.ordenCompra }}.
+        </p>
+      </div>
+    </template>
+
     <ConfirmModal
       :show="showConfirmModal"
       title="¿Cambiar número inicial de cotización?"
@@ -102,6 +154,16 @@
       @confirm="confirmSaveStartNumber"
       @cancel="cancelSaveStartNumber"
     />
+
+    <PurgeConfirmModal
+      :show="showPurgeModal"
+      title="¿Eliminar todos los productos?"
+      message="Esta acción es irreversible: borra productos, ítems de cotización, órdenes de compra ligadas, reservas y logs de inventario/escaneo asociados."
+      :loading="purgeLoading"
+      :error="purgeError"
+      @confirm="confirmPurge"
+      @cancel="showPurgeModal = false"
+    />
   </div>
 </template>
 
@@ -110,7 +172,11 @@ import { reactive, ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import ImportCard from '@/components/configuracion/ImportCard.vue'
 import ConfirmModal from '@/components/modal/ConfirmModal.vue'
+import PurgeConfirmModal from '@/components/modal/PurgeConfirmModal.vue'
+import { usePermissions } from '@/composables/usePermissions'
 import api from '@/services/api'
+
+const { hasRole } = usePermissions()
 
 // ── Configuración general — número inicial de cotizaciones ──
 const startNumberSaved  = ref(null) // último valor confirmado por el backend
@@ -263,6 +329,69 @@ async function runImport(mod, file) {
     states[mod].loading = false
   }
 }
+
+// ── Zona peligrosa: backup + purga total de productos ──
+const backupLoading = ref(false)
+const backupDoneAt  = ref('')
+const backupError   = ref('')
+
+async function downloadBackup() {
+  backupLoading.value = true
+  backupError.value   = ''
+  try {
+    const res = await api.get('/admin/backup', { responseType: 'blob', timeout: 120000 })
+    const disposition = res.headers['content-disposition'] || ''
+    const match = disposition.match(/filename="?([^"]+)"?/)
+    const filename = match?.[1] || `beone-backup-${Date.now()}.sql`
+
+    const url = URL.createObjectURL(res.data)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+
+    backupDoneAt.value = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+  } catch (e) {
+    backupError.value = await extractBlobErrorMessage(e) || 'Error al generar el backup'
+  } finally {
+    backupLoading.value = false
+  }
+}
+
+// Con responseType:'blob', un error del servidor (403/500 con JSON) también
+// llega como Blob en e.response.data — hay que leerlo como texto y parsearlo.
+async function extractBlobErrorMessage(e) {
+  const data = e?.response?.data
+  if (!(data instanceof Blob)) return e?.response?.data?.message
+  try {
+    const text = await data.text()
+    return JSON.parse(text)?.message
+  } catch {
+    return null
+  }
+}
+
+const showPurgeModal = ref(false)
+const purgeLoading   = ref(false)
+const purgeError     = ref('')
+const purgeResult    = ref(null)
+
+async function confirmPurge({ confirmPhrase, secretKey }) {
+  purgeLoading.value = true
+  purgeError.value   = ''
+  try {
+    const { data } = await api.post('/admin/products/purge-all', { confirmPhrase, secretKey }, { timeout: 120000 })
+    purgeResult.value  = data
+    showPurgeModal.value = false
+  } catch (e) {
+    purgeError.value = e?.response?.data?.message || 'Error al eliminar los productos'
+  } finally {
+    purgeLoading.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -336,4 +465,41 @@ async function runImport(mod, file) {
 .cfg-btn-save:disabled { opacity: 0.45; cursor: not-allowed; }
 .cfg-field-saved { font-size: 12px; font-weight: 600; color: #16A34A; margin: 0; }
 .cfg-field-error { font-size: 12px; color: #B91C1C; margin: 0; }
+
+/* ── Zona peligrosa ── */
+.cfg-section-label--danger { color: #B91C1C; }
+.cfg-card--danger { border-color: #FECACA; background: #FFFBFB; }
+.cfg-danger-divider { height: 1px; background: #FEE2E2; margin: 4px 0; }
+.cfg-btn-backup {
+  height: 36px;
+  padding: 0 16px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  border-radius: 8px;
+  border: 1px solid #E2EBF6;
+  background: #fff;
+  color: #0F172A;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+  white-space: nowrap;
+}
+.cfg-btn-backup:hover:not(:disabled) { background: #F8FAFC; }
+.cfg-btn-backup:disabled { opacity: 0.6; cursor: not-allowed; }
+.cfg-btn-danger {
+  height: 36px;
+  padding: 0 16px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  border-radius: 8px;
+  border: none;
+  background: #EF4444;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+  white-space: nowrap;
+}
+.cfg-btn-danger:hover:not(:disabled) { background: #DC2626; }
+.cfg-btn-danger:disabled { background: #FCA5A5; cursor: not-allowed; }
 </style>
