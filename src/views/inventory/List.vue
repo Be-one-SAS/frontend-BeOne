@@ -5,11 +5,12 @@ import { getInventory } from '@/services/inventory.service'
 import BaseTable     from '@/components/ui/BaseTable.vue'
 import ScanModal     from '@/components/inventory/ScanModal.vue'
 import SessionPanel  from '@/components/inventory/SessionPanel.vue'
+import SelectLabel   from '@/components/input/SelectLabel.vue'
 import {
   Search, RefreshCw, ChevronUp, ChevronDown,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   QrCode, Wifi, AlertTriangle, Eye, X,
-  PackageCheck, PackageSearch, Clock, Wrench, Smartphone,
+  PackageCheck, PackageSearch, Clock, Wrench, Smartphone, Layers,
 } from 'lucide-vue-next'
 
 /* ─── state ──────────────────────────────────────────────── */
@@ -60,6 +61,12 @@ const condOptions = [
   { value: 'EN_MANTENIMIENTO', label: 'En mantenimiento' },
   { value: 'DEFECTUOSO',       label: 'Defectuoso'       },
   { value: 'NO_ACTIVO',        label: 'No activo'        },
+]
+const pageSizeOptions = [
+  { value: 10,  label: '10 / pág.'  },
+  { value: 20,  label: '20 / pág.'  },
+  { value: 50,  label: '50 / pág.'  },
+  { value: 100, label: '100 / pág.' },
 ]
 
 const kpis = computed(() => kpiCounts.value)
@@ -148,6 +155,12 @@ const formatScan = (dateStr) => {
   if (hours < 24) return `hace ${hours}h`
   if (days < 7)   return `hace ${days}d`
   return d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
+}
+
+/** Formatea una fecha futura (a diferencia de formatScan, que es solo para fechas pasadas) */
+const formatFutureDate = (dateStr) => {
+  if (!dateStr) return '—'
+  return new Date(dateStr).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 /* ─── fetch ──────────────────────────────────────────────── */
@@ -252,6 +265,9 @@ onMounted(refetchAll)
         <button class="inv-btn-session" @click="showSession = true">
           <Smartphone :size="14" /> Sesión móvil
         </button>
+        <button class="inv-btn-materiales" @click="router.push({ name: 'Materiales' })">
+          <Layers :size="14" /> Materiales
+        </button>
         <button class="inv-btn-reload" @click="refetchAll">
           <RefreshCw :size="13" /> Recargar
         </button>
@@ -338,27 +354,32 @@ onMounted(refetchAll)
         />
       </div>
 
-      <select v-model="availFilter" class="pp-input">
-        <option value="">Disponibilidad</option>
-        <option v-for="o in availOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
-      </select>
+      <SelectLabel
+        v-model="availFilter"
+        placeholder="Disponibilidad"
+        :options="availOptions"
+        class="pp-select pp-select--filter"
+      />
 
-      <select v-model="condFilter" class="pp-input">
-        <option value="">Condición</option>
-        <option v-for="o in condOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
-      </select>
+      <SelectLabel
+        v-model="condFilter"
+        placeholder="Condición"
+        :options="condOptions"
+        class="pp-select pp-select--filter"
+      />
 
-      <select v-model="bodegaFilter" class="pp-input">
-        <option value="">Todas las bodegas</option>
-        <option v-for="b in bodegas" :key="b" :value="b">{{ b }}</option>
-      </select>
+      <SelectLabel
+        v-model="bodegaFilter"
+        placeholder="Todas las bodegas"
+        :options="bodegas"
+        class="pp-select pp-select--filter"
+      />
 
-      <select v-model.number="pageSize" class="pp-input pp-input--sm">
-        <option :value="10">10 / pág.</option>
-        <option :value="20">20 / pág.</option>
-        <option :value="50">50 / pág.</option>
-        <option :value="100">100 / pág.</option>
-      </select>
+      <SelectLabel
+        v-model="pageSize"
+        :options="pageSizeOptions"
+        class="pp-select pp-select--sm"
+      />
 
       <button
         v-if="search || availFilter || condFilter || bodegaFilter"
@@ -479,8 +500,15 @@ onMounted(refetchAll)
         </template>
 
         <!-- Disponibilidad badge -->
-        <template #cell-availabilityStatus="{ value }">
+        <template #cell-availabilityStatus="{ value, row }">
           <span :class="availClass(value)">{{ availLabel(value) }}</span>
+          <span
+            v-if="row.upcomingReservations > 0"
+            class="inv-reserv-flag"
+            :title="`${row.upcomingReservations} reserva(s) activa(s) o futura(s) — próxima desde ${formatFutureDate(row.nextReservationAt)}. El estado de disponibilidad de arriba es manual y puede no reflejar esto.`"
+          >
+            <Clock :size="11" /> {{ row.upcomingReservations }}
+          </span>
         </template>
 
         <!-- Condición badge -->
@@ -589,6 +617,15 @@ onMounted(refetchAll)
   cursor: pointer; transition: all 0.2s;
 }
 .inv-btn-session:hover { background: #16A34A; color: #fff; border-color: #16A34A; }
+
+.inv-btn-materiales {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; background: #F5F3FF; color: #7C3AED;
+  border: 1px solid #DDD6FE; border-radius: 10px;
+  font-size: 13px; font-weight: 600; font-family: 'Inter',sans-serif;
+  cursor: pointer; transition: all 0.2s;
+}
+.inv-btn-materiales:hover { background: #7C3AED; color: #fff; border-color: #7C3AED; }
 
 .inv-btn-reload {
   display: inline-flex;
@@ -754,8 +791,12 @@ onMounted(refetchAll)
   appearance: none;
 }
 .pp-input:focus { border-color: #27C8D8; box-shadow: 0 0 0 3px rgba(39,200,216,0.1); }
-select.pp-input { padding-left: 12px; cursor: pointer; }
-.pp-input--sm { width: auto; min-width: 110px; flex: none; }
+
+.pp-select { width: auto; }
+.pp-select :deep(.sl-trigger) { height: 36px; }
+.pp-select--sm { min-width: 110px; flex: none; }
+.pp-select--filter { min-width: 140px; max-width: 180px; flex: 0 1 auto; }
+@media (max-width: 700px) { .pp-select--filter { max-width: none; flex: 1 1 140px; } }
 
 /* ─── Paginación ──────────────────────────────────────────── */
 .pp-pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-top: 1px solid #F1F5FA; flex-wrap: wrap; gap: 8px; }
@@ -876,6 +917,20 @@ select.pp-input { padding-left: 12px; cursor: pointer; }
   font-size: 12px;
   color: #94A3B8;
   font-family: 'Inter', sans-serif;
+}
+
+.inv-reserv-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #FEF3C7;
+  color: #B45309;
+  cursor: help;
 }
 
 /* ─── Badges (global pattern) ─────────────────────────────── */

@@ -7,11 +7,13 @@ import {
   updateItemStatus, updateItemCondition, updateItemLocation, generateQR,
   uploadProductImage, updateInventoryDetails,
 } from '@/services/inventory.service'
+import { getMaterialesByProducto } from '@/services/materiales.service'
 import ModalReutilizable from '@/components/modal/ModalReutilizable.vue'
+import SelectLabel from '@/components/input/SelectLabel.vue'
 import {
   ArrowLeft, RefreshCw, QrCode, Download, Wifi,
   Package, MapPin, Clock, AlertTriangle, CheckCircle,
-  Wrench, Edit, ChevronRight, Tag,
+  Wrench, Edit, ChevronRight, Tag, Layers,
 } from 'lucide-vue-next'
 
 const route  = useRoute()
@@ -22,6 +24,8 @@ const id     = route.params.id
 const item        = ref(null)
 const reservations = ref([])
 const history     = ref([])
+const materiales  = ref([])
+const materialesLoading = ref(false)
 const loading     = ref(false)
 const error       = ref(null)
 const qrDataUrl   = ref(null)
@@ -85,15 +89,20 @@ const editError   = ref('')
 const editSuccess = ref(false)
 const editForm    = ref({})
 
+// Nota: 'availabilityStatus', 'conditionStatus' y 'location' NO están aquí a
+// propósito — se editan únicamente vía los modales de acción rápida
+// (saveStatus/saveCondition/saveLocation), que sí registran el cambio en
+// InventoryLog con el valor anterior/nuevo. Editarlos también desde este
+// formulario genérico duplicaba el flujo y dejaba esos cambios sin auditoría
+// específica (quedaban como "Edición de campos del producto" genérica).
 const EDITABLE_FIELDS = [
-  'nombre', 'dispositivo', 'categoria', 'bodega', 'location',
+  'nombre', 'dispositivo', 'categoria', 'bodega',
   'serialNumber', 'nfcTag', 'notas', 'descripcion', 'medidas',
   'montacarga', 'incluyeTransporteBogMde',
   'amperios', 'm2Dispositivo', 'pesoAproxDisp', 'm3Transporte',
   'qHorasOperacion', 'qHorasMontaje',
   'qMotores', 'qOperarios', 'qPersonalMontaje', 'anioDispositivo',
   'qPesosEstacas', 'qExtintores',
-  'availabilityStatus', 'conditionStatus',
 ]
 
 function startEdit() {
@@ -165,13 +174,22 @@ const statusOptions = [
   { value: 'EN_RESERVA',    label: 'En reserva'    },
   { value: 'NO_DISPONIBLE', label: 'No disponible' },
 ]
+// El % en "Operativo 70/50" es el rendimiento/capacidad estimada del equipo
+// respecto a su estado óptimo (ej. un inflable con un motor de 2 fallando
+// pero que aún opera) — no es porcentaje de piezas ni de desgaste físico.
 const condOptions = [
-  { value: 'OPERATIVO_OK',     label: 'Operativo OK'     },
-  { value: 'OPERATIVO_70',     label: 'Operativo 70%'    },
-  { value: 'OPERATIVO_50',     label: 'Operativo 50%'    },
-  { value: 'EN_MANTENIMIENTO', label: 'En mantenimiento' },
-  { value: 'DEFECTUOSO',       label: 'Defectuoso'       },
-  { value: 'NO_ACTIVO',        label: 'No activo'        },
+  { value: 'OPERATIVO_OK',     label: 'Operativo OK',     hint: 'Funciona al 100% de su capacidad' },
+  { value: 'OPERATIVO_70',     label: 'Operativo 70%',    hint: 'Funciona con limitaciones menores, sigue siendo usable' },
+  { value: 'OPERATIVO_50',     label: 'Operativo 50%',    hint: 'Funciona con limitaciones importantes' },
+  { value: 'EN_MANTENIMIENTO', label: 'En mantenimiento', hint: 'Fuera de servicio temporalmente para reparación' },
+  { value: 'DEFECTUOSO',       label: 'Defectuoso',       hint: 'No funciona, requiere reparación' },
+  { value: 'NO_ACTIVO',        label: 'No activo',        hint: 'Dado de baja, no se usa ni se repara' },
+]
+const condHint = computed(() => condOptions.find(o => o.value === condForm.value.condition)?.hint || '')
+const methodOptions = [
+  { value: 'MANUAL', label: 'Manual' },
+  { value: 'QR',     label: 'QR'     },
+  { value: 'NFC',    label: 'NFC'    },
 ]
 
 /* ─── badge helpers ──────────────────────────────────────── */
@@ -294,6 +312,16 @@ const fetchAll = async () => {
     error.value = 'No se pudo cargar el equipo'
   } finally {
     loading.value = false
+  }
+
+  // Independiente del resto — si falla no debe tumbar el detalle del equipo
+  materialesLoading.value = true
+  try {
+    materiales.value = await getMaterialesByProducto(id)
+  } catch (e) {
+    console.error(e)
+  } finally {
+    materialesLoading.value = false
   }
 }
 
@@ -491,34 +519,31 @@ onMounted(fetchAll)
 
               <div class="inv-info-row">
                 <span class="inv-info-lbl">Disponibilidad</span>
-                <select v-if="editMode" v-model="editForm.availabilityStatus" class="inv-edit-input">
-                  <option value="DISPONIBLE">Disponible</option>
-                  <option value="EN_RESERVA">En reserva</option>
-                  <option value="NO_DISPONIBLE">No disponible</option>
-                </select>
-                <span v-else :class="availClass(item.availabilityStatus)">{{ availLabel(item.availabilityStatus) }}</span>
+                <span class="inv-info-val-with-action">
+                  <span :class="availClass(item.availabilityStatus)">{{ availLabel(item.availabilityStatus) }}</span>
+                  <button type="button" class="inv-btn-change" @click="openStatusModal">Cambiar</button>
+                </span>
               </div>
               <div class="inv-info-row">
                 <span class="inv-info-lbl">Condición</span>
-                <select v-if="editMode" v-model="editForm.conditionStatus" class="inv-edit-input">
-                  <option value="OPERATIVO_OK">Operativo OK</option>
-                  <option value="OPERATIVO_70">Operativo 70%</option>
-                  <option value="OPERATIVO_50">Operativo 50%</option>
-                  <option value="EN_MANTENIMIENTO">En mantenimiento</option>
-                  <option value="DEFECTUOSO">Defectuoso</option>
-                  <option value="NO_ACTIVO">No activo</option>
-                </select>
-                <span v-else :class="condClass(item.conditionStatus)">{{ condLabel(item.conditionStatus) }}</span>
+                <span class="inv-info-val-with-action">
+                  <span :class="condClass(item.conditionStatus)">{{ condLabel(item.conditionStatus) }}</span>
+                  <button type="button" class="inv-btn-change" @click="openCondModal">Cambiar</button>
+                </span>
               </div>
               <div class="inv-info-row">
                 <span class="inv-info-lbl">Bodega</span>
                 <input v-if="editMode" v-model="editForm.bodega" class="inv-edit-input" placeholder="Bodega" />
                 <span v-else class="inv-info-val">{{ item.bodega || '—' }}</span>
+                <span v-if="editMode" class="inv-info-hint">Instalación o sede física (ej. "Bodega Medellín")</span>
               </div>
               <div class="inv-info-row">
                 <span class="inv-info-lbl">Ubicación</span>
-                <input v-if="editMode" v-model="editForm.location" class="inv-edit-input" placeholder="Ubicación" />
-                <span v-else class="inv-info-val">{{ item.ubicacion || '—' }}</span>
+                <span class="inv-info-val-with-action">
+                  <span class="inv-info-val">{{ item.ubicacion || '—' }}</span>
+                  <button type="button" class="inv-btn-change" @click="openLocationModal">Cambiar</button>
+                </span>
+                <span class="inv-info-hint">Punto exacto dentro de la bodega (ej. "Estante 3, nivel B")</span>
               </div>
               <div class="inv-info-row">
                 <span class="inv-info-lbl">Último escaneo</span>
@@ -715,6 +740,41 @@ onMounted(fetchAll)
           </div>
         </div>
 
+        <!-- ── Materiales del catálogo ──────────────────────────── -->
+        <div class="inv-card inv-card--full">
+          <div class="inv-card-head">
+            <Layers :size="16" class="inv-card-ico" />
+            <h3 class="inv-card-title">
+              Materiales del catálogo
+              <span class="inv-count-badge">{{ materiales.length }}</span>
+            </h3>
+            <button
+              type="button"
+              class="inv-btn-materiales-link"
+              @click="router.push({ name: 'Materiales', query: { productoId: id } })"
+            >
+              Gestionar materiales
+            </button>
+          </div>
+
+          <div v-if="materialesLoading" class="inv-empty-state">
+            <p>Cargando materiales…</p>
+          </div>
+          <ul v-else-if="materiales.length" class="mat-summary-list">
+            <li v-for="pm in materiales" :key="pm.id" class="mat-summary-item">
+              <span class="mat-nombre">{{ pm.materialBase?.nombre }}</span>
+              <span class="mat-summary-meta">{{ pm.cantidad }} {{ pm.materialBase?.unidad || '' }}</span>
+              <span :class="pm.esOpcional ? 'mat-badge-opt' : 'mat-badge-req'">
+                {{ pm.esOpcional ? 'Opcional' : 'Requerido' }}
+              </span>
+            </li>
+          </ul>
+          <div v-else class="inv-empty-state">
+            <Layers :size="28" class="inv-empty-ico" />
+            <p>Este producto no tiene materiales asignados desde el catálogo</p>
+          </div>
+        </div>
+
         <!-- ── Movement history ──────────────────────────────── -->
         <div class="inv-card inv-card--full">
           <div class="inv-card-head">
@@ -756,10 +816,7 @@ onMounted(fetchAll)
         <h2 class="inv-modal-title">Cambiar estado de disponibilidad</h2>
         <div class="inv-form-group">
           <label class="inv-form-lbl">Nuevo estado</label>
-          <select v-model="statusForm.status" class="inv-form-input">
-            <option value="">Seleccionar…</option>
-            <option v-for="o in statusOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
-          </select>
+          <SelectLabel v-model="statusForm.status" :options="statusOptions" placeholder="Seleccionar…" />
         </div>
         <div class="inv-form-group">
           <label class="inv-form-lbl">Notas (opcional)</label>
@@ -767,11 +824,7 @@ onMounted(fetchAll)
         </div>
         <div class="inv-form-group">
           <label class="inv-form-lbl">Método de registro</label>
-          <select v-model="statusForm.method" class="inv-form-input">
-            <option value="MANUAL">Manual</option>
-            <option value="QR">QR</option>
-            <option value="NFC">NFC</option>
-          </select>
+          <SelectLabel v-model="statusForm.method" :options="methodOptions" />
         </div>
         <div class="inv-modal-footer">
           <button class="inv-btn-cancel" @click="statusModal = false">Cancelar</button>
@@ -788,10 +841,8 @@ onMounted(fetchAll)
         <h2 class="inv-modal-title">Cambiar condición</h2>
         <div class="inv-form-group">
           <label class="inv-form-lbl">Nueva condición</label>
-          <select v-model="condForm.condition" class="inv-form-input">
-            <option value="">Seleccionar…</option>
-            <option v-for="o in condOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
-          </select>
+          <SelectLabel v-model="condForm.condition" :options="condOptions" placeholder="Seleccionar…" />
+          <p v-if="condHint" class="inv-form-hint">{{ condHint }}</p>
         </div>
         <div class="inv-form-group">
           <label class="inv-form-lbl">Notas (opcional)</label>
@@ -939,6 +990,38 @@ onMounted(fetchAll)
 }
 .inv-col-right { display: flex; flex-direction: column; gap: 20px; }
 
+.inv-count-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #CCEFF2; color: #27C8D8;
+  border-radius: 9999px; font-size: 11px; font-weight: 600;
+  min-width: 18px; height: 18px; padding: 0 5px; margin-left: 6px;
+}
+.inv-btn-materiales-link {
+  margin-left: auto;
+  border: 1px solid #CBD5E1; background: #fff; cursor: pointer;
+  padding: 5px 12px; border-radius: 6px;
+  font-size: 12px; font-weight: 600; color: #475569;
+  font-family: 'Inter', sans-serif; transition: background 0.15s;
+}
+.inv-btn-materiales-link:hover { background: #F1F5F9; }
+
+.mat-summary-list { list-style: none; margin: 0; padding: 0; }
+.mat-summary-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0; border-bottom: 1px solid #F1F5F9; font-size: 13px;
+}
+.mat-summary-item:last-child { border-bottom: none; }
+.mat-nombre { font-weight: 500; color: #0F172A; flex: 1; }
+.mat-summary-meta { color: #64748B; font-size: 12px; }
+.mat-badge-req {
+  display: inline-block; padding: 2px 7px; border-radius: 9999px;
+  font-size: 10px; font-weight: 600; background: #E0F9FA; color: #27C8D8;
+}
+.mat-badge-opt {
+  display: inline-block; padding: 2px 7px; border-radius: 9999px;
+  font-size: 10px; font-weight: 600; background: #FFF7ED; color: #C2410C;
+}
+
 /* ─── Info body ───────────────────────────────────────────── */
 .inv-info-body { display: flex; gap: 20px; flex-wrap: wrap; }
 .inv-info-img {
@@ -977,6 +1060,15 @@ onMounted(fetchAll)
   font-family: 'Inter', sans-serif;
 }
 .inv-info-val--mono { font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 12px; }
+.inv-info-val-with-action { display: flex; align-items: center; gap: 8px; }
+.inv-btn-change {
+  border: none; background: none; padding: 0;
+  font-size: 11px; font-weight: 600; color: #27C8D8;
+  cursor: pointer; text-decoration: underline;
+  font-family: 'Inter', sans-serif;
+}
+.inv-btn-change:hover { color: #1BAEBB; }
+.inv-info-hint { font-size: 11px; color: #94A3B8; font-family: 'Inter', sans-serif; }
 
 /* ─── Quick actions ───────────────────────────────────────── */
 .inv-actions-list { display: flex; flex-direction: column; gap: 8px; }
@@ -1190,6 +1282,12 @@ onMounted(fetchAll)
   font-weight: 600;
   color: #64748B;
   font-family: 'Inter', sans-serif;
+}
+.inv-form-hint {
+  font-size: 11px;
+  color: #94A3B8;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
 }
 .inv-form-input {
   width: 100%;

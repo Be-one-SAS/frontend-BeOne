@@ -2,17 +2,12 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getProducts, createProduct, updateProduct, deleteProduct, uploadProductFoto } from '@/services/products.service'
+import { getMaterialesByProducto } from '@/services/materiales.service'
 import { formatCOP } from '@/utils/currency.js'
-import {
-  getMaterialCategorias, getMaterialesBase,
-  getMaterialesByProducto, addMaterialToProducto,
-  updateMaterialOfProducto, removeMaterialFromProducto,
-  parseTextoMateriales, bulkAssignMateriales,
-} from '@/services/materiales.service'
 import ModalReutilizable from '@/components/modal/ModalReutilizable.vue'
 import {
   RefreshCw, ChevronUp, ChevronDown, Inbox,
-  Pencil, Trash2, Plus, X, Camera, FileText,
+  Pencil, Trash2, Plus, X, Camera,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   Calculator,
 } from 'lucide-vue-next'
@@ -104,29 +99,11 @@ const fotoPreviewUrl = computed(() =>
   isCreating.value ? newFotoLocalUrl.value : (productToEdit.value?.linkFotoDispositivo || '')
 )
 
-// materiales del modal de edición
-const categoriasMat    = ref([])
+// materiales del modal de edición — solo resumen de lectura, la gestión
+// completa (agregar/editar/quitar) vive únicamente en /materiales para no
+// tener dos pantallas editando lo mismo.
 const editMateriales   = ref([])          // ProductoMaterial[]
 const editMatLoading   = ref(false)
-const editMatSearch    = ref('')
-const editMatResults   = ref([])
-const editMatSearching = ref(false)
-const editMatSelected  = ref(null)
-const editMatCantidad  = ref(1)
-const editMatOpcional  = ref(false)
-const editMatAdding    = ref(false)
-const editMatAddError  = ref('')
-const editMatInlineId  = ref(null)        // id del PM en edición inline
-const editMatInlineCant = ref(1)
-// parser dentro del modal
-const editParserOpen   = ref(false)
-const editParserText   = ref('')
-const editParserItems  = ref([])
-const editParserStep   = ref(1)           // 1: input  2: review  3: done
-const editParserParsing = ref(false)
-const editParserSaving  = ref(false)
-const editParserResult  = ref(null)
-const editParserError   = ref('')
 
 /* ─── computed options ───────────────────────────────────── */
 const categorias = computed(() => [...new Set(products.value.map(p => p.categoria).filter(Boolean))].sort())
@@ -280,20 +257,15 @@ function openEdit(product) {
   newAccesorio.value   = ''
   editModal.value      = true
   editMateriales.value  = []
-  editMatSearch.value   = ''
-  editMatSelected.value = null
-  editMatCantidad.value = 1
-  editMatOpcional.value = false
-  editMatAddError.value = ''
-  editMatInlineId.value = null
-  editParserOpen.value  = false
   editMatLoading.value  = true
   getMaterialesByProducto(product.id)
     .then(r  => { editMateriales.value = r })
     .catch(() => {})
     .finally(() => { editMatLoading.value = false })
-  if (!categoriasMat.value.length)
-    getMaterialCategorias().then(r => { categoriasMat.value = r })
+}
+
+function irAMateriales() {
+  router.push({ name: 'Materiales', query: { productoId: productToEdit.value.id } })
 }
 
 function openCreate() {
@@ -308,9 +280,6 @@ function openCreate() {
   newAccesorio.value   = ''
   editModal.value      = true
   editMateriales.value = []
-  editParserOpen.value = false
-  if (!categoriasMat.value.length)
-    getMaterialCategorias().then(r => { categoriasMat.value = r })
 }
 
 function addAccesorio() {
@@ -362,90 +331,6 @@ async function saveEdit() {
   }
 }
 
-/* ─── materiales en modal de edición ────────────────────────── */
-watch(editMatSearch, async (val) => {
-  editMatSelected.value = null
-  if (val.length < 2) { editMatResults.value = []; return }
-  editMatSearching.value = true
-  try { editMatResults.value = await getMaterialesBase({ search: val, activo: true }) }
-  catch (e) { console.error(e) }
-  finally { editMatSearching.value = false }
-})
-
-function selectEditMat(m) {
-  editMatSelected.value = m
-  editMatSearch.value   = m.nombre
-  editMatResults.value  = []
-}
-
-async function addEditMaterial() {
-  if (!editMatSelected.value) { editMatAddError.value = 'Selecciona un material.'; return }
-  if (!editMatCantidad.value || editMatCantidad.value <= 0) { editMatAddError.value = 'Cantidad inválida.'; return }
-  editMatAdding.value = true; editMatAddError.value = ''
-  try {
-    const pm = await addMaterialToProducto(productToEdit.value.id, {
-      materialBaseId: editMatSelected.value.id,
-      cantidad: editMatCantidad.value,
-      esOpcional: editMatOpcional.value,
-    })
-    editMateriales.value.push(pm)
-    editMatSearch.value = ''; editMatSelected.value = null; editMatCantidad.value = 1; editMatOpcional.value = false
-  } catch (e) {
-    editMatAddError.value = e?.response?.data?.message || 'Error al agregar.'
-  } finally {
-    editMatAdding.value = false
-  }
-}
-
-function startInlineEdit(pm) {
-  editMatInlineId.value   = pm.id
-  editMatInlineCant.value = pm.cantidad
-}
-
-async function saveInlineEdit(pm) {
-  try {
-    const updated = await updateMaterialOfProducto(pm.id, { cantidad: editMatInlineCant.value })
-    const idx = editMateriales.value.findIndex(m => m.id === pm.id)
-    if (idx !== -1) editMateriales.value[idx] = updated
-    editMatInlineId.value = null
-  } catch (e) { console.error(e) }
-}
-
-async function deleteEditMaterial(pm) {
-  if (!confirm(`¿Eliminar "${pm.materialBase?.nombre}"?`)) return
-  try {
-    await removeMaterialFromProducto(pm.id)
-    editMateriales.value = editMateriales.value.filter(m => m.id !== pm.id)
-  } catch (e) { console.error(e) }
-}
-
-function openEditParser() {
-  editParserText.value = ''; editParserItems.value = []; editParserStep.value = 1
-  editParserResult.value = null; editParserError.value = ''
-  editParserOpen.value = true
-}
-
-async function runEditParser() {
-  if (!editParserText.value.trim()) return
-  editParserParsing.value = true; editParserError.value = ''
-  try {
-    const parsed = await parseTextoMateriales(editParserText.value)
-    editParserItems.value = parsed.map(p => ({ ...p, categoriaId: 11 }))
-    editParserStep.value  = 2
-  } catch (e) { editParserError.value = 'Error al parsear.' }
-  finally { editParserParsing.value = false }
-}
-
-async function confirmEditParser() {
-  editParserSaving.value = true; editParserError.value = ''
-  try {
-    const result = await bulkAssignMateriales(productToEdit.value.id, editParserItems.value)
-    editParserResult.value = result
-    editParserStep.value   = 3
-    editMateriales.value   = await getMaterialesByProducto(productToEdit.value.id)
-  } catch (e) { editParserError.value = e?.response?.data?.message || 'Error al asignar.' }
-  finally { editParserSaving.value = false }
-}
 
 async function handleFotoChange(event) {
   const file = event.target.files?.[0]
@@ -863,165 +748,31 @@ onMounted(fetchProducts)
             </div>
           </div>
 
-          <!-- Materiales del catálogo (solo al editar — requiere que el producto ya exista) -->
+          <!-- Materiales del catálogo — resumen de solo lectura. La gestión
+               completa (agregar/editar/quitar) vive únicamente en /materiales
+               para no tener dos pantallas editando lo mismo. -->
           <div v-if="!isCreating" style="grid-column:1/-1" class="mat-section">
             <div class="mat-section-header">
               <span class="edit-section-label" style="margin:0">
                 Materiales del catálogo
                 <span class="mat-count-badge">{{ editMateriales.length }}</span>
               </span>
-              <div class="mat-header-actions">
-                <button class="btn-mat-text" @click="openEditParser">
-                  <FileText :size="13" /> Importar texto
-                </button>
-                <button class="btn-mat-text btn-mat-primary" @click="editMatAdding = !editMatAdding">
-                  <Plus :size="13" /> Agregar material
-                </button>
-              </div>
-            </div>
-
-            <!-- add inline form -->
-            <div v-if="editMatAdding" class="mat-add-form">
-              <div class="mat-search-wrap">
-                <input
-                  v-model="editMatSearch"
-                  class="edit-input"
-                  placeholder="Buscar material en catálogo…"
-                  autocomplete="off"
-                />
-                <div v-if="editMatSearching" class="mat-search-spinner"></div>
-                <ul v-if="editMatResults.length" class="mat-dropdown">
-                  <li
-                    v-for="m in editMatResults"
-                    :key="m.id"
-                    class="mat-dropdown-item"
-                    @mousedown.prevent="selectEditMat(m)"
-                  >
-                    <span class="mat-drop-name">{{ m.nombre }}</span>
-                    <span class="mat-drop-unit">{{ m.unidad }}</span>
-                  </li>
-                </ul>
-              </div>
-              <input
-                v-model.number="editMatCantidad"
-                type="number" min="1" step="0.5"
-                class="edit-input mat-cant-input"
-                placeholder="Cant."
-              />
-              <label class="mat-opc-label">
-                <input type="checkbox" v-model="editMatOpcional" />
-                Opcional
-              </label>
-              <button class="btn-mat-confirm" :disabled="editMatAdding && !editMatSelected" @click="addEditMaterial">
-                <span v-if="editMatAdding && editMatSearch && !editMatSelected">…</span>
-                <span v-else>Agregar</span>
+              <button class="btn-mat-text btn-mat-primary" @click="irAMateriales">
+                Gestionar materiales
               </button>
-              <p v-if="editMatAddError" class="mat-error">{{ editMatAddError }}</p>
             </div>
 
-            <!-- tabla -->
             <div v-if="editMatLoading" class="mat-loading">Cargando materiales…</div>
             <div v-else-if="!editMateriales.length" class="mat-empty">Sin materiales asignados desde el catálogo.</div>
-            <table v-else class="mat-table">
-              <thead>
-                <tr>
-                  <th>Material</th>
-                  <th>Unidad</th>
-                  <th>Cantidad</th>
-                  <th>Tipo</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="pm in editMateriales" :key="pm.id">
-                  <td class="mat-nombre">{{ pm.materialBase?.nombre }}</td>
-                  <td class="mat-unit">{{ pm.materialBase?.unidad || '—' }}</td>
-                  <td class="mat-cant">
-                    <template v-if="editMatInlineId === pm.id">
-                      <input
-                        v-model.number="editMatInlineCant"
-                        type="number" min="0.5" step="0.5"
-                        class="edit-input mat-inline-input"
-                        @keydown.enter.prevent="saveInlineEdit(pm)"
-                        @keydown.escape.prevent="editMatInlineId = null"
-                      />
-                      <button class="btn-mat-icon btn-mat-ok" @click="saveInlineEdit(pm)">✓</button>
-                      <button class="btn-mat-icon btn-mat-cancel" @click="editMatInlineId = null">✕</button>
-                    </template>
-                    <template v-else>
-                      <span class="mat-cant-val">{{ pm.cantidad }}</span>
-                      <button class="btn-mat-icon btn-mat-edit-inline" @click="startInlineEdit(pm)">
-                        <Pencil :size="11" />
-                      </button>
-                    </template>
-                  </td>
-                  <td>
-                    <span :class="pm.esOpcional ? 'mat-badge-opt' : 'mat-badge-req'">
-                      {{ pm.esOpcional ? 'Opcional' : 'Requerido' }}
-                    </span>
-                  </td>
-                  <td class="mat-actions">
-                    <button class="btn-mat-icon btn-mat-del" @click="deleteEditMaterial(pm)">
-                      <X :size="12" />
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-
-            <!-- parser modal inline -->
-            <div v-if="editParserOpen" class="mat-parser-overlay">
-              <div class="mat-parser-box">
-                <div class="mat-parser-header">
-                  <span>Importar materiales desde texto</span>
-                  <button class="btn-mat-icon" @click="editParserOpen = false"><X :size="14" /></button>
-                </div>
-
-                <!-- step 1: ingresar texto -->
-                <div v-if="editParserStep === 1">
-                  <p class="mat-parser-hint">Ejemplo: <em>20 puff 4 parasoles 1 multitoma</em></p>
-                  <textarea
-                    v-model="editParserText"
-                    class="edit-input edit-textarea mat-parser-ta"
-                    rows="4"
-                    placeholder="Pega aquí la lista de materiales…"
-                  ></textarea>
-                  <p v-if="editParserError" class="mat-error">{{ editParserError }}</p>
-                  <div class="mat-parser-footer">
-                    <button class="btn-cancel" @click="editParserOpen = false">Cancelar</button>
-                    <button class="btn-save" :disabled="editParserParsing || !editParserText.trim()" @click="runEditParser">
-                      {{ editParserParsing ? 'Parseando…' : 'Continuar' }}
-                    </button>
-                  </div>
-                </div>
-
-                <!-- step 2: revisar ítems -->
-                <div v-if="editParserStep === 2">
-                  <p class="mat-parser-subhead">Revisa los {{ editParserItems.length }} ítems detectados:</p>
-                  <div class="mat-parser-items">
-                    <div v-for="(item, i) in editParserItems" :key="i" class="mat-parser-item">
-                      <input v-model.number="item.cantidad" type="number" min="0.5" step="0.5" class="edit-input mat-cant-input" />
-                      <input v-model="item.nombre" class="edit-input" style="flex:1" />
-                      <button class="btn-mat-icon btn-mat-del" @click="editParserItems.splice(i,1)"><X :size="12" /></button>
-                    </div>
-                  </div>
-                  <p v-if="editParserError" class="mat-error">{{ editParserError }}</p>
-                  <div class="mat-parser-footer">
-                    <button class="btn-cancel" @click="editParserStep = 1">Atrás</button>
-                    <button class="btn-save" :disabled="editParserSaving" @click="confirmEditParser">
-                      {{ editParserSaving ? 'Asignando…' : 'Confirmar y asignar' }}
-                    </button>
-                  </div>
-                </div>
-
-                <!-- step 3: resultado -->
-                <div v-if="editParserStep === 3 && editParserResult" class="mat-parser-result">
-                  <p>✓ Asignados: <strong>{{ editParserResult.created + editParserResult.updated }}</strong>
-                    ({{ editParserResult.created }} nuevos, {{ editParserResult.updated }} actualizados)</p>
-                  <button class="btn-save" @click="editParserOpen = false">Cerrar</button>
-                </div>
-              </div>
-            </div>
+            <ul v-else class="mat-summary-list">
+              <li v-for="pm in editMateriales" :key="pm.id" class="mat-summary-item">
+                <span class="mat-nombre">{{ pm.materialBase?.nombre }}</span>
+                <span class="mat-summary-meta">{{ pm.cantidad }} {{ pm.materialBase?.unidad || '' }}</span>
+                <span :class="pm.esOpcional ? 'mat-badge-opt' : 'mat-badge-req'">
+                  {{ pm.esOpcional ? 'Opcional' : 'Requerido' }}
+                </span>
+              </li>
+            </ul>
           </div>
 
         </div>
@@ -1303,7 +1054,7 @@ onMounted(fetchProducts)
 .foto-error { font-size: 12px; color: #B91C1C; margin: 0; }
 .edit-foto-hint { font-size: 12px; color: #64748B; margin: 0; }
 
-/* ─── materiales en modal ─────────────────────────────────── */
+/* ─── materiales en modal (resumen de solo lectura) ─────────── */
 .mat-section { position: relative; }
 .mat-section-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -1315,7 +1066,6 @@ onMounted(fetchProducts)
   border-radius: 9999px; font-size: 11px; font-weight: 600;
   min-width: 18px; height: 18px; padding: 0 5px; margin-left: 6px;
 }
-.mat-header-actions { display: flex; gap: 6px; }
 .btn-mat-text {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;
@@ -1326,70 +1076,15 @@ onMounted(fetchProducts)
 .btn-mat-primary { background: #E0F9FA; border-color: #8EEAF3; color: #27C8D8; }
 .btn-mat-primary:hover { background: #CCEFF2; }
 
-.mat-add-form {
-  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-  background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px;
-  padding: 10px 12px; margin-bottom: 12px; position: relative;
-}
-.mat-search-wrap { flex: 1; min-width: 180px; position: relative; }
-.mat-search-spinner {
-  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
-  width: 14px; height: 14px; border-radius: 50%;
-  border: 2px solid #CBD5E1; border-top-color: #27C8D8; animation: spin 0.7s linear infinite;
-}
-.mat-dropdown {
-  position: absolute; top: calc(100% + 2px); left: 0; right: 0;
-  background: #fff; border: 1px solid #E2E8F0; border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100;
-  max-height: 200px; overflow-y: auto; list-style: none; margin: 0; padding: 0;
-}
-.mat-dropdown-item {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 12px; font-size: 13px; cursor: pointer;
-}
-.mat-dropdown-item:hover { background: #E0F9FA; }
-.mat-drop-name { color: #0F172A; }
-.mat-drop-unit { font-size: 11px; color: #94A3B8; }
-.mat-cant-input { width: 70px; }
-.mat-opc-label { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #475569; cursor: pointer; }
-.btn-mat-confirm {
-  padding: 5px 14px; border-radius: 6px; border: none;
-  background: #27C8D8; color: #fff; font-size: 12px; font-weight: 600;
-  cursor: pointer; transition: background 0.15s;
-}
-.btn-mat-confirm:hover:not(:disabled) { background: #27C8D8; }
-.btn-mat-confirm:disabled { opacity: 0.5; cursor: not-allowed; }
-.mat-error { font-size: 12px; color: #B91C1C; margin: 4px 0 0; width: 100%; }
-
 .mat-loading, .mat-empty { font-size: 12px; color: #94A3B8; padding: 10px 0; text-align: center; }
-.mat-table {
-  width: 100%; border-collapse: collapse; font-size: 12px;
+.mat-summary-list { list-style: none; margin: 0; padding: 0; }
+.mat-summary-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 0; border-bottom: 1px solid #F1F5F9; font-size: 12px;
 }
-.mat-table th {
-  text-align: left; font-size: 11px; color: #94A3B8; font-weight: 600;
-  padding: 4px 8px; border-bottom: 1px solid #E2E8F0;
-}
-.mat-table td { padding: 6px 8px; border-bottom: 1px solid #F1F5F9; }
-.mat-table tr:last-child td { border-bottom: none; }
-.mat-nombre { font-weight: 500; color: #0F172A; }
-.mat-unit { color: #64748B; }
-.mat-cant { display: flex; align-items: center; gap: 4px; }
-.mat-cant-val { min-width: 28px; text-align: right; }
-.mat-inline-input { width: 60px; padding: 2px 6px; font-size: 12px; }
-.mat-actions { text-align: right; }
-.btn-mat-icon {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 22px; height: 22px; border-radius: 4px; border: none;
-  background: transparent; cursor: pointer; padding: 0; color: #64748B;
-  transition: background 0.15s, color 0.15s;
-}
-.btn-mat-icon:hover { background: #F1F5F9; }
-.btn-mat-ok  { color: #16A34A; }
-.btn-mat-ok:hover  { background: #DCFCE7; }
-.btn-mat-cancel { color: #9CA3AF; }
-.btn-mat-edit-inline { color: #5DD8E5; }
-.btn-mat-del { color: #F87171; }
-.btn-mat-del:hover  { background: #FEF2F2; color: #DC2626; }
+.mat-summary-item:last-child { border-bottom: none; }
+.mat-nombre { font-weight: 500; color: #0F172A; flex: 1; }
+.mat-summary-meta { color: #64748B; }
 .mat-badge-req {
   display: inline-block; padding: 2px 7px; border-radius: 9999px;
   font-size: 10px; font-weight: 600; background: #E0F9FA; color: #27C8D8;
@@ -1398,27 +1093,4 @@ onMounted(fetchProducts)
   display: inline-block; padding: 2px 7px; border-radius: 9999px;
   font-size: 10px; font-weight: 600; background: #FFF7ED; color: #C2410C;
 }
-
-/* parser inline modal */
-.mat-parser-overlay {
-  position: absolute; inset: 0; background: rgba(255,255,255,0.96);
-  border-radius: 8px; z-index: 200; display: flex; align-items: flex-start;
-  padding-top: 8px;
-}
-.mat-parser-box {
-  width: 100%; background: #fff; border: 1px solid #E2E8F0;
-  border-radius: 10px; padding: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-}
-.mat-parser-header {
-  display: flex; align-items: center; justify-content: space-between;
-  font-size: 14px; font-weight: 600; color: #0F172A; margin-bottom: 12px;
-}
-.mat-parser-hint { font-size: 12px; color: #94A3B8; margin: 0 0 8px; }
-.mat-parser-subhead { font-size: 12px; font-weight: 600; color: #475569; margin: 0 0 8px; }
-.mat-parser-ta { width: 100%; box-sizing: border-box; }
-.mat-parser-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
-.mat-parser-items { display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; margin-bottom: 8px; }
-.mat-parser-item { display: flex; align-items: center; gap: 6px; }
-.mat-parser-result { text-align: center; padding: 12px 0; }
-.mat-parser-result p { font-size: 14px; margin: 0 0 12px; }
 </style>

@@ -2268,7 +2268,7 @@ watch(modalCotizacionExitosa, (val) => {
 .total-val { font-size: 16px; font-weight: 700; color: #27C8D8; font-family: 'Plus Jakarta Sans', sans-serif; }
 
 /* Sección de detalle de productos */
-.mt20 { margin-top: 4px; }
+.mt20 { margin-top: 20px; }
 .mb12 { margin-bottom: 12px; }
 
 /* ═══════════════════════════════════════════════════════════
@@ -2759,11 +2759,29 @@ watch(modalCotizacionExitosa, (val) => {
 /* ═══════════════════════════════════════════════════════════
    RESPONSIVE
 ═══════════════════════════════════════════════════════════ */
-@media (max-width: 1024px) {
+
+/* 1200px — tablets landscape */
+@media (max-width: 1200px) {
   .g4 { grid-template-columns: repeat(2, 1fr); }
   .g3 { grid-template-columns: repeat(2, 1fr); }
+  .stepper-wrap { padding: 16px 18px 14px; }
+  .step-item { padding: 4px 10px; min-width: 72px; }
 }
 
+/* 1024px — tablets portrait */
+@media (max-width: 1024px) {
+  .cot-header { flex-direction: column; align-items: stretch; }
+  .header-actions { justify-content: flex-end; }
+  .step-item { padding: 4px 8px; min-width: 60px; }
+  .step-label { font-size: 10px; }
+  .form-card { padding: 16px 18px; }
+  .section-header { font-size: 14px; }
+  .summ-row dt { min-width: 120px; }
+  .fin-bar-item { padding: 16px 18px; }
+  .version-number { font-size: 18px; }
+}
+
+/* 768px — mobile large */
 @media (max-width: 768px) {
   .g2,
   .g3,
@@ -2779,14 +2797,160 @@ watch(modalCotizacionExitosa, (val) => {
   .stepper           { display: none; }
   .step-mobile-label { display: block; }
 
+  /* Header */
+  .cot-header { gap: 12px; }
+  .header-actions { flex-wrap: wrap; }
+  .btn-group { width: 100%; }
+  .action-btn { flex: 1; justify-content: center; text-align: center; }
+  .action-btn--ghost { flex: 0 1 auto; }
+
+  /* Stepper wrap */
+  .stepper-wrap { padding: 14px 16px 12px; }
+
+  /* Form cards */
+  .form-card { padding: 14px 16px; }
+  .section-header { font-size: 13px; margin-bottom: 12px; padding-bottom: 10px; }
+
+  /* Grid gaps */
+  .g2, .g3, .g4 { gap: 12px; }
+
   /* Navegación móvil */
-  .step-nav   { flex-wrap: wrap; }
+  .step-nav   { flex-wrap: wrap; padding: 14px 16px; gap: 8px; }
   .nav-spacer { display: none; }
   .nav-right  { flex: 1; width: 100%; }
   .btn-prev   { flex: 1; justify-content: center; }
   .btn-next,
   .btn-primary-nav,
   .btn-ghost-nav { flex: 1; justify-content: center; text-align: center; }
+
+  /* Step 3: search row */
+  .add-row { flex-direction: column; align-items: stretch; }
+  .qty-field { min-width: unset; }
+  .btn-tercero, .btn-add { justify-content: center; }
+  .price-list-badge { display: none; }
+
+  /* Step 3: intro */
+  .step3-intro { gap: 12px; }
+  .step3-num-badge { width: 36px; height: 36px; font-size: 14px; }
+  .step3-title { font-size: 15px; }
+  .step3-desc { font-size: 12px; }
+
+  /* Cart */
+  .cart-items { max-height: 240px; }
+  .cart-total { flex-direction: column; align-items: flex-start; gap: 4px; }
+
+  /* Resumen */
+  .summ-row { flex-direction: column; gap: 2px; padding: 7px 0; }
+  .summ-row dt { min-width: unset; font-size: 11px; }
+  .summ-row dd { text-align: left; font-size: 12px; }
+
+  /* Nota form */
+  .nota-form-row { flex-direction: column; gap: 8px; }
+  .nota-add-btn { align-self: stretch; justify-content: center; }
+
+  /* Draft banner */
+  .draft-banner { flex-direction: column; align-items: stretch; text-align: center; }
+  .draft-banner-icon { align-self: center; }
+  .draft-banner-text { min-width: unset; }
+  .draft-banner-actions { justify-content: center; }
+
+  /* Clear draft button */
+  .btn-clear-draft { width: 100%; justify-content: center; }
+}
+
+/* 640px — mobile medium */
+@media (max-width: 640px) {
+  .cot-page { gap: 16px; }
+  .stepper-wrap { padding: 12px 14px 10px; }
+  .form-card { padding: 12px 14px; }
+  .g2, .g3, .g4 { gap: 10px; }
+  .section-header { font-size: 12px; gap: 6px; }
+  .section-header-standalone { font-size: 13px; flex-wrap: wrap; gap: 6px; }
+  .btn-add-tercero { margin-left: 0; width: 100%; justify-content: center; }
+
+  /* Inputs más pequeños */
+  .field-lbl { font-size: 12px; }
+  .field-sel { padding: 7px 12px; font-size: 12px; }
+  .search-wrap { padding: 6px 12px; }
+  .s-input { font-size: 12px; }
+  .picker-btn { padding: 7px 12px; font-size: 12px; }
+
+  /* Paso 3 quantity inputs */
+  .qty-input { padding: 7px 12px; font-size: 12px; }
+  .btn-tercero, .btn-add { padding: 7px 12px; font-size: 11px; }
+
+  /* Version badge */
+  .version-badge { padding: 6px 12px; }
+  .version-number { font-size: 16px; min-width: 24px; }
+
+  /* Fin bar */
+  .fin-bar-item { padding: 12px 16px; }
+  .fin-bar-val { font-size: 14px; }
+  .fin-bar-item--total { min-width: unset; padding: 12px 16px; }
+
+  /* Modals */
+  .modal-exitosa { min-width: unset; }
+  .modal-exitosa-actions { flex-direction: column; }
+  .modal-exitosa-actions .modal-btn { width: 100%; justify-content: center; }
+}
+
+/* 480px — mobile small */
+@media (max-width: 480px) {
+  .cot-page { gap: 12px; padding-bottom: 24px; }
+  .cot-header { gap: 8px; }
+  .header-actions { gap: 8px; }
+  .btn-group { gap: 6px; }
+  .action-btn { padding: 7px 12px; font-size: 12px; gap: 4px; }
+  .step-nav { padding: 10px 12px; flex-direction: column; }
+  .btn-prev, .btn-next, .btn-primary-nav, .btn-ghost-nav { width: 100%; }
+  .btn-next-wrap { width: 100%; }
+  .btn-next-wrap .btn-next { width: 100%; }
+  .step-mobile-label { font-size: 12px; }
+  .stepper-wrap { padding: 10px 12px 8px; }
+  .form-card { padding: 10px 12px; }
+  .g2, .g3, .g4 { gap: 8px; }
+  .section-header { font-size: 11px; margin-bottom: 10px; padding-bottom: 8px; }
+  .field-lbl { font-size: 11px; }
+  .field-sel, .qty-input, .picker-btn, .s-input { font-size: 11px; padding: 6px 10px; }
+  .prd-table td, .prd-table th { padding: 8px 10px; font-size: 11px; }
+  .prd-thumb { width: 40px; height: 40px; }
+  .prd-discount-input { width: 48px; padding: 3px 6px; font-size: 11px; }
+  .fin-bar-item { padding: 10px 14px; }
+  .fin-bar-val { font-size: 13px; }
+  .fin-bar-val--total { font-size: 18px; }
+  .summ-row { padding: 5px 0; }
+  .nota-textarea { font-size: 12px; padding: 8px 12px; }
+  .nota-contenido { font-size: 12px; }
+  .nota-add-btn { font-size: 12px; padding: 7px 14px; }
+  .info-row { flex-direction: column; gap: 2px; }
+  .info-value { text-align: left; }
+  .cart-name { font-size: 11px; }
+  .cart-qty { font-size: 10px; }
+  .total-lbl { font-size: 11px; }
+  .total-val { font-size: 14px; }
+  .item-count-badge { font-size: 10px; }
+  .btn-ghost-full, .btn-primary-full { font-size: 12px; padding: 8px 14px; }
+  .dur-badge { font-size: 10px; padding: 2px 8px; }
+}
+
+/* 360px — muy pequeño */
+@media (max-width: 360px) {
+  .cot-page { gap: 10px; }
+  .version-badge { padding: 4px 10px; }
+  .version-number { font-size: 14px; }
+  .version-label { font-size: 9px; }
+  .form-card { padding: 8px 10px; }
+  .section-header { font-size: 10px; }
+  .prd-table td, .prd-table th { padding: 6px 6px; font-size: 10px; }
+  .prd-thumb { width: 32px; height: 32px; }
+  .step3-title { font-size: 13px; }
+  .step3-desc { font-size: 11px; }
+  .step3-num-badge { width: 30px; height: 30px; font-size: 12px; }
+  .fin-bar-val { font-size: 11px; }
+  .fin-bar-val--total { font-size: 16px; }
+  .total-val { font-size: 13px; }
+  .prd-table { min-width: 500px; }
+  .prd-table th.th-product { min-width: 120px; width: 120px; }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -2912,26 +3076,6 @@ watch(modalCotizacionExitosa, (val) => {
   text-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
-@media (max-width: 900px) {
-  .fin-bar {
-    flex-wrap: wrap;
-  }
-  .fin-bar-item {
-    flex: 0 0 calc(50% - 1px);
-    padding: 16px 20px;
-  }
-  .fin-bar-sep { display: none; }
-  .fin-bar-item--total {
-    flex: 0 0 100%;
-    border-left: none;
-    border-top: 1px solid rgba(255,255,255,0.10);
-    text-align: left;
-    min-width: unset;
-    padding: 16px 20px;
-  }
-  .fin-bar-val--total { font-size: 22px; }
-}
-
 .price-list-badge, .client-badge {
   display: flex;
   align-items: center;
@@ -2991,7 +3135,11 @@ watch(modalCotizacionExitosa, (val) => {
 .prd-table-scroll {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #CCF2F5 transparent;
 }
+.prd-table-scroll::-webkit-scrollbar { height: 4px; }
+.prd-table-scroll::-webkit-scrollbar-thumb { background: #CCF2F5; border-radius: 4px; }
 
 .prd-table {
   width: 100%;
