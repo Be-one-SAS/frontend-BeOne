@@ -8,6 +8,7 @@ export function useQuotationProducts({
     items,
     myClienteSeleccionado,
     validarCalendario,
+    modalProductoNoSeleccionado,
 }: any) {
     const productos = ref([])
     const productosFiltrados = ref([])
@@ -149,7 +150,12 @@ export function useQuotationProducts({
     // Agregar producto
     // ========================
     const addProduct = () => {
-        if (!validarCalendario() || !selectedProduct.value) return
+        if (!validarCalendario()) return
+
+        if (!selectedProduct.value?.id) {
+            if (modalProductoNoSeleccionado) modalProductoNoSeleccionado.value = true
+            return
+        }
 
         // ✅ Ajuste: Asegurar que si el usuario dejó en 0 o vacío las cantidades, se asuma 1
         if (!cotizacion.cantidadJornada || cotizacion.cantidadJornada <= 0) {
