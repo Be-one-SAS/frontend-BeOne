@@ -934,6 +934,24 @@
       </div>
     </ModalReutilizable>
 
+    <!-- Modal: producto propio no seleccionado -->
+    <ModalReutilizable :show="modalProductoNoSeleccionado" @close="modalProductoNoSeleccionado = false">
+      <div class="text-center p-4">
+        <h2 class="text-[16px] font-bold text-primary mb-3 font-['Plus_Jakarta_Sans',sans-serif]">
+          Selecciona un producto
+        </h2>
+        <p class="text-[13px] text-text-2 mb-6">
+          Para agregar un equipo propio, primero debes <strong>buscarlo y seleccionarlo</strong> en el campo de búsqueda de productos.
+        </p>
+        <button
+          class="px-[18px] py-[9px] text-[13px] font-semibold bg-primary text-white rounded-[8px] shadow-[var(--shadow-btn)] hover:bg-primary-dark transition"
+          @click="modalProductoNoSeleccionado = false"
+        >
+          Entendido
+        </button>
+      </div>
+    </ModalReutilizable>
+
     <!-- Modal: validación calendario incompleto -->
     <ModalReutilizable :show="modalCalendarioIncompleto" @close="modalCalendarioIncompleto = false">
       <div class="text-center p-4">
@@ -1100,6 +1118,7 @@ const { user } = useAuth();
 const clienteSeleccionado   = ref({})
 const myClienteSeleccionado = ref({})
 const modalCalendarioIncompleto = ref(false);
+const modalProductoNoSeleccionado = ref(false);
 const showVersionsHistory = ref(false); // ✅ ADDED
 
 const {
@@ -1156,7 +1175,8 @@ const {
   cotizacion,
   items,
   myClienteSeleccionado,
-  validarCalendario
+  validarCalendario,
+  modalProductoNoSeleccionado
 })
 
 const canManage = computed(() => {

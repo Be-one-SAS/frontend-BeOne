@@ -127,6 +127,12 @@
                       {{ s.nombre }} · {{ s.ciudad }}
                     </option>
                   </select>
+                  <p v-if="sedesError" class="err-msg">
+                    No se pudieron cargar las unidades de ejecución. Recarga la página e intenta de nuevo.
+                  </p>
+                  <p v-else-if="sedesLoaded && sedes.length === 0" class="hint-msg">
+                    No hay unidades de ejecución creadas todavía — puedes crear una en Configuración → Sedes.
+                  </p>
                 </div>
 
                 <!-- Documento -->
@@ -229,9 +235,18 @@ const emit = defineEmits(['close', 'save'])
 
 // ── Config ────────────────────────────────────────────
 const ROLES = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO']
-const sedes = ref([])
+const sedes       = ref([])
+const sedesError  = ref(false)
+const sedesLoaded = ref(false)
 onMounted(async () => {
-  try { sedes.value = (await getSedes()).data ?? [] } catch (_) {}
+  try {
+    sedes.value = (await getSedes()).data ?? []
+  } catch (err) {
+    sedesError.value = true
+    console.error('No se pudieron cargar las unidades de ejecución:', err)
+  } finally {
+    sedesLoaded.value = true
+  }
 })
 
 const ROLE_BADGE = {
@@ -520,6 +535,13 @@ const guardar = () => {
 .err-msg {
   font-size: 11px;
   color: #B91C1C;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+}
+
+.hint-msg {
+  font-size: 11px;
+  color: #94A3B8;
   font-family: 'Inter', sans-serif;
   margin: 0;
 }
