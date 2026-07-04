@@ -20,6 +20,7 @@
               <th class="th-center">Q. Producto</th>
               <th class="th-center">Precio unit.</th>
               <th class="th-center">Desc. (%)</th>
+              <th class="th-center">Aumento (%)</th>
               <th class="th-center">Total</th>
               <th class="th-center">Acciones</th>
             </tr>
@@ -51,13 +52,25 @@
               </td>
 
               <!-- Q. Jornada -->
-              <td class="td-center">
-                <span class="prd-qty">{{ item.cantidadJornada ?? 1 }}</span>
+              <td class="td-center" @click.stop>
+                <input
+                  v-model.number="item.cantidadJornada"
+                  type="number"
+                  min="1"
+                  class="prd-qty-input"
+                  @click.stop
+                />
               </td>
 
               <!-- Q. Producto -->
-              <td class="td-center">
-                <span class="prd-qty">{{ item.cantidadProducto ?? 1 }}</span>
+              <td class="td-center" @click.stop>
+                <input
+                  v-model.number="item.cantidadProducto"
+                  type="number"
+                  min="1"
+                  class="prd-qty-input"
+                  @click.stop
+                />
               </td>
 
               <!-- Precio unitario -->
@@ -74,6 +87,18 @@
                   max="100"
                   placeholder="0%"
                   class="prd-discount-input"
+                  @click.stop
+                />
+              </td>
+
+              <!-- Aumento (%) -->
+              <td class="td-center" @click.stop>
+                <input
+                  v-model.number="item.aumentoPct"
+                  type="number"
+                  min="0"
+                  placeholder="0%"
+                  class="prd-increase-input"
                   @click.stop
                 />
               </td>
@@ -98,7 +123,7 @@
           </tbody>
           <tfoot>
             <tr class="prd-subtotal-row">
-              <td colspan="7" class="td-subtotal-label">Subtotal equipos propios</td>
+              <td colspan="8" class="td-subtotal-label">Subtotal equipos propios</td>
               <td class="td-subtotal-val">{{ format(subtotalItems) }}</td>
               <td></td>
             </tr>
@@ -141,7 +166,8 @@ const totalesFilas = computed(() =>
   props.items.map(item => {
     const sub = (item.unitPrice || 0) * (item.cantidadJornada || 0) * (item.cantidadProducto || 0)
     const dsc = Number(item.descuentoPct) || 0
-    return sub - (sub * dsc / 100)
+    const aum = Number(item.aumentoPct) || 0
+    return sub - (sub * dsc / 100) + (sub * aum / 100)
   })
 )
 
@@ -322,6 +348,56 @@ const format = formatCOP
 }
 .prd-discount-input::-webkit-outer-spin-button,
 .prd-discount-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Input de aumento — mismo estilo que descuento, acento en verde */
+.prd-increase-input {
+  width: 60px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  color: #0F1A2E;
+  background: #F8FAFC;
+  border: 1px solid #E5EAF0;
+  border-radius: 99px;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.prd-increase-input:focus {
+  border-color: #16A34A;
+  box-shadow: 0 0 0 2px rgba(22,163,74, 0.12);
+}
+.prd-increase-input::-webkit-outer-spin-button,
+.prd-increase-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Input de cantidad (Q. Jornada / Q. Producto) — mismo tamaño que el badge previo */
+.prd-qty-input {
+  width: 52px;
+  padding: 4px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  color: #475569;
+  background: #F1F5F9;
+  border: 1px solid #E5EAF0;
+  border-radius: 99px;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.prd-qty-input:focus {
+  border-color: #27C8D8;
+  background: #F8FAFC;
+  box-shadow: 0 0 0 2px rgba(39,200,216, 0.12);
+}
+.prd-qty-input::-webkit-outer-spin-button,
+.prd-qty-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }

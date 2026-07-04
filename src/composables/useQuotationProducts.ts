@@ -181,6 +181,7 @@ export function useQuotationProducts({
             cantidadProducto: cotizacion.cantidadProducto,
             unitPrice: productPrice.value,
             descuentoPct: 0,
+            aumentoPct: 0,
             // Guardados para recalcular si cambia la lista de precio
             _productBoxes: selectedProduct.value.productBoxes || [],
             _valorCuadroCotizador: selectedProduct.value.valorCuadroCotizador ?? null,
@@ -213,6 +214,7 @@ export function useQuotationProducts({
     return {
         // state
         productosFiltrados,
+        categorias,
         categoriasFiltradas,
         selectedProduct,
         productPrice,

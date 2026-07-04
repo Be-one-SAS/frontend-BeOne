@@ -15,9 +15,6 @@
         <IconEdit class="w-[18px] h-[18px]" />
       </button>
     </div>
-    <p v-if="props.dataClient && props.dataClient.name" class="text-[12px] text-[#64748B] mt-1">
-      Se factura a: <span class="font-semibold text-[#0F1A2E]">{{ props.dataClient.name }}</span>
-    </p>
 
     <!-- Modal de búsqueda/creación -->
     <ModalReutilizable :show="openModal" @close="openModal = false">
@@ -70,19 +67,16 @@
               <input v-model="nuevoCliente.email" placeholder="Correo electrónico" class="w-full bg-white border border-[#E5EAF0] rounded-[8px] px-3 py-[8px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
             </div>
             <div>
-              <input v-model="nuevoCliente.phone" placeholder="Contacto (Teléfono)" class="w-full bg-white border border-[#E5EAF0] rounded-[8px] px-3 py-[8px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
+              <input v-model="nuevoCliente.phone" @input="nuevoCliente.phone = (nuevoCliente.phone || '').replace(/\D/g, '')" inputmode="numeric" placeholder="Teléfono" class="w-full bg-white border border-[#E5EAF0] rounded-[8px] px-3 py-[8px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
             </div>
             <div>
               <input v-model="nuevoCliente.document" placeholder="Documento" class="w-full bg-white border border-[#E5EAF0] rounded-[8px] px-3 py-[8px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
             </div>
             <div class="col-span-2">
-              <input v-model="nuevoCliente.contactName" placeholder="Contacto de referencia" class="w-full bg-white border border-[#E5EAF0] rounded-[8px] px-3 py-[8px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
+              <input v-model="nuevoCliente.contactName" placeholder="Nombre de contacto" class="w-full bg-white border border-[#E5EAF0] rounded-[8px] px-3 py-[8px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
             </div>
             <div class="col-span-2">
               <input v-model="nuevoCliente.direccion" placeholder="Dirección" class="w-full bg-white border border-[#E5EAF0] rounded-[8px] px-3 py-[8px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
-            </div>
-            <div class="col-span-2">
-              <input v-model="nuevoCliente.reference" placeholder="Referencia" class="w-full bg-white border border-[#E5EAF0] rounded-[8px] px-3 py-[8px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
             </div>
             <div class="col-span-2">
               <textarea v-model="nuevoCliente.notas" placeholder="Notas / Observaciones" rows="2" class="w-full bg-white border border-[#E5EAF0] rounded-[8px] px-3 py-[8px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors resize-none"></textarea>
@@ -124,20 +118,16 @@
             <input v-model="nuevoCliente.email" placeholder="Correo electrónico" class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full px-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
           </div>
           <div>
-            <label class="text-[12px] text-[#64748B] mb-1 block">Contacto</label>
-            <input v-model="nuevoCliente.phone" placeholder="Contacto (Teléfono)" class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full px-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
+            <label class="text-[12px] text-[#64748B] mb-1 block">Teléfono</label>
+            <input v-model="nuevoCliente.phone" @input="nuevoCliente.phone = (nuevoCliente.phone || '').replace(/\D/g, '')" inputmode="numeric" placeholder="Teléfono" class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full px-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
           </div>
           <div>
             <label class="text-[12px] text-[#64748B] mb-1 block">Documento</label>
             <input v-model="nuevoCliente.document" placeholder="Documento" class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full px-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
           </div>
-          <div>
-            <label class="text-[12px] text-[#64748B] mb-1 block">Contacto de ref.</label>
-            <input v-model="nuevoCliente.contactName" placeholder="Contacto de referencia" class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full px-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
-          </div>
-          <div>
-            <label class="text-[12px] text-[#64748B] mb-1 block">Referencia</label>
-            <input v-model="nuevoCliente.reference" placeholder="Referencia" class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full px-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
+          <div class="col-span-2">
+            <label class="text-[12px] text-[#64748B] mb-1 block">Nombre de contacto</label>
+            <input v-model="nuevoCliente.contactName" placeholder="Nombre de contacto" class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full px-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] transition-colors" />
           </div>
           <div class="col-span-2">
             <label class="text-[12px] text-[#64748B] mb-1 block">Dirección</label>

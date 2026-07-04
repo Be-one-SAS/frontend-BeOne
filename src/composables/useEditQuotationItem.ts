@@ -17,7 +17,13 @@ export function useEditQuotationItem(items: any) {
     incluyeTransporte: ''
   })
 
+  // Referencia al objeto original del ítem que se está editando. Los ítems
+  // recién agregados (aún no guardados) no tienen `id`, así que no se puede
+  // buscar por id — se guarda la referencia directa, igual que `eliminarItem`.
+  let itemOriginal: any = null
+
   const abrirModalEdicion = (item: any) => {
+    itemOriginal = item
     Object.assign(productoEditado, item)
     modalEditarProducto.value = true
   }
@@ -27,7 +33,7 @@ export function useEditQuotationItem(items: any) {
   }
 
   const guardarEdicionProducto = () => {
-    const index = items.value.findIndex((i: any) => i.id === productoEditado.id)
+    const index = items.value.indexOf(itemOriginal)
     if (index !== -1) {
       items.value[index] = { ...items.value[index], ...productoEditado }
     }

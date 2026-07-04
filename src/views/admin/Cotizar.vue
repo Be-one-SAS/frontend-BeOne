@@ -131,9 +131,10 @@
               <InputLabel label="Fecha de Cotización" v-model="cotizacion.fechaCotizacion" type="text" />
               <ClientsSelector v-model="cotizacion.cliente" v-model:dataClient="myClienteSeleccionado" />
               <ClienteFinalSelector v-model="cotizacion.empresa" v-model:dataClient="clienteSeleccionado" />
-              <InputLabel label="Contacto" v-model="cotizacion.contacto" />
+              <p v-if="facturarA" class="facturar-a">Se factura a: <strong>{{ facturarA }}</strong></p>
+              <InputLabel label="Nombre de contacto" v-model="cotizacion.contacto" />
               <InputLabel label="Correo" v-model="cotizacion.correo" type="email" />
-              <InputLabel label="Celular" v-model="cotizacion.celular" />
+              <InputLabel label="Teléfono" v-model="cotizacion.celular" only-numbers />
             </div>
           </div>
 
@@ -550,6 +551,13 @@
 
             <div class="fin-bar-sep"></div>
 
+            <div class="fin-bar-item" v-if="totalAumentos > 0">
+              <span class="fin-bar-lbl">Total Aumentos</span>
+              <span class="fin-bar-val fin-bar-val--aumento">+ {{ formatCOP(totalAumentos) }}</span>
+            </div>
+
+            <div class="fin-bar-sep" v-if="totalAumentos > 0"></div>
+
             <div class="fin-bar-item">
               <span class="fin-bar-lbl">IVA (19%)</span>
               <span class="fin-bar-val fin-bar-val--iva">{{ formatCOP(ivaGeneral) }}</span>
@@ -586,9 +594,9 @@
                   <div class="summ-row"><dt>Fecha cotización</dt>       <dd>{{ cotizacion.fechaCotizacion    || '—' }}</dd></div>
                   <div class="summ-row"><dt>Cliente</dt>                 <dd>{{ cotizacion.cliente            || '—' }}</dd></div>
                   <div class="summ-row"><dt>Empresa / Cliente final</dt> <dd>{{ cotizacion.empresa            || '—' }}</dd></div>
-                  <div class="summ-row"><dt>Contacto</dt>                <dd>{{ cotizacion.contacto           || '—' }}</dd></div>
+                  <div class="summ-row"><dt>Nombre de contacto</dt>      <dd>{{ cotizacion.contacto           || '—' }}</dd></div>
                   <div class="summ-row"><dt>Correo</dt>                  <dd>{{ cotizacion.correo             || '—' }}</dd></div>
-                  <div class="summ-row"><dt>Celular</dt>                 <dd>{{ cotizacion.celular            || '—' }}</dd></div>
+                  <div class="summ-row"><dt>Teléfono</dt>                <dd>{{ cotizacion.celular            || '—' }}</dd></div>
                   <div class="summ-row"><dt>Agente comercial</dt>        <dd>{{ cotizacion.agenteComercial    || '—' }}</dd></div>
                   <div class="summ-row"><dt>Región operativa</dt>        <dd>{{ cotizacion.unidadEjecucion    || '—' }}</dd></div>
                   <div class="summ-row"><dt>Vigencia</dt>                <dd>{{ cotizacion.vigencia           || '—' }}</dd></div>
@@ -896,6 +904,7 @@
     <ThirdPartyQuotationModal
       :show="showModalTerceroQuotation"
       :catalog="catalogTerceros"
+      :categorias-propias="categorias"
       @close="showModalTerceroQuotation = false"
       @add="agregarItemTercero"
       @catalog-updated="(item) => catalogTerceros.push(item)"
@@ -1117,6 +1126,16 @@ const modoEdicion = ref(false)
 const { user } = useAuth();
 const clienteSeleccionado   = ref({})
 const myClienteSeleccionado = ref({})
+
+// Entidad real a la que se factura: si la lista de precios es "Cliente Directo",
+// se factura al cliente final seleccionado; si no, se factura a la lista de precios
+// (caja/convenio, ej. Comfama) — nunca a ambos a la vez.
+const facturarA = computed(() => {
+  if (myClienteSeleccionado.value?.id === 'cliente_directo') {
+    return clienteSeleccionado.value?.name || null
+  }
+  return myClienteSeleccionado.value?.name || null
+})
 const modalCalendarioIncompleto = ref(false);
 const modalProductoNoSeleccionado = ref(false);
 const showVersionsHistory = ref(false); // ✅ ADDED
@@ -1132,6 +1151,7 @@ const {
   subtotalGeneral,
   subtotalSinDescuento,
   totalDescuentos,
+  totalAumentos,
   ivaGeneral,
   descuentoValor,
   totalGeneral,
@@ -1156,6 +1176,7 @@ const {
 
 const {
   productosFiltrados,
+  categorias,
   categoriasFiltradas,
   selectedProduct,
   productPrice,
@@ -1273,6 +1294,12 @@ const abrirModalTerceroQuotation = async () => {
       console.error('[Cotizar] Error cargando catálogo de terceros:', e)
     }
   }
+  // Las categorías del modal de terceros se nutren de las mismas categorías que
+  // "Filtrar por categoría" (equipos propios) — si el usuario aún no abrió el
+  // buscador de productos, `categorias` está vacío y esta lista no cargaría.
+  if (!categorias.value.length) {
+    await cargarProductos()
+  }
   showModalTerceroQuotation.value = true
 }
 
@@ -1296,11 +1323,12 @@ const calcularSubtotalItem = (item) => {
   return (item.unitPrice || 0) * (item.cantidadProducto || 0) * (item.cantidadJornada || 0)
 }
 
-// Calcular total de una fila propia considerando el descuento
+// Calcular total de una fila propia considerando el descuento y el aumento
 const calcularTotalFila = (item) => {
   const sub = calcularSubtotalItem(item)
   const dsc = Number(item.descuentoPct) || 0
-  return sub - (sub * dsc / 100)
+  const aum = Number(item.aumentoPct) || 0
+  return sub - (sub * dsc / 100) + (sub * aum / 100)
 }
 
 // Totales de filas propias como computed para reactividad garantizada
@@ -1368,14 +1396,10 @@ onMounted(async () => {
   }
 })
 
-/**
- * !Corregir reference, es un numero de celular
- * !Corregir la variable de mail
- */
 watch(clienteSeleccionado, (nuevoCliente) => {
-  cotizacion.contacto = nuevoCliente.phone
+  cotizacion.contacto = nuevoCliente.contactName
   cotizacion.correo   = nuevoCliente.email
-  cotizacion.celular  = nuevoCliente.reference
+  cotizacion.celular  = nuevoCliente.phone
 })
 
 // sincroniza clienteId (FK numérica) y listaPrecio cuando se selecciona un grupo de precios
@@ -1995,6 +2019,15 @@ watch(modalCotizacionExitosa, (val) => {
 .g2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
 .g3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .g4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+.facturar-a {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: #64748B;
+  font-family: 'Inter', sans-serif;
+  margin: -8px 0 4px;
+}
+.facturar-a strong { color: #0F1A2E; font-weight: 600; }
 
 /* ═══════════════════════════════════════════════════════════
    FIELD COMPONENTS (select estilizado igual a InputLabel)
@@ -3065,8 +3098,9 @@ watch(modalCotizacionExitosa, (val) => {
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
-.fin-bar-val--disc { color: #7A1212; }
-.fin-bar-val--iva  { color: #80E5EF; }
+.fin-bar-val--disc    { color: #7A1212; }
+.fin-bar-val--aumento { color: #14532D; }
+.fin-bar-val--iva     { color: #80E5EF; }
 
 .fin-bar-val--total {
   font-size: 26px;

@@ -111,7 +111,7 @@
                         :disabled="savingNewProduct"
                       />
                     </div>
-                    <div class="tq-field">
+                    <div class="tq-field tq-field--rel">
                       <label class="tq-label">Categoría</label>
                       <input
                         v-model="newProductForm.categoria"
@@ -119,7 +119,17 @@
                         class="tq-input"
                         placeholder="Ej: Sonido"
                         :disabled="savingNewProduct"
+                        @focus="mostrarCategoriasNuevo = true"
+                        @blur="mostrarCategoriasNuevo = false"
                       />
+                      <ul v-if="mostrarCategoriasNuevo && categoriasFiltradasNuevo.length" class="tq-cat-list">
+                        <li
+                          v-for="cat in categoriasFiltradasNuevo"
+                          :key="cat"
+                          class="tq-cat-opt"
+                          @mousedown.prevent="seleccionarCategoriaNuevo(cat)"
+                        >{{ cat }}</li>
+                      </ul>
                     </div>
                     <div class="tq-field tq-field--span-2">
                       <label class="tq-label">Descripción</label>
@@ -181,9 +191,24 @@
                   <label class="tq-label">Dispositivo <span class="tq-req">*</span></label>
                   <input v-model="form.dispositivo" type="text" class="tq-input" placeholder="Nombre" />
                 </div>
-                <div class="tq-field">
+                <div class="tq-field tq-field--rel">
                   <label class="tq-label">Categoría</label>
-                  <input v-model="form.categoria" type="text" class="tq-input" placeholder="Ej: Sonido" />
+                  <input
+                    v-model="form.categoria"
+                    type="text"
+                    class="tq-input"
+                    placeholder="Ej: Sonido"
+                    @focus="mostrarCategoriasForm = true"
+                    @blur="mostrarCategoriasForm = false"
+                  />
+                  <ul v-if="mostrarCategoriasForm && categoriasFiltradasForm.length" class="tq-cat-list">
+                    <li
+                      v-for="cat in categoriasFiltradasForm"
+                      :key="cat"
+                      class="tq-cat-opt"
+                      @mousedown.prevent="seleccionarCategoriaForm(cat)"
+                    >{{ cat }}</li>
+                  </ul>
                 </div>
                 <div class="tq-field">
                   <label class="tq-label">Bodega</label>
@@ -507,6 +532,7 @@ const onFileChangeMain = (e) => {
 const props = defineProps({
   show: { type: Boolean, default: false },
   catalog: { type: Array, default: () => [] },
+  categoriasPropias: { type: Array, default: () => [] },
 })
 
 const emit = defineEmits(['close', 'add', 'catalog-updated'])
@@ -514,6 +540,39 @@ const emit = defineEmits(['close', 'add', 'catalog-updated'])
 // ── Catálogo local (extiende el prop con productos recién creados) ────────────
 const localAdditions = ref([])
 const allCatalog = computed(() => [...props.catalog, ...localAdditions.value])
+
+// ── Categorías existentes ──────────────────────────────────────────────────
+// Mismas categorías que "Filtrar por categoría" (equipos propios, vía prop
+// categoriasPropias) — es la lista canónica del negocio. Se completa con las
+// que ya estén en uso en el catálogo de terceros, para no perder ninguna.
+const categoriasExistentes = computed(() =>
+  [...new Set([
+    ...props.categoriasPropias,
+    ...allCatalog.value.map(c => c.categoria).filter(Boolean),
+  ])].sort()
+)
+
+const mostrarCategoriasNuevo = ref(false)
+const categoriasFiltradasNuevo = computed(() => {
+  const term = (newProductForm.value.categoria || '').toLowerCase().trim()
+  if (!term) return categoriasExistentes.value
+  return categoriasExistentes.value.filter(c => c.toLowerCase().includes(term))
+})
+const seleccionarCategoriaNuevo = (cat) => {
+  newProductForm.value.categoria = cat
+  mostrarCategoriasNuevo.value = false
+}
+
+const mostrarCategoriasForm = ref(false)
+const categoriasFiltradasForm = computed(() => {
+  const term = (form.value.categoria || '').toLowerCase().trim()
+  if (!term) return categoriasExistentes.value
+  return categoriasExistentes.value.filter(c => c.toLowerCase().includes(term))
+})
+const seleccionarCategoriaForm = (cat) => {
+  form.value.categoria = cat
+  mostrarCategoriasForm.value = false
+}
 
 // ── Form state ───────────────────────────────────────────────────────────────
 const initialForm = {
@@ -867,6 +926,36 @@ const agregar = () => {
 }
 .tq-field--span-2 {
   grid-column: span 2;
+}
+.tq-field--rel {
+  position: relative;
+}
+.tq-cat-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #FFFFFF;
+  border: 1.5px solid #27C8D8;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(39,200,216, 0.15);
+  z-index: 100;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 4px;
+  margin: 0;
+  list-style: none;
+}
+.tq-cat-opt {
+  padding: 8px 10px;
+  font-size: 13px;
+  color: #1E293B;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.tq-cat-opt:hover {
+  background: #F0FAFB;
 }
 .tq-label {
   font-size: 13px;
