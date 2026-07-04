@@ -26,6 +26,37 @@
       </RouterLink>
     </div>
 
+    <div class="cfg-section-label">Configuración general</div>
+    <div class="cfg-card">
+      <div class="cfg-field-row">
+        <div>
+          <p class="cfg-field-title">Número inicial de cotizaciones</p>
+          <p class="cfg-field-desc">
+            Define desde qué número deben iniciar las cotizaciones nuevas. Si ya existen cotizaciones
+            este año con un número mayor, ese valor prevalece — este campo nunca genera números duplicados.
+          </p>
+        </div>
+        <div class="cfg-field-control">
+          <input
+            v-model.number="startNumberEdited"
+            type="number"
+            min="1"
+            class="cfg-input"
+            :disabled="numberingLoading || numberingSaving"
+          />
+          <button
+            class="cfg-btn-save"
+            :disabled="numberingLoading || numberingSaving || startNumberEdited === startNumberSaved"
+            @click="saveStartNumber"
+          >
+            {{ numberingSaving ? 'Guardando…' : 'Guardar' }}
+          </button>
+        </div>
+      </div>
+      <p v-if="numberingSaved" class="cfg-field-saved">Guardado — la próxima cotización usará este valor como referencia.</p>
+      <p v-if="numberingError" class="cfg-field-error">{{ numberingError }}</p>
+    </div>
+
     <div class="cfg-section-label">Importación masiva</div>
     <div class="cfg-grid">
       <ImportCard
@@ -61,14 +92,84 @@
         @reset="resetState('proveedores')"
       />
     </div>
+
+    <ConfirmModal
+      :show="showConfirmModal"
+      title="¿Cambiar número inicial de cotización?"
+      :message="`Vas a cambiar el número inicial de cotización de ${startNumberSaved} a ${startNumberEdited}.`"
+      confirm-label="Sí, cambiar"
+      cancel-label="Cancelar"
+      @confirm="confirmSaveStartNumber"
+      @cancel="cancelSaveStartNumber"
+    />
   </div>
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import ImportCard from '@/components/configuracion/ImportCard.vue'
+import ConfirmModal from '@/components/modal/ConfirmModal.vue'
 import api from '@/services/api'
+
+// ── Configuración general — número inicial de cotizaciones ──
+const startNumberSaved  = ref(null) // último valor confirmado por el backend
+const startNumberEdited = ref(null) // valor en el input
+const numberingLoading  = ref(false)
+const numberingSaving   = ref(false)
+const numberingSaved    = ref(false)
+const numberingError    = ref('')
+
+async function fetchQuotationNumbering() {
+  numberingLoading.value = true
+  numberingError.value   = ''
+  try {
+    const { data } = await api.get('/app-config/quotation-numbering')
+    startNumberSaved.value  = data?.startNumber ?? 100
+    startNumberEdited.value = startNumberSaved.value
+  } catch (e) {
+    numberingError.value = e?.response?.data?.message || 'Error al cargar la configuración'
+  } finally {
+    numberingLoading.value = false
+  }
+}
+
+const showConfirmModal = ref(false)
+
+function saveStartNumber() {
+  const nuevo = startNumberEdited.value
+  if (!Number.isInteger(nuevo) || nuevo < 1) {
+    numberingError.value = 'El número inicial debe ser un entero mayor a 0'
+    return
+  }
+  showConfirmModal.value = true
+}
+
+function cancelSaveStartNumber() {
+  showConfirmModal.value = false
+  startNumberEdited.value = startNumberSaved.value
+}
+
+async function confirmSaveStartNumber() {
+  showConfirmModal.value = false
+  const nuevo = startNumberEdited.value
+
+  numberingSaving.value = true
+  numberingError.value  = ''
+  numberingSaved.value  = false
+  try {
+    await api.patch('/app-config/quotation-numbering', { startNumber: nuevo })
+    startNumberSaved.value = nuevo
+    numberingSaved.value = true
+    setTimeout(() => { numberingSaved.value = false }, 2500)
+  } catch (e) {
+    numberingError.value = e?.response?.data?.message || 'Error al guardar la configuración'
+  } finally {
+    numberingSaving.value = false
+  }
+}
+
+onMounted(fetchQuotationNumbering)
 
 const ENDPOINTS = {
   clientes:    '/client/import',
@@ -188,4 +289,51 @@ async function runImport(mod, file) {
 .cfg-module-desc { font-size: 12px; color: #64748B; margin: 0; }
 .cfg-module-arrow { font-size: 18px; color: #CBD5E1; margin-left: auto; }
 .cfg-module-card:hover .cfg-module-arrow { color: #27C8D8; }
+
+.cfg-card {
+  background: #fff;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 18px 20px;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cfg-field-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.cfg-field-title { font-size: 14px; font-weight: 700; color: #0F172A; margin: 0 0 4px; }
+.cfg-field-desc { font-size: 12px; color: #64748B; margin: 0; max-width: 380px; line-height: 1.5; }
+.cfg-field-control { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.cfg-input {
+  width: 100px;
+  height: 36px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  border: 1px solid #E2EBF6;
+  border-radius: 8px;
+  background: #F8FAFC;
+  color: #0F1A2E;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.cfg-input:focus { border-color: #27C8D8; box-shadow: 0 0 0 3px rgba(39,200,216,0.1); }
+.cfg-input:disabled { opacity: 0.6; cursor: not-allowed; }
+.cfg-btn-save {
+  height: 36px;
+  padding: 0 16px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  border-radius: 8px;
+  border: none;
+  background: #27C8D8;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+.cfg-btn-save:hover:not(:disabled) { background: #1BAEBB; }
+.cfg-btn-save:disabled { opacity: 0.45; cursor: not-allowed; }
+.cfg-field-saved { font-size: 12px; font-weight: 600; color: #16A34A; margin: 0; }
+.cfg-field-error { font-size: 12px; color: #B91C1C; margin: 0; }
 </style>

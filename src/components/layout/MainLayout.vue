@@ -130,8 +130,20 @@ onBeforeUnmount(() => {
   }
 
   /* El Topbar ocupa el espacio restante */
-  .topbar :deep(header) {
+  .topbar :deep(.topbar-header) {
     flex: 1;
   }
+
+  .page-content { gap: 16px; }
+}
+
+@media (max-width: 480px) {
+  .main-area { padding: 10px; gap: 12px; }
+  .page-content { gap: 12px; }
+}
+
+@media (max-width: 360px) {
+  .main-area { padding: 8px; gap: 10px; }
+  .page-content { gap: 10px; }
 }
 </style>

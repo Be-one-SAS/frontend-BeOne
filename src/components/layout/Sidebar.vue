@@ -17,6 +17,7 @@
     }"
     @mouseenter="onMouseEnter"
     @mouseleave="onMouseLeave"
+    @click="onClick"
   >
 
     <!-- ── Logo ──────────────────────────────────────── -->
@@ -124,7 +125,7 @@ import {
   Archive, Wrench, Users, BarChart2, PieChart,
   DollarSign, Activity, UserCog, Settings,
   LogOut, CheckSquare, ClipboardCheck, SlidersHorizontal,
-  Landmark, TableProperties, FileBarChart, ShoppingCart, Layers,
+  Landmark, TableProperties, FileBarChart, ShoppingCart,
   Clock as ClockIcon, UserCircle2, ListOrdered, Target,
 } from 'lucide-vue-next'
 import { useAuth }               from '@/composables/useAuth'
@@ -155,6 +156,13 @@ const isExpanded = ref(false)
 
 const onMouseEnter = () => { isExpanded.value = true }
 const onMouseLeave = () => { isExpanded.value = false }
+const onClick = () => {
+  if (window.innerWidth >= 768 && window.innerWidth < 1024) {
+    isExpanded.value = !isExpanded.value
+  } else if (window.innerWidth < 768) {
+    closeMobile()
+  }
+}
 
 /** En mobile siempre muestra expandido; en desktop depende del hover */
 const sidebarExpanded = computed(() => isExpanded.value || showMobile.value)
@@ -199,7 +207,6 @@ const ALL_MENU_ITEMS = [
     children: [
       { label: 'Productos propios',   route: '/products',            icon: Package,       roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR'] },
       { label: 'Productos externos',  route: '/products/no-propios', icon: PackageSearch, roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR'] },
-      { label: 'Materiales',          route: '/materiales',          icon: Layers,        roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR'] },
     ],
   },
 
@@ -571,6 +578,11 @@ const visibleMenuItems = computed(() =>
 }
 .sede-chip--sede { background: #E0F9FA; color: #27C8D8; }
 .sede-chip--org  { background: #EDE9FE; color: #7C3AED; }
+
+/* ── Tablet touch toggle hint ────────────────────────── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .sidebar { cursor: pointer; }
+}
 
 /* ── Mobile ──────────────────────────────────────────── */
 @media (max-width: 767px) {

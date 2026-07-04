@@ -1144,7 +1144,7 @@ const formatDateTime = (iso) =>
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .act-btn {
@@ -1209,10 +1209,6 @@ const formatDateTime = (iso) =>
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px 24px;
-}
-
-@media (max-width: 768px) {
-  .vc-exp-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 .vc-exp-field {
@@ -1516,4 +1512,123 @@ const formatDateTime = (iso) =>
 .vc-unidad-empty { color: #CBD5E1; font-size: 13px; }
 
 /* Lock bar — todo inline, este bloque está vacío intencionalmente */
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════════════════ */
+
+/* 1200px — small desktops */
+@media (max-width: 1200px) {
+  .vc-exp-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* 1024px — tablets portrait */
+@media (max-width: 1024px) {
+  .vc-title { font-size: 22px; }
+  .vc-exp-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* 768px — mobile large */
+@media (max-width: 768px) {
+  .vc-exp-grid { grid-template-columns: repeat(2, 1fr); }
+
+  .vc-actions { flex-wrap: wrap; gap: 4px; }
+  .act-btn { padding: 5px 8px; font-size: 10px; gap: 3px; }
+  .act-btn span { display: none; }
+
+  .vc-th,
+  .vc-td { padding: 10px 10px; font-size: 12px; }
+  .vc-th { font-size: 10px; }
+  .vc-num { font-size: 12px; }
+
+  .vc-exp-inner { padding: 12px 16px; }
+
+  .vc-notas-modal { max-width: 100%; margin: 0 12px; max-height: 90vh; }
+  .vc-notas-header { padding: 16px 18px 12px; }
+  .vc-notas-list-wrap { padding: 12px 18px; }
+  .vc-notas-form { padding: 12px 18px 16px; }
+  .vc-notas-form-row { flex-direction: column; gap: 8px; }
+  .vc-nota-add-btn { width: 100%; justify-content: center; }
+}
+
+/* 640px — mobile medium */
+@media (max-width: 640px) {
+  .vc-page { gap: 14px; }
+  .vc-title { font-size: 20px; }
+  .vc-subtitle { font-size: 12px; }
+
+  .vc-input { padding: 7px 12px; font-size: 12px; }
+
+  .vc-th,
+  .vc-td { padding: 8px 8px; font-size: 11px; }
+
+  .vc-exp-grid { grid-template-columns: 1fr; gap: 10px 16px; }
+  .vc-exp-inner { padding: 10px 14px; }
+  .vc-exp-label { font-size: 10px; }
+  .vc-exp-val { font-size: 12px; }
+
+  .vc-empresa { font-size: 12px; }
+  .vc-client-name { font-size: 10px; }
+  .vc-ubicacion { font-size: 12px; }
+  .vc-fecha-ev { font-size: 10px; }
+
+  .vc-product-row { flex-wrap: wrap; gap: 4px; padding: 5px 8px; }
+  .vc-product-name { font-size: 11px; }
+  .vc-product-qty { font-size: 10px; }
+  .vc-product-cat { font-size: 10px; }
+
+  .vc-idx { font-size: 10px; }
+  .vc-unidad-badge { font-size: 10px; padding: 1px 6px; }
+  .vc-chevron { width: 12px; height: 12px; }
+}
+
+/* 480px — mobile small */
+@media (max-width: 480px) {
+  .vc-page { gap: 12px; }
+  .vc-title { font-size: 18px; }
+  .flex.items-center.justify-between.mb-6 { flex-direction: column; align-items: flex-start; gap: 8px; }
+
+  .vc-th:nth-child(5),
+  .vc-td:nth-child(5) { display: none; }
+  .vc-th:nth-child(7),
+  .vc-td:nth-child(7) { display: none; }
+  .vc-th:nth-child(8),
+  .vc-td:nth-child(8) { display: none; }
+
+  .vc-th,
+  .vc-td { padding: 6px 6px; font-size: 10px; }
+  .vc-num { font-size: 11px; }
+
+  .act-btn { padding: 4px 6px; font-size: 9px; }
+  .act-btn svg { width: 10px; height: 10px; }
+
+  .vc-input { padding: 6px 10px; font-size: 11px; }
+
+  .vc-client-cell { gap: 1px; }
+  .vc-event-cell { gap: 1px; }
+  .vc-quot-cell { gap: 2px; }
+
+  .vc-notas-header { flex-direction: column; gap: 8px; }
+  .vc-notas-title { font-size: 14px; }
+  .vc-notas-close { align-self: flex-end; }
+  .vc-nota-row { padding: 10px 12px; }
+
+  /* Ocultar Asistentes en mobile pequeño */
+  .vc-td.vc-td-center:last-of-type { display: none; }
+  .vc-th.vc-th-center:last-of-type { display: none; }
+}
+
+/* 360px — muy pequeño */
+@media (max-width: 360px) {
+  .vc-title { font-size: 16px; }
+  .vc-th:nth-child(4),
+  .vc-td:nth-child(4) { display: none; }
+
+  .vc-th,
+  .vc-td { padding: 4px 4px; font-size: 9px; }
+  .vc-unidad-badge { font-size: 8px; padding: 1px 4px; }
+  .vc-exp-inner { padding: 8px 10px; }
+  .vc-exp-grid { gap: 6px 10px; }
+  .vc-input { padding: 5px 8px; font-size: 10px; }
+}
 </style>

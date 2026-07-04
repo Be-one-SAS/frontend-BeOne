@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import {
   getMaterialCategorias, getMaterialesBase,
   createMaterialBase, updateMaterialBase, deactivateMaterialBase,
@@ -13,6 +14,8 @@ import {
   RefreshCw, Plus, Pencil, Trash2, X, Search,
   ChevronDown, Package, Layers, AlertCircle, CheckCircle2,
 } from 'lucide-vue-next'
+
+const route = useRoute()
 
 // ── tabs ─────────────────────────────────────────────────────────────
 const tab = ref('catalogo') // 'catalogo' | 'producto'
@@ -283,6 +286,14 @@ async function fetchData() {
     categorias.value = cats
     materiales.value = mats
     productos.value  = prods
+
+    // Deep-link desde /products (botón "Gestionar materiales" del modal de
+    // edición) — preselecciona el producto y abre directamente su tab.
+    const productoId = Number(route.query.productoId)
+    if (productoId && productos.value.some(p => p.id === productoId)) {
+      tab.value = 'producto'
+      selectedProductoId.value = productoId
+    }
   } catch (e) { console.error(e) }
   finally { catLoading.value = false }
 }

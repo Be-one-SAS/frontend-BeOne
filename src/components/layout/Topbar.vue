@@ -1,6 +1,6 @@
 <template>
-  <header class="h-16 shrink-0 bg-card rounded-[var(--r-xl)] px-6 flex items-center justify-between shadow-[var(--shadow-card)]">
-    <div class="flex items-center gap-1">
+  <header class="topbar-header">
+    <div class="topbar-nav">
       <button
         v-for="item in items"
         :key="item.label"
@@ -9,7 +9,7 @@
         :class="{ 'topbar-item--active': isActive(item) }"
       >
         <component :is="item.icon" :size="14" />
-        {{ item.label }}
+        <span class="topbar-label">{{ item.label }}</span>
       </button>
     </div>
 
@@ -46,6 +46,35 @@ const isActive = (item) => {
 </script>
 
 <style scoped>
+.topbar-header {
+  height: 64px;
+  flex-shrink: 0;
+  background: #fff;
+  border-radius: 18px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 4px rgba(39,200,216,.06), 0 4px 16px rgba(39,200,216,.08);
+  border: 1px solid #E5EAF0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.topbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  flex: 1;
+  min-width: 0;
+}
+
+.topbar-nav::-webkit-scrollbar { display: none; }
+
 .topbar-item {
   display: inline-flex;
   align-items: center;
@@ -61,6 +90,7 @@ const isActive = (item) => {
   cursor: pointer;
   transition: color 0.15s, background 0.15s;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .topbar-item:hover {
@@ -77,5 +107,23 @@ const isActive = (item) => {
 .topbar-item--active:hover {
   background: #1BAEBB;
   color: #FFFFFF;
+}
+
+@media (max-width: 1024px) {
+  .topbar-header { padding: 0 16px; }
+}
+
+@media (max-width: 768px) {
+  .topbar-header { padding: 0 12px; }
+}
+
+@media (max-width: 640px) {
+  .topbar-label { display: none; }
+  .topbar-item { padding: 6px 10px; }
+}
+
+@media (max-width: 400px) {
+  .topbar-item { padding: 6px 8px; }
+  .topbar-header { padding: 0 8px; }
 }
 </style>
