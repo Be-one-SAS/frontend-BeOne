@@ -272,16 +272,15 @@
             <!-- Panel izquierdo (60%) — Buscador -->
             <div class="search-col">
               <div class="form-card">
-                <div class="section-header j-bet">
+                <div class="section-header pp-step3-header">
                   <div class="flex items-center gap-2">
                     <Search :size="18" class="icon-primary" />
                     <span>Seleccionar Equipos</span>
                   </div>
-                  
-                    <div v-if="myClienteSeleccionado?.name || cotizacion.cliente" class="price-list-badge">
-                      <Check :size="12" />
-                      <span>Caja / Lista: {{ myClienteSeleccionado?.name || cotizacion.cliente }}</span>
-                    </div>
+                  <div v-if="myClienteSeleccionado?.name || cotizacion.cliente" class="price-list-badge">
+                    <Check :size="12" />
+                    <span>Caja / Lista: {{ myClienteSeleccionado?.name || cotizacion.cliente }}</span>
+                  </div>
                 </div>
 
                 <!-- Inputs de búsqueda -->
@@ -617,7 +616,7 @@
                   <span class="item-count-badge">{{ items.length }}</span>
                 </div>
                 <div class="prd-table-scroll">
-                  <table class="prd-table">
+                  <table class="prd-table prd-table--summary">
                     <thead>
                       <tr>
                         <th>Producto</th>
@@ -656,7 +655,7 @@
                   <span class="item-count-badge">{{ itemsTerceros.length }}</span>
                 </div>
                 <div class="prd-table-scroll">
-                  <table class="prd-table">
+                  <table class="prd-table prd-table--summary">
                     <thead>
                       <tr>
                         <th>Producto</th>
@@ -1991,6 +1990,7 @@ watch(modalCotizacionExitosa, (val) => {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
   margin-bottom: 16px;
   padding-bottom: 12px;
   border-bottom: 1px solid #F0FAFB;
@@ -2005,6 +2005,7 @@ watch(modalCotizacionExitosa, (val) => {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 15px;
   font-weight: 600;
@@ -2013,12 +2014,17 @@ watch(modalCotizacionExitosa, (val) => {
 
 .icon-primary { color: #27C8D8; flex-shrink: 0; }
 
+.pp-step3-header .price-list-badge {
+  margin-left: auto;
+}
+
 /* ═══════════════════════════════════════════════════════════
    GRIDS
 ═══════════════════════════════════════════════════════════ */
 .g2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
 .g3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .g4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.g2 > *, .g3 > *, .g4 > * { min-width: 0; }
 
 .facturar-a {
   grid-column: 1 / -1;
@@ -2561,7 +2567,10 @@ watch(modalCotizacionExitosa, (val) => {
   color: #0F1A2E;
   text-align: right;
   word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
   margin: 0;
+  max-width: 70%;
 }
 
 /* Tabla de equipos */
@@ -2638,6 +2647,9 @@ watch(modalCotizacionExitosa, (val) => {
   font-family: 'Inter', sans-serif;
   font-weight: 600;
   text-align: right;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 /* Botones de acción principales */
@@ -2810,8 +2822,11 @@ watch(modalCotizacionExitosa, (val) => {
   .form-card { padding: 16px 18px; }
   .section-header { font-size: 14px; }
   .summ-row dt { min-width: 120px; }
+  .summ-row { gap: 8px; }
   .fin-bar-item { padding: 16px 18px; }
   .version-number { font-size: 18px; }
+  .resumen-layout { gap: 12px; }
+  .info-row { gap: 6px; }
 }
 
 /* 768px — mobile large */
@@ -2872,10 +2887,12 @@ watch(modalCotizacionExitosa, (val) => {
   .cart-items { max-height: 240px; }
   .cart-total { flex-direction: column; align-items: flex-start; gap: 4px; }
 
-  /* Resumen */
+  /* Resumen Step 4 */
   .summ-row { flex-direction: column; gap: 2px; padding: 7px 0; }
   .summ-row dt { min-width: unset; font-size: 11px; }
   .summ-row dd { text-align: left; font-size: 12px; }
+  .info-row { flex-direction: column; gap: 2px; }
+  .info-value { text-align: left; }
 
   /* Nota form */
   .nota-form-row { flex-direction: column; gap: 8px; }
@@ -2897,7 +2914,7 @@ watch(modalCotizacionExitosa, (val) => {
   .stepper-wrap { padding: 12px 14px 10px; }
   .form-card { padding: 12px 14px; }
   .g2, .g3, .g4 { gap: 10px; }
-  .section-header { font-size: 12px; gap: 6px; }
+  .section-header { font-size: 12px; gap: 6px; flex-wrap: wrap; }
   .section-header-standalone { font-size: 13px; flex-wrap: wrap; gap: 6px; }
   .btn-add-tercero { margin-left: 0; width: 100%; justify-content: center; }
 
@@ -2916,6 +2933,11 @@ watch(modalCotizacionExitosa, (val) => {
   .version-badge { padding: 6px 12px; }
   .version-number { font-size: 16px; min-width: 24px; }
 
+  /* Step 4 tables */
+  .prd-table--summary { min-width: 420px; }
+  .prd-table--summary td { padding: 8px 10px; font-size: 12px; }
+  .prd-table--summary .td-name { max-width: 100px; }
+
   /* Fin bar */
   .fin-bar-item { padding: 12px 16px; }
   .fin-bar-val { font-size: 14px; }
@@ -2925,6 +2947,23 @@ watch(modalCotizacionExitosa, (val) => {
   .modal-exitosa { min-width: unset; }
   .modal-exitosa-actions { flex-direction: column; }
   .modal-exitosa-actions .modal-btn { width: 100%; justify-content: center; }
+
+  /* Modal content con Tailwind inline — force responsive */
+  :deep(.modal-content) .flex.justify-center.gap-3 { flex-direction: column; gap: 8px; }
+  :deep(.modal-content) .flex.justify-center.gap-3 button { width: 100%; justify-content: center; }
+  :deep(.modal-content) h2 { font-size: 15px !important; }
+  :deep(.modal-content) p { font-size: 12px !important; }
+
+  /* facturar-a */
+  .facturar-a { font-size: 12px; }
+
+  /* Dur badge en section-header */
+  .dur-badge { font-size: 10px; padding: 2px 8px; }
+  .tercero-empty { padding: 32px 16px; font-size: 12px; }
+  .cart-empty { padding: 24px 12px; }
+  .empty-title { font-size: 12px; }
+  .empty-sub { font-size: 11px; }
+  .step3-desc { max-width: unset; }
 }
 
 /* 480px — mobile small */
@@ -2952,11 +2991,15 @@ watch(modalCotizacionExitosa, (val) => {
   .fin-bar-val { font-size: 13px; }
   .fin-bar-val--total { font-size: 18px; }
   .summ-row { padding: 5px 0; }
+  .summ-row dt { font-size: 10px; }
+  .summ-row dd { font-size: 11px; }
   .nota-textarea { font-size: 12px; padding: 8px 12px; }
   .nota-contenido { font-size: 12px; }
   .nota-add-btn { font-size: 12px; padding: 7px 14px; }
-  .info-row { flex-direction: column; gap: 2px; }
-  .info-value { text-align: left; }
+  .info-label { font-size: 11px; }
+  .info-value { font-size: 11px; }
+  .notas-empty { font-size: 11px; padding: 16px 0 10px; }
+  .nota-row { padding: 10px 12px; }
   .cart-name { font-size: 11px; }
   .cart-qty { font-size: 10px; }
   .total-lbl { font-size: 11px; }
@@ -2977,6 +3020,17 @@ watch(modalCotizacionExitosa, (val) => {
   .prd-table td, .prd-table th { padding: 6px 6px; font-size: 10px; }
   .prd-thumb { width: 32px; height: 32px; }
   .step3-title { font-size: 13px; }
+  .summ-row { padding: 4px 0; gap: 1px; }
+  .summ-row dt { font-size: 9px; }
+  .summ-row dd { font-size: 10px; }
+  .info-label { font-size: 10px; }
+  .info-value { font-size: 10px; }
+  .nota-textarea { font-size: 11px; padding: 6px 10px; }
+  .nota-contenido { font-size: 11px; }
+  .nota-add-btn { font-size: 11px; padding: 6px 12px; }
+  .btn-ghost-full, .btn-primary-full { font-size: 11px; padding: 7px 12px; }
+  .notas-empty { font-size: 10px; padding: 12px 0 8px; }
+  .nota-row { padding: 8px 10px; }
   .step3-desc { font-size: 11px; }
   .step3-num-badge { width: 30px; height: 30px; font-size: 12px; }
   .fin-bar-val { font-size: 11px; }
@@ -3126,6 +3180,7 @@ watch(modalCotizacionExitosa, (val) => {
   background: #ECFDF5;
   border: 1px solid #10B981;
   color: #047857;
+  white-space: nowrap;
 }
 
 .client-badge {
@@ -3183,6 +3238,10 @@ watch(modalCotizacionExitosa, (val) => {
   font-family: 'Inter', sans-serif;
   font-size: 13px;
 }
+.prd-table--summary { min-width: 480px; }
+.prd-table--summary .td-name { min-width: 100px; max-width: 180px; }
+.prd-table--summary th,
+.prd-table--summary td { padding: 8px 12px; }
 
 .prd-table thead tr {
   background: #F8FAFC;

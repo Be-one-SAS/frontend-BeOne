@@ -3,77 +3,72 @@
     <Transition name="modal-fade">
       <div
         v-if="show"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(15,26,46,0.4)] backdrop-blur-sm p-4"
+        class="pp-overlay"
       >
         <div
-          class="bg-card rounded-[var(--r-2xl)] shadow-[var(--shadow-modal)] w-full max-w-6xl flex flex-col"
-          style="max-height: 90vh;"
+          class="pp-content"
         >
 
           <!-- ── Header ─────────────────────────────────────── -->
-          <div class="flex items-center gap-4 px-6 py-4 border-b border-border flex-shrink-0">
-            <h2 class="text-[16px] font-bold text-text-1 font-['Plus_Jakarta_Sans',sans-serif] whitespace-nowrap">
-              Seleccionar Producto
-            </h2>
+          <div class="pp-header">
+            <h2 class="pp-title">Seleccionar Producto</h2>
 
             <!-- Buscador -->
-            <div class="flex-1 relative min-w-0">
-              <Search :size="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-text-3 pointer-events-none" />
+            <div class="pp-search-wrap">
+              <Search :size="14" class="pp-search-icon" />
               <input
                 v-model="busqueda"
                 type="text"
                 placeholder="Buscar por nombre, dispositivo o descripción..."
-                class="w-full pl-8 pr-3 py-[7px] text-[13px] bg-[#F8FAFC] border border-border rounded-[var(--r-md)] focus:outline-none focus:border-primary text-text-1 placeholder:text-text-3 transition"
+                class="pp-search-input"
                 @input="resetPagina"
               />
             </div>
 
             <!-- Contador -->
-            <div class="text-[12px] text-text-2 whitespace-nowrap flex-shrink-0">
-              <span class="font-semibold text-primary">{{ productosFiltradosLocal.length }}</span>
-              <span class="ml-1">encontrados</span>
+            <div class="pp-counter">
+              <span class="pp-counter-num">{{ productosFiltradosLocal.length }}</span>
+              <span class="pp-counter-label">encontrados</span>
             </div>
 
             <!-- Cerrar -->
             <button
               @click="$emit('close')"
-              class="w-8 h-8 flex items-center justify-center rounded-full bg-[#F1F5F9] text-text-2 hover:bg-border transition text-xl leading-none flex-shrink-0"
+              class="pp-close"
             >×</button>
           </div>
 
           <!-- ── Filtros rápidos ─────────────────────────────── -->
-          <div class="flex items-center gap-2 px-6 py-3 border-b border-border flex-shrink-0 flex-wrap">
+          <div class="pp-filters">
             <button
               v-for="f in filtros"
               :key="f.value"
               @click="setFiltro(f.value)"
               :class="[
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium transition',
-                filtroActivo === f.value
-                  ? 'bg-primary text-white shadow-[var(--shadow-btn)]'
-                  : 'bg-[#F1F5F9] text-text-2 hover:bg-border'
+                'pp-filter-btn',
+                filtroActivo === f.value ? 'pp-filter-active' : 'pp-filter-idle'
               ]"
             >
               {{ f.label }}
-              <span :class="['text-[11px]', filtroActivo === f.value ? 'text-white/70' : 'text-text-3']">
+              <span :class="['pp-filter-count', filtroActivo === f.value ? 'pp-filter-count-active' : 'pp-filter-count-idle']">
                 ({{ contarPorFiltro(f.value) }})
               </span>
             </button>
           </div>
 
           <!-- ── Grid (scrollable) ───────────────────────────── -->
-          <div ref="gridRef" class="flex-1 overflow-y-auto px-6 py-4 min-h-0">
+          <div ref="gridRef" class="pp-grid-scroll">
 
             <!-- Estado vacío -->
             <div
               v-if="productosFiltradosLocal.length === 0"
-              class="flex flex-col items-center justify-center py-16 text-center"
+              class="pp-empty"
             >
-              <div class="w-12 h-12 rounded-full bg-[#F1F5F9] flex items-center justify-center mb-3">
+              <div class="pp-empty-icon-wrap">
                 <Package :size="22" class="text-text-3" />
               </div>
-              <p class="text-[14px] font-semibold text-text-1">Sin resultados</p>
-              <p class="text-[12px] text-text-3 mt-1">
+              <p class="pp-empty-title">Sin resultados</p>
+              <p class="pp-empty-sub">
                 {{ busqueda ? `No hay coincidencias para "${busqueda}"` : 'No hay productos en esta categoría' }}
               </p>
             </div>
@@ -81,7 +76,7 @@
             <!-- Grid de productos -->
             <div
               v-else
-              class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"
+              class="pp-grid"
             >
               <ProductCard
                 v-for="producto in paginaActual"
@@ -95,34 +90,31 @@
           <!-- ── Footer: paginación ─────────────────────────── -->
           <div
             v-if="totalPaginas > 1"
-            class="flex items-center justify-center gap-1.5 px-6 py-3 border-t border-border flex-shrink-0 flex-wrap"
+            class="pp-pagination"
           >
             <button
               @click="irAPagina(pagina - 1)"
               :disabled="pagina === 1"
-              class="px-3 py-1.5 text-[12px] font-medium rounded-[var(--r-md)] border border-border text-text-2 hover:bg-[#F1F5F9] disabled:opacity-40 disabled:cursor-not-allowed transition"
+              class="pp-page-btn"
             >
               Anterior
             </button>
 
-            <template v-for="p in paginasVisibles" :key="String(p) + '_' + pagina">
-              <span v-if="p === '...'" class="px-1 text-text-3 text-[12px] select-none">…</span>
-              <button
-                v-else
-                @click="irAPagina(p)"
-                :class="[
-                  'w-8 h-8 flex items-center justify-center text-[12px] font-medium rounded-[var(--r-md)] transition',
-                  p === pagina
-                    ? 'bg-primary text-white shadow-[var(--shadow-btn)]'
-                    : 'border border-border text-text-2 hover:bg-[#F1F5F9]'
-                ]"
-              >{{ p }}</button>
-            </template>
+            <div class="pp-page-numbers">
+              <template v-for="p in paginasVisibles" :key="String(p) + '_' + pagina">
+                <span v-if="p === '...'" class="pp-page-ellipsis">…</span>
+                <button
+                  v-else
+                  @click="irAPagina(p)"
+                  :class="['pp-page-num', p === pagina ? 'pp-page-active' : 'pp-page-idle']"
+                >{{ p }}</button>
+              </template>
+            </div>
 
             <button
               @click="irAPagina(pagina + 1)"
               :disabled="pagina === totalPaginas"
-              class="px-3 py-1.5 text-[12px] font-medium rounded-[var(--r-md)] border border-border text-text-2 hover:bg-[#F1F5F9] disabled:opacity-40 disabled:cursor-not-allowed transition"
+              class="pp-page-btn"
             >
               Siguiente
             </button>
@@ -246,6 +238,242 @@ const onSelect = (producto) => {
 </script>
 
 <style scoped>
+/* ── Overlay ──────────────────────────────────────────── */
+.pp-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 26, 46, 0.4);
+  backdrop-filter: blur(4px);
+  padding: 24px;
+}
+
+.pp-content {
+  background: #FFFFFF;
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(15, 26, 46, 0.18);
+  width: 100%;
+  max-width: 1152px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ──────────────────────────────────────────── */
+.pp-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  border-bottom: 1px solid #E5EAF0;
+  flex-shrink: 0;
+}
+
+.pp-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0F1A2E;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.pp-search-wrap {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+}
+
+.pp-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94A3B8;
+  pointer-events: none;
+}
+
+.pp-search-input {
+  width: 100%;
+  padding: 7px 10px 7px 32px;
+  font-size: 13px;
+  background: #F8FAFC;
+  border: 1px solid #E5EAF0;
+  border-radius: 8px;
+  color: #0F1A2E;
+  outline: none;
+  transition: border-color 0.15s;
+  font-family: 'Inter', sans-serif;
+  box-sizing: border-box;
+}
+.pp-search-input:focus { border-color: #27C8D8; }
+.pp-search-input::placeholder { color: #94A3B8; }
+
+.pp-counter {
+  font-size: 12px;
+  color: #64748B;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.pp-counter-num { font-weight: 700; color: #27C8D8; }
+.pp-counter-label { margin-left: 4px; }
+
+.pp-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #F1F5F9;
+  color: #64748B;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.pp-close:hover { background: #E5EAF0; color: #0F1A2E; }
+
+/* ── Filters ─────────────────────────────────────────── */
+.pp-filters {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 24px;
+  border-bottom: 1px solid #E5EAF0;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.pp-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  font-family: 'Inter', sans-serif;
+  white-space: nowrap;
+}
+.pp-filter-active { background: #27C8D8; color: #FFFFFF; }
+.pp-filter-idle { background: #F1F5F9; color: #64748B; }
+.pp-filter-idle:hover { background: #E5EAF0; }
+
+.pp-filter-count { font-size: 11px; }
+.pp-filter-count-active { color: rgba(255,255,255,0.7); }
+.pp-filter-count-idle { color: #94A3B8; }
+
+/* ── Grid scrollable ────────────────────────────────── */
+.pp-grid-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 24px;
+  min-height: 0;
+}
+.pp-grid-scroll::-webkit-scrollbar { width: 4px; }
+.pp-grid-scroll::-webkit-scrollbar-thumb { background: #E5EAF0; border-radius: 99px; }
+
+.pp-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+/* ── Empty ──────────────────────────────────────────── */
+.pp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  text-align: center;
+}
+.pp-empty-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #F1F5F9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+.pp-empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0F1A2E;
+  margin: 0;
+}
+.pp-empty-sub {
+  font-size: 12px;
+  color: #94A3B8;
+  margin: 4px 0 0;
+}
+
+/* ── Pagination ─────────────────────────────────────── */
+.pp-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-top: 1px solid #E5EAF0;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.pp-page-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid #E5EAF0;
+  background: #FFFFFF;
+  color: #64748B;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  font-family: 'Inter', sans-serif;
+}
+.pp-page-btn:hover:not(:disabled) { background: #F1F5F9; color: #27C8D8; }
+.pp-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.pp-page-numbers { display: flex; align-items: center; gap: 4px; }
+
+.pp-page-num {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  font-family: 'Inter', sans-serif;
+}
+.pp-page-active { background: #27C8D8; color: #FFFFFF; }
+.pp-page-idle { background: transparent; color: #64748B; }
+.pp-page-idle:hover { background: #F1F5F9; }
+
+.pp-page-ellipsis {
+  color: #94A3B8;
+  font-size: 12px;
+  padding: 0 2px;
+  user-select: none;
+}
+
+/* ── Transition ──────────────────────────────────────── */
 .modal-fade-enter-active,
 .modal-fade-leave-active {
   transition: opacity 0.15s ease, transform 0.15s ease;
@@ -254,5 +482,51 @@ const onSelect = (producto) => {
 .modal-fade-leave-to {
   opacity: 0;
   transform: scale(0.98);
+}
+
+/* ── Responsive ──────────────────────────────────────── */
+@media (min-width: 640px) {
+  .pp-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (min-width: 1024px) {
+  .pp-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+@media (max-width: 1024px) {
+  .pp-overlay { padding: 16px; }
+  .pp-header { padding: 14px 18px; gap: 10px; }
+  .pp-filters { padding: 8px 18px; }
+  .pp-grid-scroll { padding: 12px 18px; }
+  .pp-pagination { padding: 10px 18px; }
+}
+
+@media (max-width: 640px) {
+  .pp-overlay { padding: 0; align-items: flex-end; }
+  .pp-content { border-radius: 20px 20px 0 0; max-height: 92vh; }
+  .pp-header { flex-wrap: wrap; padding: 14px 16px; gap: 8px; }
+  .pp-title { font-size: 15px; }
+  .pp-search-wrap { order: 10; flex: 1 1 100%; }
+  .pp-counter-label { display: none; }
+  .pp-filters { padding: 8px 16px; gap: 4px; }
+  .pp-filter-btn { padding: 4px 10px; font-size: 11px; }
+  .pp-grid-scroll { padding: 10px 16px; }
+  .pp-grid { gap: 8px; }
+  .pp-pagination { padding: 8px 16px; gap: 4px; }
+  .pp-page-btn { padding: 5px 10px; font-size: 11px; }
+  .pp-page-num { width: 28px; height: 28px; font-size: 11px; }
+}
+
+@media (max-width: 480px) {
+  .pp-overlay { padding: 0; }
+  .pp-content { border-radius: 16px 16px 0 0; }
+  .pp-header { padding: 12px 14px; }
+  .pp-title { font-size: 14px; }
+  .pp-filters { padding: 6px 14px; }
+  .pp-grid-scroll { padding: 8px 14px; }
+  .pp-grid { grid-template-columns: 1fr; gap: 10px; }
+  .pp-pagination { padding: 8px 14px; }
+  .pp-counter-num { font-size: 11px; }
+  .pp-empty { padding: 40px 16px; }
 }
 </style>
