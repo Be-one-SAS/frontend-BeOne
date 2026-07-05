@@ -228,7 +228,41 @@ const fmt = formatCOP
   font-family: 'Inter', sans-serif;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
+  .rc-body { padding: 4px 16px 12px; }
+  .rc-header { padding: 12px 16px; font-size: 13px; }
+  .rc-row { padding: 8px 0; gap: 8px; }
+}
+
+@media (max-width: 768px) {
+  .rc-row--discount { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .rc-discount-right { width: 100%; justify-content: flex-end; }
+  .rc-label { font-size: 12px; }
+  .rc-val { font-size: 12px; }
   .rc-val--total { font-size: 18px; }
+}
+
+@media (max-width: 640px) {
+  .rc-header { font-size: 12px; padding: 10px 14px; }
+  .rc-body { padding: 2px 14px 10px; gap: 2px; }
+  .rc-row { padding: 6px 0; }
+  .rc-label { font-size: 11px; }
+  .rc-label--total { font-size: 14px; }
+  .rc-val { font-size: 11px; }
+  .rc-val--total { font-size: 16px; }
+  .rc-pct-input { width: 52px; padding: 4px 6px; font-size: 12px; }
+  .rc-pct-sign { font-size: 12px; }
+}
+
+@media (max-width: 480px) {
+  .rc-body { padding: 2px 12px 8px; }
+  .rc-row { padding: 5px 0; }
+  .rc-val--total { font-size: 14px; }
+}
+
+@media (max-width: 360px) {
+  .rc-body { padding: 0 10px 6px; }
+  .rc-row { padding: 4px 0; }
+  .rc-val--total { font-size: 13px; }
 }
 </style>

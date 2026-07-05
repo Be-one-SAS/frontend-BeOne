@@ -319,12 +319,18 @@ async function runImport(mod, file) {
   const form = new FormData()
   form.append('file', file)
   try {
+    // Importaciones grandes (ej. productos) hacen varias consultas por fila —
+    // el timeout global de 10s del cliente puede quedarse corto aunque el
+    // backend sí termine, así que aquí se le da mucho más margen.
     const res = await api.post(ENDPOINTS[mod], form, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 180000,
     })
     states[mod].result = res.data
   } catch (e) {
-    states[mod].error = e?.response?.data?.message || 'Error al importar el archivo'
+    states[mod].error = e?.code === 'ECONNABORTED'
+      ? 'La importación tardó demasiado y el navegador canceló la espera. Verifica en la tabla de productos si ya se aplicó antes de reintentar.'
+      : (e?.response?.data?.message || 'Error al importar el archivo')
   } finally {
     states[mod].loading = false
   }
