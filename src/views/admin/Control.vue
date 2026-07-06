@@ -105,20 +105,8 @@ const onFlujoOpenTeam = () => {
   showTeamModal.value = true
 }
 
-// ── Checkboxes con spinner por celda ──────────────────
+// ── Spinner por celda (usado por handleEncuesta) ──────
 const saving = ref({}) // { "id-campo": true/false }
-
-const handleCheck = async (evento, campo) => {
-  const key = `${evento.id}-${campo}`
-  saving.value = { ...saving.value, [key]: true }
-  try {
-    await updateEvento(evento.id, campo, !evento[campo])
-  } finally {
-    const next = { ...saving.value }
-    delete next[key]
-    saving.value = next
-  }
-}
 
 const isSaving = (id, campo) => !!saving.value[`${id}-${campo}`]
 
@@ -572,37 +560,30 @@ const handleDeletePlan = async () => {
                   </template>
                 </td>
 
-                <!-- Foto -->
+                <!-- Foto (automático — se marca solo con check-in de campo que incluya fotos) -->
                 <td class="vc-td vc-td-center" @click.stop>
-                  <button
-                    class="ctrl-check"
+                  <div
+                    class="ctrl-check ctrl-check-auto"
                     :class="ev.registroFotografico ? 'ctrl-check-on' : 'ctrl-check-off'"
-                    :disabled="isSaving(ev.id, 'registroFotografico')"
-                    @click="handleCheck(ev, 'registroFotografico')"
+                    title="Automático: se marca al recibir un check-in de campo con fotos"
                   >
-                    <Loader2 v-if="isSaving(ev.id, 'registroFotografico')" :size="12" class="spin" />
-                    <span v-else>{{ ev.registroFotografico ? '✓' : '✗' }}</span>
-                  </button>
+                    <span>{{ ev.registroFotografico ? '✓' : '✗' }}</span>
+                  </div>
                 </td>
 
-                <!-- Material -->
+                <!-- Material (automático — se marca al completar la Lista Operativa) -->
                 <td class="vc-td vc-td-center" @click.stop>
-                  <button
-                    class="ctrl-check"
+                  <div
+                    class="ctrl-check ctrl-check-auto"
                     :class="ev.listadoMaterial ? 'ctrl-check-done' : 'ctrl-check-off'"
-                    :disabled="isSaving(ev.id, 'listadoMaterial')"
-                    @click="handleCheck(ev, 'listadoMaterial')"
-                    :title="ev.listadoMaterial ? 'Material Completo' : 'Pendiente'"
+                    :title="ev.listadoMaterial ? 'Material Completo (automático desde Lista Operativa)' : 'Pendiente — se completa desde Lista Operativa'"
                   >
-                    <Loader2 v-if="isSaving(ev.id, 'listadoMaterial')" :size="12" class="spin" />
-                    <template v-else>
-                      <span v-if="ev.listadoMaterial" class="flex items-center gap-1">
-                        <CheckCircle2 :size="12" />
-                        <span class="hidden xl:inline">Completo</span>
-                      </span>
-                      <span v-else>✗</span>
-                    </template>
-                  </button>
+                    <span v-if="ev.listadoMaterial" class="flex items-center gap-1">
+                      <CheckCircle2 :size="12" />
+                      <span class="hidden xl:inline">Completo</span>
+                    </span>
+                    <span v-else>✗</span>
+                  </div>
                 </td>
 
                 <!-- Vehículo: Despacho + Retorno -->
@@ -639,30 +620,26 @@ const handleDeletePlan = async () => {
                   </button>
                 </td>
 
-                <!-- Planilla -->
+                <!-- Planilla (automático — se marca al completar el montaje en Montajes) -->
                 <td class="vc-td vc-td-center" @click.stop>
-                  <button
-                    class="ctrl-check"
+                  <div
+                    class="ctrl-check ctrl-check-auto"
                     :class="ev.planillaEjecucion ? 'ctrl-check-on' : 'ctrl-check-off'"
-                    :disabled="isSaving(ev.id, 'planillaEjecucion')"
-                    @click="handleCheck(ev, 'planillaEjecucion')"
+                    title="Automático: se marca al completar el montaje en Montajes"
                   >
-                    <Loader2 v-if="isSaving(ev.id, 'planillaEjecucion')" :size="12" class="spin" />
-                    <span v-else>{{ ev.planillaEjecucion ? '✓' : '✗' }}</span>
-                  </button>
+                    <span>{{ ev.planillaEjecucion ? '✓' : '✗' }}</span>
+                  </div>
                 </td>
 
-                <!-- Finalizado -->
+                <!-- Finalizado (automático — se marca al cerrar el check-in del evento) -->
                 <td class="vc-td vc-td-center" @click.stop>
-                  <button
-                    class="ctrl-check"
+                  <div
+                    class="ctrl-check ctrl-check-auto"
                     :class="ev.eventoFinalizado ? 'ctrl-check-on' : 'ctrl-check-off'"
-                    :disabled="isSaving(ev.id, 'eventoFinalizado')"
-                    @click="handleCheck(ev, 'eventoFinalizado')"
+                    title="Automático: se marca al cerrar el check-in del evento"
                   >
-                    <Loader2 v-if="isSaving(ev.id, 'eventoFinalizado')" :size="12" class="spin" />
-                    <span v-else>{{ ev.eventoFinalizado ? '✓' : '✗' }}</span>
-                  </button>
+                    <span>{{ ev.eventoFinalizado ? '✓' : '✗' }}</span>
+                  </div>
                 </td>
 
                 <!-- Lista Operativa -->
@@ -1211,6 +1188,11 @@ const handleDeletePlan = async () => {
 .ctrl-check-op  { background: #F0FAFB; color: #27C8D8; }
 .ctrl-check-op:hover { background: #27C8D8; color: #FFFFFF; }
 .ctrl-check:hover:not(:disabled) { opacity: 0.75; }
+
+/* Estados automáticos (Foto, Material, Planilla, Finalizado) — solo lectura,
+   no se pueden marcar con clic; reflejan el estado real de otros flujos. */
+.ctrl-check-auto { cursor: default; }
+.ctrl-check-auto:hover { opacity: 1; }
 .ctrl-check:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* LQ — indicador de lista de chequeo */

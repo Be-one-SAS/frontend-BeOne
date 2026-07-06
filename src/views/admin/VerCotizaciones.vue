@@ -282,7 +282,12 @@ const downloadPDF = async () => {
       orientation: 'portrait',
       compress: true,
     },
-    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+    // 'avoid-all' empuja bloques grandes completos a la siguiente página
+    // cuando no caben enteros, dejando huecos en blanco — con 'css' basta:
+    // respeta los break-inside/break-before que ya definimos en elementos
+    // puntuales (filas, tarjetas, notas) sin forzar el salto de secciones
+    // completas.
+    pagebreak: { mode: ['css', 'legacy'] },
   };
   
   try {

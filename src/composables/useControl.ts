@@ -8,6 +8,9 @@ export function useControl() {
   const loading = ref(false)
   const coordinadores = ref<any[]>([])
 
+  // registroFotografico refleja evidencia real: se marca automáticamente cuando
+  // llega un check-in de campo con fotos. No es editable a mano desde la UI —
+  // ver Control.vue (Foto ya no tiene @click, es un indicador de solo lectura).
   const fetchEventos = async () => {
     loading.value = true
     try {
@@ -18,11 +21,7 @@ export function useControl() {
 
       eventos.value = eventosRes.data
 
-      // Sincronizar encuesta: si existe un check-in vinculado a la cotización
-      // y encuesta aún no está marcada, actualizarla automáticamente.
       const checkins: any[] = checkinsRes.data ?? []
-
-      // Indexar check-ins por quotationId
       const checkinPorQuotation = new Map<number, any>()
       checkins.forEach((c: any) => {
         if (c.quotationId) checkinPorQuotation.set(c.quotationId, c)
@@ -37,9 +36,9 @@ export function useControl() {
       eventos.value.forEach((ev: any) => {
         const checkin = checkinPorQuotation.get(ev.id)
         if (!checkin) return
-        if (!ev.encuesta)              syncOps.push(updateEvento(ev.id, 'encuesta',              true).catch(() => {}))
-        if (!ev.registroFotografico && hasPhotos(checkin))
-                                       syncOps.push(updateEvento(ev.id, 'registroFotografico',   true).catch(() => {}))
+        if (!ev.registroFotografico && hasPhotos(checkin)) {
+          syncOps.push(updateEvento(ev.id, 'registroFotografico', true).catch(() => {}))
+        }
       })
       await Promise.all(syncOps)
     } catch (e) {
