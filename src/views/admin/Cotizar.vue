@@ -1396,21 +1396,21 @@ onMounted(async () => {
 })
 
 watch(clienteSeleccionado, (nuevoCliente) => {
-  cotizacion.contacto = nuevoCliente.contactName
-  cotizacion.correo   = nuevoCliente.email
-  cotizacion.celular  = nuevoCliente.phone
+  cotizacion.contacto  = nuevoCliente.contactName
+  cotizacion.correo    = nuevoCliente.email
+  cotizacion.celular   = nuevoCliente.phone
+  // clienteId (FK real hacia Clients) viene del cliente final seleccionado,
+  // no de la lista de precios — su id es de ProductBox, no de Clients.
+  cotizacion.clienteId = nuevoCliente?.id ? Number(nuevoCliente.id) : null
 })
 
-// sincroniza clienteId (FK numérica) y listaPrecio cuando se selecciona un grupo de precios
+// sincroniza listaPrecio cuando se selecciona un grupo de precios (Cliente Directo / Comfama / etc.)
 watch(myClienteSeleccionado, (nuevoCliente) => {
   if (!nuevoCliente?.id) {
-    cotizacion.clienteId   = null
     cotizacion.listaPrecio = ''
   } else if (nuevoCliente.id === 'cliente_directo') {
-    cotizacion.clienteId   = null
     cotizacion.listaPrecio = 'cliente_directo'
   } else {
-    cotizacion.clienteId   = Number(nuevoCliente.id)
     cotizacion.listaPrecio = nuevoCliente.name || ''
   }
 })

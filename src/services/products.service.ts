@@ -39,6 +39,7 @@ export const uploadProductFoto = async (id: number | string, file: File) => {
         form.append('file', file);
         return await api.patch(`/producto/${id}/foto`, form, {
             headers: { 'Content-Type': 'multipart/form-data' },
+            timeout: 60000,
         });
     } catch (error) {
         console.error('Fallo el servicio para subir foto del producto', error);

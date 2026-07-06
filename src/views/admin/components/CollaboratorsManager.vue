@@ -117,9 +117,9 @@ const loadingUsers = ref(false)
 
 // ─ Inicialización ──────────────────────────────
 watch(() => props.initialMembers, (newMembers) => {
-  if (newMembers) {
-    members.value = [...newMembers]
-  }
+  // Descarta miembros sin `user` poblado (dato incompleto/transitorio) — de
+  // lo contrario rompe el render (avatar, nombre, key) más abajo.
+  members.value = (newMembers || []).filter(m => m?.user?.id)
 }, { immediate: true })
 
 const loadAllUsers = async () => {
