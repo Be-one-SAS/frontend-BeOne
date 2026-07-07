@@ -116,7 +116,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   LayoutDashboard, TrendingUp, FilePlus, FileText,
@@ -130,6 +130,7 @@ import {
 } from 'lucide-vue-next'
 import { useAuth }               from '@/composables/useAuth'
 import { useSidebarPermissions, useMobileSidebar } from '@/composables/useSidebarPermissions'
+import { useViewAccess }         from '@/composables/useViewAccess'
 import MenuItem                  from './MenuItem.vue'
 
 // ── Auth & logout ──────────────────────────────────────
@@ -182,6 +183,7 @@ const ALL_MENU_ITEMS = [
     icon:  LayoutDashboard,
     label: 'Dashboard',
     route: '/dashboard',
+    viewKey: 'Dashboard',
     roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR'],
   },
 
@@ -192,11 +194,11 @@ const ALL_MENU_ITEMS = [
     label: 'Dpto Comercial',
     roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'COORDINADOR'],
     children: [
-      { label: 'Nueva cotización',  route: '/admin/cotizar',            icon: FilePlus,   roles: ['ADMIN', 'ADMINISTRADOR', 'LIDER', 'COORDINADOR'] },
-      { label: 'Cotizaciones',      route: '/admin/ver-cotizaciones',   icon: FileText,   roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR'] },
-      { label: 'Clientes',          route: '/customer/customer',        icon: Building2,  roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'COORDINADOR'] },
-      { label: 'Clientes directos', route: '/customer/price',           icon: UserCheck,  roles: ['ADMIN', 'ADMINISTRADOR', 'LIDER', 'COORDINADOR'] },
-      { label: 'Proveedores',       route: '/suppliers/suppliers',      icon: Handshake,  roles: ['ADMIN'] },
+      { label: 'Nueva cotización',  route: '/admin/cotizar',            viewKey: 'Cotizar',            icon: FilePlus,   roles: ['ADMIN', 'ADMINISTRADOR', 'LIDER', 'COORDINADOR'] },
+      { label: 'Cotizaciones',      route: '/admin/ver-cotizaciones',   viewKey: 'VerCotizaciones',    icon: FileText,   roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR'] },
+      { label: 'Clientes',          route: '/customer/customer',        viewKey: 'Clientes',           icon: Building2,  roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'COORDINADOR'] },
+      { label: 'Clientes directos', route: '/customer/price',           viewKey: 'ListPrice',          icon: UserCheck,  roles: ['ADMIN', 'ADMINISTRADOR', 'LIDER', 'COORDINADOR'] },
+      { label: 'Proveedores',       route: '/suppliers/suppliers',      viewKey: 'Suppliers',          icon: Handshake,  roles: ['ADMIN'] },
     ],
   },
   {
@@ -205,8 +207,8 @@ const ALL_MENU_ITEMS = [
     label: 'Productos',
     roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR'],
     children: [
-      { label: 'Productos propios',   route: '/products',            icon: Package,       roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR'] },
-      { label: 'Productos externos',  route: '/products/no-propios', icon: PackageSearch, roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR'] },
+      { label: 'Productos propios',   route: '/products',            viewKey: 'Productos',          icon: Package,       roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR'] },
+      { label: 'Productos externos',  route: '/products/no-propios', viewKey: 'ProductosNoPropios', icon: PackageSearch, roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR'] },
     ],
   },
 
@@ -217,13 +219,13 @@ const ALL_MENU_ITEMS = [
     label: 'Dpto Operativo',
     roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO'],
     children: [
-      { label: 'Control',             route: '/admin/control',        icon: ClipboardCheck, roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO'] },
-      { label: 'Reporte diario',      route: '/operativa/reporte',    icon: ClipboardList,  roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO'] },
-      { label: 'Registro de turno',   route: '/operativa/turnos',     icon: ClockIcon,      roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICA', 'LOGISTICO', 'OPERATIVO'] },
-      { label: 'Check-ins',           route: '/operativa/checkins',        icon: MapPin,    roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO'] },
-      { label: 'Inventario',          route: '/inventory',            icon: Archive,        roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'SUPERVISOR'] },
-      { label: 'Montajes',            route: '/operativa/montajes',        icon: Wrench,        roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO'] },
-      { label: 'Órdenes de Compra',   route: '/operativa/ordenes-compra',  icon: ShoppingCart,  roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO', 'LIDER'] },
+      { label: 'Control',             route: '/admin/control',        viewKey: 'Control',        icon: ClipboardCheck, roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO'] },
+      { label: 'Reporte diario',      route: '/operativa/reporte',    viewKey: 'Reporte',         icon: ClipboardList,  roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO'] },
+      { label: 'Registro de turno',   route: '/operativa/turnos',     viewKey: 'RegistroTurno',   icon: ClockIcon,      roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICA', 'LOGISTICO', 'OPERATIVO'] },
+      { label: 'Check-ins',           route: '/operativa/checkins',        viewKey: 'CheckIns',   icon: MapPin,    roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO'] },
+      { label: 'Inventario',          route: '/inventory',            viewKey: 'InventoryList',   icon: Archive,        roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'SUPERVISOR'] },
+      { label: 'Montajes',            route: '/operativa/montajes',        viewKey: 'Montajes',   icon: Wrench,        roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO'] },
+      { label: 'Órdenes de Compra',   route: '/operativa/ordenes-compra',  viewKey: 'OrdenesCompra', icon: ShoppingCart,  roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO', 'LIDER'] },
     ],
   },
   {
@@ -232,9 +234,9 @@ const ALL_MENU_ITEMS = [
     label: 'Reportes',
     roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'],
     children: [
-      { label: 'Resumen general', route: '/reportes/general',     icon: PieChart,    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
-      { label: 'Financiero',      route: '/reportes/financiero',  icon: DollarSign,  roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
-      { label: 'Operacional',     route: '/reportes/operacional', icon: Activity,    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
+      { label: 'Resumen general', route: '/reportes/general',     viewKey: 'ReporteGeneral',     icon: PieChart,    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
+      { label: 'Financiero',      route: '/reportes/financiero',  viewKey: 'ReporteFinanciero',  icon: DollarSign,  roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
+      { label: 'Operacional',     route: '/reportes/operacional', viewKey: 'ReporteOperacional', icon: Activity,    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
     ],
   },
 
@@ -245,11 +247,11 @@ const ALL_MENU_ITEMS = [
     label: 'Administración',
     roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'],
     children: [
-      { label: 'Eventos',              route: '/administracion/cotizaciones',   icon: TableProperties, roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
-      { label: 'Dashboard Financiero', route: '/administracion/dashboard',     icon: BarChart2,       roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
-      { label: 'Movimientos',          route: '/administracion/movimientos',   icon: ListOrdered,     roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
-      { label: 'Reportes',             route: '/administracion/reportes',      icon: FileBarChart,    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
-      { label: 'Órdenes de Compra',    route: '/administracion/ordenes-compra', icon: ShoppingCart,    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
+      { label: 'Eventos',              route: '/administracion/cotizaciones',   viewKey: 'AdminCotizaciones',  icon: TableProperties, roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
+      { label: 'Dashboard Financiero', route: '/administracion/dashboard',     viewKey: 'AdminDashboard',      icon: BarChart2,       roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
+      { label: 'Movimientos',          route: '/administracion/movimientos',   viewKey: 'AdminMovimientos',    icon: ListOrdered,     roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
+      { label: 'Reportes',             route: '/administracion/reportes',      viewKey: 'AdminReportes',       icon: FileBarChart,    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
+      { label: 'Órdenes de Compra',    route: '/administracion/ordenes-compra', viewKey: 'AdminOrdenesCompra', icon: ShoppingCart,    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
     ],
   },
 
@@ -260,6 +262,7 @@ const ALL_MENU_ITEMS = [
     icon:  Target,
     label: 'Desafíos Comerciales',
     route: '/administracion/desafios-comerciales',
+    viewKey: 'DesafiosComerciales',
     roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'],
   },
 
@@ -269,6 +272,7 @@ const ALL_MENU_ITEMS = [
     icon:  Users,
     label: 'Usuarios',
     route: '/users/list',
+    viewKey: 'UsersList',
     roles: ['ADMIN'],
   },
   {
@@ -277,8 +281,8 @@ const ALL_MENU_ITEMS = [
     label: 'Configuración',
     roles: ['ADMIN', 'ADMINISTRADOR'],
     children: [
-      { label: 'General',               route: '/configuracion',          icon: Settings,          roles: ['ADMIN'] },
-      { label: 'Parámetros cotización', route: '/admin/quotation-params', icon: SlidersHorizontal, roles: ['ADMIN'] },
+      { label: 'General',               route: '/configuracion',          viewKey: 'Configuracion',   icon: Settings,          roles: ['ADMIN', 'ADMINISTRADOR'] },
+      { label: 'Parámetros cotización', route: '/admin/quotation-params', viewKey: 'QuotationParams', icon: SlidersHorizontal, roles: ['ADMIN'] },
     ],
   },
 ]
@@ -287,14 +291,24 @@ const ALL_MENU_ITEMS = [
  * Menú filtrado por rol del usuario.
  * Solo muestra ítems donde el usuario tiene acceso,
  * y filtra los hijos sin acceso.
+ *
+ * Los ítems hoja (con `viewKey`) resuelven sus roles contra la config
+ * dinámica editable desde /configuracion (getViewRoles) cuando existe,
+ * y caen de vuelta a `roles` estático si no está gestionada ahí o la
+ * config no cargó todavía. Los headers de grupo (sin `viewKey`) siempre
+ * usan su `roles` estático — son solo agrupación visual, no vistas propias.
  */
+const { getViewRoles, ensureLoaded: ensureViewAccessLoaded } = useViewAccess()
+onMounted(ensureViewAccessLoaded) // defensivo — el router guard ya la carga antes de esto en el flujo normal
+const effectiveRoles = (item) => (item.viewKey && getViewRoles(item.viewKey)) || item.roles
+
 const visibleMenuItems = computed(() =>
   ALL_MENU_ITEMS
-    .filter(item => canSee(item.roles))
+    .filter(item => canSee(effectiveRoles(item)))
     .map(item => ({
       ...item,
       children: item.children
-        ?.filter(child => canSee(child.roles))
+        ?.filter(child => canSee(effectiveRoles(child)))
         ?? [],
     }))
     // Omitir ítems de grupo vacío (parent sin hijos visibles y sin ruta)

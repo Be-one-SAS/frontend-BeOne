@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import MainLayout       from '../components/layout/MainLayout.vue'
 import LoginPage        from '../views/authentication/LoginPage.vue'
 import { useAuth }      from '../composables/useAuth'
+import { useViewAccess } from '../composables/useViewAccess'
 import NotFound         from '../views/NotFound.vue'
 import MaintenancePage  from '../views/MaintenancePage.vue'
 
@@ -353,8 +354,9 @@ const router = createRouter({
 // que lifecycle hooks internos se registren sin instancia activa
 // ─────────────────────────────────────────────────────────
 const { isAuthenticated, user } = useAuth()
+const { ensureLoaded: ensureViewAccessLoaded, canAccess } = useViewAccess()
 
-router.beforeEach((to, _from, next) => {
+router.beforeEach(async (to, _from, next) => {
   // 0a. Modo mantenimiento — redirige todo excepto /maintenance y rutas públicas de operación
   if (MAINTENANCE_MODE && to.name !== 'Maintenance') {
     return next('/maintenance')
@@ -379,13 +381,16 @@ router.beforeEach((to, _from, next) => {
     return next('/dashboard')
   }
 
-  // 3. Validación de roles por ruta
+  // 3. Validación de roles por ruta — usa la config dinámica editable desde
+  // /configuracion (ADMIN/ADMINISTRADOR) cuando existe para esta vista, y
+  // cae de vuelta a `meta.roles` si la vista no está gestionada ahí o la
+  // config no cargó (backend caído). Solo se pide una vez — el composable
+  // cachea el resultado en estado global.
   if (to.meta.roles) {
-    const allowedRoles = to.meta.roles as string[]
-    const userRole     = user.value?.roles?.[0]
+    await ensureViewAccessLoaded()
 
-    if (!userRole || !allowedRoles.includes(userRole)) {
-      console.warn(`[Router] Acceso denegado. Roles requeridos: ${allowedRoles.join(', ')}`)
+    if (!canAccess(to.name, to.meta.roles as string[])) {
+      console.warn(`[Router] Acceso denegado a "${String(to.name)}"`)
       return next('/unauthorized')
     }
   }

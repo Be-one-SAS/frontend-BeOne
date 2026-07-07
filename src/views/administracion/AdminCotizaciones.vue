@@ -484,13 +484,13 @@
           </div>
           <div v-else-if="quotationDetail?.items?.length" class="evt-items-list">
             <div v-for="item in quotationDetail.items" :key="item.id" class="evt-item-row">
-              <div class="evt-item-name">{{ item.product?.nombre || item.descripcion || '—' }}</div>
+              <div class="evt-item-name">{{ item.product?.nombre || item.product?.dispositivo || item.descripcion || '—' }}</div>
               <div class="evt-item-qty">{{ item.cantidad }} u.</div>
               <div class="evt-item-price">{{ fmtMoney(item.precioUnitario) }}</div>
             </div>
             <div v-if="quotationDetail?.thirdPartyItems?.length">
               <div v-for="tp in quotationDetail.thirdPartyItems" :key="'tp'+tp.id" class="evt-item-row evt-item-third">
-                <div class="evt-item-name">{{ tp.catalogProduct?.nombre || tp.descripcion || '—' }} <span class="evt-item-badge-tp">3°</span></div>
+                <div class="evt-item-name">{{ tp.catalogProduct?.nombre || tp.catalogProduct?.dispositivo || tp.descripcion || '—' }} <span class="evt-item-badge-tp">3°</span></div>
                 <div class="evt-item-qty">{{ tp.cantidad }} u.</div>
                 <div class="evt-item-price">{{ fmtMoney(tp.precioUnitario) }}</div>
               </div>

@@ -502,6 +502,8 @@
                           @error="$event.target.src = '/assets/be-one-logo.webp'"
                           class="prd-thumb"
                           alt=""
+                          @mouseenter="showThumbPreview($event, it.linkFoto || it.linkFotoDispositivo)"
+                          @mouseleave="hideThumbPreview"
                         />
                       </td>
                       <td class="td-name">
@@ -1088,6 +1090,8 @@
     </ModalReutilizable>
 
   </div>
+
+  <ThumbHoverPreview :preview="thumbPreview" />
 </template>
 
 
@@ -1097,6 +1101,8 @@ import InputLabel from '@/components/input/InputLabel.vue';
 import SelectLabel from '@/components/input/SelectLabel.vue';
 import CollaboratorsManager from './components/CollaboratorsManager.vue';
 import QuotationVersions from './components/QuotationVersions.vue';
+import ThumbHoverPreview from '@/components/shared/ThumbHoverPreview.vue';
+import { useThumbHoverPreview } from '@/composables/useThumbHoverPreview';
 import { ref, reactive, onMounted, watch, computed } from 'vue';   // añadido: computed, reactive
 import { formatCOP } from '@/utils/currency.js'
 import { getQuotationById, getVersions } from '../../services/quotation.service';
@@ -1182,6 +1188,9 @@ const facturarA = computed(() => {
 const modalCalendarioIncompleto = ref(false);
 const modalProductoNoSeleccionado = ref(false);
 const showVersionsHistory = ref(false); // ✅ ADDED
+
+// ── Preview ampliado al hover sobre miniaturas de productos (paso 3) ──
+const { preview: thumbPreview, showPreview: showThumbPreview, hidePreview: hideThumbPreview } = useThumbHoverPreview()
 
 const {
   cotizacion,
@@ -1678,12 +1687,27 @@ const {
   dismissBanner,
 } = useQuotationDraft({ cotizacion, items, itemsTerceros, pasoActual, modalCotizacionExitosa })
 
-/** Limpia el draft y re-aplica los valores de sesión (nombre del agente y fecha de hoy) */
-const handleClearDraft = () => {
+/**
+ * Limpia el formulario (draft + campos + items + vuelve al paso 1) y
+ * re-aplica los valores de sesión (nombre del agente y fecha de hoy).
+ * quotationId también se resetea — si no, un segundo "Crear cotización"
+ * sin recargar la página tomaría el camino de edición (PATCH) en vez de
+ * crear una cotización nueva.
+ */
+const resetFormularioNuevo = () => {
   clearDraft()
+  quotationId.value = null
   cotizacion.fechaCotizacion = new Date().toISOString().split('T')[0]
   cotizacion.agenteComercial = user.value.fullName
 }
+const handleClearDraft = resetFormularioNuevo
+
+// Al crear una cotización nueva con éxito, deja el formulario listo para la
+// siguiente — sin esto, los campos y los items quedaban visibles aunque ya
+// se hubiera creado, y el paso seguía en el 4.
+watch(modalCotizacionExitosa, (val) => {
+  if (val) resetFormularioNuevo()
+})
 
 const pasos = [
   { num: 1, label: 'Cliente'  },

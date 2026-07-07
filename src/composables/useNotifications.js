@@ -1,5 +1,6 @@
 import { ref, computed, onUnmounted } from 'vue'
 import { createGlobalState } from '@vueuse/core'
+import api from '@/services/api'
 
 export const useNotifications = createGlobalState(() => {
   const notifications = ref([])
@@ -32,9 +33,24 @@ export const useNotifications = createGlobalState(() => {
     evtSource.onerror = () => {
       evtSource?.close()
       evtSource = null
-      // Reconexión exponencial simple — 5 segundos
       clearTimeout(reconnectTimer)
-      reconnectTimer = setTimeout(() => connect(token), 5000)
+
+      // EventSource no expone el status code del error (podría ser un corte de
+      // red pasajero o una sesión ya inválida — token vencido o cerrada porque
+      // alguien inició sesión en otro dispositivo). Lo distinguimos pegándole
+      // a un endpoint autenticado real: si responde 401, el interceptor de
+      // api.ts ya se encarga de sacar al usuario (logout + redirect a /login),
+      // así que no tiene sentido seguir reintentando la conexión SSE. Si fue
+      // cualquier otro error (red, backend caído), sí reintentamos como antes.
+      api.get('/auth/me')
+        .then(() => {
+          reconnectTimer = setTimeout(() => connect(token), 5000)
+        })
+        .catch((err) => {
+          if (err?.response?.status !== 401) {
+            reconnectTimer = setTimeout(() => connect(token), 5000)
+          }
+        })
     }
   }
 

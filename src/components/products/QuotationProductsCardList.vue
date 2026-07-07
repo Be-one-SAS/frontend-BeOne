@@ -42,6 +42,8 @@
                   @error="$event.target.src = '/assets/be-one-logo.webp'"
                   class="prd-thumb"
                   alt=""
+                  @mouseenter="showThumbPreview($event, item.linkFoto || item.linkFotoDispositivo)"
+                  @mouseleave="hideThumbPreview"
                 />
               </td>
 
@@ -133,12 +135,18 @@
     </div>
 
   </div>
+
+  <ThumbHoverPreview :preview="thumbPreview" />
 </template>
 
 <script setup>
 import { computed } from 'vue'
 import { formatCOP } from '@/utils/currency.js'
 import { Package, Trash2 } from 'lucide-vue-next'
+import ThumbHoverPreview from '@/components/shared/ThumbHoverPreview.vue'
+import { useThumbHoverPreview } from '@/composables/useThumbHoverPreview'
+
+const { preview: thumbPreview, showPreview: showThumbPreview, hidePreview: hideThumbPreview } = useThumbHoverPreview()
 
 const props = defineProps({
   items: {
