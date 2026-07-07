@@ -6,7 +6,8 @@ import {
   updateQuotation,
   addQuotationItems,
   addThirdPartyQuotationItems,
-  addQuotationMember // ✅ ADDED
+  addQuotationMember, // ✅ ADDED
+  createVersion
 } from '../../services/quotation.service'
 
 import { useAuth } from '../../composables/useAuth' // ✅ CHANGED — para obtener createdById
@@ -91,16 +92,17 @@ export function useQuotation() {
   // Usa subtotalVenta (precio venta × cantidad) calculado por el API.
   // Fallback a precioUnitario × cantidad para ítems sin desglose, y a costoUnitario para datos legacy.
   const calcularSubtotalTercero = (item: any) => {
-    if (item.subtotalVenta != null) return item.subtotalVenta
-    if (item.precioUnitario != null) return item.precioUnitario * (item.cantidad || 1)
-    return (item.costoUnitario || 0) * (item.cantidad || 1)
+    if (item.precioUnitario != null) return item.precioUnitario * (item.cantidad || 1) * (item.cantidadJornada || 1)
+    if (item.subtotalVenta != null) return item.subtotalVenta * (item.cantidadJornada || 1)
+    return (item.costoUnitario || 0) * (item.cantidad || 1) * (item.cantidadJornada || 1)
   }
 
-  // Calcular total de un item tercero (con descuento)
+  // Calcular total de un item tercero (con descuento y aumento)
   const calcularTotalTercero = (item: any) => {
     const subtotal = calcularSubtotalTercero(item)
     const descuento = (item.descuentoPct || 0)
-    return subtotal - (subtotal * descuento / 100)
+    const aumento   = (item.aumentoPct || 0)
+    return subtotal - (subtotal * descuento / 100) + (subtotal * aumento / 100)
   }
 
   // Subtotal SIN descuentos (propios)
@@ -129,12 +131,16 @@ export function useQuotation() {
     return descuentosPropios + descuentosTerceros
   })
 
-  // Total de aumentos aplicados (solo equipos propios — terceros no lo soportan aún)
-  const totalAumentos = computed(() =>
-    items.value.reduce(
+  // Total de aumentos aplicados en ambas tablas
+  const totalAumentos = computed(() => {
+    const aumentosPropios = items.value.reduce(
       (sum, item) => sum + (calcularSubtotalItem(item) * (item.aumentoPct || 0) / 100), 0
     )
-  )
+    const aumentosTerceros = itemsTerceros.value.reduce(
+      (sum, item) => sum + (calcularSubtotalTercero(item) * (item.aumentoPct || 0) / 100), 0
+    )
+    return aumentosPropios + aumentosTerceros
+  })
 
   // Subtotal CON descuentos (propios) - para mostrar
   const subtotalPropios = computed(() =>
@@ -213,9 +219,11 @@ export function useQuotation() {
   const mapThirdPartyItem = (it: any) => ({
     catalogItemId:   it.catalogItemId ?? it.id,
     cantidad:        it.cantidad        ?? 1,
+    cantidadJornada: it.cantidadJornada ?? 1,
     costoUnitario:   it.costoUnitario   ?? 0,
     margenVariable:  it.margenVariable  ?? 0,
     descuentoPct:    it.descuentoPct    ?? 0,
+    aumentoPct:      it.aumentoPct      ?? 0,
     comisionPct:     it.comisionPct     ?? 0,
     dispositivo:     it.dispositivo     || undefined,
     descripcion:     it.descripcion     || undefined,
@@ -313,6 +321,16 @@ export function useQuotation() {
           } catch (e: any) {
             console.warn('[useQuotation] third-party-items endpoint error (update):', e?.response?.data ?? e)
           }
+        }
+
+        // Toda edición guardada queda registrada como una nueva versión —
+        // se dispara al final, cuando los campos base y los items ya
+        // quedaron persistidos, para que el snapshot capture el estado
+        // completo (no solo los campos del PATCH inicial).
+        try {
+          await createVersion(quotationId.value)
+        } catch (e: any) {
+          console.warn('[useQuotation] no se pudo generar versión automática:', e?.response?.data ?? e)
         }
       } else {
         const { data } = await createQuotation(payload)

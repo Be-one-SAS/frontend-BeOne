@@ -106,6 +106,20 @@ export const updateThirdPartyCatalog = async (id: number | string, data: object)
     }
 };
 
+export const uploadThirdPartyCatalogFoto = async (id: number | string, file: File) => {
+    try {
+        const form = new FormData();
+        form.append('file', file);
+        return await api.patch(`/third-party-catalog/${id}/foto`, form, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            timeout: 60000,
+        });
+    } catch (error) {
+        console.error('Fallo el servicio para subir foto del producto de tercero', error);
+        throw error;
+    }
+};
+
 // TERCEROS - POST
 export const thirdPartyCatalog = async (data: object) => {
     try {

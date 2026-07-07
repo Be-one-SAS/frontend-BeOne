@@ -58,7 +58,6 @@ const isActive = (item) => {
   box-shadow: 0 1px 4px rgba(39,200,216,.06), 0 4px 16px rgba(39,200,216,.08);
   border: 1px solid #E5EAF0;
   width: 100%;
-  overflow: hidden;
 }
 
 .topbar-nav {

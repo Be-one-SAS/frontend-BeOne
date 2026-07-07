@@ -8,7 +8,7 @@
           <div class="tq-header">
             <div class="tq-header-left">
               <Truck :size="20" class="tq-icon" />
-              <h2 class="tq-title">Agregar Producto de Tercero</h2>
+              <h2 class="tq-title">{{ editItem ? 'Editar Producto de Tercero' : 'Agregar Producto de Tercero' }}</h2>
             </div>
             <button class="tq-close" @click="$emit('close')">
               <X :size="18" />
@@ -24,7 +24,7 @@
                 <Package :size="16" class="tq-ico-blue" />
                 <span>Información del Producto</span>
               </div>
-              
+
               <div class="tq-field tq-field--full">
                 <label class="tq-label">Producto del catálogo <span class="tq-req">*</span></label>
                 <div class="tq-select-wrap" :class="{ 'tq-select-wrap--open': selectOpen }">
@@ -244,13 +244,14 @@
               </div>
             </div>
 
-            <!-- 2. Especificaciones Técnicas -->
+            <!-- 2. Especificaciones Técnicas (colapsable — es información secundaria/opcional) -->
             <div class="tq-form-section">
-              <div class="tq-section-hdr">
+              <button type="button" class="tq-section-hdr tq-section-hdr--toggle" @click="specsExpanded = !specsExpanded">
                 <Cpu :size="16" class="tq-ico-blue" />
                 <span>Especificaciones Técnicas</span>
-              </div>
-              <div class="tq-grid-3">
+                <ChevronDown :size="16" class="tq-chevron" :class="{ 'tq-chevron--open': specsExpanded }" />
+              </button>
+              <div v-show="specsExpanded" class="tq-grid-3">
                 <div class="tq-field">
                   <label class="tq-label">Amperios</label>
                   <input v-model.number="form.amperios" type="number" class="tq-input" placeholder="0" />
@@ -441,8 +442,9 @@
               :disabled="!desglose || loadingCalc"
               @click="agregar"
             >
-              <Plus :size="15" />
-              Agregar a cotización
+              <Save v-if="editItem" :size="15" />
+              <Plus v-else :size="15" />
+              {{ editItem ? 'Guardar cambios' : 'Agregar a cotización' }}
             </button>
           </div>
 
@@ -453,12 +455,12 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { formatCOP } from '@/utils/currency.js'
 import { watchDebounced } from '@vueuse/core'
-import { Package, Truck, X, Calculator, Loader2, Plus, BarChart2, Cpu, FileText, ImageIcon, Upload, ChevronDown, Search } from 'lucide-vue-next'
+import { Package, Truck, X, Calculator, Loader2, Plus, Save, BarChart2, Cpu, FileText, ImageIcon, Upload, ChevronDown, Search } from 'lucide-vue-next'
 import { calculateFromCost } from '@/services/quotation.service'
-import { thirdPartyCatalog } from '@/services/products.service'
+import { thirdPartyCatalog, uploadThirdPartyCatalogFoto } from '@/services/products.service'
 
 const fileInputNew = ref(null)
 const fileInputMain = ref(null)
@@ -509,30 +511,32 @@ const selectedProductLabel = computed(() => {
 })
 
 
+// Guardamos el File real para subirlo por multipart al crear el producto —
+// nunca se manda como base64 en el JSON (excede el límite del body y el
+// backend solo acepta URLs ya subidas a R2, ver IsUploadedFileUrl).
+const newProductImageFile = ref(null)
+
 const onFileChangeNew = (e) => {
   const file = e.target.files[0]
   if (!file) return
-  const reader = new FileReader()
-  reader.onload = (event) => {
-    newProductForm.value.imageUrl = event.target.result
-  }
-  reader.readAsDataURL(file)
+  newProductImageFile.value = file
+  newProductForm.value.imageUrl = URL.createObjectURL(file)
 }
 
+// Solo vista previa local — este campo del formulario principal no se
+// persiste (mapThirdPartyItem no lo envía al guardar la cotización).
 const onFileChangeMain = (e) => {
   const file = e.target.files[0]
   if (!file) return
-  const reader = new FileReader()
-  reader.onload = (event) => {
-    form.value.imageUrl = event.target.result
-  }
-  reader.readAsDataURL(file)
+  form.value.imageUrl = URL.createObjectURL(file)
 }
 
 const props = defineProps({
   show: { type: Boolean, default: false },
   catalog: { type: Array, default: () => [] },
   categoriasPropias: { type: Array, default: () => [] },
+  // Item de itemsTerceros a editar. null/undefined => modo "agregar".
+  editItem: { type: Object, default: null },
 })
 
 const emit = defineEmits(['close', 'add', 'catalog-updated'])
@@ -609,6 +613,43 @@ const errors = ref({})
 const loadingCalc = ref(false)
 const calcError = ref('')
 const desglose = ref(null)
+// Evita que los watchers de auto-relleno por catálogo sobreescriban los
+// valores ya guardados del item cuando se precarga el formulario en modo edición.
+const isPrefilling = ref(false)
+// "Especificaciones Técnicas" inicia colapsada — son campos secundarios/opcionales
+// que la mayoría de productos no usa.
+const specsExpanded = ref(false)
+
+const fillFormFromItem = (item) => {
+  form.value = {
+    ...initialForm,
+    catalogItemId: item.catalogItemId ?? item.id ?? null,
+    cantidad: item.cantidad ?? 1,
+    costoUnitario: item.costoUnitario ?? null,
+    margenVariable: item.margenVariable ?? null,
+    dispositivo: item.dispositivo || '',
+    descripcion: item.descripcion || '',
+    categoria: item.categoria || '',
+    bodega: item.bodega || '',
+    amperios: item.amperios ?? null,
+    medidas: item.medidas || '',
+    motores: item.motores ?? null,
+    operarios: item.operarios ?? null,
+    metrosExt: item.metrosExt ?? null,
+    m2Disp: item.m2Disp ?? null,
+    pesosEstacas: item.pesosEstacas ?? null,
+    extintores: item.extintores ?? null,
+    peso: item.peso ?? null,
+    m3Transporte: item.m3Transporte ?? null,
+    incluyeTransporte: !!item.incluyeTransporte || item.incluyeTransporteBogMde === 'SI',
+    montacarga: item.montacarga === 'SI' || item.montacarga === true,
+    horasOperacion: item.horasOperacion ?? null,
+    horasMontaje: item.horasMontaje ?? null,
+    personalMontaje: item.personalMontaje ?? null,
+    notas: item.notas || '',
+    imageUrl: item.imageUrl || item.linkFoto || item.linkFotoDispositivo || item.catalogProduct?.linkFotoDispositivo || ''
+  }
+}
 
 // ── Sub-formulario: nuevo producto ───────────────────────────────────────────
 const showNewProductForm = ref(false)
@@ -627,8 +668,15 @@ const guardarNuevoProducto = async () => {
       valorBase:    newProductForm.value.valorBase    || undefined,
       descripcion:  newProductForm.value.descripcion.trim()  || undefined,
       categoria:    newProductForm.value.categoria.trim()    || undefined,
-      imageUrl:     newProductForm.value.imageUrl.trim()     || undefined,
     })
+
+    // La imagen se sube por separado (multipart) una vez el producto existe —
+    // el endpoint de creación solo acepta URLs ya subidas a R2.
+    if (newProductImageFile.value) {
+      const { data: fotoData } = await uploadThirdPartyCatalogFoto(data.id, newProductImageFile.value)
+      data.linkFotoDispositivo = fotoData.imageUrl
+    }
+
     localAdditions.value.push(data)
     form.value.catalogItemId = data.id
     // Auto-set costoUnitario from the valorBase of the newly created product
@@ -636,6 +684,7 @@ const guardarNuevoProducto = async () => {
     showNewProductForm.value = false
     newProductSuccess.value = true
     newProductForm.value = { dispositivo: '', valorBase: null, descripcion: '', categoria: '', imageUrl: '' }
+    newProductImageFile.value = null
     // No emitir catalog-updated para evitar duplicados - ya está en localAdditions
     setTimeout(() => { newProductSuccess.value = false }, 3000)
   } catch (e) {
@@ -648,13 +697,13 @@ const guardarNuevoProducto = async () => {
 const cancelarNuevoProducto = () => {
   showNewProductForm.value = false
   newProductForm.value = { dispositivo: '', valorBase: null, descripcion: '', categoria: '', imageUrl: '' }
+  newProductImageFile.value = null
   newProductError.value = ''
 }
 
-// Reset when modal opens
+// Reset when modal opens (o precarga si viene un item a editar)
 watch(() => props.show, (val) => {
   if (val) {
-    form.value = { ...initialForm }
     errors.value = {}
     calcError.value = ''
     desglose.value = null
@@ -662,6 +711,19 @@ watch(() => props.show, (val) => {
     newProductForm.value = { dispositivo: '', valorBase: null, descripcion: '', categoria: '', imageUrl: '' }
     newProductError.value = ''
     newProductSuccess.value = false
+
+    specsExpanded.value = false
+
+    isPrefilling.value = true
+    if (props.editItem) {
+      fillFormFromItem(props.editItem)
+    } else {
+      form.value = { ...initialForm }
+    }
+    nextTick(() => {
+      isPrefilling.value = false
+      if (props.editItem && canCalculate.value) calcular()
+    })
 
     // Reset scroll
     setTimeout(() => {
@@ -673,6 +735,7 @@ watch(() => props.show, (val) => {
 
 // Intercept special "__new__" value from select
 watch(() => form.value.catalogItemId, (newId) => {
+  if (isPrefilling.value) return
   if (newId === '__new__') {
     form.value.catalogItemId = null
     showNewProductForm.value = true
@@ -682,8 +745,9 @@ watch(() => form.value.catalogItemId, (newId) => {
 
 // Auto-fill form when product is selected from catalog
 watch(() => form.value.catalogItemId, (newId, oldId) => {
+  if (isPrefilling.value) return
   if (!newId || newId === '__new__') return
-  
+
   const selected = allCatalog.value.find(c => c.id === newId)
   if (selected) {
     // Fill technical fields from catalog item (only on first selection)
@@ -708,7 +772,7 @@ watch(() => form.value.catalogItemId, (newId, oldId) => {
       form.value.horasMontaje      = selected.horasMontaje
       form.value.personalMontaje   = selected.personalMontaje
       form.value.notas             = selected.notas       || ''
-      form.value.imageUrl          = selected.imageUrl    || ''
+      form.value.imageUrl          = selected.linkFotoDispositivo || selected.imageUrl || ''
     }
     
     // Update costoUnitario from valorBase when switching products
@@ -918,6 +982,25 @@ const agregar = () => {
   font-family: 'Inter', sans-serif;
 }
 .tq-ico-blue { color: #27C8D8; }
+
+.tq-section-hdr--toggle {
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.tq-chevron {
+  margin-left: auto;
+  color: #94A3B8;
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+.tq-chevron--open {
+  transform: rotate(180deg);
+}
 
 .tq-field {
   display: flex;

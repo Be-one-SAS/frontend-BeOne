@@ -224,14 +224,18 @@
 
           <!-- ══════════ FOOTER ══════════ -->
           <footer class="op-footer">
-            <div class="flex-1 flex items-center gap-3">
+            <div class="flex-1 flex items-center gap-3" style="flex-wrap: wrap">
               <div v-if="!allValidated" class="op-footer-status op-footer-status--warn">
-                <AlertCircle :size="14" />
+                <AlertCircle :size="16" />
                 Valida todos los materiales ({{ validatedCount }}/{{ totalCount }})
               </div>
               <div v-else class="op-footer-status op-footer-status--ok">
-                <CheckCircle2 :size="14" />
+                <CheckCircle2 :size="16" />
                 ¡Todo listo para operar!
+              </div>
+              <div class="op-footer-status op-footer-status--info" title="OC y Checklist no son obligatorios para cerrar la lista operativa">
+                <Info :size="15" />
+                OC/Checklist opcionales ({{ ocPendingCount }} OC y {{ checklistPendingCount }} checklist pendientes, no bloquean)
               </div>
             </div>
             <button class="op-btn-secondary" @click="$emit('close')">Cancelar</button>
@@ -536,6 +540,18 @@
                 <div class="confirm-icon"><CheckCircle2 :size="32" /></div>
                 <h4 class="confirm-title">¿Confirmar Revisión?</h4>
                 <p class="confirm-text">¿Todos los materiales han sido validados y están listos?</p>
+
+                <div class="confirm-reqs">
+                  <div class="confirm-req confirm-req--ok">
+                    <Check :size="16" />
+                    Materiales validados ({{ validatedCount }}/{{ totalCount }})
+                  </div>
+                  <div class="confirm-req confirm-req--optional">
+                    <Info :size="16" />
+                    OC y Checklist son opcionales — no bloquean el cierre
+                  </div>
+                </div>
+
                 <div class="confirm-actions">
                   <button class="op-btn-secondary" @click="showConfirm = false">Cancelar</button>
                   <button class="op-btn-primary" @click="handleComplete">Sí, confirmar</button>
@@ -554,7 +570,7 @@
 import { ref, computed, watch } from 'vue'
 import {
   X, Package, ClipboardCheck, CheckCircle2, MessageSquare,
-  Plus, Trash2, Check, AlertCircle, Loader2,
+  Plus, Trash2, Check, AlertCircle, Loader2, Info,
   BookOpen, PlusCircle, ShoppingCart, ClipboardList,
 } from 'lucide-vue-next'
 import {
@@ -665,6 +681,16 @@ const progressPct    = computed(() =>
   totalCount.value === 0 ? 100 : Math.round((validatedCount.value / totalCount.value) * 100)
 )
 const allValidated = computed(() => totalCount.value > 0 && validatedCount.value >= totalCount.value)
+
+// ── Requisitos para continuar (informativo) ────────────────────
+// Solo los materiales bloquean "Revisado y Completo". OC y Checklist
+// son gestión opcional del operativo y no impiden cerrar la lista.
+const ocPendingCount = computed(() =>
+  allItems.value.filter(i => i.isThird && !ocsByItem.value[i.id]).length
+)
+const checklistPendingCount = computed(() =>
+  allItems.value.filter(i => !getChecklistState(i)).length
+)
 
 const consolidadoPorCategoria = computed(() => {
   const map = new Map()
@@ -1182,11 +1208,12 @@ async function submitOC() {
   display: flex; align-items: center; gap: 16px; flex-shrink: 0;
 }
 .op-footer-status {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 12px; font-weight: 500;
+  display: flex; align-items: center; gap: 7px;
+  font-size: 14px; font-weight: 600;
 }
 .op-footer-status--warn { color: #D97706; }
 .op-footer-status--ok   { color: #16A34A; }
+.op-footer-status--info { color: #64748B; font-size: 13px; font-weight: 600; }
 
 .op-btn-secondary {
   padding: 10px 20px; background: #F1F5F9; color: #64748B;
@@ -1310,6 +1337,14 @@ async function submitOC() {
 .confirm-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700; color: #0F1A2E; margin: 0 0 8px; }
 .confirm-text { font-size: 13px; color: #64748B; margin: 0 0 20px; line-height: 1.5; }
 .confirm-actions { display: flex; gap: 10px; justify-content: center; }
+
+.confirm-reqs { display: flex; flex-direction: column; gap: 8px; margin: 0 0 20px; text-align: left; }
+.confirm-req {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 14px; font-weight: 700; padding: 10px 14px; border-radius: 10px;
+}
+.confirm-req--ok { background: #F0FDF4; color: #16A34A; }
+.confirm-req--optional { background: #F8FAFC; color: #64748B; font-weight: 600; }
 
 /* ── Spin animation ─────────────────────────────────── */
 @keyframes spin { to { transform: rotate(360deg); } }
