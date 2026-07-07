@@ -63,14 +63,27 @@
                   class="p-card"
                   :class="{ 'p-card--checklist-on': getChecklistState(item) }"
                 >
-                  <div class="p-card-icon"><Package :size="20" /></div>
+                  <div class="p-card-media">
+                    <img
+                      v-if="getProductImage(item)"
+                      :src="getProductImage(item)"
+                      loading="lazy"
+                      alt=""
+                      class="p-card-img"
+                      @error="onImageError(item)"
+                    />
+                    <div v-else class="p-card-media-empty"><Package :size="22" /></div>
+
+                    <span class="p-card-type" :class="item.isThird ? 'badge-ext' : 'badge-own'">
+                      {{ item.isThird ? 'Tercero' : 'Propio' }}
+                    </span>
+                    <span v-if="getChecklistState(item)" class="p-card-check"><Check :size="12" /></span>
+                  </div>
+
                   <div class="p-card-body">
                     <p class="p-card-name">{{ getProductName(item) }}</p>
                     <div class="p-card-footer">
                       <span class="p-card-qty">x{{ getProductQty(item) }}</span>
-                      <span class="p-card-type" :class="item.isThird ? 'badge-ext' : 'badge-own'">
-                        {{ item.isThird ? 'Tercero' : 'Propio' }}
-                      </span>
                     </div>
                     <div v-if="item.isThird" class="p-card-oc">
                       <template v-if="ocsByItem[item.id]">
@@ -80,7 +93,7 @@
                         </span>
                       </template>
                       <button v-else class="p-card-oc-btn" @click="openOCModal(item)">
-                        <ShoppingCart :size="11" />
+                        <ShoppingCart :size="13" />
                         Emitir OC
                       </button>
                     </div>
@@ -93,7 +106,7 @@
                       :title="getChecklistState(item) ? 'Desactivar lista de chequeo' : 'Activar lista de chequeo'"
                       @click.stop="toggleChecklist(item)"
                     >
-                      <ClipboardList :size="11" />
+                      <ClipboardList :size="13" />
                       <span>Checklist</span>
                       <span v-if="getChecklistState(item)" class="p-checklist-chip-dot" />
                     </button>
@@ -567,7 +580,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import {
   X, Package, ClipboardCheck, CheckCircle2, MessageSquare,
   Plus, Trash2, Check, AlertCircle, Loader2, Info,
@@ -719,7 +732,7 @@ const productInfoItems = computed(() =>
   (props.event?.items || [])
     .filter(i => i.product)
     .map(i => ({
-      nombre: i.product.dispositivo || i.product.nombre || 'Producto',
+      nombre: i.product.nombre || i.product.dispositivo || 'Producto',
       amperios: i.product.amperios,
       qMotores: i.product.qMotores,
       qMetrosExtensiones: i.product.qMetrosExtensiones,
@@ -760,11 +773,20 @@ const selectedNewCategoria = computed(() =>
 // ── Helpers ───────────────────────────────────────────────────
 const getProductName = (item) =>
   item.isThird
-    ? (item.catalogProduct?.dispositivo || item.dispositivo || item.nombre || '—')
-    : (item.product?.dispositivo || item.product?.nombre || item.dispositivo || 'Equipo sin nombre')
+    ? (item.catalogProduct?.nombre || item.nombre || item.catalogProduct?.dispositivo || item.dispositivo || '—')
+    : (item.product?.nombre || item.product?.dispositivo || item.dispositivo || 'Equipo sin nombre')
 
 const getProductQty = (item) =>
   item.isThird ? (item.cantidad || 1) : (item.cantidadProducto || item.quantity || 1)
+
+const brokenImages = reactive({})
+const getProductImage = (item) => {
+  if (brokenImages[getItemKey(item)]) return null
+  return item.isThird
+    ? (item.catalogProduct?.linkFotoDispositivo || item.linkFoto || item.linkFotoDispositivo || null)
+    : (item.product?.linkFotoDispositivo || item.linkFoto || item.linkFotoDispositivo || null)
+}
+const onImageError = (item) => { brokenImages[getItemKey(item)] = true }
 
 // ── Checklist helpers ─────────────────────────────────────────
 const getItemKey = (item) => `${item.isThird ? 'third' : 'own'}-${item.id}`
@@ -1063,30 +1085,59 @@ async function submitOC() {
 
 /* ── Grids ──────────────────────────────────────────── */
 .product-grid-layout {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;
+  display: flex; overflow-x: auto; gap: 12px; padding-bottom: 8px;
+  scroll-snap-type: x proximity; scrollbar-width: thin;
 }
+.product-grid-layout::-webkit-scrollbar { height: 6px; }
+.product-grid-layout::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 99px; }
 .material-grid-layout {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px;
 }
 @media (max-width: 640px) {
-  .product-grid-layout, .material-grid-layout { grid-template-columns: repeat(2, 1fr); }
+  .material-grid-layout { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* ── Product card ───────────────────────────────────── */
 .p-card {
-  background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px;
-  padding: 12px; display: flex; align-items: center; gap: 12px;
+  flex: 0 0 148px; width: 148px; scroll-snap-align: start;
+  display: flex; flex-direction: column;
+  background: var(--color-card); border: 1px solid var(--color-border); border-radius: var(--r-lg);
+  overflow: hidden; transition: box-shadow .15s ease, transform .15s ease;
 }
-.p-card-icon {
-  width: 36px; height: 36px; background: #F1F5F9; color: #64748B;
-  border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+.p-card:hover { box-shadow: var(--shadow-card); transform: translateY(-2px); }
+.p-card--checklist-on {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-accent) inset;
 }
-.p-card-body { flex: 1; min-width: 0; }
-.p-card-name { font-size: 13px; font-weight: 600; color: #0F1A2E; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.p-card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; gap: 4px; }
-.p-card-qty { font-size: 11px; font-weight: 700; color: #64748B; }
-.p-card-type { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
-.badge-own { background: #E0F9FA; color: #27C8D8; }
+
+.p-card-media {
+  position: relative; aspect-ratio: 4 / 3; background: var(--color-border-light); overflow: hidden;
+}
+.p-card-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.p-card-media-empty {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  color: var(--color-text-3);
+}
+.p-card-check {
+  position: absolute; top: 8px; right: 8px; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--color-accent); color: #FFFFFF;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,.18);
+}
+
+.p-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 10px 12px 12px; }
+.p-card-name {
+  font-size: 13px; font-weight: 600; color: var(--color-text-1); margin: 0;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  min-height: 2.6em; line-height: 1.3;
+}
+.p-card-footer { display: flex; justify-content: space-between; align-items: center; gap: 4px; }
+.p-card-qty { font-size: 11px; font-weight: 700; color: var(--color-text-2); }
+.p-card-type {
+  position: absolute; top: 8px; left: 8px;
+  font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px;
+}
+.badge-own { background: var(--color-primary-light); color: var(--color-primary); }
 .badge-ext { background: #FFF7ED; color: #B45309; }
 
 /* ── Material card ──────────────────────────────────── */
@@ -1374,10 +1425,10 @@ async function submitOC() {
 /* ── Orden de Compra ────────────────────────────────── */
 .p-card-oc { margin-top: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .p-card-oc-btn {
-  display: flex; align-items: center; gap: 4px;
-  padding: 4px 9px; background: #FFF7ED; color: #B45309;
-  border: 1px solid #FDE68A; border-radius: 6px;
-  font-size: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  width: 100%; padding: 7px 10px; background: #FFF7ED; color: #B45309;
+  border: 1px solid #FDE68A; border-radius: 8px;
+  font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.2s;
 }
 .p-card-oc-btn:hover { background: #FFEDD5; border-color: #F59E0B; }
 
@@ -1385,14 +1436,14 @@ async function submitOC() {
 .p-checklist-chip {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  margin-top: 8px;
-  padding: 4px 10px;
-  border-radius: 99px;
+  gap: 6px;
+  margin-top: auto;
+  padding: 7px 10px;
+  border-radius: 8px;
   border: 1.5px solid #E2E8F0;
   background: #F8FAFC;
   color: #94A3B8;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   font-family: 'Inter', sans-serif;
   cursor: pointer;
@@ -1421,15 +1472,11 @@ async function submitOC() {
 }
 
 .p-checklist-chip-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: #10B981;
   flex-shrink: 0;
-}
-
-.p-card--checklist-on {
-  border-left: 3px solid #10B981;
 }
 
 .oc-number { font-size: 10px; font-weight: 700; color: #0F1A2E; }
