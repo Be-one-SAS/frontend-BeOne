@@ -22,6 +22,64 @@ export interface User {
   avatar?: string | null
 }
 
+const PENDING_LOGOUT_KEY = 'pendingLogoutTokens';
+const LOGOUT_MAX_ATTEMPTS = 3;
+const LOGOUT_RETRY_DELAY_MS = 700;
+
+const getApiBase = () => import.meta.env.VITE_API_URL ?? 'http://localhost:3003/api';
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const readPendingLogoutTokens = (): string[] => {
+  try {
+    return JSON.parse(localStorage.getItem(PENDING_LOGOUT_KEY) ?? '[]');
+  } catch {
+    return [];
+  }
+};
+
+const writePendingLogoutTokens = (tokens: string[]) => {
+  if (tokens.length) {
+    localStorage.setItem(PENDING_LOGOUT_KEY, JSON.stringify(tokens));
+  } else {
+    localStorage.removeItem(PENDING_LOGOUT_KEY);
+  }
+};
+
+// Intenta revocar un token en el backend (incrementa tokenVersion). Devuelve
+// true si quedó revocado o si un 401 confirma que ya estaba invalidado.
+const revokeToken = async (authToken: string): Promise<boolean> => {
+  const base = getApiBase();
+  for (let attempt = 1; attempt <= LOGOUT_MAX_ATTEMPTS; attempt++) {
+    try {
+      await axios.post(`${base}/auth/logout`, {}, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      return true;
+    } catch (error: any) {
+      if (error?.response?.status === 401) return true;
+      if (attempt < LOGOUT_MAX_ATTEMPTS) await sleep(LOGOUT_RETRY_DELAY_MS * attempt);
+    }
+  }
+  return false;
+};
+
+// Reintenta revocar tokens de logouts previos que no se pudieron confirmar
+// por fallas de red (p. ej. el usuario cerró sesión estando offline).
+const flushPendingLogouts = async () => {
+  const pending = readPendingLogoutTokens();
+  if (!pending.length) return;
+
+  const stillPending: string[] = [];
+  for (const pendingToken of pending) {
+    const revoked = await revokeToken(pendingToken);
+    if (!revoked) stillPending.push(pendingToken);
+  }
+  writePendingLogoutTokens(stillPending);
+};
+
+flushPendingLogouts();
+
 export const useAuth = createGlobalState(() => {
   const user = ref<User | null>(null);
   const token = ref<string | null>(null);
@@ -45,6 +103,7 @@ export const useAuth = createGlobalState(() => {
     localStorage.setItem('authToken', authToken);
     localStorage.setItem('refreshToken', refreshTokenValue);
     localStorage.setItem('userData', JSON.stringify(userData));
+    flushPendingLogouts();
   };
 
   // Actualiza solo los tokens tras un refresh silencioso (no toca user/userData)
@@ -61,21 +120,26 @@ export const useAuth = createGlobalState(() => {
   };
 
   const setLogout = () => {
-    // Best-effort: invalida la sesión en el backend (incrementa tokenVersion,
-    // lo que revoca de inmediato access + refresh token). No bloquea el
-    // logout visual si la red falla — se usa axios "pelado" (no la instancia
-    // `api`) para evitar un import circular con services/api.ts.
-    if (token.value) {
-      const base = import.meta.env.VITE_API_URL ?? 'http://localhost:3003/api';
-      axios.post(`${base}/auth/logout`, {}, {
-        headers: { Authorization: `Bearer ${token.value}` },
-      }).catch(() => {});
-    }
+    // No bloquea el logout visual: la limpieza del cliente ocurre de inmediato.
+    // La revocación en el backend (tokenVersion++) se reintenta en segundo
+    // plano y, si la red falla del todo, queda en cola para reintentarse en
+    // el próximo arranque de la app o el próximo login exitoso.
+    const currentToken = token.value;
 
     user.value = null;
     token.value = null;
     refreshToken.value = null;
-    localStorage.clear()
+    localStorage.clear();
+
+    if (currentToken) {
+      revokeToken(currentToken).then((revoked) => {
+        if (!revoked) {
+          const pending = readPendingLogoutTokens();
+          pending.push(currentToken);
+          writePendingLogoutTokens(pending);
+        }
+      });
+    }
   };
 
   return {
