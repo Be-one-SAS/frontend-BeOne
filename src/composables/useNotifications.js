@@ -1,6 +1,7 @@
 import { ref, computed, onUnmounted } from 'vue'
 import { createGlobalState } from '@vueuse/core'
 import api from '@/services/api'
+import { useAuth } from '@/composables/useAuth'
 
 export const useNotifications = createGlobalState(() => {
   const notifications = ref([])
@@ -44,11 +45,15 @@ export const useNotifications = createGlobalState(() => {
       // cualquier otro error (red, backend caído), sí reintentamos como antes.
       api.get('/auth/me')
         .then(() => {
-          reconnectTimer = setTimeout(() => connect(token), 5000)
+          // Releer el token vigente (pudo haberse renovado por refresh silencioso
+          // desde el retry anterior) en vez de reusar el `token` cerrado por closure.
+          const { token: currentToken } = useAuth()
+          reconnectTimer = setTimeout(() => connect(currentToken.value ?? token), 5000)
         })
         .catch((err) => {
           if (err?.response?.status !== 401) {
-            reconnectTimer = setTimeout(() => connect(token), 5000)
+            const { token: currentToken } = useAuth()
+            reconnectTimer = setTimeout(() => connect(currentToken.value ?? token), 5000)
           }
         })
     }
@@ -58,6 +63,14 @@ export const useNotifications = createGlobalState(() => {
     clearTimeout(reconnectTimer)
     evtSource?.close()
     evtSource = null
+  }
+
+  // Llamado tras un refresh de token exitoso: el EventSource hornea el token
+  // en la URL al conectar y no se puede actualizar in-place, así que hay que
+  // cerrar y reabrir la conexión con el nuevo token.
+  function reconnect(newToken) {
+    disconnect()
+    connect(newToken)
   }
 
   function markRead(id) {
@@ -73,5 +86,5 @@ export const useNotifications = createGlobalState(() => {
     notifications.value = []
   }
 
-  return { notifications, unread, connect, disconnect, markRead, markAllRead, clear }
+  return { notifications, unread, connect, disconnect, reconnect, markRead, markAllRead, clear }
 })

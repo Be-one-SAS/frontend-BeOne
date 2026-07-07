@@ -114,7 +114,8 @@
               <td class="td-user">
                 <div class="user-cell">
                   <div class="avatar" :style="{ background: getAvatarColor(u.fullName) }">
-                    {{ getInitials(u.fullName) }}
+                    <img v-if="u.avatar" :src="u.avatar" alt="Avatar" class="avatar-img" />
+                    <template v-else>{{ getInitials(u.fullName) }}</template>
                   </div>
                   <div>
                     <p class="user-name">{{ u.fullName }}</p>
@@ -943,6 +944,13 @@ onMounted(() => loadUsers())
   color: #FFFFFF;
   font-family: 'Inter', sans-serif;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .user-name {
