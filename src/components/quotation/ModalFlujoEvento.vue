@@ -145,35 +145,30 @@ const indicators = computed(() => {
   const ev = props.event
   return [
     {
-      key: 'coord',     label: 'Coordinador asignado',           weight: 20,
+      key: 'coord',     label: 'Coordinador asignado',           weight: 24,
       done: (ev?.coordinadores?.length ?? 0) > 0,
       cta: 'Asignar', action: () => emit('open-team'),
     },
     {
-      key: 'equipo',    label: 'Equipo de apoyo asignado',       weight: 10,
+      key: 'equipo',    label: 'Equipo de apoyo asignado',       weight: 12,
       done: (ev?.members?.length ?? 0) > 0,
       cta: 'Asignar', action: () => emit('open-team'),
     },
     {
-      key: 'material',  label: 'Lista de material validada',     weight: 20,
+      key: 'material',  label: 'Lista de material validada',     weight: 24,
       done: !!ev?.listadoMaterial,
       cta: null,
     },
     {
-      key: 'planilla',  label: 'Planilla de ejecución lista',    weight: 20,
+      key: 'planilla',  label: 'Planilla de ejecución lista',    weight: 24,
       done: !!ev?.planillaEjecucion,
       cta: null,
     },
     {
-      key: 'pago',      label: 'Estado administrativo confirmado', weight: 15,
+      key: 'pago',      label: 'Estado administrativo confirmado', weight: 16,
       done: ev?.estadoAdministrativo === 'Pagada' || ev?.estadoAdministrativo === 'Facturada',
       cta: null,
       nodata: !ev?.estadoAdministrativo,
-    },
-    {
-      key: 'valadm',    label: 'Validado administrativamente',   weight: 15,
-      done: !!ev?.validadoAdministrativamente,
-      cta: null,
     },
   ]
 })

@@ -7,14 +7,11 @@ export function useEditQuotationItem(items: any) {
     id: null,
     dispositivo: '',
     descripcion: '',
-    descuento: 0,
-    nota: '',
-    fechaInicioReserva: '',
-    fechaFinReserva: '',
     cantidadJornada: 0,
     cantidadProducto: 0,
     unitPrice: 0,
-    incluyeTransporte: ''
+    descuentoPct: 0,
+    aumentoPct: 0
   })
 
   // Referencia al objeto original del ítem que se está editando. Los ítems

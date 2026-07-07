@@ -402,7 +402,7 @@ import { useAuth } from '@/composables/useAuth'
 const { user } = useAuth()
 
 // ── Roles ─────────────────────────────────────────────────────────
-const MANAGER_ROLES = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICA']
+const MANAGER_ROLES = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO']
 const DELETE_ROLES  = ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR']
 
 const canManageTurnos = computed(() =>
@@ -449,13 +449,13 @@ const rtForm = ref(rtFormDefault())
 const rosterUserIds = computed(() => new Set(rosterUsers.value.map(u => u.id)))
 
 const extraUsers = computed(() =>
-  allUsers.value.filter(u => u.role === 'LOGISTICA' && !rosterUserIds.value.has(u.id))
+  allUsers.value.filter(u => u.role === 'LOGISTICO' && !rosterUserIds.value.has(u.id))
 )
 
 const filteredAllUsers = computed(() => {
   const q = addPersonSearch.value.toLowerCase().trim()
   return allUsers.value.filter(u =>
-    u.role === 'LOGISTICA' &&
+    u.role === 'LOGISTICO' &&
     (!q || u.fullName?.toLowerCase().includes(q))
   )
 })
@@ -466,7 +466,7 @@ const rtRoster = computed(() => {
   const rows = rosterUsers.value.map(u => ({ user: u, registro: byUser.get(u.id) ?? null, isExternal: false }))
   // Add LOGISTICA users with a registro but not in quotation members
   for (const r of rtRegistros.value) {
-    if (r.userId && !rosterUserIds.value.has(r.userId) && r.user?.role === 'LOGISTICA') {
+    if (r.userId && !rosterUserIds.value.has(r.userId) && r.user?.role === 'LOGISTICO') {
       rows.push({ user: r.user, registro: r, isExternal: false })
     }
   }
@@ -531,7 +531,7 @@ const calcTotalFromForm = () => {
 }
 
 const rtRoleClass = (role) => ({
-  LOGISTICA: 'rt-role--blue', OPERATIVO: 'rt-role--green',
+  LOGISTICO: 'rt-role--blue', OPERATIVO: 'rt-role--green',
   SUPERVISOR: 'rt-role--purple', COORDINADOR: 'rt-role--orange',
 })[role] ?? 'rt-role--gray'
 
@@ -564,7 +564,7 @@ const loadRegistros = async () => {
     const coordUsers  = (q?.coordinadores ?? []).map(c => c.user ?? c).filter(Boolean)
     const seen = new Set()
     rosterUsers.value = [...memberUsers, ...coordUsers].filter(u => {
-      if (!u?.id || seen.has(u.id) || u.role !== 'LOGISTICA') return false
+      if (!u?.id || seen.has(u.id) || u.role !== 'LOGISTICO') return false
       seen.add(u.id); return true
     })
   } catch (_) { rtRegistros.value = [] }
@@ -677,7 +677,7 @@ const openAddPersonModal = async () => {
   if (!allUsers.value.length) {
     try {
       const res = await getUsers()
-      allUsers.value = res.data ?? []
+      allUsers.value = res ?? []
     } catch (_) {}
   }
 }

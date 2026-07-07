@@ -396,9 +396,6 @@ async function load() {
   error.value   = null
   try {
     events.value = await getMontajes()
-    if (events.value.length > 0 && expandedEvents.value.size === 0) {
-      expandedEvents.value = new Set([events.value[0].id])
-    }
   } catch (e) {
     error.value = e?.response?.data?.message || 'Error cargando montajes'
   } finally {

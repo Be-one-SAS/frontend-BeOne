@@ -102,8 +102,8 @@
               <td class="cell-c">{{ item.cantidadProducto || 1 }}</td>
               <td class="cell-desc">{{ item.product?.nombre || item.product?.dispositivo || item.producto?.nombre || item.nombre || item.dispositivo || item.descripcion || 'Producto' }}</td>
               <td class="cell-num">{{ formatCurrency(item.unitPrice || 0) }}</td>
-              <td class="cell-num">{{ formatCurrency((item.unitPrice || 0) * (item.cantidadProducto || item.quantity || 1)) }}</td>
-              <td class="cell-c" v-if="tieneDescuento">{{ item.descuentoPct || 0 }}%</td>
+              <td class="cell-num">{{ formatCurrency((item.unitPrice || 0) * getQuantity(item)) }}</td>
+              <td class="cell-c" v-if="tieneDescuento">{{ getDescuentoPct(item) }}%</td>
               <td class="cell-num">{{ formatCurrency(calculateItemTotal(item)) }}</td>
             </tr>
           </template>
@@ -126,8 +126,8 @@
                 <span class="badge-third">Tercero</span>
               </td>
               <td class="cell-num">{{ formatCurrency(item.precioUnitario || item.costo || 0) }}</td>
-              <td class="cell-num">{{ formatCurrency((item.precioUnitario || item.costo || 0) * (item.cantidad || 1)) }}</td>
-              <td class="cell-c" v-if="tieneDescuento">{{ item.descuentoPct || 0 }}%</td>
+              <td class="cell-num">{{ formatCurrency((item.precioUnitario || item.costo || 0) * getQuantity(item)) }}</td>
+              <td class="cell-c" v-if="tieneDescuento">{{ getDescuentoPct(item) }}%</td>
               <td class="cell-num">{{ formatCurrency(item.precioTotal || calculateItemTotal(item)) }}</td>
             </tr>
           </template>
@@ -257,11 +257,25 @@ const formatTime = (iso) => {
 
 const formatCurrency = formatCOP
 
+// Los ítems propios usan descuentoPct/aumentoPct (nombre de campo real en
+// QuotationItem); los de terceros los guardan como descuento/aumento
+// (ThirdPartyQuotationItem) — se acepta cualquiera de los dos nombres.
+const getDescuentoPct = (item) => item.descuentoPct ?? item.descuento ?? 0
+const getAumentoPct   = (item) => item.aumentoPct   ?? item.aumento   ?? 0
+
+// La cantidad efectiva de un ítem es cantidad de producto × Q. Jornada (días).
+// cantidadJornada por defecto es 1, así que ítems sin jornada explícita no cambian.
+const getQuantity = (item) => {
+  const cantidad = item.cantidadProducto ?? item.cantidad ?? item.quantity ?? 1
+  const jornada  = item.cantidadJornada ?? 1
+  return cantidad * jornada
+}
+
 const calculateItemTotal = (item) => {
   const unitPrice = item.unitPrice || item.precioUnitario || item.costo || 0
-  const quantity = item.cantidadProducto || item.cantidad || item.quantity || 1
-  const descuentoPct = item.descuentoPct || 0
-  const aumentoPct = item.aumentoPct || 0
+  const quantity = getQuantity(item)
+  const descuentoPct = getDescuentoPct(item)
+  const aumentoPct = getAumentoPct(item)
   const subtotal = unitPrice * quantity
   const descuento = subtotal * (descuentoPct / 100)
   const aumento = subtotal * (aumentoPct / 100)
@@ -274,14 +288,12 @@ const subtotal = computed(() => {
 
   const itemsTotal = items.reduce((sum, item) => {
     const unitPrice = item.unitPrice || 0
-    const quantity = item.cantidadProducto || item.quantity || 1
-    return sum + (unitPrice * quantity)
+    return sum + (unitPrice * getQuantity(item))
   }, 0)
 
   const thirdPartyTotal = thirdParty.reduce((sum, item) => {
     const unitPrice = item.precioUnitario || item.costo || 0
-    const quantity = item.cantidad || 1
-    return sum + (unitPrice * quantity)
+    return sum + (unitPrice * getQuantity(item))
   }, 0)
 
   return itemsTotal + thirdPartyTotal
@@ -293,35 +305,43 @@ const descuentoTotal = computed(() => {
 
   const itemsDescuento = items.reduce((sum, item) => {
     const unitPrice = item.unitPrice || 0
-    const quantity = item.cantidadProducto || item.quantity || 1
-    const descuentoPct = item.descuentoPct || 0
-    const subtotal = unitPrice * quantity
+    const descuentoPct = getDescuentoPct(item)
+    const subtotal = unitPrice * getQuantity(item)
     return sum + (subtotal * (descuentoPct / 100))
   }, 0)
 
   const thirdPartyDescuento = thirdParty.reduce((sum, item) => {
     const unitPrice = item.precioUnitario || item.costo || 0
-    const quantity = item.cantidad || 1
-    const descuentoPct = item.descuentoPct || 0
-    const subtotal = unitPrice * quantity
+    const descuentoPct = getDescuentoPct(item)
+    const subtotal = unitPrice * getQuantity(item)
     return sum + (subtotal * (descuentoPct / 100))
   }, 0)
 
   return itemsDescuento + thirdPartyDescuento
 })
 
-// Aumento — solo aplica a equipos propios (ver useQuotationProducts.ts). Se
-// refleja en los totales pero nunca se muestra al cliente como línea/columna
-// aparte: es un ajuste interno de precio, no algo que se le explique.
+// Aumento — aplica a equipos propios y de terceros. Se refleja en los totales
+// pero nunca se muestra al cliente como línea/columna aparte: es un ajuste
+// interno de precio, no algo que se le explique.
 const aumentoTotal = computed(() => {
   const items = props.quotation.items || []
-  return items.reduce((sum, item) => {
+  const thirdParty = props.quotation.thirdPartyItems || []
+
+  const itemsAumento = items.reduce((sum, item) => {
     const unitPrice = item.unitPrice || 0
-    const quantity = item.cantidadProducto || item.quantity || 1
-    const aumentoPct = item.aumentoPct || 0
-    const subtotal = unitPrice * quantity
+    const aumentoPct = getAumentoPct(item)
+    const subtotal = unitPrice * getQuantity(item)
     return sum + (subtotal * (aumentoPct / 100))
   }, 0)
+
+  const thirdPartyAumento = thirdParty.reduce((sum, item) => {
+    const unitPrice = item.precioUnitario || item.costo || 0
+    const aumentoPct = getAumentoPct(item)
+    const subtotal = unitPrice * getQuantity(item)
+    return sum + (subtotal * (aumentoPct / 100))
+  }, 0)
+
+  return itemsAumento + thirdPartyAumento
 })
 
 const tieneDescuento = computed(() => descuentoTotal.value > 0)

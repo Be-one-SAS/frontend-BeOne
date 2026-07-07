@@ -256,13 +256,13 @@
               <tbody>
                 <tr v-for="q in recentQuotations" :key="q.id" class="tr-link" @click="$router.push(`/admin/cotizar/${q.id}`)">
                   <td class="td-id">#{{ q.numero ?? q.id }}</td>
-                  <td>{{ q.customer?.name || q.customer?.businessName || q.empresa || '—' }}</td>
+                  <td>{{ q.cliente?.name || q.empresa || '—' }}</td>
                   <td class="td-muted">{{ q.description || '—' }}</td>
-                  <td class="td-val">{{ formatShort(q.total) }}</td>
-                  <td><span class="status-pill" :class="statusPillClass(q.status?.name)">{{ q.status?.name || 'Creada' }}</span></td>
+                  <td class="td-val">{{ formatShort(quotationTotal(q)) }}</td>
+                  <td><span class="status-pill" :class="statusPillClass(q.quotationStatus?.name)">{{ q.quotationStatus?.name || 'Creada' }}</span></td>
                   <td v-if="isAdmin">
-                    <span class="agent-av">{{ initials(q.user?.fullName) }}</span>
-                    {{ q.user?.fullName?.split(' ')[0] || '—' }}
+                    <span class="agent-av">{{ initials(q.createdBy?.fullName) }}</span>
+                    {{ q.createdBy?.fullName?.split(' ')[0] || '—' }}
                   </td>
                   <td class="td-muted">{{ formatDate(q.createdAt) }}</td>
                 </tr>
@@ -440,6 +440,14 @@ const statusPillClass = (name = '') => {
 }
 
 const initials = (name = '') => name.split(' ').slice(0,2).map(w => w[0] ?? '').join('').toUpperCase() || '?'
+
+// El campo Quotation.total no se mantiene sincronizado — se calcula sumando
+// el total real de cada ítem (propio y de tercero), igual que en Cotizar.vue.
+const quotationTotal = (q) => {
+  const own  = (q.items || []).reduce((s, i) => s + (i.total || 0), 0)
+  const third = (q.thirdPartyItems || []).reduce((s, i) => s + (i.total || 0), 0)
+  return own + third
+}
 
 const formatDate = (d) => d ? new Date(d).toLocaleDateString('es-CO', { day:'2-digit', month:'short' }) : '—'
 const formatDay  = (d) => new Date(d + 'T00:00').getDate()

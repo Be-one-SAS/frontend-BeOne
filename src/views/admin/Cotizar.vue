@@ -10,11 +10,26 @@
       <!-- Acciones de cotización — solo si hay ID en la URL (modo edición) -->
       <div v-if="id" class="header-actions">
         <!-- Versión de la cotización -->
-        <div class="version-badge">
-          <span class="version-label">Versión</span>
-          <span class="version-number">{{ cotizacion.version }}</span>
+        <div class="version-badge-wrap">
+          <button
+            type="button"
+            class="version-badge"
+            @click="showVersionsHistory = !showVersionsHistory"
+            title="Ver historial de versiones"
+          >
+            <History :size="13" />
+            <span class="version-label">Versión</span>
+            <span class="version-number">{{ cotizacion.version }}</span>
+          </button>
+
+          <QuotationVersions
+            v-if="showVersionsHistory"
+            :quotation-id="id"
+            :can-manage="canManage"
+            @version-restored="handleVersionRestored"
+          />
         </div>
-        
+
         <!-- Botones de acción -->
         <div class="btn-group">
           <button
@@ -360,7 +375,7 @@
                       class="qty-input"
                     />
                   </div>
-                  <button @click="abrirModalTerceroQuotation" class="btn-tercero">
+                  <button @click="abrirModalTerceroQuotation()" class="btn-tercero">
                     <Package :size="14" />
                     Tercero
                   </button>
@@ -448,7 +463,7 @@
               <button
                 type="button"
                 class="btn-add-tercero"
-                @click="abrirModalTerceroQuotation"
+                @click="abrirModalTerceroQuotation()"
               >
                 <Plus :size="13" />
                 Agregar producto tercero
@@ -473,12 +488,13 @@
                       <th class="th-center">Q. Producto</th>
                       <th class="th-center">Precio unit.</th>
                       <th class="th-center">Desc. (%)</th>
+                      <th class="th-center">Aumento (%)</th>
                       <th class="th-center">Total</th>
                       <th class="th-center">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="(it, i) in itemsTerceros" :key="i" class="prd-row">
+                    <tr v-for="(it, i) in itemsTerceros" :key="i" class="prd-row" @click="abrirModalTerceroQuotation(i)">
                       <td class="td-num">{{ i + 1 }}</td>
                       <td class="td-img">
                         <img
@@ -492,16 +508,28 @@
                         <p class="prd-nombre">{{ it.nombre || it.dispositivo || '—' }}</p>
                         <p v-if="it.categoria" class="prd-cat">{{ it.categoria }}</p>
                       </td>
-                      <td class="td-center">
-                        <span class="prd-qty">1</span>
+                      <td class="td-center" @click.stop>
+                        <input
+                          v-model.number="it.cantidadJornada"
+                          type="number"
+                          min="1"
+                          class="prd-qty-input"
+                          @click.stop
+                        />
                       </td>
-                      <td class="td-center">
-                        <span class="prd-qty">{{ it.cantidad ?? 1 }}</span>
+                      <td class="td-center" @click.stop>
+                        <input
+                          v-model.number="it.cantidad"
+                          type="number"
+                          min="1"
+                          class="prd-qty-input"
+                          @click.stop
+                        />
                       </td>
                       <td class="td-center prd-price">
                         {{ formatCOP(it.costoUnitario ?? null) }}
                       </td>
-                      <td class="td-center">
+                      <td class="td-center" @click.stop>
                         <input
                           v-model.number="it.descuentoPct"
                           type="number"
@@ -509,6 +537,17 @@
                           max="100"
                           placeholder="0%"
                           class="prd-discount-input"
+                          @click.stop
+                        />
+                      </td>
+                      <td class="td-center" @click.stop>
+                        <input
+                          v-model.number="it.aumentoPct"
+                          type="number"
+                          min="0"
+                          placeholder="0%"
+                          class="prd-increase-input"
+                          @click.stop
                         />
                       </td>
                       <td class="td-center prd-total">
@@ -523,7 +562,7 @@
                   </tbody>
                   <tfoot>
                     <tr class="prd-subtotal-row">
-                      <td colspan="7" class="td-subtotal-label">Subtotal productos terceros</td>
+                      <td colspan="8" class="td-subtotal-label">Subtotal productos terceros</td>
                       <td class="td-subtotal-val">{{ formatCOP(totalesFilasTerceros.reduce((s, v) => s + v, 0)) }}</td>
                       <td></td>
                     </tr>
@@ -893,20 +932,25 @@
       @save="guardarEdicionProducto"
     />
 
-    <ThirdPartyProductModal
-      :show="modalNuevoProducto"
-      :producto="productoTercero"
-      @close="cerrarModal"
-      @save="guardarProducto"
-    />
-
     <ThirdPartyQuotationModal
       :show="showModalTerceroQuotation"
       :catalog="catalogTerceros"
       :categorias-propias="categorias"
-      @close="showModalTerceroQuotation = false"
+      :edit-item="terceroEditIndex !== null ? itemsTerceros[terceroEditIndex] : null"
+      @close="cerrarModalTerceroQuotation"
       @add="agregarItemTercero"
       @catalog-updated="(item) => catalogTerceros.push(item)"
+    />
+
+    <!-- Confirmación genérica de eliminación (producto propio/tercero, nota) -->
+    <ConfirmModal
+      :show="confirmState.show"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      confirm-label="Eliminar"
+      variant="danger"
+      @confirm="confirmarAccion"
+      @cancel="cancelarConfirmacion"
     />
 
     <!-- Modal: confirmar limpiar formulario -->
@@ -1053,11 +1097,12 @@ import InputLabel from '@/components/input/InputLabel.vue';
 import SelectLabel from '@/components/input/SelectLabel.vue';
 import CollaboratorsManager from './components/CollaboratorsManager.vue';
 import QuotationVersions from './components/QuotationVersions.vue';
-import { ref, onMounted, watch, computed } from 'vue';   // añadido: computed
+import { ref, reactive, onMounted, watch, computed } from 'vue';   // añadido: computed, reactive
 import { formatCOP } from '@/utils/currency.js'
-import { getQuotationById, getVersions, createVersion } from '../../services/quotation.service';
+import { getQuotationById, getVersions } from '../../services/quotation.service';
 
 import ModalReutilizable from '../../components/modal/ModalReutilizable.vue';
+import ConfirmModal from '../../components/modal/ConfirmModal.vue';
 import ResumenCotizacion from '../../components/panels/ResumenCotizacion.vue';
 import ClienteFinalSelector from '../suppliers/ClienteFinalSelector.vue';
 import BarraInfo from '../../components/panels/BarraInfo.vue';
@@ -1073,8 +1118,6 @@ import { useQuotationProducts }  from '@/composables/useQuotationProducts'
 import { useQuotationCalendar }  from '@/composables/useQuotationCalendar'
 import { useEditQuotationItem }  from '@/composables/useEditQuotationItem';
 import EditProductModal          from '../../components/quotation/EditProductModal.vue';
-import { useThirdPartyProduct }       from '../../composables/useThirdPartyProduct';
-import ThirdPartyProductModal         from '../../components/quotation/ThirdPartyProductModal.vue';
 import ThirdPartyQuotationModal       from '../../components/quotation/ThirdPartyQuotationModal.vue';
 import { useQuotation }               from '../../composables/quotation/useQuotation';
 import { useQuotationDraft }          from '../../composables/useQuotationDraft';
@@ -1105,6 +1148,7 @@ import {
   Loader2,
   CheckCircle2,
   StickyNote,
+  History,
 } from 'lucide-vue-next'
 
 import {
@@ -1199,13 +1243,13 @@ const {
   modalProductoNoSeleccionado
 })
 
+// Mismos roles que exige el backend para restaurar versiones
+// (POST /quotations/:id/versions/:versionId/restore) — user.roles es un
+// array, no un string único.
 const canManage = computed(() => {
   if (!user.value) return false;
-  // Solo ADMIN, SUPERVISOR o el creador de la cotización
-  const rolesPermitidos = ['ADMIN', 'SUPERVISOR'];
-  const hasRole = rolesPermitidos.includes(user.value.role);
-  const isCreator = user.value.id === cotizacion.createdById;
-  return hasRole || isCreator;
+  const rolesPermitidos = ['ADMINISTRADOR', 'LIDER', 'SUPERVISOR'];
+  return (user.value.roles || []).some(r => rolesPermitidos.includes(r));
 });
 
 // ── Lógica de Guardado y Versiones ───────────────────────────────────────
@@ -1248,42 +1292,15 @@ const guardarEdicion = async () => {
   }
 };
 
-/**
- * Genera una nueva versión (Snapshot) y recarga la vista
- */
-const guardarNuevaVersion = async () => {
-  if (!id) return;
-  try {
-    // ✅ IMPROVED — Guardar cambios actuales antes de generar el snapshot
-    // para que la versión contenga lo que el usuario ve en pantalla.
-    await saveQuotation();
-    
-    // Al generar nueva versión, limpiamos la marca de "versión restaurada"
-    // para que el sistema vuelva a calcular el máximo (que será la nueva versión)
-    localStorage.removeItem(`active_v_${id}`);
-    
-    await createVersion(id);
-    await getCotizacion();
-    alert('Nueva versión generada con éxito (incluyendo tus cambios actuales)');
-  } catch (error) {
-    console.error('[Cotizar] Error al generar versión:', error);
-  }
-};
-
-const {
-  modalNuevoProducto,
-  productoTercero,
-  abrirModal,
-  cerrarModal,
-  guardarProducto
-} = useThirdPartyProduct(items, cotizacion)
-
 // ── Terceros en cotización (nuevo flujo) ────────────────────────────────────
 const showModalTerceroQuotation = ref(false)
 const catalogTerceros = ref([])
 let catalogLoaded = false
+// Índice en itemsTerceros que se está editando; null cuando el modal está en modo "agregar"
+const terceroEditIndex = ref(null)
 
-const abrirModalTerceroQuotation = async () => {
+const abrirModalTerceroQuotation = async (editIndex = null) => {
+  terceroEditIndex.value = editIndex
   if (!catalogLoaded) {
     try {
       const { data } = await getThirdPartyCatalog()
@@ -1302,19 +1319,69 @@ const abrirModalTerceroQuotation = async () => {
   showModalTerceroQuotation.value = true
 }
 
+const cerrarModalTerceroQuotation = () => {
+  showModalTerceroQuotation.value = false
+  terceroEditIndex.value = null
+}
+
 const agregarItemTercero = (item) => {
+  // Modo edición: reemplaza el item existente, conservando lo que solo se
+  // edita en la tabla (Q. Jornada, Descuento%, Aumento%) y que el modal no toca.
+  if (terceroEditIndex.value !== null) {
+    const existente = itemsTerceros.value[terceroEditIndex.value]
+    itemsTerceros.value[terceroEditIndex.value] = {
+      ...item,
+      descuentoPct: existente.descuentoPct,
+      aumentoPct: existente.aumentoPct,
+      cantidadJornada: existente.cantidadJornada,
+    }
+    terceroEditIndex.value = null
+    return
+  }
+
   itemsTerceros.value.push({
     ...item,
-    descuentoPct: typeof item.descuentoPct === 'number' ? item.descuentoPct : 0,
+    descuentoPct:    typeof item.descuentoPct === 'number' ? item.descuentoPct : 0,
+    aumentoPct:      typeof item.aumentoPct === 'number' ? item.aumentoPct : 0,
+    cantidadJornada: typeof item.cantidadJornada === 'number' ? item.cantidadJornada : 1,
     // Ensure costoUnitario is preserved from the modal
     costoUnitario: item.costoUnitario,
   })
 }
 
+// ── Confirmación genérica (reemplaza confirm() nativo del navegador) ───────
+const confirmState = reactive({
+  show: false,
+  title: '',
+  message: '',
+  action: null,
+})
+
+const pedirConfirmacion = (title, message, action) => {
+  confirmState.title = title
+  confirmState.message = message
+  confirmState.action = action
+  confirmState.show = true
+}
+
+const confirmarAccion = () => {
+  const action = confirmState.action
+  confirmState.show = false
+  confirmState.action = null
+  if (action) action()
+}
+
+const cancelarConfirmacion = () => {
+  confirmState.show = false
+  confirmState.action = null
+}
+
 const eliminarItemTercero = (index) => {
-  if (confirm(`¿Seguro que deseas eliminar este producto de tercero?`)) {
-    itemsTerceros.value.splice(index, 1)
-  }
+  pedirConfirmacion(
+    'Eliminar producto',
+    '¿Seguro que deseas eliminar este producto de tercero?',
+    () => itemsTerceros.value.splice(index, 1)
+  )
 }
 
 // Calcular subtotal de un item propio (sin descuento)
@@ -1335,16 +1402,17 @@ const totalesFilasPropias = computed(() =>
   items.value.map(item => calcularTotalFila(item))
 )
 
-// Calcular total de una fila de tercero considerando el descuento.
+// Calcular total de una fila de tercero considerando el descuento y el aumento.
 // Usa subtotalVenta (precio venta × cantidad) calculado por el API.
 // Fallback a precioUnitario × cantidad y luego a costoUnitario para datos legacy.
 const calcularTotalFilaTercero = (item) => {
   let sub
-  if (item.subtotalVenta != null) sub = item.subtotalVenta
-  else if (item.precioUnitario != null) sub = item.precioUnitario * (item.cantidad || 1)
-  else sub = (item.costoUnitario || 0) * (item.cantidad || 1)
+  if (item.precioUnitario != null) sub = item.precioUnitario * (item.cantidad || 1) * (item.cantidadJornada || 1)
+  else if (item.subtotalVenta != null) sub = item.subtotalVenta * (item.cantidadJornada || 1)
+  else sub = (item.costoUnitario || 0) * (item.cantidad || 1) * (item.cantidadJornada || 1)
   const dsc = Number(item.descuentoPct) || 0
-  return sub - (sub * dsc / 100)
+  const aum = Number(item.aumentoPct) || 0
+  return sub - (sub * dsc / 100) + (sub * aum / 100)
 }
 
 // Totales de filas terceros como computed para reactividad garantizada
@@ -1353,32 +1421,6 @@ const totalesFilasTerceros = computed(() =>
 )
 
 
-
-const buildThirdPartyPayload = () => ({
-  dispositivo:                productoTercero.dispositivo,
-  descripcion:                productoTercero.descripcion,
-  valorBase:                  Number(productoTercero.precios) || 0,
-  bodega:                     productoTercero.bodega,
-  categoria:                  productoTercero.categoria,
-  amperios:                   Number(productoTercero.amperios)       || null,
-  medidas:                    productoTercero.medidas,
-  qMotores:                   Number(productoTercero.motores)         || null,
-  qOperarios:                 Number(productoTercero.operarios)       || null,
-  qMetrosExtensiones:         Number(productoTercero.metrosExt)       || null,
-  m2Dispositivo:              Number(productoTercero.m2Disp)          || null,
-  qPesosEstacas:              Number(productoTercero.pesosEstacas)    || null,
-  qExtintores:                Number(productoTercero.extintores)      || null,
-  anioDispositivo:            Number(productoTercero.anio)            || null,
-  porcentajeAmortizacion:     Number(productoTercero.amortizacion)    || null,
-  m3Transporte:               Number(productoTercero.m3Transporte)    || null,
-  pesoAproxDisp:              Number(productoTercero.peso)            || null,
-  qHorasOperacion:            Number(productoTercero.horasOperacion)  || null,
-  qHorasMontaje:              Number(productoTercero.horasMontaje)    || null,
-  qPersonalMontaje:           Number(productoTercero.personalMontaje) || null,
-  montacarga:                 productoTercero.montacarga         ? 'SI' : 'NO',
-  incluyeTransporteBogMde:    productoTercero.incluyeTransporte  ? 'SI' : 'NO',
-  notas:                      productoTercero.notas,
-})
 
 // Auto completa el campo Agente comercial y restaura el draft si existe
 onMounted(async () => {
@@ -1503,23 +1545,16 @@ const getCotizacion = async () => {
       cotizacion.empresa = data.empresa;
     }
     
-    // ✅ PRIORIZAR VERSIÓN RESTAURADA DESDE LOCALSTORAGE
+    // La versión "actual" es siempre la de mayor número en el historial —
+    // cada edición guardada y cada restauración crean una fila nueva en el
+    // backend (ver useQuotation.saveQuotation y QuotationsService.restoreVersion),
+    // así que no hace falta ningún puntero local para saber cuál es la vigente.
     try {
-      const activeVKey = `active_v_${id}`;
-      const savedV = localStorage.getItem(activeVKey);
-      
-      if (savedV) {
-        cotizacion.version = parseInt(savedV);
-      } else {
-        // Si no hay versión activa manual, calculamos el máximo historial
-        const vRes = await getVersions(id);
-        const allV = vRes.data || [];
-        if (allV.length > 0) {
-          cotizacion.version = Math.max(...allV.map(v => v.versionNumber));
-        } else {
-          cotizacion.version = 1;
-        }
-      }
+      const vRes = await getVersions(id);
+      const allV = vRes.data || [];
+      cotizacion.version = allV.length > 0
+        ? Math.max(...allV.map(v => v.versionNumber))
+        : 1;
     } catch (ve) {
       cotizacion.version = 1;
     }
@@ -1541,6 +1576,7 @@ const getCotizacion = async () => {
       cantidadJornada:   it.cantidadJornada  ?? it.quantity ?? 1,
       cantidadProducto:  it.cantidadProducto ?? 1,
       descuentoPct:      typeof it.descuentoPct === 'number' ? it.descuentoPct : 0,
+      aumentoPct:        typeof it.aumentoPct === 'number' ? it.aumentoPct : 0,
     }))
 
     // Cargar productos de terceros
@@ -1553,15 +1589,36 @@ const getCotizacion = async () => {
         categoria:           it.catalogProduct?.categoria || it.categoria,
         descripcion:         it.catalogProduct?.descripcion || it.descripcion,
         cantidad:            it.cantidad ?? 1,
+        cantidadJornada:     it.cantidadJornada ?? 1,
         costoUnitario:       it.costoUnitario ?? 0,
         margenVariable:      it.margenVariable ?? 0,
         precioUnitario:      it.precioUnitario ?? 0,
         subtotalVenta:       it.precioUnitario != null ? it.precioUnitario * (it.cantidad ?? 1) : 0,
         descuentoPct:        it.descuento ?? 0,
+        aumentoPct:          it.aumento ?? 0,
         comisionPct:         it.comisionPct ?? 0,
         comisionMonto:       it.comisionMonto ?? 0,
         total:               it.total ?? 0,
         incluyeTransporte:   it.catalogProduct?.incluyeTransporteBogMde ?? false,
+        // Resto de campos técnicos del catálogo — se preservan para que el modal
+        // de edición no los pierda al guardar (antes no se mapeaban y se perdían).
+        linkFoto:            it.catalogProduct?.linkFotoDispositivo,
+        bodega:              it.catalogProduct?.bodega,
+        amperios:            it.catalogProduct?.amperios,
+        medidas:             it.catalogProduct?.medidas,
+        motores:             it.catalogProduct?.qMotores,
+        operarios:           it.catalogProduct?.qOperarios,
+        metrosExt:           it.catalogProduct?.qMetrosExtensiones,
+        m2Disp:              it.catalogProduct?.m2Dispositivo,
+        pesosEstacas:        it.catalogProduct?.qPesosEstacas,
+        extintores:          it.catalogProduct?.qExtintores,
+        peso:                it.catalogProduct?.pesoAproxDisp,
+        m3Transporte:        it.catalogProduct?.m3Transporte,
+        horasOperacion:      it.catalogProduct?.qHorasOperacion,
+        horasMontaje:        it.catalogProduct?.qHorasMontaje,
+        personalMontaje:     it.catalogProduct?.qPersonalMontaje,
+        montacarga:          it.catalogProduct?.montacarga,
+        notas:               it.catalogProduct?.notas,
       }))
     }
 
@@ -1575,11 +1632,8 @@ const getCotizacion = async () => {
 /** 
  * Maneja la restauración de una versión específica 
  */
-const handleVersionRestored = async (vNum) => {
+const handleVersionRestored = async () => {
   if (!id) return;
-  // Guardamos en localStorage para que el indicador lo respete tras el refresco
-  localStorage.setItem(`active_v_${id}`, vNum.toString());
-  
   showVersionsHistory.value = false;
   await getCotizacion();
 }
@@ -1599,13 +1653,17 @@ const formatDate = (iso) => {
 }
 
 const eliminarItem = (item) => {
-  if (confirm(`¿Seguro que deseas eliminar el producto "${item.nombre || item.descripcion || item.dispositivo}"?`)) {
-    // Use reference equality (indexOf) so it works for unsaved items that have no id yet.
-    const idx = items.value.indexOf(item)
-    if (idx !== -1) {
-      items.value.splice(idx, 1)
+  pedirConfirmacion(
+    'Eliminar producto',
+    `¿Seguro que deseas eliminar el producto "${item.nombre || item.descripcion || item.dispositivo}"?`,
+    () => {
+      // Use reference equality (indexOf) so it works for unsaved items that have no id yet.
+      const idx = items.value.indexOf(item)
+      if (idx !== -1) {
+        items.value.splice(idx, 1)
+      }
     }
-  }
+  )
 }
 
 // ── Wizard — adiciones mínimas ──────────────────────────────────────────────
@@ -1706,14 +1764,19 @@ const agregarNota = async () => {
   }
 }
 
-const eliminarNota = async (notaId) => {
-  if (!confirm('¿Eliminar esta nota?')) return
-  try {
-    await deleteNotaCotizacion(notaId)
-    notas.value = notas.value.filter((n) => n.id !== notaId)
-  } catch (e) {
-    console.error('[Cotizar] Error al eliminar nota:', e)
-  }
+const eliminarNota = (notaId) => {
+  pedirConfirmacion(
+    'Eliminar nota',
+    '¿Eliminar esta nota?',
+    async () => {
+      try {
+        await deleteNotaCotizacion(notaId)
+        notas.value = notas.value.filter((n) => n.id !== notaId)
+      } catch (e) {
+        console.error('[Cotizar] Error al eliminar nota:', e)
+      }
+    }
+  )
 }
 
 onMounted(cargarNotas)
@@ -1781,7 +1844,11 @@ watch(modalCotizacionExitosa, (val) => {
   flex-wrap: wrap;
 }
 
-/* Badge de versión mejorado */
+/* Badge de versión mejorado — ahora es un botón que abre el historial */
+.version-badge-wrap {
+  position: relative;
+}
+
 .version-badge {
   display: flex;
   align-items: center;
@@ -1790,6 +1857,14 @@ watch(modalCotizacionExitosa, (val) => {
   padding: 8px 16px;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(39,200,216, 0.2);
+  border: none;
+  cursor: pointer;
+  color: #FFFFFF;
+  font-family: inherit;
+}
+
+.version-badge svg {
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .version-label {
@@ -2986,7 +3061,7 @@ watch(modalCotizacionExitosa, (val) => {
   .field-sel, .qty-input, .picker-btn, .s-input { font-size: 11px; padding: 6px 10px; }
   .prd-table td, .prd-table th { padding: 8px 10px; font-size: 11px; }
   .prd-thumb { width: 40px; height: 40px; }
-  .prd-discount-input { width: 48px; padding: 3px 6px; font-size: 11px; }
+  .prd-discount-input, .prd-increase-input, .prd-qty-input { width: 48px; padding: 3px 6px; font-size: 11px; }
   .fin-bar-item { padding: 10px 14px; }
   .fin-bar-val { font-size: 13px; }
   .fin-bar-val--total { font-size: 18px; }
@@ -3339,6 +3414,32 @@ watch(modalCotizacionExitosa, (val) => {
 .prd-price { color: #374151; font-weight: 500; }
 .prd-total { font-weight: 700; color: #27C8D8; }
 
+/* Input de Q. Jornada / Q. Producto (mismo patrón que QuotationProductsCardList.vue) */
+.prd-qty-input {
+  width: 52px;
+  padding: 4px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  color: #475569;
+  background: #F1F5F9;
+  border: 1px solid #E5EAF0;
+  border-radius: 99px;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.prd-qty-input:focus {
+  border-color: #27C8D8;
+  background: #F8FAFC;
+  box-shadow: 0 0 0 2px rgba(39,200,216, 0.12);
+}
+.prd-qty-input::-webkit-outer-spin-button,
+.prd-qty-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 /* Input de descuento */
 .prd-discount-input {
   width: 60px;
@@ -3370,6 +3471,30 @@ watch(modalCotizacionExitosa, (val) => {
 }
 .prd-discount-input::-webkit-outer-spin-button,
 .prd-discount-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Input de aumento — mismo estilo que descuento, acento en verde */
+.prd-increase-input {
+  width: 60px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  color: #0F1A2E;
+  background: #F8FAFC;
+  border: 1px solid #E5EAF0;
+  border-radius: 99px;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.prd-increase-input:focus {
+  border-color: #16A34A;
+  box-shadow: 0 0 0 2px rgba(22,163,74, 0.12);
+}
+.prd-increase-input::-webkit-outer-spin-button,
+.prd-increase-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
