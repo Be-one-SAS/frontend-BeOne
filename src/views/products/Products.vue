@@ -45,6 +45,25 @@ const sortDir = ref('asc')
 const expandedRow = ref(null)
 const toggleRow   = (id) => { expandedRow.value = expandedRow.value === id ? null : id }
 
+// ── Preview ampliado al hacer hover sobre la miniatura ──
+// Se posiciona con coordenadas fijas (Teleport a <body>) en vez de CSS puro
+// porque la tabla vive dentro de un contenedor con overflow-x:auto, que
+// recorta cualquier hijo absoluto que intente salirse de esa fila.
+const thumbPreview = ref({ visible: false, src: '', top: 0, left: 0 })
+
+const showThumbPreview = (event, src) => {
+  if (!src) return
+  const rect = event.currentTarget.getBoundingClientRect()
+  const previewSize = 240
+  let left = rect.right + 12
+  if (left + previewSize > window.innerWidth) left = rect.left - previewSize - 12
+  let top = rect.top + rect.height / 2 - previewSize / 2
+  top = Math.min(Math.max(top, 8), window.innerHeight - previewSize - 8)
+
+  thumbPreview.value = { visible: true, src, top, left }
+}
+const hideThumbPreview = () => { thumbPreview.value.visible = false }
+
 // modal delete
 const deleteModal     = ref(false)
 const deleteLoading   = ref(false)
@@ -474,7 +493,11 @@ onMounted(fetchProducts)
                     {{ index + 1 + (currentPage - 1) * Number(pageSize) }}
                   </td>
                   <td class="pp-td pp-td-center">
-                    <div class="pp-thumb-wrap">
+                    <div
+                      class="pp-thumb-wrap"
+                      @mouseenter="row.linkFotoDispositivo && showThumbPreview($event, row.linkFotoDispositivo)"
+                      @mouseleave="hideThumbPreview"
+                    >
                       <img
                         v-if="row.linkFotoDispositivo"
                         :src="row.linkFotoDispositivo"
@@ -821,6 +844,16 @@ onMounted(fetchProducts)
     </ModalReutilizable>
 
   </div>
+
+  <Teleport to="body">
+    <div
+      v-if="thumbPreview.visible"
+      class="pp-thumb-preview-float"
+      :style="{ top: thumbPreview.top + 'px', left: thumbPreview.left + 'px' }"
+    >
+      <img :src="thumbPreview.src" alt="" />
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -1054,6 +1087,29 @@ onMounted(fetchProducts)
 .pp-thumb-wrap { width: 40px; height: 40px; border-radius: 8px; overflow: hidden; background: #F1F5F9; display: flex; align-items: center; justify-content: center; border: 1px solid #E2EBF6; }
 .pp-thumb { width: 40px; height: 40px; object-fit: cover; display: block; }
 .pp-thumb-empty { color: #CBD5E1; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+
+/* ── Preview ampliado al hover (teleported a <body>, position:fixed) ── */
+.pp-thumb-preview-float {
+  position: fixed;
+  width: 240px;
+  height: 240px;
+  background: #fff;
+  border: 1px solid #E2EBF6;
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.22);
+  padding: 8px;
+  z-index: 1000;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pp-thumb-preview-float img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+}
 
 /* ── foto en panel expandido ────────────────────────── */
 .pp-exp-top { display: flex; gap: 20px; align-items: flex-start; margin-bottom: 14px; }

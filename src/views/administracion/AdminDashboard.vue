@@ -240,7 +240,7 @@ const kpisIngresos = computed(() => {
   const pagTrend = trend(k.pagadoMes, k.pagadoPrev)
   return [
     { label: 'Facturado (mes)',         value: fmtMoney(k.facturadoMes),  sub: `${k.facturadoMesCount} cotizaciones`, trend: facTrend, trendPos: facTrend >= 0, icon: DollarSign,   iconBg: '#E0F9FA', iconColor: '#27C8D8' },
-    { label: 'Pagado (mes)',            value: fmtMoney(k.pagadoMes),     sub: `${k.pagadoMesCount} cotizaciones`,   trend: pagTrend, trendPos: pagTrend >= 0, icon: CheckCircle,  iconBg: '#F0FDF4', iconColor: '#166534' },
+    { label: 'Pagado (mes)',            value: fmtMoney(k.pagadoMes),     sub: `${k.pagadoMesCount} pagos`,          trend: pagTrend, trendPos: pagTrend >= 0, icon: CheckCircle,  iconBg: '#F0FDF4', iconColor: '#166534' },
     { label: 'Cotizado aprobado (mes)', value: fmtMoney(k.cotizadoMes),   sub: `${k.cotizadoMesCount} eventos`,      trend: null,     icon: FileText,          iconBg: '#F0FAFB', iconColor: '#27C8D8' },
     { label: 'Por cobrar (total)',      value: fmtMoney(k.porCobrar),     sub: `${k.porCobrarCount} pendientes`,    trend: null,     icon: Clock,             iconBg: '#FFFBEB', iconColor: '#92400E' },
     { label: 'Anulado (mes)',           value: fmtMoney(k.anuladoMes),    sub: `${k.anuladoMesCount} cancelados`,   trend: null,     icon: XCircle,           iconBg: '#FEF2F2', iconColor: '#991B1B' },
