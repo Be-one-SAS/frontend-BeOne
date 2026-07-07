@@ -302,6 +302,31 @@ export const getExtraCosts = async (quotationId: number | string) => {
     }
 };
 
+// Cuadro de costos global (/reportes/general) — todas las cotizaciones visibles para el usuario
+export const getExtraCostsGlobal = async (filters: Record<string, any> = {}) => {
+    try {
+        const params = Object.fromEntries(
+            Object.entries(filters).filter(([, v]) => v !== null && v !== undefined && v !== ''),
+        );
+        const response = await api.get('/quotations/extra-costs', { params });
+        return response;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const getExtraCostsSummary = async (filters: Record<string, any> = {}) => {
+    try {
+        const params = Object.fromEntries(
+            Object.entries(filters).filter(([, v]) => v !== null && v !== undefined && v !== ''),
+        );
+        const response = await api.get('/quotations/extra-costs/summary', { params });
+        return response;
+    } catch (error) {
+        throw error;
+    }
+};
+
 export const createExtraCost = async (
     quotationId: number | string,
     data: { descripcion: string; categoria: string; monto: number; fecha: string },

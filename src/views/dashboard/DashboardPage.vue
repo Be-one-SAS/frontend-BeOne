@@ -11,7 +11,7 @@
         :class="{ 'greeting--has-image': !!dashboardBanner.image }"
         :style="dashboardBanner.image ? { backgroundImage: `url(${dashboardBanner.image.url})` } : {}"
       >
-        <div class="greeting-top">
+        <div class="greeting-content">
           <div class="greeting-left">
             <h1 class="greeting-title">{{ greetingText }}, {{ firstName }} 👋</h1>
             <p class="greeting-sub">{{ todayLabel }}</p>
@@ -24,9 +24,8 @@
               📅 {{ upcomingEventsCount }} evento{{ upcomingEventsCount !== 1 ? 's' : '' }} próximos
             </span>
           </div>
+          <p v-if="dashboardBanner.message" class="greeting-motivation">{{ dashboardBanner.message }}</p>
         </div>
-
-        <p v-if="dashboardBanner.message" class="greeting-motivation">{{ dashboardBanner.message }}</p>
       </div>
 
       <!-- ════════════════════════════════════════
@@ -180,7 +179,7 @@
         <div class="card">
           <div class="card-head"><p class="card-title">Accesos Rápidos</p></div>
           <router-link to="/admin/cotizar" class="action-btn">
-            <div class="action-icon" style="background:#E0F9FA">📝</div>
+            <div class="action-icon" style="background:#E0F9FA"><FilePlus :size="16" color="#27C8D8" /></div>
             <div class="action-text">
               <p class="action-label">Nueva Cotización</p>
               <p class="action-hint">Crear y enviar al cliente</p>
@@ -188,7 +187,7 @@
             <ChevronRight :size="14" color="#C4CBD6" />
           </router-link>
           <router-link to="/customer/customer" class="action-btn">
-            <div class="action-icon" style="background:#DCFCE7">👥</div>
+            <div class="action-icon" style="background:#DCFCE7"><Building2 :size="16" color="#16A34A" /></div>
             <div class="action-text">
               <p class="action-label">Directorio de Clientes</p>
               <p class="action-hint">Gestiona la base global</p>
@@ -196,7 +195,7 @@
             <ChevronRight :size="14" color="#C4CBD6" />
           </router-link>
           <router-link to="/admin/ver-cotizaciones" class="action-btn">
-            <div class="action-icon" style="background:#EDE9FE">📂</div>
+            <div class="action-icon" style="background:#EDE9FE"><FileText :size="16" color="#7C3AED" /></div>
             <div class="action-text">
               <p class="action-label">Ver Cotizaciones</p>
               <p class="action-hint">Control y seguimiento</p>
@@ -204,7 +203,7 @@
             <ChevronRight :size="14" color="#C4CBD6" />
           </router-link>
           <router-link to="/operativa/inventory" class="action-btn">
-            <div class="action-icon" style="background:#FEF3C7">📦</div>
+            <div class="action-icon" style="background:#FEF3C7"><Archive :size="16" color="#B45309" /></div>
             <div class="action-text">
               <p class="action-label">Inventario</p>
               <p class="action-hint">Estado del equipo</p>
@@ -307,6 +306,7 @@ import { formatCOP } from '@/utils/currency.js'
 import {
   DollarSign, FileText, Users, CheckCircle2, ChevronRight,
   ChevronLeft, ChevronsLeft, ChevronsRight,
+  FilePlus, Building2, Archive,
 } from 'lucide-vue-next'
 import Loader from '@/components/ui/Loader.vue'
 import Chart from 'chart.js/auto'
@@ -628,7 +628,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 18px;
+  align-items: flex-start;
   min-height: 200px;
   background: #fff;
   background-size: cover;
@@ -639,22 +639,25 @@ onMounted(async () => {
   box-shadow: 0 1px 4px rgba(39,200,216,.06), 0 4px 16px rgba(39,200,216,.08);
   overflow: hidden;
 }
-/* Overlay oscuro fijo (no configurable) — garantiza legibilidad del texto
-   blanco sobre cualquier imagen de fondo que se suba desde /configuracion. */
+/* Overlay oscuro fijo (no configurable) — horizontal, solo del lado derecho
+   (donde vive el texto), para que el resto de la imagen quede visible sin
+   oscurecer y aun así el texto blanco sea legible encima. */
 .greeting--has-image::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(10,20,38,0.6) 0%, rgba(10,20,38,0.4) 45%, rgba(10,20,38,0.68) 100%);
+  background: linear-gradient(90deg, rgba(10,20,38,0.78) 0%, rgba(10,20,38,0.55) 40%, transparent 70%, transparent 100%);
   z-index: 0;
 }
-.greeting-top {
+.greeting-content {
   position: relative;
   z-index: 1;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  text-align: left;
+  max-width: 520px;
 }
 .greeting-title {
   font-family: 'Plus Jakarta Sans', sans-serif;
@@ -671,10 +674,8 @@ onMounted(async () => {
 .greeting--has-image .greeting-title { color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,0.3); }
 .greeting--has-image .greeting-sub   { color: rgba(255,255,255,0.85); }
 .greeting-motivation {
-  position: relative;
-  z-index: 1;
   margin: 0;
-  text-align: center;
+  text-align: left;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 26px;
   font-weight: 700;
@@ -977,15 +978,10 @@ tr:last-child td { border-bottom: none; }
 /* 768px — mobile large */
 @media (max-width: 768px) {
   .greeting {
-    gap: 12px;
     min-height: 160px;
     padding: 14px 16px;
   }
-  .greeting-top {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
+  .greeting-content { gap: 10px; }
   .greeting-title { font-size: 15px; }
   .greeting-motivation { font-size: 19px; }
   .kpi-grid,

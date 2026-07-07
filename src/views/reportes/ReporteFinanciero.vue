@@ -91,7 +91,7 @@
           <div class="rf-chart-body">
             <div v-if="loading" class="rf-chart-skel" />
             <div v-else-if="!data.evolucionMensual?.length" class="rf-no-data">Sin datos para el período</div>
-            <canvas v-else ref="evolucionRef" />
+            <div v-else class="rf-canvas-wrap"><canvas ref="evolucionRef" /></div>
           </div>
         </div>
 
@@ -103,7 +103,7 @@
           <div class="rf-chart-body rf-chart-body--donut">
             <div v-if="loading" class="rf-chart-skel" />
             <div v-else-if="!data.distribucionEstados?.length" class="rf-no-data">Sin datos para el período</div>
-            <canvas v-else ref="estadosRef" />
+            <div v-else class="rf-canvas-wrap"><canvas ref="estadosRef" /></div>
           </div>
         </div>
 
@@ -122,7 +122,7 @@
           <div class="rf-chart-body">
             <div v-if="loading" class="rf-chart-skel" />
             <div v-else-if="!data.topProductos?.length" class="rf-no-data">Sin datos para el período</div>
-            <canvas v-else ref="productosRef" />
+            <div v-else class="rf-canvas-wrap"><canvas ref="productosRef" /></div>
           </div>
         </div>
 
@@ -134,7 +134,7 @@
           <div class="rf-chart-body">
             <div v-if="loading" class="rf-chart-skel" />
             <div v-else-if="!data.porAgente?.length" class="rf-no-data">Sin datos para el período</div>
-            <canvas v-else ref="agenteRef" />
+            <div v-else class="rf-canvas-wrap"><canvas ref="agenteRef" /></div>
           </div>
         </div>
 
@@ -215,13 +215,13 @@
             <tbody>
               <tr v-for="(c, i) in data.ultimasCotizaciones" :key="c.id" class="rf-tr">
                 <td class="rf-td-num">{{ i + 1 }}</td>
-                <td class="rf-td-name">{{ c.cliente }}</td>
-                <td class="rf-td-meta">{{ c.agente }}</td>
+                <td class="rf-td-name">{{ c.empresa || c.cliente?.name || 'Sin nombre' }}</td>
+                <td class="rf-td-meta">{{ c.agenteComercial || 'Sin asignar' }}</td>
                 <td class="rf-td-r rf-val">{{ fmt(c.total) }}</td>
                 <td class="rf-td-c">
-                  <span class="rf-status-badge" :class="statusClass(c.estado)">{{ c.estado }}</span>
+                  <span class="rf-status-badge" :class="statusClass(c.quotationStatus?.name)">{{ c.quotationStatus?.name ?? '—' }}</span>
                 </td>
-                <td class="rf-td-r rf-td-meta">{{ fmtDate(c.fecha) }}</td>
+                <td class="rf-td-r rf-td-meta">{{ fmtDate(c.fechaCotizacion) }}</td>
               </tr>
             </tbody>
           </table>
@@ -761,30 +761,39 @@ onUnmounted(destroyCharts)
 }
 .rf-chart-hico { color: #27C8D8; flex-shrink: 0; }
 
+/* NOTA: `.rf-chart-body` NO debe ser flex — Chart.js observa este elemento
+   (responsive:true) para redimensionar el canvas, y flexbox usa un algoritmo
+   de sizing incompatible que puede disparar un bucle de ResizeObserver que
+   satura el hilo principal y "congela" el scroll de toda la página. El
+   canvas va en su propio wrapper absoluto; el flex-centrado queda solo en
+   el skeleton/no-data vía position:absolute. */
 .rf-chart-body {
   padding: 20px;
   height: 260px;
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 .rf-chart-body--donut { height: 280px; }
+.rf-canvas-wrap { position: absolute; inset: 20px; }
 
 .rf-chart-skel {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  inset: 20px;
   background: #F0FAFB;
   border-radius: 12px;
   animation: rf-pulse 1.5s ease-in-out infinite;
 }
 
 .rf-no-data {
+  position: absolute;
+  inset: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 13px;
   color: #94A3B8;
   font-family: 'Inter', sans-serif;
 }
-.rf-no-data--pad { padding: 40px 24px; text-align: center; }
+.rf-no-data--pad { position: static; inset: auto; padding: 40px 24px; text-align: center; }
 
 /* ── Section Cards ─────────────────────────────────────── */
 .rf-section-card {
@@ -792,7 +801,7 @@ onUnmounted(destroyCharts)
   border-radius: 18px;
   border: 1px solid #E2EBF6;
   box-shadow: 0 1px 4px rgba(39,200,216, .06), 0 4px 16px rgba(39,200,216, .08);
-  overflow: hidden;
+  overflow: clip;
 }
 
 .rf-section-header {

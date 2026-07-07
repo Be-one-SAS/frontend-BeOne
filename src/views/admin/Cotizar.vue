@@ -143,13 +143,13 @@
               <span>Datos del Cliente</span>
             </div>
             <div class="g2">
-              <InputLabel label="Fecha de Cotización" v-model="cotizacion.fechaCotizacion" type="text" />
+              <InputLabel label="Fecha de Cotización" v-model="cotizacion.fechaCotizacion" type="text" placeholder="Ej: 2026-07-07" />
               <ClientsSelector v-model="cotizacion.cliente" v-model:dataClient="myClienteSeleccionado" />
               <ClienteFinalSelector v-model="cotizacion.empresa" v-model:dataClient="clienteSeleccionado" />
               <p v-if="facturarA" class="facturar-a">Se factura a: <strong>{{ facturarA }}</strong></p>
-              <InputLabel label="Nombre de contacto" v-model="cotizacion.contacto" />
-              <InputLabel label="Correo" v-model="cotizacion.correo" type="email" />
-              <InputLabel label="Teléfono" v-model="cotizacion.celular" only-numbers />
+              <InputLabel label="Nombre de contacto" v-model="cotizacion.contacto" placeholder="Ej: Juan Pérez" />
+              <InputLabel label="Correo" v-model="cotizacion.correo" type="email" placeholder="Ej: nombre@empresa.com" />
+              <InputLabel label="Teléfono" v-model="cotizacion.celular" only-numbers placeholder="Ej: 3001234567" />
             </div>
           </div>
 
@@ -165,8 +165,9 @@
                 label="Región operativa"
                 v-model="cotizacion.unidadEjecucion"
                 :options="['Antioquia', 'Cundinamarca', 'Colombia', 'Israel']"
+                placeholder="Selecciona una región"
               />
-              <InputLabel label="Vigencia de Cotización" v-model="cotizacion.vigencia" />
+              <InputLabel label="Vigencia de Cotización" v-model="cotizacion.vigencia" placeholder="Ej: 15 días" />
             </div>
 
             <div class="mt-4">
@@ -194,18 +195,19 @@
               <span>Información General</span>
             </div>
             <div class="g3">
-              <InputLabel label="Nombre descriptivo del evento" v-model="cotizacion.description" />
-              <InputLabel label="Ubicación del Evento" v-model="cotizacion.ubicacion" />
+              <InputLabel label="Nombre descriptivo del evento" v-model="cotizacion.description" placeholder="Ej: Fiesta de fin de año Acme S.A." />
+              <InputLabel label="Ubicación del Evento" v-model="cotizacion.ubicacion" placeholder="Ej: Cra 43A #1-50, Medellín" />
               <MapSelector
                 v-model="cotizacion.linkMaps"
                 :address="cotizacion.ubicacion"
                 @update:address="cotizacion.ubicacion = $event"
               />
-              <InputLabel label="Número de Asistentes" v-model="cotizacion.asistentes" type="number" />
+              <InputLabel label="Número de Asistentes" v-model="cotizacion.asistentes" type="number" placeholder="Ej: 150" />
               <SelectLabel
                 label="Tipo de Suelo"
                 v-model="cotizacion.tipoSuelo"
                 :options="['Zona Cesped', 'Zona Dura']"
+                placeholder="Selecciona el tipo de suelo"
               />
             </div>
           </div>
@@ -363,6 +365,7 @@
                       v-model="cotizacion.cantidadJornada"
                       type="number"
                       min="0"
+                      placeholder="Ej: 1"
                       class="qty-input"
                     />
                   </div>
@@ -372,6 +375,7 @@
                       v-model="cotizacion.cantidadProducto"
                       type="number"
                       min="0"
+                      placeholder="Ej: 1"
                       class="qty-input"
                     />
                   </div>
@@ -515,6 +519,7 @@
                           v-model.number="it.cantidadJornada"
                           type="number"
                           min="1"
+                          placeholder="Ej: 1"
                           class="prd-qty-input"
                           @click.stop
                         />
@@ -524,6 +529,7 @@
                           v-model.number="it.cantidad"
                           type="number"
                           min="1"
+                          placeholder="Ej: 1"
                           class="prd-qty-input"
                           @click.stop
                         />
@@ -3402,11 +3408,13 @@ watch(modalCotizacionExitosa, (val) => {
 .prd-thumb {
   width: 52px;
   height: 52px;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 8px;
   border: 1px solid #E5EAF0;
   display: block;
   background: #F1F5F9;
+  padding: 2px;
+  box-sizing: border-box;
 }
 
 .td-name  { min-width: 160px; }

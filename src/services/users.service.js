@@ -20,6 +20,23 @@ export const getUsers = async () => {
 }
 
 /**
+ * GET /users/collaborators
+ * Candidatos para "Gestionar Colaboradores" en una cotización — usuarios
+ * activos de TODA la organización (cualquier sede), a diferencia de
+ * getUsers() que filtra por organigrama y deja a la mayoría de roles
+ * viéndose solo a sí mismos.
+ */
+export const getCollaboratorCandidates = async () => {
+  try {
+    const response = await api.get('/users/collaborators')
+    return response.data
+  } catch (error) {
+    console.error('[users.service] Error en getCollaboratorCandidates:', error)
+    throw error
+  }
+}
+
+/**
  * GET /users/:id
  * Obtiene un usuario por su ID.
  * @param {number|string} id

@@ -54,7 +54,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { ChevronDown, User, LogOut } from 'lucide-vue-next'
 import { useAuth } from '@/composables/useAuth'
@@ -66,7 +66,7 @@ const router = useRouter()
 
 const open = ref(false)
 const wrapperRef = ref(null)
-const userPhoto = ref('')
+const userPhoto = computed(() => user.value?.avatar || '')
 
 const handleLogout = () => {
   open.value = false

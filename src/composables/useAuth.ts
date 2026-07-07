@@ -18,6 +18,7 @@ export interface User {
   documento?: string
   sedeId?: number | null
   sedeName?: string | null
+  avatar?: string | null
 }
 
 export const useAuth = createGlobalState(() => {

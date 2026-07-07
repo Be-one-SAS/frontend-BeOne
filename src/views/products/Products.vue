@@ -2,9 +2,10 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getProducts, createProduct, updateProduct, deleteProduct, uploadProductFoto } from '@/services/products.service'
-import { getMaterialesByProducto } from '@/services/materiales.service'
+import { getMaterialesByProducto, removeMaterialFromProducto } from '@/services/materiales.service'
 import { formatCOP } from '@/utils/currency.js'
 import ModalReutilizable from '@/components/modal/ModalReutilizable.vue'
+import ConfirmModal from '@/components/modal/ConfirmModal.vue'
 import SelectLabel from '@/components/input/SelectLabel.vue'
 import ThumbHoverPreview from '@/components/shared/ThumbHoverPreview.vue'
 import { useThumbHoverPreview } from '@/composables/useThumbHoverPreview'
@@ -272,6 +273,27 @@ function openEdit(product) {
 
 function irAMateriales() {
   router.push({ name: 'Materiales', query: { productoId: productToEdit.value.id } })
+}
+
+// ── Quitar material asignado, directo desde este modal ──────────────────
+const materialToDelete = ref(null)
+const deletingMatId    = ref(null)
+
+function confirmDeleteMaterial(pm) { materialToDelete.value = pm }
+
+async function deleteMaterial() {
+  const pm = materialToDelete.value
+  if (!pm) return
+  deletingMatId.value = pm.id
+  try {
+    await removeMaterialFromProducto(pm.id)
+    editMateriales.value = editMateriales.value.filter(m => m.id !== pm.id)
+  } catch (e) {
+    console.error('[Products] Error al quitar material:', e)
+  } finally {
+    deletingMatId.value = null
+    materialToDelete.value = null
+  }
 }
 
 function openCreate() {
@@ -765,9 +787,9 @@ onMounted(fetchProducts)
             </div>
           </div>
 
-          <!-- Materiales del catálogo — resumen de solo lectura. La gestión
-               completa (agregar/editar/quitar) vive únicamente en /materiales
-               para no tener dos pantallas editando lo mismo. -->
+          <!-- Materiales del catálogo — lista con eliminar inline. Agregar/editar
+               cantidad/importar desde texto sigue viviendo solo en /materiales,
+               para no tener dos pantallas con esa parte completa duplicada. -->
           <div v-if="!isCreating" style="grid-column:1/-1" class="mat-section">
             <div class="mat-section-header">
               <span class="edit-section-label" style="margin:0">
@@ -788,6 +810,14 @@ onMounted(fetchProducts)
                 <span :class="pm.esOpcional ? 'mat-badge-opt' : 'mat-badge-req'">
                   {{ pm.esOpcional ? 'Opcional' : 'Requerido' }}
                 </span>
+                <button
+                  class="act-btn act-del mat-del-btn"
+                  title="Quitar material"
+                  :disabled="deletingMatId === pm.id"
+                  @click="confirmDeleteMaterial(pm)"
+                >
+                  <Trash2 :size="11" />
+                </button>
               </li>
             </ul>
           </div>
@@ -830,6 +860,17 @@ onMounted(fetchProducts)
     </ModalReutilizable>
 
   </div>
+
+  <ConfirmModal
+    :show="!!materialToDelete"
+    title="¿Quitar material?"
+    :message="`Vas a quitar «${materialToDelete?.materialBase?.nombre}» de este producto.`"
+    confirm-label="Sí, quitar"
+    cancel-label="Cancelar"
+    variant="danger"
+    @confirm="deleteMaterial"
+    @cancel="materialToDelete = null"
+  />
 
   <ThumbHoverPreview :preview="thumbPreview" />
 </template>
@@ -1129,4 +1170,6 @@ onMounted(fetchProducts)
   display: inline-block; padding: 2px 7px; border-radius: 9999px;
   font-size: 10px; font-weight: 600; background: #FFF7ED; color: #C2410C;
 }
+.mat-del-btn { flex-shrink: 0; }
+.mat-del-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>

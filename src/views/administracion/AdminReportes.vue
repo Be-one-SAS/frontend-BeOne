@@ -39,6 +39,9 @@
               <Play v-else :size="14" />
               {{ cobrar.data ? 'Actualizar' : 'Generar' }}
             </button>
+            <button v-if="cobrar.data" class="rep-btn-view" @click="verCobrar">
+              <Eye :size="14" /> Ver detalle
+            </button>
             <button v-if="cobrar.data" class="rep-btn-export" @click="exportCobrar">
               <Download :size="14" /> CSV
             </button>
@@ -74,38 +77,15 @@
               <Play v-else :size="14" />
               {{ ejecutivo.data ? 'Actualizar' : 'Generar' }}
             </button>
+            <button v-if="ejecutivo.data" class="rep-btn-view" @click="verEjecutivo">
+              <Eye :size="14" /> Ver detalle
+            </button>
             <button v-if="ejecutivo.data" class="rep-btn-export" @click="exportEjecutivo">
               <Download :size="14" /> CSV
             </button>
           </div>
 
           <p v-if="ejecutivo.error" class="rep-err">{{ ejecutivo.error }}</p>
-
-          <!-- Preview table -->
-          <div v-if="ejecutivo.data?.data?.length" class="rep-preview">
-            <table class="rep-table">
-              <thead>
-                <tr>
-                  <th>Ejecutivo</th>
-                  <th>Cots.</th>
-                  <th>Aprobadas</th>
-                  <th>Tasa</th>
-                  <th>Total aprobado</th>
-                  <th>Pagado</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="e in ejecutivo.data.data" :key="e.agente">
-                  <td>{{ e.agente }}</td>
-                  <td>{{ e.count }}</td>
-                  <td>{{ e.aprobadas }}</td>
-                  <td><span class="rep-tasa" :class="e.tasa >= 50 ? 'good' : 'low'">{{ e.tasa }}%</span></td>
-                  <td class="rep-money">{{ fmtMoney(e.total) }}</td>
-                  <td class="rep-money">{{ fmtMoney(e.pagado) }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
         </div>
       </div>
 
@@ -117,6 +97,32 @@
         <div class="rep-card-body">
           <h3 class="rep-card-title">Historial por cliente</h3>
           <p class="rep-card-desc">Todas las cotizaciones vinculadas a un cliente específico.</p>
+
+          <div class="rep-cliente-picker-wrap" ref="clientePickerRootEl">
+            <label class="rep-label">Cliente <span class="rep-label-hint">(opcional — vacío = todos)</span></label>
+            <div class="rep-cliente-picker">
+              <button type="button" class="rep-cliente-trigger" @click="toggleClientePicker">
+                <Search :size="13" class="rep-cliente-trigger-icon" />
+                <span :class="{ 'rep-cliente-placeholder': !cliente.clienteLabel }">
+                  {{ cliente.clienteLabel || 'Todos los clientes' }}
+                </span>
+                <ChevronDown :size="13" />
+              </button>
+              <button v-if="cliente.clienteId" type="button" class="rep-cliente-clear" title="Quitar filtro de cliente" @click="limpiarClienteSeleccionado">
+                <X :size="13" />
+              </button>
+              <div v-if="clientePicker.open" class="rep-cliente-menu">
+                <input v-model="clientePicker.search" type="text" class="rep-cliente-search" placeholder="Buscar cliente…" autofocus />
+                <div v-if="clientePicker.loading" class="rep-cliente-empty">Cargando clientes…</div>
+                <div v-else-if="!clientesFiltrados.length" class="rep-cliente-empty">Sin resultados</div>
+                <ul v-else class="rep-cliente-list">
+                  <li v-for="c in clientesFiltrados" :key="c.id" class="rep-cliente-option" @click="seleccionarClientePicker(c)">
+                    {{ c.name }}
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
 
           <div class="rep-filters">
             <label class="rep-label">Desde</label>
@@ -136,6 +142,9 @@
               <Loader2 v-if="cliente.loading" :size="14" class="spin" />
               <Play v-else :size="14" />
               {{ cliente.data ? 'Actualizar' : 'Generar' }}
+            </button>
+            <button v-if="cliente.data" class="rep-btn-view" @click="verCliente">
+              <Eye :size="14" /> Ver detalle
             </button>
             <button v-if="cliente.data" class="rep-btn-export" @click="exportCliente">
               <Download :size="14" /> CSV
@@ -171,6 +180,9 @@
               <Loader2 v-if="periodo.loading" :size="14" class="spin" />
               <Play v-else :size="14" />
               {{ periodo.data ? 'Actualizar' : 'Generar' }}
+            </button>
+            <button v-if="periodo.data" class="rep-btn-view" @click="verPeriodo">
+              <Eye :size="14" /> Ver detalle
             </button>
             <button v-if="periodo.data" class="rep-btn-export" @click="exportPeriodo">
               <Download :size="14" /> CSV
@@ -443,15 +455,49 @@
         </div>
       </div>
     </div>
+
+    <!-- ══ Modal: Vista previa de reporte ═════════════════════════════ -->
+    <div v-if="previewModal.open" class="po-modal-overlay" @click.self="closePreview">
+      <div class="po-modal po-modal--preview">
+        <div class="po-modal-header">
+          <h3 class="po-modal-title">{{ previewModal.title }}</h3>
+          <button class="po-modal-close" @click="closePreview">✕</button>
+        </div>
+        <div class="po-modal-body po-modal-body--preview">
+          <p v-if="!previewModal.rows.length" class="po-empty">Sin registros para mostrar.</p>
+          <div v-else class="rep-preview-modal-scroll">
+            <table class="rep-table">
+              <thead>
+                <tr>
+                  <th v-for="(h, i) in previewModal.headers" :key="i">{{ h }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(row, ri) in previewModal.rows" :key="ri">
+                  <td v-for="(cell, ci) in row" :key="ci">{{ cell }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="po-modal-footer">
+          <span class="po-modal-count">{{ previewModal.rows.length }} registro{{ previewModal.rows.length !== 1 ? 's' : '' }}</span>
+          <button class="po-btn-ghost" @click="closePreview">Cerrar</button>
+          <button v-if="previewModal.rows.length" class="rep-btn-export" @click="exportarDesdePreview">
+            <Download :size="13" /> Exportar CSV
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { formatCOP } from '@/utils/currency.js'
 import {
   Clock, Users, Building2, CalendarDays,
-  Download, Play, Loader2, Mail,
+  Download, Play, Loader2, Mail, Eye, X, Search, ChevronDown,
 } from 'lucide-vue-next'
 import {
   getReporteCuentasPorCobrar,
@@ -461,6 +507,7 @@ import {
 } from '@/services/administracion.service.js'
 import { getQuotations } from '@/services/quotation.service'
 import { getReportePersonal, enviarReportePersonalCorreo } from '@/services/registros-turno.service'
+import { getCustomer } from '@/services/customer.service'
 
 // ── Helpers ───────────────────────────────────────────────
 function fmtMoney(n) { return (n == null || n === 0) ? '$0' : formatCOP(n) }
@@ -486,8 +533,71 @@ function downloadCSV(rows, headers, filename) {
 // ── Report states ─────────────────────────────────────────
 const cobrar = ref({ fechaInicio: '', fechaFin: '', data: null, loading: false, error: null })
 const ejecutivo = ref({ fechaInicio: '', fechaFin: '', data: null, loading: false, error: null })
-const cliente   = ref({ fechaInicio: '', fechaFin: '', data: null, loading: false, error: null })
+const cliente   = ref({ fechaInicio: '', fechaFin: '', clienteId: null, clienteLabel: '', data: null, loading: false, error: null })
 const periodo   = ref({ fechaInicio: '', fechaFin: '', data: null, loading: false, error: null })
+
+// ── Vista previa en modal (compartida por los 4 reportes) ──
+const previewModal = ref({ open: false, title: '', headers: [], rows: [], filename: '' })
+
+function abrirPreview(title, headers, rows, filename) {
+  previewModal.value = { open: true, title, headers, rows, filename }
+}
+function closePreview() {
+  previewModal.value.open = false
+}
+function exportarDesdePreview() {
+  const { headers, rows, filename } = previewModal.value
+  downloadCSV(rows, headers, filename)
+}
+
+// ── Selector de cliente (para "Historial por cliente") ─────
+const clientePicker = ref({ open: false, search: '', loading: false, options: [] })
+
+async function cargarClientesPicker() {
+  if (clientePicker.value.options.length) return
+  clientePicker.value.loading = true
+  try {
+    const res = await getCustomer()
+    clientePicker.value.options = Array.isArray(res.data) ? res.data : []
+  } catch (_) {
+    clientePicker.value.options = []
+  } finally {
+    clientePicker.value.loading = false
+  }
+}
+
+function toggleClientePicker() {
+  clientePicker.value.open = !clientePicker.value.open
+  if (clientePicker.value.open) cargarClientesPicker()
+}
+
+const clientesFiltrados = computed(() => {
+  const term = clientePicker.value.search.trim().toLowerCase()
+  const list = clientePicker.value.options
+  if (!term) return list.slice(0, 40)
+  return list.filter(c => c.name?.toLowerCase().includes(term)).slice(0, 40)
+})
+
+function seleccionarClientePicker(c) {
+  cliente.value.clienteId    = c.id
+  cliente.value.clienteLabel = c.name
+  clientePicker.value.open   = false
+  clientePicker.value.search = ''
+}
+
+function limpiarClienteSeleccionado() {
+  cliente.value.clienteId    = null
+  cliente.value.clienteLabel = ''
+}
+
+const clientePickerRootEl = ref(null)
+function onClickOutsideClientePicker(e) {
+  if (clientePickerRootEl.value && !clientePickerRootEl.value.contains(e.target)) {
+    clientePicker.value.open = false
+  }
+}
+onMounted(() => document.addEventListener('mousedown', onClickOutsideClientePicker))
+onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutsideClientePicker))
 
 // ── Cuentas por cobrar ────────────────────────────────────
 async function runCobrar() {
@@ -505,7 +615,7 @@ async function runCobrar() {
   }
 }
 
-function exportCobrar() {
+function buildCobrarExport() {
   const { data } = cobrar.value.data
   const headers = ['#', 'Empresa/Cliente', 'Descripción', 'Fecha evento', 'Total', 'Estado admin.', 'Responsable', 'Notas']
   const rows = data.map(r => [
@@ -518,7 +628,15 @@ function exportCobrar() {
     r.agenteComercial || '',
     (r.notasOperativas || '').replace(/,/g, ';'),
   ])
-  downloadCSV(rows, headers, `cuentas-por-cobrar-${today()}.csv`)
+  return { headers, rows, filename: `cuentas-por-cobrar-${today()}.csv` }
+}
+function exportCobrar() {
+  const { headers, rows, filename } = buildCobrarExport()
+  downloadCSV(rows, headers, filename)
+}
+function verCobrar() {
+  const { headers, rows, filename } = buildCobrarExport()
+  abrirPreview('Cuentas por cobrar', headers, rows, filename)
 }
 
 // ── Por ejecutivo ─────────────────────────────────────────
@@ -537,13 +655,21 @@ async function runEjecutivo() {
   }
 }
 
-function exportEjecutivo() {
+function buildEjecutivoExport() {
   const { data } = ejecutivo.value.data
   const headers = ['Ejecutivo', 'Total cots.', 'Aprobadas', 'Tasa %', 'Total aprobado', 'Pagado', 'Anulado']
   const rows = data.map(e => [
     e.agente, e.count, e.aprobadas, e.tasa, e.total, e.pagado, e.anulado,
   ])
-  downloadCSV(rows, headers, `ejecutivos-${today()}.csv`)
+  return { headers, rows, filename: `ejecutivos-${today()}.csv` }
+}
+function exportEjecutivo() {
+  const { headers, rows, filename } = buildEjecutivoExport()
+  downloadCSV(rows, headers, filename)
+}
+function verEjecutivo() {
+  const { headers, rows, filename } = buildEjecutivoExport()
+  abrirPreview('Desempeño por ejecutivo', headers, rows, filename)
 }
 
 // ── Por cliente ───────────────────────────────────────────
@@ -552,6 +678,7 @@ async function runCliente() {
   cliente.value.error   = null
   try {
     cliente.value.data = await getReportePorCliente({
+      clienteId:   cliente.value.clienteId  || undefined,
       fechaInicio: cliente.value.fechaInicio || undefined,
       fechaFin:    cliente.value.fechaFin    || undefined,
     })
@@ -562,7 +689,7 @@ async function runCliente() {
   }
 }
 
-function exportCliente() {
+function buildClienteExport() {
   const { data } = cliente.value.data
   const headers = ['#', 'Empresa/Cliente', 'Descripción', 'Fecha cot.', 'Fecha evento', 'Total', 'Estado cot.', 'Estado admin.', 'Responsable']
   const rows = data.map(r => [
@@ -576,7 +703,15 @@ function exportCliente() {
     r.estadoAdministrativo || '',
     r.agenteComercial || '',
   ])
-  downloadCSV(rows, headers, `clientes-${today()}.csv`)
+  return { headers, rows, filename: `clientes-${today()}.csv` }
+}
+function exportCliente() {
+  const { headers, rows, filename } = buildClienteExport()
+  downloadCSV(rows, headers, filename)
+}
+function verCliente() {
+  const { headers, rows, filename } = buildClienteExport()
+  abrirPreview('Historial por cliente', headers, rows, filename)
 }
 
 // ── Por período ───────────────────────────────────────────
@@ -596,7 +731,7 @@ async function runPeriodo() {
   }
 }
 
-function exportPeriodo() {
+function buildPeriodoExport() {
   const { data } = periodo.value.data
   const headers = ['#', 'Empresa/Cliente', 'Descripción', 'Fecha cot.', 'Fecha evento', 'Total', 'Estado cot.', 'Estado admin.', 'Responsable', 'Notas']
   const rows = data.map(r => [
@@ -611,7 +746,15 @@ function exportPeriodo() {
     r.agenteComercial || '',
     (r.notasOperativas || '').replace(/,/g, ';'),
   ])
-  downloadCSV(rows, headers, `periodo-${today()}.csv`)
+  return { headers, rows, filename: `periodo-${today()}.csv` }
+}
+function exportPeriodo() {
+  const { headers, rows, filename } = buildPeriodoExport()
+  downloadCSV(rows, headers, filename)
+}
+function verPeriodo() {
+  const { headers, rows, filename } = buildPeriodoExport()
+  abrirPreview('Reporte por período', headers, rows, filename)
 }
 
 function today() { return new Date().toISOString().slice(0, 10) }
@@ -1011,9 +1154,61 @@ async function confirmBulkEnviar() {
 .rep-btn-export--sent { background: #EFF6FF; border-color: #BFDBFE; color: #1D4ED8; }
 .rep-btn-export--sent:hover { background: #DBEAFE; border-color: #93C5FD; color: #1D4ED8; }
 
+.rep-btn-view {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 12px;
+  background: #fff;
+  color: #27C8D8;
+  border: 1.5px solid #27C8D8;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.rep-btn-view:hover { background: #E0F9FA; }
+
 .rep-err { font-size: 12px; color: #DC2626; margin: 4px 0 0; }
 
-/* Modal enviar correo */
+/* ── Selector de cliente (Historial por cliente) ──────────── */
+.rep-cliente-picker-wrap { margin-bottom: 12px; position: relative; }
+.rep-label-hint { font-weight: 400; color: #94A3B8; text-transform: none; letter-spacing: 0; }
+.rep-cliente-picker { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.rep-cliente-trigger {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 8px;
+  height: 34px; padding: 0 10px;
+  background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 8px;
+  font-size: 13px; font-family: 'Inter', sans-serif; color: #0F172A;
+  cursor: pointer;
+}
+.rep-cliente-trigger:hover { border-color: #27C8D8; }
+.rep-cliente-trigger-icon { color: #94A3B8; flex-shrink: 0; }
+.rep-cliente-trigger span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+.rep-cliente-placeholder { color: #94A3B8; }
+.rep-cliente-clear {
+  flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
+  background: #F1F5F9; border: none; color: #64748B; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.rep-cliente-clear:hover { background: #FEE2E2; color: #B91C1C; }
+.rep-cliente-menu {
+  position: absolute; z-index: 30; top: calc(100% + 6px); left: 0; right: 0;
+  background: #fff; border: 1px solid #E2E8F0; border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(15,26,46,.12); padding: 6px;
+}
+.rep-cliente-search {
+  width: 100%; box-sizing: border-box; background: #F8FAFC; border: 1px solid #E2E8F0;
+  border-radius: 7px; padding: 7px 10px; font-size: 13px; font-family: 'Inter', sans-serif;
+  outline: none; margin-bottom: 6px;
+}
+.rep-cliente-search:focus { border-color: #27C8D8; }
+.rep-cliente-list { max-height: 200px; overflow-y: auto; list-style: none; margin: 0; padding: 0; }
+.rep-cliente-option { padding: 8px 10px; font-size: 12.5px; color: #0F1A2E; border-radius: 7px; cursor: pointer; }
+.rep-cliente-option:hover { background: #F0F7FF; }
+.rep-cliente-empty { padding: 10px; text-align: center; font-size: 12px; color: #94A3B8; }
+
+/* Modal enviar correo / vista previa */
 .po-modal-overlay {
   position: fixed; inset: 0; background: rgba(15,26,46,0.5);
   display: flex; align-items: center; justify-content: center;
@@ -1024,6 +1219,11 @@ async function confirmBulkEnviar() {
   overflow: hidden;
 }
 .po-modal--wide { max-width: 560px; }
+.po-modal--preview { max-width: 900px; max-height: 85vh; display: flex; flex-direction: column; }
+.po-modal-body--preview { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+.rep-preview-modal-scroll { overflow: auto; max-height: 60vh; border: 1.5px solid #E2E8F0; border-radius: 10px; }
+.rep-preview-modal-scroll .rep-table { min-width: 640px; }
+.po-modal-count { font-size: 12px; color: #94A3B8; margin-right: auto; }
 
 /* Envío masivo */
 .bulk-list {
