@@ -100,7 +100,8 @@
           <div>
             <p class="cfg-field-title">Backup del sistema</p>
             <p class="cfg-field-desc">
-              Descarga un volcado completo (.sql) de la base de datos de producción.
+              Descarga un .zip con el volcado completo de la base de datos, un volcado
+              separado por cada tabla, y todos los archivos subidos (documentos/imágenes en R2).
             </p>
           </div>
           <div class="cfg-field-control">
@@ -113,6 +114,23 @@
           Backup descargado a las {{ backupDoneAt }} — ya puedes eliminar los productos.
         </p>
         <p v-if="backupError" class="cfg-field-error">{{ backupError }}</p>
+
+        <p v-if="!backupConfigured" class="cfg-field-desc cfg-backup-warning">
+          Backup automático no configurado — falta la variable R2_BACKUP_BUCKET en el servidor.
+          El botón manual de arriba funciona igual, pero no hay respaldo nocturno automático.
+        </p>
+        <div v-else-if="backupHistory.length" class="cfg-backup-history">
+          <p class="cfg-field-desc" style="margin-bottom: 6px;">Últimos backups automáticos:</p>
+          <div v-for="(h, i) in backupHistory.slice(0, 5)" :key="i" class="cfg-backup-history-row">
+            <span :class="['cfg-backup-status', h.status === 'SUCCESS' ? 'ok' : 'fail']">
+              {{ h.status === 'SUCCESS' ? '✓' : '✗' }}
+            </span>
+            <span>{{ formatBackupDate(h.at) }}</span>
+            <span class="cfg-backup-history-trigger">{{ h.trigger === 'MANUAL' ? 'manual' : 'automático' }}</span>
+            <span v-if="h.sizeBytes">{{ formatBackupSize(h.sizeBytes) }}</span>
+            <span v-if="h.error" class="cfg-field-error" style="margin:0;">{{ h.error }}</span>
+          </div>
+        </div>
 
         <div class="cfg-danger-divider" />
 
@@ -236,6 +254,7 @@ async function confirmSaveStartNumber() {
 }
 
 onMounted(fetchQuotationNumbering)
+onMounted(() => { if (hasRole('ADMIN')) fetchBackupStatus() })
 
 const ENDPOINTS = {
   clientes:    '/client/import',
@@ -341,14 +360,17 @@ const backupLoading = ref(false)
 const backupDoneAt  = ref('')
 const backupError   = ref('')
 
+// El .zip ahora incluye dump completo + un dump por tabla + todos los
+// archivos de R2 (documentos/imágenes subidos) — puede tardar bastante más
+// que el .sql simple de antes, así que el timeout sube de 2 a 10 minutos.
 async function downloadBackup() {
   backupLoading.value = true
   backupError.value   = ''
   try {
-    const res = await api.get('/admin/backup', { responseType: 'blob', timeout: 120000 })
+    const res = await api.get('/admin/backup', { responseType: 'blob', timeout: 600000 })
     const disposition = res.headers['content-disposition'] || ''
     const match = disposition.match(/filename="?([^"]+)"?/)
-    const filename = match?.[1] || `beone-backup-${Date.now()}.sql`
+    const filename = match?.[1] || `beone-backup-${Date.now()}.zip`
 
     const url = URL.createObjectURL(res.data)
     const link = document.createElement('a')
@@ -360,11 +382,39 @@ async function downloadBackup() {
     URL.revokeObjectURL(url)
 
     backupDoneAt.value = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+    fetchBackupStatus()
   } catch (e) {
     backupError.value = await extractBlobErrorMessage(e) || 'Error al generar el backup'
   } finally {
     backupLoading.value = false
   }
+}
+
+// ── Historial de backups automáticos (cron nocturno) ──
+const backupHistory    = ref([])
+const backupConfigured = ref(true)
+
+async function fetchBackupStatus() {
+  try {
+    const { data } = await api.get('/admin/backup/status')
+    backupConfigured.value = data?.configured ?? false
+    backupHistory.value    = data?.history ?? []
+  } catch {
+    // No bloquea la pantalla — es solo informativo
+  }
+}
+
+function formatBackupSize(bytes) {
+  if (!bytes) return ''
+  const mb = bytes / (1024 * 1024)
+  return mb >= 1 ? `${mb.toFixed(1)} MB` : `${(bytes / 1024).toFixed(0)} KB`
+}
+
+function formatBackupDate(iso) {
+  if (!iso) return ''
+  return new Date(iso).toLocaleString('es-CO', {
+    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  })
 }
 
 // Con responseType:'blob', un error del servidor (403/500 con JSON) también
@@ -492,6 +542,24 @@ async function confirmPurge({ confirmPhrase, secretKey }) {
 }
 .cfg-btn-backup:hover:not(:disabled) { background: #F8FAFC; }
 .cfg-btn-backup:disabled { opacity: 0.6; cursor: not-allowed; }
+.cfg-backup-warning { color: #B45309; }
+.cfg-backup-history { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; }
+.cfg-backup-history-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #475569;
+}
+.cfg-backup-history-trigger {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: #94A3B8;
+}
+.cfg-backup-status { font-weight: 700; }
+.cfg-backup-status.ok { color: #16A34A; }
+.cfg-backup-status.fail { color: #B91C1C; }
 .cfg-btn-danger {
   height: 36px;
   padding: 0 16px;
