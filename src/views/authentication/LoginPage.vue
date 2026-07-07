@@ -6,22 +6,12 @@
     ══════════════════════════════════════════════════ -->
     <div class="brand-panel">
 
-      <!-- Mosaico de fondo -->
-      <div class="absolute inset-0 z-0">
-        <div class="grid w-full h-full" :style="gridStyle">
-          <div
-            v-for="(item, index) in gridImages"
-            :key="index"
-            class="relative w-full h-full overflow-hidden"
-          >
-            <img
-              :src="item.current"
-              class="absolute inset-0 w-full h-full object-cover transition-opacity duration-[3000ms] ease-in-out"
-              :class="item.active ? 'opacity-70' : 'opacity-20'"
-            />
-          </div>
-        </div>
-      </div>
+      <!-- Fondo estático -->
+      <img
+        src="/assets/fondo-login.webp"
+        alt=""
+        class="brand-bg"
+      />
 
       <!-- Overlay oscuro con teal -->
       <div class="brand-overlay" />
@@ -178,7 +168,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue"
+import { ref } from "vue"
 import { useRouter } from "vue-router"
 import { AlertCircle } from "lucide-vue-next"
 import { auth } from "../../services/user.service"
@@ -230,60 +220,7 @@ const login = async () => {
   isLoading.value = false
 }
 
-/* ── Mosaico ── */
-const imagesPool = [
-  "/assets/gallery/1.webp", "/assets/gallery/2.webp", "/assets/gallery/3.webp",
-  "/assets/gallery/4.webp", "/assets/gallery/5.webp", "/assets/gallery/6.webp",
-]
 
-const getRandomImage = () => imagesPool[Math.floor(Math.random() * imagesPool.length)]
-const columns  = ref(10)
-const rows     = ref(6)
-
-const calculateGrid = () => {
-  const w = window.innerWidth
-  columns.value = w < 640 ? 4 : w < 1024 ? 6 : w < 1536 ? 8 : 10
-  rows.value    = Math.ceil(window.innerHeight / (window.innerWidth / columns.value))
-}
-
-const totalItems = computed(() => columns.value * rows.value)
-const gridImages = ref([])
-
-const generateGrid = () => {
-  gridImages.value = Array.from({ length: totalItems.value }).map(() => ({
-    current: getRandomImage(), active: false,
-  }))
-}
-
-const gridStyle = computed(() => ({
-  gridTemplateColumns: `repeat(${columns.value}, 1fr)`,
-  gridTemplateRows:    `repeat(${rows.value}, 1fr)`,
-}))
-
-let interval = null
-
-const triggerFade = () => {
-  const n = Math.floor(Math.random() * 6) + 4
-  for (let i = 0; i < n; i++) {
-    const idx  = Math.floor(Math.random() * gridImages.value.length)
-    const item = gridImages.value[idx]
-    item.current = getRandomImage()
-    item.active  = true
-    setTimeout(() => { item.active = false }, 3000)
-  }
-}
-
-onMounted(() => {
-  calculateGrid()
-  generateGrid()
-  window.addEventListener("resize", () => { calculateGrid(); generateGrid() })
-  interval = setInterval(triggerFade, 2500)
-})
-
-onUnmounted(() => {
-  clearInterval(interval)
-  window.removeEventListener("resize", calculateGrid)
-})
 </script>
 
 <style scoped>
@@ -313,6 +250,15 @@ onUnmounted(() => {
   flex-shrink: 0;
   overflow: hidden;
   display: none;
+}
+
+.brand-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .brand-overlay {

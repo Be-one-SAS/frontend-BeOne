@@ -285,11 +285,13 @@ const format = formatCOP
 .prd-thumb {
   width: 52px;
   height: 52px;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 8px;
   border: 1px solid #E5EAF0;
   display: block;
   background: #F1F5F9;
+  padding: 2px;
+  box-sizing: border-box;
 }
 
 .td-name { min-width: 160px; max-width: 260px; white-space: normal; }

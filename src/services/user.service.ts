@@ -154,6 +154,20 @@ export const updateProfile = async (id: number, data: Record<string, unknown>) =
   }
 };
 
+export const uploadAvatar = async (id: number, file: File) => {
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    const response = await api.patch(`/users/${id}/avatar`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response;
+  } catch (error) {
+    console.error("Fallo el servicio para subir la foto de perfil:", error);
+    throw error;
+  }
+};
+
 export const changePassword = async (data: { currentPassword: string; newPassword: string }) => {
   try {
     const response = await api.patch('/users/profile/password', data);

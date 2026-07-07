@@ -39,7 +39,8 @@
         <!-- Expandido: card completa -->
         <div v-if="sidebarExpanded" key="full" class="user-card">
           <div class="user-avatar" :style="{ background: avatarColor }">
-            {{ userInitials }}
+            <img v-if="user?.avatar" :src="user.avatar" alt="Avatar" class="user-avatar-img" />
+            <template v-else>{{ userInitials }}</template>
           </div>
           <div class="user-info">
             <p class="user-name">{{ displayName }}</p>
@@ -55,7 +56,8 @@
             :style="{ background: avatarColor }"
             :title="displayName"
           >
-            {{ userInitials }}
+            <img v-if="user?.avatar" :src="user.avatar" alt="Avatar" class="user-avatar-img" />
+            <template v-else>{{ userInitials }}</template>
           </div>
         </div>
 
@@ -87,6 +89,18 @@
 
       </template>
     </nav>
+
+    <!-- ── Pin toggle ──────────────────────────────────── -->
+    <button
+      v-if="sidebarExpanded"
+      class="sidebar-pin-btn"
+      :class="{ 'sidebar-pin-btn--locked': isLocked }"
+      :title="isLocked ? 'Desbloquear menú' : 'Bloquear menú abierto'"
+      @click="toggleLock"
+    >
+      <component :is="isLocked ? Pin : PinOff" :size="13" class="pin-icon" />
+      <span class="pin-label">{{ isLocked ? 'Desfijar menú' : 'Fijar menú' }}</span>
+    </button>
 
     <!-- ── Footer: Perfil + Logout ──────────────────────── -->
     <div class="sidebar-footer">
@@ -122,11 +136,12 @@ import {
   LayoutDashboard, TrendingUp, FilePlus, FileText,
   Building2, UserCheck, Handshake, Boxes, Package,
   PackageSearch, Truck, ClipboardList, MapPin,
-  Archive, Wrench, Users, BarChart2, PieChart,
+  Archive, Wrench, Users, BarChart2, Receipt,
   DollarSign, Activity, UserCog, Settings,
   LogOut, CheckSquare, ClipboardCheck, SlidersHorizontal,
   Landmark, TableProperties, FileBarChart, ShoppingCart,
   Clock as ClockIcon, UserCircle2, ListOrdered, Target,
+  Pin, PinOff,
 } from 'lucide-vue-next'
 import { useAuth }               from '@/composables/useAuth'
 import { useSidebarPermissions, useMobileSidebar } from '@/composables/useSidebarPermissions'
@@ -134,7 +149,7 @@ import { useViewAccess }         from '@/composables/useViewAccess'
 import MenuItem                  from './MenuItem.vue'
 
 // ── Auth & logout ──────────────────────────────────────
-const { setLogout }  = useAuth()
+const { user, setLogout }  = useAuth()
 const router         = useRouter()
 
 const logoutClearStorange = () => {
@@ -154,9 +169,18 @@ const { showMobile, close: closeMobile } = useMobileSidebar()
 
 // ── Collapse hover (desktop) ───────────────────────────
 const isExpanded = ref(false)
+const isLocked = ref(localStorage.getItem('sidebar_locked') === 'true')
+
+const toggleLock = () => {
+  isLocked.value = !isLocked.value
+  localStorage.setItem('sidebar_locked', isLocked.value)
+  if (isLocked.value) isExpanded.value = true
+}
 
 const onMouseEnter = () => { isExpanded.value = true }
-const onMouseLeave = () => { isExpanded.value = false }
+const onMouseLeave = () => {
+  if (!isLocked.value) isExpanded.value = false
+}
 const onClick = () => {
   if (window.innerWidth >= 768 && window.innerWidth < 1024) {
     isExpanded.value = !isExpanded.value
@@ -234,7 +258,7 @@ const ALL_MENU_ITEMS = [
     label: 'Reportes',
     roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'],
     children: [
-      { label: 'Resumen general', route: '/reportes/general',     viewKey: 'ReporteGeneral',     icon: PieChart,    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
+      { label: 'Cuadro de costos', route: '/reportes/general',     viewKey: 'ReporteGeneral',     icon: Receipt,     roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
       { label: 'Financiero',      route: '/reportes/financiero',  viewKey: 'ReporteFinanciero',  icon: DollarSign,  roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
       { label: 'Operacional',     route: '/reportes/operacional', viewKey: 'ReporteOperacional', icon: Activity,    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'] },
     ],
@@ -427,6 +451,13 @@ const visibleMenuItems = computed(() =>
   color: #FFFFFF;
   font-family: 'Inter', sans-serif;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.user-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .user-info {
@@ -482,6 +513,43 @@ const visibleMenuItems = computed(() =>
 }
 
 .sidebar-nav::-webkit-scrollbar { display: none; }
+
+/* ── Pin toggle ──────────────────────────────────────── */
+.sidebar-pin-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: #94A3B8;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: background 0.15s ease, color 0.15s ease;
+  margin-bottom: 4px;
+}
+.sidebar-pin-btn:hover {
+  background: #F0FAFB;
+  color: #27C8D8;
+}
+.sidebar-pin-btn--locked {
+  color: #27C8D8;
+}
+.sidebar-pin-btn--locked:hover {
+  color: #B91C1C;
+}
+.pin-icon {
+  flex-shrink: 0;
+}
+.pin-label {
+  font-size: 12px;
+}
 
 /* ── Footer: logout ──────────────────────────────────── */
 .sidebar-footer {

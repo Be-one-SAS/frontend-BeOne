@@ -75,6 +75,7 @@
               <span class="option-name">{{ u.fullName }}</span>
               <span class="option-email">{{ u.email }} | {{ u.role }}</span>
             </div>
+            <span v-if="u.sede?.nombre" class="option-sede">{{ u.sede.nombre }}</span>
           </button>
         </div>
       </div>
@@ -85,7 +86,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { Users, Plus, X, Search } from 'lucide-vue-next'
-import { getUsers } from '@/services/users.service'
+import { getCollaboratorCandidates } from '@/services/users.service'
 import { addQuotationMember, removeQuotationMember } from '@/services/quotation.service'
 import { useAuth } from '@/composables/useAuth'
 
@@ -126,7 +127,7 @@ const loadAllUsers = async () => {
   if (allUsers.value.length > 0) return;
   loadingUsers.value = true;
   try {
-    const raw = await getUsers()
+    const raw = await getCollaboratorCandidates()
     const users = Array.isArray(raw) ? raw : (raw?.data ?? [])
     allUsers.value = users.filter(u => u.status !== 'Inactivo' && u.status !== 'Suspendido')
   } catch (error) {
@@ -153,9 +154,10 @@ const availableUsers = computed(() => {
 const filteredAvailableUsers = computed(() => {
   if (!searchQuery.value) return availableUsers.value
   const q = searchQuery.value.toLowerCase()
-  return availableUsers.value.filter(u => 
-    u.fullName?.toLowerCase().includes(q) || 
-    u.email?.toLowerCase().includes(q)
+  return availableUsers.value.filter(u =>
+    u.fullName?.toLowerCase().includes(q) ||
+    u.email?.toLowerCase().includes(q) ||
+    u.sede?.nombre?.toLowerCase().includes(q)
   )
 })
 
@@ -435,6 +437,20 @@ const getInitials = (name) => (name ?? '').trim().split(' ').slice(0, 2).map(w =
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.option-sede {
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 700;
+  color: #27C8D8;
+  background: #E0F9FA;
+  border: 1px solid #A7EEF5;
+  padding: 2px 7px;
+  border-radius: 99px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
 }
 
 /* Animations */

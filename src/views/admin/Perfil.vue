@@ -5,9 +5,21 @@
     <div class="perfil-hero" :class="{ 'perfil-hero--editing': editingInfo }">
       <div class="hero-avatar-wrap">
         <div class="hero-avatar" :style="{ background: avatarColor }">
-          {{ userInitials }}
+          <img v-if="user?.avatar" :src="user.avatar" alt="Foto de perfil" class="hero-avatar-img" />
+          <template v-else>{{ userInitials }}</template>
         </div>
         <div class="hero-avatar-ring" :style="{ borderColor: avatarColor + '40' }" />
+        <label class="hero-avatar-edit" title="Cambiar foto de perfil">
+          <Loader2 v-if="uploadingAvatar" :size="13" class="hero-avatar-spin" />
+          <Camera v-else :size="13" />
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/avif"
+            class="hero-avatar-input"
+            :disabled="uploadingAvatar"
+            @change="onAvatarSelected"
+          />
+        </label>
       </div>
       <div class="hero-info">
         <h1 class="hero-name">{{ displayName }}</h1>
@@ -232,13 +244,33 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { Pencil, Save, CheckCircle, AlertCircle, UserRound, ShieldCheck, Eye, EyeOff, Lock } from 'lucide-vue-next'
+import { Pencil, Save, CheckCircle, AlertCircle, UserRound, ShieldCheck, Eye, EyeOff, Lock, Camera, Loader2 } from 'lucide-vue-next'
 import { useAuth } from '@/composables/useAuth'
 import { useSidebarPermissions } from '@/composables/useSidebarPermissions'
-import { getMe, updateProfile, changePassword } from '@/services/user.service'
+import { getMe, updateProfile, changePassword, uploadAvatar } from '@/services/user.service'
 
 const { user, updateUserData } = useAuth()
 const { userRole, roleBadgeStyle, userInitials, avatarColor, displayName, sedeName, isOrgAdmin } = useSidebarPermissions()
+
+// ── Foto de perfil ──────────────────────────────────────
+const uploadingAvatar = ref(false)
+
+const onAvatarSelected = async (event) => {
+  const file = event.target.files?.[0]
+  if (!file) return
+  uploadingAvatar.value = true
+  try {
+    const res = await uploadAvatar(user.value.id, file)
+    const updated = res.data ?? res
+    updateUserData({ ...user.value, avatar: updated.avatar })
+    showFeedback('success', 'Foto de perfil actualizada correctamente.')
+  } catch (err) {
+    showFeedback('error', err?.response?.data?.message || 'No se pudo subir la foto de perfil.')
+  } finally {
+    uploadingAvatar.value = false
+    event.target.value = ''
+  }
+}
 
 // ── Info edit ──────────────────────────────────────────
 const editingInfo = ref(false)
@@ -456,7 +488,36 @@ onMounted(async () => {
   border-radius: 50%;
   border: 2px solid;
   opacity: 0.5;
+  pointer-events: none;
 }
+
+.hero-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.hero-avatar-edit {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #27C8D8;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #0F1A2E;
+  cursor: pointer;
+  z-index: 2;
+  transition: background 0.15s;
+}
+.hero-avatar-edit:hover { background: #1BAEBB; }
+.hero-avatar-input { display: none; }
+.hero-avatar-spin { animation: spin 0.8s linear infinite; }
 
 .hero-info {
   display: flex;

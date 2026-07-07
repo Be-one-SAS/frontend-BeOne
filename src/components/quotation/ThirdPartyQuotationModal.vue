@@ -351,6 +351,7 @@
                     v-model.number="form.cantidad"
                     type="number"
                     min="1"
+                    placeholder="Ej: 1"
                     class="tq-input"
                     :disabled="loadingCalc"
                   />
