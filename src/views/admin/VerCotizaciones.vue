@@ -8,6 +8,8 @@ import BaseTable from "../../components/ui/BaseTable.vue";
 import CollaboratorsManager from "./components/CollaboratorsManager.vue";
 import QuotationPDF from "../../components/quotation/QuotationPDF.vue";
 import { ChevronDown, Eye, CheckCircle, XCircle, FileText, Inbox, Users, Download, X, Printer, StickyNote, Plus, Trash2, Clock } from 'lucide-vue-next';
+import ThumbHoverPreview from '@/components/shared/ThumbHoverPreview.vue';
+import { useThumbHoverPreview } from '@/composables/useThumbHoverPreview';
 import {
   AREAS_NOTA,
   createNotaCotizacion,
@@ -17,6 +19,9 @@ import {
 
 const { push } = useRouter();
 const route    = useRoute();
+
+// ── Preview ampliado al hover sobre el NOMBRE del producto (sin miniatura visible) ──
+const { preview: thumbPreview, showPreview: showThumbPreview, hidePreview: hideThumbPreview } = useThumbHoverPreview()
 
 const quotations = ref([]);
 const isModalOpen = ref(false);
@@ -724,7 +729,11 @@ const formatDateTime = (iso) =>
                             class="vc-product-row"
                           >
                             <span class="vc-product-badge vc-badge-own">Propio</span>
-                            <span class="vc-product-name">{{ item.product?.nombre || item.product?.dispositivo }}</span>
+                            <span
+                              class="vc-product-name"
+                              @mouseenter="showThumbPreview($event, item.product?.linkFotoDispositivo)"
+                              @mouseleave="hideThumbPreview"
+                            >{{ item.product?.nombre || item.product?.dispositivo }}</span>
                             <span class="vc-product-qty">× {{ item.cantidadProducto ?? item.quantity ?? 1 }}</span>
                             <span v-if="item.product?.categoria" class="vc-product-cat">{{ item.product.categoria }}</span>
                           </div>
@@ -734,7 +743,11 @@ const formatDateTime = (iso) =>
                             class="vc-product-row"
                           >
                             <span class="vc-product-badge vc-badge-tp">Tercero</span>
-                            <span class="vc-product-name">{{ item.catalogProduct?.nombre }}</span>
+                            <span
+                              class="vc-product-name"
+                              @mouseenter="showThumbPreview($event, item.catalogProduct?.linkFotoDispositivo)"
+                              @mouseleave="hideThumbPreview"
+                            >{{ item.catalogProduct?.nombre || item.catalogProduct?.dispositivo || item.catalogProduct?.descripcion }}</span>
                             <span class="vc-product-qty">× {{ item.cantidad ?? 1 }}</span>
                             <span v-if="item.catalogProduct?.categoria" class="vc-product-cat">{{ item.catalogProduct.categoria }}</span>
                           </div>
@@ -984,6 +997,8 @@ const formatDateTime = (iso) =>
     </div>
 
   </div>
+
+  <ThumbHoverPreview :preview="thumbPreview" />
 </template>
 
 <style scoped>
@@ -1259,7 +1274,9 @@ const formatDateTime = (iso) =>
 .vc-product-name {
   flex: 1; font-size: 13px; font-weight: 500; color: #0F172A;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  cursor: default;
 }
+.vc-product-name:hover { text-decoration: underline; text-decoration-color: #CBD5E1; text-underline-offset: 2px; }
 .vc-product-qty {
   font-size: 12px; color: #64748B; font-weight: 600; white-space: nowrap;
 }

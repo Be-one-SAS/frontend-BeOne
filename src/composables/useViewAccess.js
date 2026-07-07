@@ -1,0 +1,62 @@
+import { ref } from 'vue'
+import { createGlobalState } from '@vueuse/core'
+import api from '@/services/api'
+import { useAuth } from './useAuth'
+
+/**
+ * Acceso a vistas por rol — configurable desde /configuracion (backend:
+ * AppConfigService.getRoleViewAccessConfig, key 'role_view_access').
+ *
+ * Controla SOLO navegación/menú del frontend (router guard + Sidebar). NO
+ * reemplaza los @Roles() del backend — un rol puede perder acceso a la
+ * navegación de una vista aquí sin que eso cambie lo que puede hacer contra
+ * la API si ya tenía el permiso ahí.
+ *
+ * ADMIN siempre tiene acceso a todo — nunca se consulta la config para ese
+ * rol, así que aunque el backend esté caído o la config esté corrupta, un
+ * ADMIN nunca queda bloqueado fuera de /configuracion.
+ */
+export const useViewAccess = createGlobalState(() => {
+  const config  = ref(null) // { views: [{key,label,group,roles}], allRoles: [...] }
+  const loading = ref(false)
+  let loadPromise = null
+
+  function ensureLoaded() {
+    if (config.value || loading.value) return loadPromise
+    loading.value = true
+    loadPromise = api.get('/app-config/role-view-access')
+      .then(({ data }) => { config.value = data })
+      .catch(() => {
+        // Config dinámica no disponible (red/backend caído) — los llamadores
+        // deben caer de vuelta a los roles estáticos (meta.roles / item.roles).
+        config.value = null
+      })
+      .finally(() => { loading.value = false })
+    return loadPromise
+  }
+
+  /** Roles dinámicos de una vista, o null si no está gestionada acá (=> usar fallback estático). */
+  function getViewRoles(viewKey) {
+    if (!config.value || !viewKey) return null
+    const view = config.value.views.find(v => v.key === viewKey)
+    return view ? ['ADMIN', ...view.roles] : null
+  }
+
+  const { user } = useAuth()
+
+  /**
+   * @param viewKey nombre de la ruta (to.name) — clave en la config dinámica
+   * @param staticFallbackRoles roles hardcodeados de hoy (meta.roles / item.roles),
+   *        usados si la vista no está en la config dinámica o esta no cargó
+   */
+  function canAccess(viewKey, staticFallbackRoles) {
+    const userRole = user.value?.roles?.[0]
+    if (userRole === 'ADMIN') return true
+
+    const roles = getViewRoles(viewKey) ?? staticFallbackRoles
+    if (!roles || roles.length === 0) return true // sin restricción declarada
+    return !!userRole && roles.includes(userRole)
+  }
+
+  return { config, ensureLoaded, getViewRoles, canAccess }
+})

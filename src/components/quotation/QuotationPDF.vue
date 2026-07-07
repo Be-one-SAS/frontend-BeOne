@@ -2,21 +2,50 @@
   <div ref="pdfContent" class="pdf-container">
     <!-- HEADER -->
     <div class="pdf-header">
-      <div class="header-brand">
-        <div class="logo-wrapper">
-          <img src="/assets/logo.png" alt="Be One Entretenimiento" class="logo-image" />
-        </div>
-        <div class="partner-badges">
-          <span class="partner-badge">IAAPA</span>
-          <span class="partner-badge">FONTUR</span>
-          <span class="partner-badge">ACOLAP</span>
+      <div class="header-logo">
+        <img
+          :src="pdfHeader.logo?.url || '/assets/logo.png'"
+          alt="Be One Entretenimiento"
+          class="logo-image"
+          crossorigin="anonymous"
+        />
+      </div>
+
+      <div class="header-middle">
+        <svg class="header-wave" viewBox="0 0 480 92" preserveAspectRatio="none" aria-hidden="true">
+          <path
+            v-for="(wp, i) in wavePaths"
+            :key="i"
+            :d="wp.d"
+            :opacity="wp.opacity"
+            fill="none"
+            stroke="#cbd5e1"
+            stroke-width="1.4"
+          />
+        </svg>
+        <div v-if="pdfHeader.partners?.length" class="header-partners">
+          <img
+            v-for="p in pdfHeader.partners"
+            :key="p.id"
+            :src="p.imageUrl"
+            :alt="p.nombre"
+            class="partner-logo"
+            crossorigin="anonymous"
+          />
         </div>
       </div>
+
       <div class="header-contact">
-        <div class="contact-row"><span class="contact-label">Bogotá:</span> Carrera 71c # 75c 12</div>
-        <div class="contact-row"><span class="contact-label">Medellín:</span> Carrera 80b # 34a 35</div>
-        <div class="contact-row"><span class="contact-label">PBX:</span> 6015481954</div>
-        <div class="contact-row">beone.eventoscorporativos</div>
+        <div class="contact-row">
+          <span class="contact-label">{{ pdfHeader.contacto?.ciudad || 'Medellín' }}:</span>
+          {{ pdfHeader.contacto?.direccion || 'Calle 34a # 80b 05' }}
+        </div>
+        <div class="contact-row"><span class="contact-label">PBX:</span> {{ pdfHeader.contacto?.pbx || '6015481954' }}</div>
+        <div class="contact-row"><span class="contact-label">Celular:</span> {{ pdfHeader.contacto?.celular || '3219466564' }}</div>
+        <div class="contact-row contact-social">
+          <Instagram :size="11" class="ig-icon" />
+          {{ pdfHeader.contacto?.instagram || 'beone.eventoscorporativos' }}
+        </div>
       </div>
     </div>
 
@@ -122,8 +151,7 @@
               <td class="cell-c">{{ item.cantidadJornada || 1 }}</td>
               <td class="cell-c">{{ item.cantidad || 1 }}</td>
               <td class="cell-desc">
-                {{ item.catalogProduct?.nombre || item.catalogItem?.nombre || item.nombre || 'Producto de tercero' }}
-                <span class="badge-third">Tercero</span>
+                {{ item.catalogProduct?.nombre || item.catalogProduct?.dispositivo || item.catalogItem?.nombre || item.nombre || item.descripcion || 'Producto de tercero' }}
               </td>
               <td class="cell-num">{{ formatCurrency(item.precioUnitario || item.costo || 0) }}</td>
               <td class="cell-num">{{ formatCurrency((item.precioUnitario || item.costo || 0) * getQuantity(item)) }}</td>
@@ -189,7 +217,6 @@
             />
             <div v-else class="gallery-thumb-placeholder">Sin foto</div>
             <div class="gallery-name">{{ g.nombre }}</div>
-            <span v-if="g.tercero" class="badge-third">Tercero</span>
           </div>
         </div>
       </div>
@@ -204,8 +231,10 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { formatCOP } from '@/utils/currency.js'
+import api from '@/services/api'
+import { Instagram } from 'lucide-vue-next'
 
 const props = defineProps({
   quotation: {
@@ -215,6 +244,46 @@ const props = defineProps({
 })
 
 const pdfContent = ref(null)
+
+// ── Encabezado configurable (logo + logos de certificación + datos/RRSS) ──
+// Editable desde /configuracion → AppConfigService (key 'pdf_header'). El
+// patrón ondulado de fondo NO es configurable, se genera acá mismo.
+const pdfHeader = ref({ logo: null, partners: [], contacto: {} })
+
+onMounted(async () => {
+  try {
+    const { data } = await api.get('/app-config/pdf-header')
+    pdfHeader.value = data
+  } catch {
+    // Sin config guardada aún (o falla de red) — se queda con los defaults
+    // (logo estático, sin logos de certificación) y el PDF sigue funcionando.
+  }
+})
+
+// Genera una línea ondulada suave tipo "M0,y Q.. .. Q.. ..." — varias capas
+// con distinto baseline/amplitud/opacidad dan el efecto de líneas fluidas
+// superpuestas del diseño de referencia, sin depender de un asset externo.
+const wavePath = (baseY, amp, width, step) => {
+  let d = `M0,${baseY}`
+  let x = 0
+  let up = true
+  while (x < width) {
+    const nx = Math.min(x + step, width)
+    const cy = up ? baseY - amp : baseY + amp
+    d += ` Q${x + (nx - x) / 2},${cy} ${nx},${baseY}`
+    x = nx
+    up = !up
+  }
+  return d
+}
+
+const WAVE_WIDTH = 480
+const wavePaths = [
+  { d: wavePath(22, 12, WAVE_WIDTH, 68), opacity: 0.5 },
+  { d: wavePath(38, 9,  WAVE_WIDTH, 58), opacity: 0.35 },
+  { d: wavePath(54, 15, WAVE_WIDTH, 76), opacity: 0.45 },
+  { d: wavePath(70, 8,  WAVE_WIDTH, 54), opacity: 0.3 },
+]
 
 // Solo se aceptan imágenes que vengan de nuestro propio servicio de carga
 // (R2) — links viejos (Google Drive, etc.) no sirven bytes de imagen directa
@@ -230,7 +299,7 @@ const galleryItems = computed(() => {
   }))
 
   const third = (props.quotation.thirdPartyItems || []).map((item) => ({
-    nombre: item.catalogProduct?.nombre || item.catalogItem?.nombre || item.nombre || 'Producto de tercero',
+    nombre: item.catalogProduct?.nombre || item.catalogProduct?.dispositivo || item.catalogItem?.nombre || item.nombre || item.descripcion || 'Producto de tercero',
     image: isUploadedImage(item.catalogProduct?.linkFotoDispositivo) ? item.catalogProduct.linkFotoDispositivo : null,
     tercero: true,
   }))
@@ -356,8 +425,9 @@ const total = computed(() => subtotalAjustado.value + iva.value)
 <style scoped>
 .pdf-container {
   font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
-  font-size: 10px;
-  line-height: 1.5;
+  font-size: 11.5px;
+  line-height: 1.65;
+  letter-spacing: 0.1px;
   color: #1e293b;
   background: white;
   padding: 24px 28px;
@@ -371,51 +441,72 @@ const total = computed(() => subtotalAjustado.value + iva.value)
 .pdf-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: stretch;
+  gap: 16px;
   margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 14px;
+  border-bottom: 2px solid #27c8d8;
 }
 
-.header-brand {
+.header-logo {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.logo-wrapper {
-  display: flex;
-  align-items: center;
+  align-items: flex-start;
+  flex-shrink: 0;
 }
 
 .logo-image {
   display: block;
   max-height: 44px;
-  max-width: 200px;
+  max-width: 160px;
   height: auto;
   width: auto;
 }
 
-.partner-badges {
+/* ── Patrón del medio: líneas onduladas fijas + logos de certificación ── */
+.header-middle {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  align-self: stretch;
   display: flex;
-  gap: 6px;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: hidden;
 }
 
-.partner-badge {
-  font-size: 8px;
-  font-weight: 600;
-  color: #64748b;
-  padding: 2px 7px;
-  border: 1px solid #e2e8f0;
-  border-radius: 99px;
-  letter-spacing: 0.3px;
+.header-wave {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.header-partners {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 14px;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+}
+
+.partner-logo {
+  display: block;
+  max-height: 100%;
+  max-width: 90px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
 }
 
 .header-contact {
   text-align: right;
-  font-size: 8.5px;
+  font-size: 9.5px;
   color: #64748b;
-  line-height: 1.6;
+  line-height: 1.7;
+  flex-shrink: 0;
 }
 
 .contact-row {
@@ -427,16 +518,28 @@ const total = computed(() => subtotalAjustado.value + iva.value)
   color: #475569;
 }
 
+.contact-social {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.ig-icon {
+  color: #27c8d8;
+  flex-shrink: 0;
+}
+
 /* ── SECTION HEADERS ──────────────────────────── */
 .section-header {
   background: #f1f5f9;
   color: #1e293b;
   font-weight: 700;
   text-align: left;
-  padding: 7px 12px;
-  font-size: 10px;
+  padding: 9px 14px;
+  font-size: 12.5px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
   font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
   border-bottom: 1px solid #e2e8f0;
 }
@@ -454,9 +557,9 @@ const total = computed(() => subtotalAjustado.value + iva.value)
 }
 
 .info-table td {
-  padding: 5px 12px;
+  padding: 7px 14px;
   border: 1px solid #e2e8f0;
-  font-size: 9.5px;
+  font-size: 11px;
   vertical-align: top;
 }
 
@@ -470,6 +573,7 @@ const total = computed(() => subtotalAjustado.value + iva.value)
 
 .info-value {
   color: #1e293b;
+  font-weight: 500;
 }
 
 .maps-link {
@@ -481,14 +585,14 @@ const total = computed(() => subtotalAjustado.value + iva.value)
 /* ── INTRO TEXT ───────────────────────────────── */
 .intro-text {
   margin: 16px 0;
-  padding: 12px 14px;
+  padding: 14px 16px;
   background: #f8fafc;
   border-left: 3px solid #cbd5e1;
   border-radius: 0 8px 8px 0;
-  font-size: 10px;
-  font-style: italic;
+  font-size: 11.5px;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
   color: #334155;
-  line-height: 1.6;
+  line-height: 1.7;
   break-inside: avoid;
   page-break-inside: avoid;
 }
@@ -507,17 +611,19 @@ const total = computed(() => subtotalAjustado.value + iva.value)
 .note-box-title {
   font-weight: 700;
   color: #1e293b;
-  margin-bottom: 6px;
-  font-size: 10px;
+  margin-bottom: 7px;
+  font-size: 11.5px;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.4px;
 }
 
 .note-box-list {
   margin: 0;
   padding-left: 18px;
-  font-size: 9.5px;
+  font-size: 10.5px;
   color: #475569;
+  line-height: 1.6;
 }
 
 .note-box-list li {
@@ -525,10 +631,10 @@ const total = computed(() => subtotalAjustado.value + iva.value)
 }
 
 .note-text {
-  font-size: 9.5px;
+  font-size: 10.5px;
   color: #475569;
   margin: 6px 0;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 /* ── SERVICES SECTION ─────────────────────────── */
@@ -545,11 +651,11 @@ const total = computed(() => subtotalAjustado.value + iva.value)
 .services-section-header {
   background: #f1f5f9;
   color: #1e293b;
-  padding: 8px 12px;
-  font-size: 11px;
+  padding: 9px 14px;
+  font-size: 12.5px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
   font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
   border-bottom: 1px solid #e2e8f0;
 }
@@ -557,7 +663,7 @@ const total = computed(() => subtotalAjustado.value + iva.value)
 .services-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 9px;
+  font-size: 10.5px;
 }
 
 .services-table thead th {
@@ -565,10 +671,10 @@ const total = computed(() => subtotalAjustado.value + iva.value)
   color: #1e293b;
   font-weight: 700;
   text-align: left;
-  padding: 7px 5px;
-  font-size: 8.5px;
+  padding: 9px 6px;
+  font-size: 9.5px;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.4px;
   border: 1px solid #e2e8f0;
 }
 
@@ -582,9 +688,9 @@ const total = computed(() => subtotalAjustado.value + iva.value)
 .col-total { width: 13%; text-align: right; }
 
 .services-table tbody td {
-  padding: 6px 5px;
+  padding: 8px 6px;
   border: 1px solid #e2e8f0;
-  font-size: 9px;
+  font-size: 10.5px;
   vertical-align: top;
 }
 
@@ -631,7 +737,7 @@ const total = computed(() => subtotalAjustado.value + iva.value)
 }
 
 .cell-desc {
-  font-weight: 500;
+  font-weight: 600;
   color: #1e293b;
 }
 
@@ -639,25 +745,11 @@ const total = computed(() => subtotalAjustado.value + iva.value)
   text-align: right;
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   font-weight: 600;
-  font-size: 8.5px;
+  font-size: 9.5px;
 }
 
 .row-third {
   background: #f0f9ff;
-}
-
-.badge-third {
-  display: inline-block;
-  font-size: 7px;
-  background: #e2e8f0;
-  color: #475569;
-  padding: 1px 6px;
-  border-radius: 99px;
-  margin-left: 5px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  vertical-align: middle;
-  border: 1px solid #cbd5e1;
 }
 
 .row-total-label {
@@ -669,8 +761,8 @@ const total = computed(() => subtotalAjustado.value + iva.value)
   font-weight: 700;
   color: #1e293b;
   text-transform: uppercase;
-  padding: 8px 12px;
-  font-size: 10px;
+  padding: 9px 14px;
+  font-size: 11.5px;
   letter-spacing: 0.5px;
   border: 1px solid #e2e8f0;
 }
@@ -687,7 +779,7 @@ const total = computed(() => subtotalAjustado.value + iva.value)
 .totals-table {
   width: 320px;
   border-collapse: collapse;
-  font-size: 9.5px;
+  font-size: 10.5px;
   border-radius: 10px;
   overflow: hidden;
 }
@@ -697,20 +789,20 @@ const total = computed(() => subtotalAjustado.value + iva.value)
   color: #1e293b;
   font-weight: 700;
   text-align: center;
-  padding: 7px 6px;
-  font-size: 8.5px;
+  padding: 8px 6px;
+  font-size: 9.5px;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.4px;
   border: 1px solid #e2e8f0;
 }
 
 .totals-table tbody td {
-  padding: 6px 10px;
+  padding: 8px 10px;
   border: 1px solid #e2e8f0;
   text-align: center;
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   font-weight: 600;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .totals-label {
@@ -731,11 +823,11 @@ const total = computed(() => subtotalAjustado.value + iva.value)
 
 .totals-label.grand {
   color: #1e293b;
-  font-size: 10px;
+  font-size: 11.5px;
 }
 
 .grand-value {
-  font-size: 12px;
+  font-size: 14px;
 }
 
 /* ── GALERÍA DE PRODUCTOS ─────────────────────── */
@@ -774,7 +866,7 @@ const total = computed(() => subtotalAjustado.value + iva.value)
 .gallery-thumb {
   display: block;
   width: 100%;
-  height: 150px;
+  height: 110px;
   object-fit: cover;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
@@ -785,7 +877,7 @@ const total = computed(() => subtotalAjustado.value + iva.value)
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 150px;
+  height: 110px;
   border-radius: 8px;
   border: 1px dashed #cbd5e1;
   background: #f8fafc;
@@ -794,11 +886,11 @@ const total = computed(() => subtotalAjustado.value + iva.value)
 }
 
 .gallery-name {
-  font-size: 9.5px;
+  font-size: 10.5px;
   font-weight: 600;
   color: #1e293b;
   text-align: center;
-  line-height: 1.3;
+  line-height: 1.4;
 }
 
 /* ── FOOTER ───────────────────────────────────── */
@@ -811,15 +903,16 @@ const total = computed(() => subtotalAjustado.value + iva.value)
 
 .footer-text {
   margin: 0;
-  font-size: 10px;
+  font-size: 11px;
   color: #64748b;
-  font-style: italic;
-  font-weight: 500;
+  font-weight: 600;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  letter-spacing: 0.2px;
 }
 
 .footer-date {
   margin: 5px 0 0;
-  font-size: 8.5px;
+  font-size: 9px;
   color: #94a3b8;
 }
 </style>

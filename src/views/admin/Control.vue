@@ -15,6 +15,11 @@ import ExtraCostsPanel from '@/components/quotation/ExtraCostsPanel.vue'
 import { createEncuesta, getEncuestas } from '@/services/encuestas.service'
 import { uploadPlanimetria, deletePlanimetria } from '@/services/administracion.service.js'
 import { useAuth } from '@/composables/useAuth'
+import ThumbHoverPreview from '@/components/shared/ThumbHoverPreview.vue'
+import { useThumbHoverPreview } from '@/composables/useThumbHoverPreview'
+
+// ── Preview ampliado al hover sobre el nombre del equipo (sin miniatura visible) ──
+const { preview: thumbPreview, showPreview: showThumbPreview, hidePreview: hideThumbPreview } = useThumbHoverPreview()
 
 // Debe coincidir con EXTRA_COST_READ_ROLES en el backend (quotations.controller.ts)
 const EXTRA_COST_READ_ROLES = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO']
@@ -775,6 +780,8 @@ const handleDeletePlan = async () => {
                               v-for="it in ev.items"
                               :key="`own-${it.id ?? it.productId}`"
                               class="ctrl-item-pill"
+                              @mouseenter="showThumbPreview($event, it.product?.linkFotoDispositivo)"
+                              @mouseleave="hideThumbPreview"
                             >
                               {{ it.product?.dispositivo ?? it.dispositivo ?? it.productId }}
                               <span class="ctrl-item-qty">×{{ it.cantidadProducto ?? it.quantity ?? 1 }}</span>
@@ -784,6 +791,8 @@ const handleDeletePlan = async () => {
                               :key="`3p-${it.id}`"
                               class="ctrl-item-pill ctrl-item-pill--third"
                               :title="it.catalogProduct?.nombre || it.catalogProduct?.dispositivo || it.nombre || it.dispositivo || it.producto?.nombre || 'Producto de tercero'"
+                              @mouseenter="showThumbPreview($event, it.catalogProduct?.linkFotoDispositivo)"
+                              @mouseleave="hideThumbPreview"
                             >
                               <template v-if="it.catalogProduct?.nombre || it.catalogProduct?.dispositivo">
                                 {{ it.catalogProduct.nombre || it.catalogProduct.dispositivo }}
@@ -943,6 +952,8 @@ const handleDeletePlan = async () => {
     </Teleport>
 
   </div>
+
+  <ThumbHoverPreview :preview="thumbPreview" />
 </template>
 
 <style scoped>

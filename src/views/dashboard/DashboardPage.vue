@@ -6,19 +6,27 @@
       <!-- ════════════════════════════════════════
            GREETING
       ════════════════════════════════════════ -->
-      <div class="greeting">
-        <div class="greeting-left">
-          <h1 class="greeting-title">{{ greetingText }}, {{ firstName }} 👋</h1>
-          <p class="greeting-sub">{{ todayLabel }}</p>
+      <div
+        class="greeting"
+        :class="{ 'greeting--has-image': !!dashboardBanner.image }"
+        :style="dashboardBanner.image ? { backgroundImage: `url(${dashboardBanner.image.url})` } : {}"
+      >
+        <div class="greeting-top">
+          <div class="greeting-left">
+            <h1 class="greeting-title">{{ greetingText }}, {{ firstName }} 👋</h1>
+            <p class="greeting-sub">{{ todayLabel }}</p>
+          </div>
+          <div class="greeting-chips">
+            <span v-if="pendingTasks > 0" class="g-chip g-chip--amber">
+              ⚠ {{ pendingTasks }} tarea{{ pendingTasks !== 1 ? 's' : '' }} pendiente{{ pendingTasks !== 1 ? 's' : '' }}
+            </span>
+            <span v-if="upcomingEventsCount > 0" class="g-chip g-chip--teal">
+              📅 {{ upcomingEventsCount }} evento{{ upcomingEventsCount !== 1 ? 's' : '' }} próximos
+            </span>
+          </div>
         </div>
-        <div class="greeting-chips">
-          <span v-if="pendingTasks > 0" class="g-chip g-chip--amber">
-            ⚠ {{ pendingTasks }} tarea{{ pendingTasks !== 1 ? 's' : '' }} pendiente{{ pendingTasks !== 1 ? 's' : '' }}
-          </span>
-          <span v-if="upcomingEventsCount > 0" class="g-chip g-chip--teal">
-            📅 {{ upcomingEventsCount }} evento{{ upcomingEventsCount !== 1 ? 's' : '' }} próximos
-          </span>
-        </div>
+
+        <p v-if="dashboardBanner.message" class="greeting-motivation">{{ dashboardBanner.message }}</p>
       </div>
 
       <!-- ════════════════════════════════════════
@@ -307,9 +315,23 @@ import { getQuotations } from '@/services/quotation.service'
 import { getCustomer } from '@/services/customer.service'
 import { getDashboardStats, getConfirmedDates } from '@/services/dashboard.service'
 import { getTasks } from '@/services/task.service'
+import api from '@/services/api'
 
 const { user } = useAuth()
 const isLoading = ref(true)
+
+// ── Banner del dashboard — imagen de fondo + mensaje motivacional,
+// editables desde /configuracion (AppConfigService, key 'dashboard_banner') ──
+const dashboardBanner = ref({ image: null, message: '' })
+onMounted(async () => {
+  try {
+    const { data } = await api.get('/app-config/dashboard-banner')
+    dashboardBanner.value = data
+  } catch {
+    // Sin config guardada aún (o falla de red) — el banner se ve igual que
+    // hoy (sin imagen, sin mensaje adicional).
+  }
+})
 
 // ── Data ──────────────────────────────────────
 const stats = ref({
@@ -602,14 +624,37 @@ onMounted(async () => {
 
 /* ── GREETING ──────────────────────────────── */
 .greeting {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 18px;
+  min-height: 200px;
+  background: #fff;
+  background-size: cover;
+  background-position: center;
+  border-radius: 18px;
+  padding: 22px 24px;
+  border: 1px solid #E5EAF0;
+  box-shadow: 0 1px 4px rgba(39,200,216,.06), 0 4px 16px rgba(39,200,216,.08);
+  overflow: hidden;
+}
+/* Overlay oscuro fijo (no configurable) — garantiza legibilidad del texto
+   blanco sobre cualquier imagen de fondo que se suba desde /configuracion. */
+.greeting--has-image::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(10,20,38,0.6) 0%, rgba(10,20,38,0.4) 45%, rgba(10,20,38,0.68) 100%);
+  z-index: 0;
+}
+.greeting-top {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fff;
-  border-radius: 18px;
-  padding: 18px 24px;
-  border: 1px solid #E5EAF0;
-  box-shadow: 0 1px 4px rgba(39,200,216,.06), 0 4px 16px rgba(39,200,216,.08);
+  gap: 12px;
 }
 .greeting-title {
   font-family: 'Plus Jakarta Sans', sans-serif;
@@ -622,6 +667,23 @@ onMounted(async () => {
   color: #64748B;
   margin-top: 3px;
   font-family: 'Inter', sans-serif;
+}
+.greeting--has-image .greeting-title { color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,0.3); }
+.greeting--has-image .greeting-sub   { color: rgba(255,255,255,0.85); }
+.greeting-motivation {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  text-align: center;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: #0F1A2E;
+  line-height: 1.3;
+}
+.greeting--has-image .greeting-motivation {
+  color: #fff;
+  text-shadow: 0 2px 14px rgba(0,0,0,0.4);
 }
 .greeting-chips {
   display: flex;
@@ -915,12 +977,17 @@ tr:last-child td { border-bottom: none; }
 /* 768px — mobile large */
 @media (max-width: 768px) {
   .greeting {
+    gap: 12px;
+    min-height: 160px;
+    padding: 14px 16px;
+  }
+  .greeting-top {
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
-    padding: 14px 16px;
   }
   .greeting-title { font-size: 15px; }
+  .greeting-motivation { font-size: 19px; }
   .kpi-grid,
   .charts-row,
   .middle-row { grid-template-columns: 1fr; }
@@ -965,9 +1032,10 @@ tr:last-child td { border-bottom: none; }
 /* 480px — mobile small */
 @media (max-width: 480px) {
   .dp { gap: 10px; }
-  .greeting { padding: 12px 14px; }
+  .greeting { padding: 12px 14px; min-height: 140px; }
   .greeting-title { font-size: 14px; }
   .greeting-sub { font-size: 11px; }
+  .greeting-motivation { font-size: 16px; }
   .kpi-grid { gap: 8px; }
   .kpi { padding: 12px 12px 8px; }
   .kpi-value { font-size: 18px; }

@@ -222,7 +222,7 @@
               </div>
               <div class="tq-field tq-field--full">
                 <label class="tq-label">Imagen del producto</label>
-                <div class="tq-upload-area" @click="$refs.fileInputMain.click()">
+                <div class="tq-upload-area" @click="!uploadingMainPhoto && $refs.fileInputMain.click()">
                   <input
                     type="file"
                     ref="fileInputMain"
@@ -230,17 +230,22 @@
                     accept="image/*"
                     @change="onFileChangeMain"
                   />
-                  <div v-if="!form.imageUrl" class="tq-upload-placeholder">
+                  <div v-if="uploadingMainPhoto" class="tq-upload-placeholder">
+                    <Loader2 :size="16" class="tq-spin" />
+                    <span>Subiendo…</span>
+                  </div>
+                  <div v-else-if="!form.imageUrl" class="tq-upload-placeholder">
                     <Upload :size="16" />
                     <span>Subir imagen...</span>
                   </div>
                   <div v-else class="tq-upload-preview-wrap">
                     <img :src="form.imageUrl" class="tq-upload-preview" alt="preview" />
-                    <button type="button" class="tq-upload-remove" @click.stop="form.imageUrl = ''">
+                    <button type="button" class="tq-upload-remove" @click.stop="form.imageUrl = ''; form.linkFotoDispositivo = ''">
                       <X :size="12" />
                     </button>
                   </div>
                 </div>
+                <span v-if="uploadMainPhotoError" class="tq-err">{{ uploadMainPhotoError }}</span>
               </div>
             </div>
 
@@ -523,12 +528,30 @@ const onFileChangeNew = (e) => {
   newProductForm.value.imageUrl = URL.createObjectURL(file)
 }
 
-// Solo vista previa local — este campo del formulario principal no se
-// persiste (mapThirdPartyItem no lo envía al guardar la cotización).
-const onFileChangeMain = (e) => {
+// La foto vive en el catálogo compartido (ThirdPartyCatalogProduct), no en el
+// ítem de la cotización — por eso al reemplazarla acá se sube de una vez al
+// mismo endpoint que usa el catálogo (PATCH /third-party-catalog/:id/foto).
+// form.linkFotoDispositivo (no solo imageUrl) es lo que agregar() termina
+// spreadeando hacia afuera, y es el campo que lee la tabla de la cotización.
+const uploadingMainPhoto = ref(false)
+const uploadMainPhotoError = ref('')
+
+const onFileChangeMain = async (e) => {
   const file = e.target.files[0]
   if (!file) return
-  form.value.imageUrl = URL.createObjectURL(file)
+  if (!form.value.catalogItemId || form.value.catalogItemId === '__new__') return
+
+  uploadingMainPhoto.value = true
+  uploadMainPhotoError.value = ''
+  try {
+    const { data } = await uploadThirdPartyCatalogFoto(form.value.catalogItemId, file)
+    form.value.imageUrl = data.imageUrl
+    form.value.linkFotoDispositivo = data.imageUrl
+  } catch (err) {
+    uploadMainPhotoError.value = err?.response?.data?.message || 'Error al subir la foto. Intenta de nuevo.'
+  } finally {
+    uploadingMainPhoto.value = false
+  }
 }
 
 const props = defineProps({
