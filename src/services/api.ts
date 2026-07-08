@@ -14,6 +14,7 @@ import axios from 'axios'
 import { useGlobalLoader } from '@/composables/useGlobalLoader'
 import { useAuth }         from '@/composables/useAuth'
 import { useNotifications } from '@/composables/useNotifications'
+import { useToast } from '@/composables/useToast'
 
 // ─────────────────────────────────────────────────────────
 // Mensajes descriptivos por endpoint/método
@@ -105,6 +106,19 @@ api.interceptors.response.use(
     // login/refresh 401ean por credenciales/refresh inválido, no por sesión
     // expirada — no tiene sentido intentar renovar el token en esos casos
     const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/refresh')
+
+    // Toast global de error — se omite en endpoints de auth (login/refresh ya
+    // muestran su propio mensaje inline en el formulario) y en un 401 normal
+    // que todavía va a intentar renovarse solo vía refresh token (ver abajo):
+    // ahí la sesión se renueva de forma transparente, no hay nada que mostrar
+    // salvo que el refresh termine fallando y se redirija a /login.
+    const willSilentlyRetryAuth = status === 401 && !isAuthEndpoint && !originalRequest?._retry
+    const isCanceled = axios.isCancel(error)
+    const message = error.response?.data?.message
+      ?? (!error.response && !isCanceled ? 'No se pudo conectar con el servidor. Revisa tu conexión.' : null)
+    if (message && !isAuthEndpoint && !willSilentlyRetryAuth) {
+      useToast().toastError(message)
+    }
 
     if (status !== 401 || isAuthEndpoint || originalRequest?._retry) {
       return Promise.reject(error)

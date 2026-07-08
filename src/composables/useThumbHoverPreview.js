@@ -15,6 +15,7 @@ export function useThumbHoverPreview(size = 240) {
     const rect = event.currentTarget.getBoundingClientRect()
     let left = rect.right + 12
     if (left + size > window.innerWidth) left = rect.left - size - 12
+    left = Math.min(Math.max(left, 8), window.innerWidth - size - 8)
     let top = rect.top + rect.height / 2 - size / 2
     top = Math.min(Math.max(top, 8), window.innerHeight - size - 8)
     preview.value = { visible: true, src, top, left, size }

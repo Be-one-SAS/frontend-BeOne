@@ -11,6 +11,7 @@ const secciones = [
   { id: "reportes", label: "Reportes" },
   { id: "operativa", label: "Operativa y logística" },
   { id: "desafios", label: "Desafíos comerciales" },
+  { id: "ejecutivos-cuenta", label: "Ejecutivos de Cuenta" },
   { id: "configuracion", label: "Configuración del sistema" },
   { id: "notificaciones", label: "Notificaciones automáticas" },
 ];
@@ -285,17 +286,80 @@ const irA = (id) => {
           <h2 class="doc-h2">🎯 Desafíos comerciales</h2>
           <div class="doc-card">
             <p>
-              Un desafío comercial es una meta o incentivo que un supervisor le asigna a un vendedor, con una
-              comisión en dinero como premio si se cumple. Hay tres tipos: <strong>cierre de trato</strong>
-              (una cotización puntual — se marca cumplido solo, automáticamente, en cuanto esa cotización se
-              aprueba), <strong>meta de cierres múltiples</strong> (cerrar X cotizaciones antes de una fecha) y
-              <strong>tarea de evento</strong> (una tarea manual sin meta numérica).
+              Un desafío comercial es una meta o incentivo que un líder o supervisor le asigna a un miembro de
+              su equipo, con una comisión en dinero como premio si se cumple. Puede asignarse a cualquier
+              subordinado directo, sin importar su rol. Hay cuatro tipos:
             </p>
+            <ul class="doc-list">
+              <li><strong>Cierre de trato</strong> — ligado a una cotización puntual; se marca cumplido solo, automáticamente, en cuanto esa cotización pasa a Aprobada.</li>
+              <li><strong>Meta de cierres múltiples</strong> — cerrar N cotizaciones antes de una fecha límite (progreso = cantidad de cotizaciones Aprobadas en el periodo).</li>
+              <li><strong>Meta de ingresos ($)</strong> — un monto objetivo en pesos a cerrar antes de una fecha límite (ej. "cerrar $40.000.000"); el progreso suma el total de las cotizaciones Aprobadas del periodo, en vez de contarlas. Es la meta que alimenta la barra de progreso en "Ejecutivos de Cuenta".</li>
+              <li><strong>Tarea de evento</strong> — una tarea manual sin meta numérica, se marca cumplida/no cumplida a mano.</li>
+            </ul>
             <p>
               La comisión puede ser un <strong>monto fijo</strong> o un <strong>porcentaje</strong> sobre el
-              valor del negocio. Cada desafío cumplido queda marcado como "ganado", y un supervisor puede
+              valor del negocio. Cada desafío cumplido queda marcado como "ganado", y quien lo asignó puede
               alternarlo a "pagado" cuando corresponda, registrando la fecha de pago. El tablero de cada
-              supervisor muestra, por vendedor, su tasa de cumplimiento y cuánta comisión sigue pendiente de pago.
+              líder/supervisor muestra, por persona, su tasa de cumplimiento y cuánta comisión sigue pendiente
+              de pago.
+            </p>
+          </div>
+        </section>
+
+        <!-- ───────────────────────────────────────────── -->
+        <section id="ejecutivos-cuenta" class="doc-section">
+          <h2 class="doc-h2">📈 Ejecutivos de Cuenta</h2>
+          <div class="doc-card">
+            <p>
+              Pantalla de monitoreo para que un líder (o ADMIN/DIRECCION a nivel de toda la organización) le
+              haga seguimiento a su equipo comercial: meta de ingresos, embudo de cotizaciones, ganancias y
+              pérdidas, y una bitácora de evaluación — todo desde un solo lugar, con un selector arriba para
+              cambiar de ejecutivo (por defecto siempre se muestra uno, no queda la pantalla vacía).
+            </p>
+
+            <h3 class="doc-h3">Quién aparece</h3>
+            <p>
+              A diferencia de otras pantallas, esto no depende del organigrama (<code>parentId</code>) sino del
+              <strong>rol</strong>: cualquier usuario con rol <code>EJECUTIVO</code> o
+              <code>EJECUTIVO_CUENTA</code> es candidato a aparecer. ADMIN y DIRECCION ven a todos los que
+              tengan ese rol en toda la organización; un LIDER solo ve a los que además sean su subordinado
+              directo.
+            </p>
+
+            <h3 class="doc-h3">Meta de ingresos y barra de progreso</h3>
+            <p>
+              Reutiliza el tipo <strong>Meta de ingresos ($)</strong> de Desafíos Comerciales (ver sección
+              anterior). La barra de progreso, arriba de todo, muestra cuánto se ha logrado, el porcentaje, y
+              cuánto falta para llegar a la meta — se actualiza sola a medida que se aprueban cotizaciones del
+              ejecutivo dentro del periodo de la meta.
+            </p>
+
+            <h3 class="doc-h3">Embudo de cotizaciones</h3>
+            <ul class="doc-list">
+              <li><strong>En proceso</strong> — la cotización sigue Pendiente.</li>
+              <li><strong>En ejecución</strong> — está Aprobada y la fecha de hoy cae dentro de la ventana operativa del evento (montaje–desmontaje).</li>
+              <li><strong>Cerrada</strong> — está Aprobada y el evento ya terminó (la ventana operativa ya pasó).</li>
+              <li><strong>Perdida</strong> — fue Rechazada, o su estado administrativo quedó Anulada/EV Cancelado.</li>
+            </ul>
+            <p>
+              Las <strong>ganancias</strong> mostradas suman la utilidad neta de las cotizaciones Cerradas y En
+              ejecución; las <strong>pérdidas</strong> suman el valor cotizado (no la utilidad) de las
+              Perdidas — es el negocio que no se concretó.
+            </p>
+
+            <h3 class="doc-h3">Gráfico y cotizaciones</h3>
+            <p>
+              El gráfico de área muestra el cierre acumulado día a día durante el periodo de la meta activa (o
+              el mes en curso si no hay meta). Debajo, cada cotización se lista con su valor, si tuvo
+              descuento, y el detalle línea por línea de los productos cotizados —propios y de terceros, cada
+              uno con su etiqueta ("Propio"/"Tercero"), cantidad, precio unitario, descuento y una vista previa
+              ampliada de la imagen al pasar el mouse por encima—, paginadas de a 5 y exportables a CSV.
+            </p>
+
+            <h3 class="doc-h3">Bitácora de evaluación</h3>
+            <p>
+              Comentarios de seguimiento que el líder deja sobre un ejecutivo puntual — solo se pueden agregar
+              y consultar, no editar ni borrar —, para llevar un historial de evaluación a lo largo del tiempo.
             </p>
           </div>
         </section>
