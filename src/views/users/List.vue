@@ -129,7 +129,9 @@
 
               <!-- Rol -->
               <td>
-                <span class="role-badge" :class="ROLE_BADGE[u.role]">{{ u.role }}</span>
+                <span class="role-badges">
+                  <span v-for="r in (u.roles ?? [])" :key="r" class="role-badge" :class="ROLE_BADGE[r]">{{ r }}</span>
+                </span>
               </td>
 
               <!-- Estado -->
@@ -173,7 +175,7 @@
                   @click="handleResendBienvenida(u)">
                   <Mail :size="15" />
                 </button>
-                <button v-if="currentUserRole === 'ADMIN'" class="action-btn" title="Cambiar contraseña"
+                <button v-if="isCurrentUserAdmin" class="action-btn" title="Cambiar contraseña"
                   style="--hbg:#F0FDF4; --hc:#16A34A" @click="abrirModalPwd(u)">
                   <KeyRound :size="15" />
                 </button>
@@ -221,9 +223,9 @@
 
                       <!-- Derecha: permisos + historial -->
                       <div>
-                        <p class="exp-section-title">Permisos del rol ({{ u.role }})</p>
+                        <p class="exp-section-title">Permisos ({{ (u.roles ?? []).join(', ') }})</p>
                         <div class="perms-row">
-                          <span v-for="p in rolePermissions[u.role]" :key="p" class="perm-pill">{{ p }}</span>
+                          <span v-for="p in permsFor(u)" :key="p" class="perm-pill">{{ p }}</span>
                         </div>
 
                         <p class="exp-section-title" style="margin-top:12px">Últimas acciones</p>
@@ -246,7 +248,7 @@
       </table>
 
       <!-- Paginación -->
-      <div v-if="!loading && filteredUsers.length > 0" class="pagination-wrap">
+      <div class="pagination-wrap">
         <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">Ant</button>
         <span class="page-info">Pág {{ currentPage }} de {{ totalPages }}</span>
         <button class="page-btn" :disabled="currentPage === totalPages"
@@ -288,7 +290,9 @@
           </span>
         </div>
         <div class="mc-meta">
-          <span class="role-badge" :class="ROLE_BADGE[u.role]">{{ u.role }}</span>
+          <span class="role-badges">
+            <span v-for="r in (u.roles ?? [])" :key="r" class="role-badge" :class="ROLE_BADGE[r]">{{ r }}</span>
+          </span>
           <span class="username-tag">@{{ u.username }}</span>
           <span class="td-meta">{{ getTimeAgo(u.lastLogin) }}</span>
         </div>
@@ -307,7 +311,7 @@
             <ToggleRight v-if="u.status === 'Activo'" :size="15" />
             <ToggleLeft v-else :size="15" />
           </button>
-          <button v-if="currentUserRole === 'ADMIN'" class="action-btn" title="Cambiar contraseña"
+          <button v-if="isCurrentUserAdmin" class="action-btn" title="Cambiar contraseña"
             style="--hbg:#F0FDF4; --hc:#16A34A" @click="abrirModalPwd(u)">
             <KeyRound :size="15" />
           </button>
@@ -319,7 +323,7 @@
       </div>
 
       <!-- Paginación Mobile -->
-      <div v-if="!loading && filteredUsers.length > 0" class="pagination-wrap mobile-pagination">
+      <div class="pagination-wrap mobile-pagination">
         <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">Ant</button>
         <span class="page-info">Pág {{ currentPage }} de {{ totalPages }}</span>
         <button class="page-btn" :disabled="currentPage === totalPages"
@@ -399,7 +403,7 @@ import {
 import { useUsers, rolePermissions } from '@/composables/useUsers'
 import { useAuth } from '@/composables/useAuth'
 import { usePermissions } from '@/composables/usePermissions'
-import { updateUserRole, resendBienvenida, adminSetPassword } from '@/services/users.service'
+import { updateUserRoles, resendBienvenida, adminSetPassword } from '@/services/users.service'
 import UserFormModal from './components/UserFormModal.vue'
 import UserRoleModal from './components/UserRoleModal.vue'
 import UserDeleteModal from './components/UserDeleteModal.vue'
@@ -408,6 +412,10 @@ import UserDeleteModal from './components/UserDeleteModal.vue'
 const { user } = useAuth()
 const { canCreate, canEdit, canDelete } = usePermissions()
 const currentUserRole = computed(() => user.value?.roles?.[0] ?? 'ADMIN')
+const isCurrentUserAdmin = computed(() => (user.value?.roles ?? []).includes('ADMIN'))
+
+// Unión de permisos de TODOS los roles de un usuario (sin duplicados)
+const permsFor = (u) => [...new Set((u.roles ?? []).flatMap(r => rolePermissions[r] ?? []))]
 
 // ── Composable ────────────────────────────────────────
 const {
@@ -438,7 +446,7 @@ watch([search, rolFiltro, statusFiltro], () => {
 })
 
 // ── Config ────────────────────────────────────────────
-const ROLES = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO', 'VISOR']
+const ROLES = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'LOGISTICO', 'OPERATIVO', 'VISOR']
 const TABLE_COLS = ['Usuario', 'Username', 'Rol', 'Estado', 'Último acceso', 'Creado', 'Acciones']
 
 // ── Badge maps ────────────────────────────────────────
@@ -449,6 +457,8 @@ const ROLE_BADGE = {
   LIDER: 'bg-[#DCFCE7] text-[#16A34A]',
   SUPERVISOR: 'bg-[#FEF3C7] text-[#B45309]',
   COORDINADOR: 'bg-[#FFEDD5] text-[#C2410C]',
+  EJECUTIVO: 'bg-[#DBEAFE] text-[#2563EB]',
+  EJECUTIVO_CUENTA: 'bg-[#FCE7F3] text-[#BE185D]',
   LOGISTICO: 'bg-[#F1F5F9] text-[#64748B]',
   OPERATIVO: 'bg-[#D1FAE5] text-[#065F46]',
   VISOR: 'bg-[#E0E7FF] text-[#4338CA]',
@@ -512,10 +522,10 @@ const usuarioRol = ref(null)
 
 const abrirModalRol = (u) => { usuarioRol.value = { ...u }; showRoleModal.value = true }
 
-const handleSaveRole = async ({ usuario, nuevoRol }) => {
+const handleSaveRole = async ({ usuario, nuevosRoles }) => {
   actionError.value = ''
   try {
-    await updateUserRole(usuario.id, nuevoRol)
+    await updateUserRoles(usuario.id, nuevosRoles)
     await loadUsers()
     showRoleModal.value = false
   } catch (e) {
@@ -976,6 +986,12 @@ onMounted(() => loadUsers())
   font-size: 12px;
   color: #475569;
   font-weight: 500;
+}
+
+.role-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 .role-badge,

@@ -25,7 +25,7 @@
         <h1 class="hero-name">{{ displayName }}</h1>
         <p class="hero-email">{{ user?.email }}</p>
         <div class="hero-badges">
-          <span class="role-badge" :style="roleBadgeStyle">{{ userRole ?? '—' }}</span>
+          <span class="role-badge" :style="roleBadgeStyle">{{ (user?.roles ?? []).join(', ') || '—' }}</span>
           <span v-if="isOrgAdmin" class="sede-chip sede-chip--org" title="Nivel organización">🏢 Organización</span>
           <span v-else-if="sedeName" class="sede-chip sede-chip--sede" title="Unidad de Ejecución">📍 {{ sedeName }}</span>
         </div>
@@ -80,7 +80,7 @@
         </div>
         <div class="pf-field">
           <span class="pf-label">Rol</span>
-          <span class="role-badge" :style="roleBadgeStyle">{{ userRole ?? '—' }}</span>
+          <span class="role-badge" :style="roleBadgeStyle">{{ (user?.roles ?? []).join(', ') || '—' }}</span>
         </div>
         <div class="pf-field pf-field--full">
           <span class="pf-label">Unidad de Ejecución</span>
@@ -132,7 +132,7 @@
           <div class="field-wrap">
             <label class="field-lbl">Rol <span class="readonly-tag">No editable</span></label>
             <div class="field-input field-readonly" style="display:flex;align-items:center;">
-              <span class="role-badge" :style="roleBadgeStyle">{{ userRole ?? '—' }}</span>
+              <span class="role-badge" :style="roleBadgeStyle">{{ (user?.roles ?? []).join(', ') || '—' }}</span>
             </div>
           </div>
         </div>
@@ -250,7 +250,7 @@ import { useSidebarPermissions } from '@/composables/useSidebarPermissions'
 import { getMe, updateProfile, changePassword, uploadAvatar } from '@/services/user.service'
 
 const { user, updateUserData } = useAuth()
-const { userRole, roleBadgeStyle, userInitials, avatarColor, displayName, sedeName, isOrgAdmin } = useSidebarPermissions()
+const { roleBadgeStyle, userInitials, avatarColor, displayName, sedeName, isOrgAdmin } = useSidebarPermissions()
 
 // ── Foto de perfil ──────────────────────────────────────
 const uploadingAvatar = ref(false)

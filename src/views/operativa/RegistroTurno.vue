@@ -87,7 +87,7 @@
               </td>
               <td>
                 <span v-if="row.isExternal" class="rt-role-badge rt-role--ext">LOGISTICA</span>
-                <span v-else class="rt-role-badge" :class="rtRoleClass(row.user.role)">{{ row.user.role }}</span>
+                <span v-else class="rt-role-badge" :class="rtRoleClass(row.user.roles?.[0])">{{ (row.user.roles ?? []).join(', ') }}</span>
               </td>
               <td class="rt-time">
                 <span v-if="row.registro?.horaIngreso">{{ formatTime(row.registro.horaIngreso) }}</span>
@@ -197,12 +197,12 @@
                 <option :value="null" disabled>Seleccionar…</option>
                 <optgroup label="Personal del evento">
                   <option v-for="u in rosterUsers" :key="u.id" :value="u.id">
-                    {{ u.fullName }} — {{ u.role }}
+                    {{ u.fullName }} — {{ (u.roles ?? []).join(', ') }}
                   </option>
                 </optgroup>
                 <optgroup v-if="extraUsers.length" label="Otros usuarios">
                   <option v-for="u in extraUsers" :key="u.id" :value="u.id">
-                    {{ u.fullName }} — {{ u.role }}
+                    {{ u.fullName }} — {{ (u.roles ?? []).join(', ') }}
                   </option>
                 </optgroup>
               </select>
@@ -319,7 +319,7 @@
                   <div class="rt-avatar rt-avatar--sm">{{ initials(u.fullName) }}</div>
                   <div class="rt-user-info">
                     <span class="rt-user-name">{{ u.fullName }}</span>
-                    <span class="rt-role-badge rt-role-badge--sm" :class="rtRoleClass(u.role)">{{ u.role }}</span>
+                    <span class="rt-role-badge rt-role-badge--sm" :class="rtRoleClass(u.roles?.[0])">{{ (u.roles ?? []).join(', ') }}</span>
                   </div>
                 </button>
                 <p v-if="!filteredAllUsers.length" class="rt-user-empty">Sin resultados</p>
@@ -402,8 +402,8 @@ import { useAuth } from '@/composables/useAuth'
 const { user } = useAuth()
 
 // ── Roles ─────────────────────────────────────────────────────────
-const MANAGER_ROLES = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO']
-const DELETE_ROLES  = ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR']
+const MANAGER_ROLES = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'LOGISTICO']
+const DELETE_ROLES  = ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA']
 
 const canManageTurnos = computed(() =>
   (user.value?.roles ?? []).some(r => MANAGER_ROLES.includes(r))
@@ -449,13 +449,13 @@ const rtForm = ref(rtFormDefault())
 const rosterUserIds = computed(() => new Set(rosterUsers.value.map(u => u.id)))
 
 const extraUsers = computed(() =>
-  allUsers.value.filter(u => u.role === 'LOGISTICO' && !rosterUserIds.value.has(u.id))
+  allUsers.value.filter(u => u.roles?.includes('LOGISTICO') && !rosterUserIds.value.has(u.id))
 )
 
 const filteredAllUsers = computed(() => {
   const q = addPersonSearch.value.toLowerCase().trim()
   return allUsers.value.filter(u =>
-    u.role === 'LOGISTICO' &&
+    u.roles?.includes('LOGISTICO') &&
     (!q || u.fullName?.toLowerCase().includes(q))
   )
 })
@@ -466,7 +466,7 @@ const rtRoster = computed(() => {
   const rows = rosterUsers.value.map(u => ({ user: u, registro: byUser.get(u.id) ?? null, isExternal: false }))
   // Add LOGISTICA users with a registro but not in quotation members
   for (const r of rtRegistros.value) {
-    if (r.userId && !rosterUserIds.value.has(r.userId) && r.user?.role === 'LOGISTICO') {
+    if (r.userId && !rosterUserIds.value.has(r.userId) && r.user?.roles?.includes('LOGISTICO')) {
       rows.push({ user: r.user, registro: r, isExternal: false })
     }
   }
@@ -533,6 +533,7 @@ const calcTotalFromForm = () => {
 const rtRoleClass = (role) => ({
   LOGISTICO: 'rt-role--blue', OPERATIVO: 'rt-role--green',
   SUPERVISOR: 'rt-role--purple', COORDINADOR: 'rt-role--orange',
+  EJECUTIVO: 'rt-role--orange', EJECUTIVO_CUENTA: 'rt-role--orange',
 })[role] ?? 'rt-role--gray'
 
 const buildDateTime = (dateStr, timeStr) =>
@@ -564,7 +565,7 @@ const loadRegistros = async () => {
     const coordUsers  = (q?.coordinadores ?? []).map(c => c.user ?? c).filter(Boolean)
     const seen = new Set()
     rosterUsers.value = [...memberUsers, ...coordUsers].filter(u => {
-      if (!u?.id || seen.has(u.id) || u.role !== 'LOGISTICO') return false
+      if (!u?.id || seen.has(u.id) || !u.roles?.includes('LOGISTICO')) return false
       seen.add(u.id); return true
     })
   } catch (_) { rtRegistros.value = [] }

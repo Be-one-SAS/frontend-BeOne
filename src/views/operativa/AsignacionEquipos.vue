@@ -187,7 +187,7 @@
             <span class="ae-persona-avatar">{{ initials(persona.fullName) }}</span>
             <div>
               <div class="ae-persona-name">{{ persona.fullName }}</div>
-              <div class="ae-persona-role">{{ persona.role }}</div>
+              <div class="ae-persona-role">{{ (persona.roles ?? []).join(', ') }}</div>
             </div>
             <span class="ae-persona-count">{{ persona.eventos.length }} evento{{ persona.eventos.length !== 1 ? 's' : '' }}</span>
           </div>
@@ -322,13 +322,13 @@ const personaRows = computed(() => {
     for (const c of (ev.coordinadores ?? [])) {
       const u = c.user ?? c
       if (!u?.id) continue
-      if (!map.has(u.id)) map.set(u.id, { id: u.id, fullName: u.fullName, role: u.role, eventos: [] })
+      if (!map.has(u.id)) map.set(u.id, { id: u.id, fullName: u.fullName, roles: u.roles, eventos: [] })
       map.get(u.id)!.eventos.push({ ...ev, rolEnEvento: 'coord' })
     }
     for (const m of (ev.members ?? [])) {
       const u = m.user ?? m
       if (!u?.id) continue
-      if (!map.has(u.id)) map.set(u.id, { id: u.id, fullName: u.fullName, role: u.role, eventos: [] })
+      if (!map.has(u.id)) map.set(u.id, { id: u.id, fullName: u.fullName, roles: u.roles, eventos: [] })
       const existing = map.get(u.id)!.eventos.find(e => e.id === ev.id)
       if (!existing) map.get(u.id)!.eventos.push({ ...ev, rolEnEvento: 'apoyo' })
     }

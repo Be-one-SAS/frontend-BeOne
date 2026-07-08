@@ -71,7 +71,7 @@
           </div>
           <div class="sede-lider-info">
             <span class="sede-lider-name">{{ s.lider.fullName }}</span>
-            <span class="sede-lider-rol">Líder · {{ s.lider.role }}</span>
+            <span class="sede-lider-rol">Líder · {{ (s.lider.roles ?? []).join(', ') }}</span>
           </div>
         </div>
         <div v-else class="sede-lider sede-lider--empty">
@@ -121,7 +121,7 @@
               <select v-model="form.liderUserId" class="sedes-input">
                 <option :value="null">— Sin líder —</option>
                 <option v-for="u in allUsuarios" :key="u.id" :value="u.id">
-                  {{ u.fullName }} · {{ u.role }}
+                  {{ u.fullName }} · {{ (u.roles ?? []).join(', ') }}
                 </option>
               </select>
             </div>
@@ -256,7 +256,7 @@
                   </div>
                   <div class="detail-user-info">
                     <span class="detail-user-name">{{ u.fullName }}</span>
-                    <span class="detail-user-meta">{{ u.role }} <template v-if="u.ciudad">· {{ u.ciudad }}</template></span>
+                    <span class="detail-user-meta">{{ (u.roles ?? []).join(', ') }} <template v-if="u.ciudad">· {{ u.ciudad }}</template></span>
                   </div>
                   <span v-if="detailData.lider?.id === u.id" class="detail-lider-tag">Líder</span>
                   <button class="detail-user-remove" @click="removeUser(u)" title="Quitar de esta sede">
@@ -272,7 +272,7 @@
                   <select v-model="selectedUserId" class="sedes-input detail-add-select">
                     <option :value="null">Selecciona un usuario…</option>
                     <option v-for="u in availableUsers" :key="u.id" :value="u.id">
-                      {{ u.fullName }} · {{ u.role }}
+                      {{ u.fullName }} · {{ (u.roles ?? []).join(', ') }}
                     </option>
                   </select>
                   <button

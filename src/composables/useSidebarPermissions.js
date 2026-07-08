@@ -25,6 +25,8 @@ const ROLE_BADGE_STYLES = {
   LIDER:         'background:#DCFCE7;color:#16A34A',
   SUPERVISOR:    'background:#FEF3C7;color:#B45309',
   COORDINADOR:   'background:#FFEDD5;color:#C2410C',
+  EJECUTIVO:     'background:#DBEAFE;color:#2563EB',
+  EJECUTIVO_CUENTA: 'background:#FCE7F3;color:#BE185D',
   LOGISTICO:     'background:#F1F5F9;color:#64748B',
 }
 
@@ -37,20 +39,22 @@ const AVATAR_COLORS = [
 export const useSidebarPermissions = () => {
   const { user } = useAuth()
 
-  /** Rol activo del usuario autenticado */
+  /** Primer rol del usuario — solo para MOSTRAR (badge), nunca para decidir permisos */
   const userRole = computed(() => user.value?.roles?.[0] ?? null)
 
   /**
-   * Verifica si el usuario puede ver un ítem de menú.
+   * Verifica si el usuario puede ver un ítem de menú. Revisa TODOS los roles
+   * del usuario (no solo el primero) — basta con que uno califique.
    * Si roles está vacío o es undefined → siempre visible.
    * @param {string[]} roles
    */
   const canSee = (roles) => {
     if (!roles || roles.length === 0) return true
+    const userRoles = user.value?.roles ?? []
     // VISOR es de solo lectura pero ve todo el menú, igual que ADMIN.
-    if (userRole.value === 'VISOR') return true
-    const role = userRole.value ?? 'ADMINISTRADOR'
-    return roles.includes(role)
+    if (userRoles.includes('VISOR')) return true
+    if (userRoles.length === 0) return roles.includes('ADMINISTRADOR')
+    return userRoles.some((r) => roles.includes(r))
   }
 
   /** Estilo CSS inline del badge del rol actual */

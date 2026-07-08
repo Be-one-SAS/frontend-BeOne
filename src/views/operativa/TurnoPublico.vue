@@ -46,7 +46,7 @@
             <div class="tp-avatar">{{ initials(row.isExternal ? row.registro.nombreExterno : row.user.fullName) }}</div>
             <div>
               <div class="tp-person-name">{{ row.isExternal ? row.registro.nombreExterno : row.user.fullName }}</div>
-              <div class="tp-person-role">{{ row.isExternal ? (row.registro.telefonoExterno ?? 'Externo') : row.user.role }}</div>
+              <div class="tp-person-role">{{ row.isExternal ? (row.registro.telefonoExterno ?? 'Externo') : (row.user.roles ?? []).join(', ') }}</div>
             </div>
             <div class="tp-status-chip" :class="statusChipClass(row)">{{ statusLabel(row) }}</div>
           </div>
@@ -190,7 +190,7 @@ const roster = computed(() => {
   // Miembros de la cotización con rol operativo
   for (const m of (data.value.members ?? [])) {
     const u = m.user ?? m
-    if (!u?.id || !RT_OP_ROLES.includes(u.role) || seen.has(u.id)) continue
+    if (!u?.id || !(u.roles ?? []).some(r => RT_OP_ROLES.includes(r)) || seen.has(u.id)) continue
     seen.add(u.id)
     rows.push({ user: u, registro: registroByUser.get(u.id) ?? null, isExternal: false })
   }

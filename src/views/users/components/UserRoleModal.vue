@@ -11,9 +11,9 @@
             <!-- ── Header ──────────────────────────────── -->
             <div class="modal-header">
               <div>
-                <h2 class="modal-title">Cambiar rol</h2>
+                <h2 class="modal-title">Cambiar roles</h2>
                 <p class="modal-sub" v-if="usuario">
-                  Asignar nuevo rol a
+                  Asignar roles a
                   <strong class="text-text-1">{{ usuario.fullName }}</strong>
                 </p>
               </div>
@@ -32,23 +32,28 @@
                 <p class="u-email">{{ usuario.email }}</p>
               </div>
               <div class="role-current-wrap">
-                <span class="role-lbl">Rol actual</span>
-                <span class="role-badge" :class="ROLE_BADGE[usuario.role]">
-                  {{ usuario.role }}
+                <span class="role-lbl">Roles actuales</span>
+                <span class="role-current-badges">
+                  <span
+                    v-for="r in (usuario.roles ?? [])"
+                    :key="r"
+                    class="role-badge"
+                    :class="ROLE_BADGE[r]"
+                  >{{ r }}</span>
                 </span>
               </div>
             </div>
 
             <!-- ── Grid de roles ───────────────────────── -->
             <div class="roles-section">
-              <p class="section-title">Selecciona el nuevo rol</p>
+              <p class="section-title">Selecciona los roles (puedes marcar más de uno)</p>
               <div class="roles-grid">
                 <button
                   v-for="rol in ROLE_CONFIG"
                   :key="rol.key"
                   class="role-card"
-                  :class="{ 'role-card-selected': selectedRole === rol.key }"
-                  @click="selectedRole = rol.key"
+                  :class="{ 'role-card-selected': selectedRoles.includes(rol.key) }"
+                  @click="toggleRole(rol.key)"
                 >
                   <!-- Ícono -->
                   <div class="role-card-icon" :style="{ background: rol.iconBg }">
@@ -67,7 +72,7 @@
                   </span>
 
                   <!-- Check -->
-                  <div v-if="selectedRole === rol.key" class="role-check">
+                  <div v-if="selectedRoles.includes(rol.key)" class="role-check">
                     <CheckCircle2 :size="16" color="#27C8D8" />
                   </div>
                 </button>
@@ -76,7 +81,7 @@
 
             <!-- ── Advertencia ADMIN ────────────────────── -->
             <Transition name="warn-fade">
-              <div v-if="selectedRole === 'ADMIN'" class="admin-warning">
+              <div v-if="selectedRoles.includes('ADMIN')" class="admin-warning">
                 <AlertTriangle :size="15" class="warn-icon" />
                 <p class="warn-text">
                   Este rol tiene acceso completo al sistema incluyendo
@@ -91,11 +96,11 @@
               <button class="btn-ghost" @click="$emit('close')">Cancelar</button>
               <button
                 class="btn-assign"
-                :disabled="!selectedRole || selectedRole === usuario?.role"
+                :disabled="!selectedRoles.length || sameRoles"
                 @click="asignar"
               >
                 <Shield :size="14" />
-                Asignar rol
+                Asignar roles
               </button>
             </div>
 
@@ -107,10 +112,11 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import {
   X, Shield, AlertTriangle, CheckCircle2,
   TrendingUp, Eye, Truck, Users, UserCog, BarChart2, ScanEye,
+  Briefcase, Gauge,
 } from 'lucide-vue-next'
 
 // ── Props & Emits ─────────────────────────────────────
@@ -120,13 +126,26 @@ const props = defineProps({
 })
 const emit = defineEmits(['close', 'save'])
 
-// ── Selected role state ───────────────────────────────
-const selectedRole = ref('')
+// ── Selected roles state ──────────────────────────────
+const selectedRoles = ref([])
 
-// Inicializar con el rol actual del usuario al abrir
+const toggleRole = (role) => {
+  selectedRoles.value = selectedRoles.value.includes(role)
+    ? selectedRoles.value.filter(r => r !== role)
+    : [...selectedRoles.value, role]
+}
+
+// true si el conjunto seleccionado es exactamente igual al actual (sin cambios)
+const sameRoles = computed(() => {
+  const current = props.usuario?.roles ?? []
+  if (current.length !== selectedRoles.value.length) return false
+  return current.every(r => selectedRoles.value.includes(r))
+})
+
+// Inicializar con los roles actuales del usuario al abrir
 watch(() => props.show, (val) => {
-  if (val && props.usuario) selectedRole.value = props.usuario.role ?? ''
-  else selectedRole.value = ''
+  if (val && props.usuario) selectedRoles.value = [...(props.usuario.roles ?? [])]
+  else selectedRoles.value = []
 })
 
 // ── Role config ───────────────────────────────────────
@@ -174,6 +193,20 @@ const ROLE_CONFIG = [
     description: 'Coordinación en campo',
   },
   {
+    key:         'EJECUTIVO',
+    icon:        Briefcase,
+    iconBg:      '#DBEAFE',
+    iconColor:   '#2563EB',
+    description: 'Cotizaciones y clientes propios',
+  },
+  {
+    key:         'EJECUTIVO_CUENTA',
+    icon:        Gauge,
+    iconBg:      '#FCE7F3',
+    iconColor:   '#BE185D',
+    description: 'Ejecutivo de cuenta monitoreado por su líder',
+  },
+  {
     key:         'LOGISTICO',
     icon:        Truck,
     iconBg:      '#F1F5F9',
@@ -203,6 +236,8 @@ const ROLE_BADGE = {
   LIDER:         'bg-[#DCFCE7] text-[#16A34A]',
   SUPERVISOR:    'bg-[#FEF3C7] text-[#B45309]',
   COORDINADOR:   'bg-[#FFEDD5] text-[#C2410C]',
+  EJECUTIVO:     'bg-[#DBEAFE] text-[#2563EB]',
+  EJECUTIVO_CUENTA: 'bg-[#FCE7F3] text-[#BE185D]',
   LOGISTICO:     'bg-[#F1F5F9] text-[#64748B]',
   OPERATIVO:     'bg-[#D1FAE5] text-[#065F46]',
   VISOR:         'bg-[#E0E7FF] text-[#4338CA]',
@@ -216,9 +251,8 @@ const getInitials = (name) =>
 
 // ── Asignar ───────────────────────────────────────────
 const asignar = () => {
-  if (!selectedRole.value || selectedRole.value === props.usuario?.role) return
-  // conectar API aquí → updateUserRole(props.usuario.id, selectedRole.value)
-  emit('save', { usuario: props.usuario, nuevoRol: selectedRole.value })
+  if (!selectedRoles.value.length || sameRoles.value) return
+  emit('save', { usuario: props.usuario, nuevosRoles: [...selectedRoles.value] })
 }
 </script>
 
@@ -355,6 +389,13 @@ const asignar = () => {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-weight: 600;
+}
+
+.role-current-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
 }
 
 /* ── Roles section ───────────────────────────────────── */

@@ -84,27 +84,20 @@
                   />
                 </div>
 
-                <!-- Rol -->
-                <div class="field-wrap">
-                  <label class="field-lbl">Rol <span class="optional">(opcional)</span></label>
-                  <div class="select-wrap">
-                    <select
-                      v-model="form.role"
-                      class="field-input"
-                      :class="{ 'field-error': errors.role }"
-                      @blur="validateField('role')"
-                    >
-                      <option value="" disabled>Selecciona un rol</option>
-                      <option v-for="r in ROLES" :key="r" :value="r">{{ r }}</option>
-                    </select>
-                    <!-- Badge preview del rol seleccionado -->
-                    <span
-                      v-if="form.role"
-                      class="role-preview-badge"
-                      :class="ROLE_BADGE[form.role]"
-                    >{{ form.role }}</span>
+                <!-- Roles -->
+                <div class="field-wrap" style="grid-column: span 2">
+                  <label class="field-lbl">Roles <span class="optional">(opcional, puedes elegir varios)</span></label>
+                  <div class="roles-chip-grid">
+                    <button
+                      v-for="r in ROLES"
+                      :key="r"
+                      type="button"
+                      class="role-chip"
+                      :class="[ROLE_BADGE[r], { 'role-chip-selected': form.roles.includes(r) }]"
+                      @click="toggleFormRole(r)"
+                    >{{ r }}</button>
                   </div>
-                  <p v-if="errors.role" class="err-msg">{{ errors.role }}</p>
+                  <p v-if="errors.roles" class="err-msg">{{ errors.roles }}</p>
                 </div>
 
                 <!-- Estado -->
@@ -233,7 +226,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'save'])
 
 // ── Config ────────────────────────────────────────────
-const ROLES = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO', 'VISOR']
+const ROLES = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'LOGISTICO', 'OPERATIVO', 'VISOR']
 const sedes       = ref([])
 const sedesError  = ref(false)
 const sedesLoaded = ref(false)
@@ -255,6 +248,8 @@ const ROLE_BADGE = {
   LIDER:         'bg-[#CCEFF2] text-[#27C8D8]',
   SUPERVISOR:    'bg-[#EDE9FE] text-[#7C3AED]',
   COORDINADOR:   'bg-[#E0F2FE] text-[#138E9C]',
+  EJECUTIVO:     'bg-[#DBEAFE] text-[#2563EB]',
+  EJECUTIVO_CUENTA: 'bg-[#FCE7F3] text-[#BE185D]',
   LOGISTICO:     'bg-[#DCFCE7] text-[#16A34A]',
   OPERATIVO:     'bg-[#D1FAE5] text-[#065F46]',
   VISOR:         'bg-[#E0E7FF] text-[#4338CA]',
@@ -266,13 +261,19 @@ const isEdit = computed(() => !!props.usuario)
 // ── Formulario ────────────────────────────────────────
 const form = reactive({
   fullName: '', email: '', username: '',
-  telefono: '', role: '', status: 'Activo',
+  telefono: '', roles: [], status: 'Activo',
   ciudad: '', documento: '', password: '', notas: '',
   sedeId: null,
 })
 
 const errors  = reactive({})
 const showPw  = ref(false)
+
+const toggleFormRole = (role) => {
+  form.roles = form.roles.includes(role)
+    ? form.roles.filter(r => r !== role)
+    : [...form.roles, role]
+}
 
 // Llenar formulario al abrir en modo editar o limpiar al crear
 watch(() => props.show, (val) => {
@@ -285,7 +286,7 @@ watch(() => props.show, (val) => {
       email:    props.usuario.email    ?? '',
       username: props.usuario.username ?? '',
       telefono: props.usuario.telefono ?? '',
-      role:     props.usuario.role     ?? '',
+      roles:    [...(props.usuario.roles ?? [])],
       status:   props.usuario.status   ?? 'Activo',
       ciudad:   props.usuario.ciudad   ?? '',
       documento:props.usuario.documento?? '',
@@ -296,7 +297,7 @@ watch(() => props.show, (val) => {
   } else {
     Object.assign(form, {
       fullName: '', email: '', username: '',
-      telefono: '', role: '', status: 'Activo',
+      telefono: '', roles: [], status: 'Activo',
       ciudad: '', documento: '', password: '', notas: '',
       sedeId: null,
     })
@@ -384,6 +385,10 @@ const guardar = () => {
 
   // Evitar enviar un string vacío en status y usar el default o no enviarlo
   if (!payload.status) delete payload.status
+
+  // Sin roles marcados → no enviar el campo (el backend aplica su default en
+  // creación, y en edición evita borrar sin querer los roles ya asignados)
+  if (!payload.roles?.length) delete payload.roles
 
   if (isEdit.value) {
     payload.id = props.usuario.id
@@ -566,23 +571,31 @@ const guardar = () => {
 
 .field-input.has-prefix { padding-left: 24px; }
 
-/* ── Select + badge preview ──────────────────────────── */
-.select-wrap {
+/* ── Roles (selección múltiple con chips) ────────────── */
+.roles-chip-grid {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
-.select-wrap .field-input { flex: 1; }
-
-.role-preview-badge {
-  padding: 2px 9px;
+.role-chip {
+  padding: 5px 12px;
   border-radius: 99px;
   font-size: 11px;
   font-weight: 600;
   font-family: 'Inter', sans-serif;
   white-space: nowrap;
-  flex-shrink: 0;
+  border: 2px solid transparent;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.15s ease, border-color 0.15s ease;
+}
+
+.role-chip:hover { opacity: 0.8; }
+
+.role-chip-selected {
+  opacity: 1;
+  border-color: currentColor;
 }
 
 /* ── Password ────────────────────────────────────────── */
@@ -713,6 +726,5 @@ const guardar = () => {
 @media (max-width: 600px) {
   .modal-card { padding: 20px 16px; }
   .form-grid { grid-template-columns: 1fr; }
-  .select-wrap { flex-wrap: wrap; }
 }
 </style>

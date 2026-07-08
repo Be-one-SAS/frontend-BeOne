@@ -245,7 +245,7 @@
           <select v-model="personal.personKey" class="po-filter-input">
             <option :value="null">Todo el personal</option>
             <option v-for="u in personalDisponible" :key="u.id" :value="u.id">
-              {{ u.fullName }} · {{ u.role }}
+              {{ u.fullName }} · {{ (u.roles ?? []).join(', ') }}
             </option>
           </select>
         </div>
@@ -326,7 +326,7 @@
                 <div class="po-avatar">{{ (r.user?.fullName ?? r.nombreExterno ?? '?').split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase() }}</div>
                 <span>{{ r.user?.fullName ?? r.nombreExterno ?? '—' }}</span>
               </td>
-              <td><span class="rep-role" :class="repRoleClass(r.user?.role)">{{ r.user?.role ?? 'Externo' }}</span></td>
+              <td><span class="rep-role" :class="repRoleClass(r.user?.roles?.[0])">{{ (r.user?.roles ?? []).join(', ') || 'Externo' }}</span></td>
               <td v-if="!personal.quotationId" class="po-td-event">
                 <span class="po-event-num">#{{ r.quotation?.numero }}</span>
                 {{ r.quotation?.cliente?.name ?? r.quotation?.empresa ?? '—' }}
@@ -801,7 +801,7 @@ async function runPersonal() {
 // queden todos consistentes.
 const personalLogistico = computed(() => {
   const rows = personal.value.data ?? []
-  return rows.filter(r => r.user?.role === 'LOGISTICO' || (!r.userId && r.nombreExterno))
+  return rows.filter(r => r.user?.roles?.includes('LOGISTICO') || (!r.userId && r.nombreExterno))
 })
 
 // Identificador único de persona: userId para internos, nombre para externos
@@ -819,7 +819,7 @@ const personalDisponible = computed(() => {
       seen.set(key, {
         id:       key,
         fullName: r.user?.fullName ?? r.nombreExterno ?? '—',
-        role:     r.user?.role ?? 'Externo',
+        roles:    r.user?.roles?.length ? r.user.roles : ['Externo'],
       })
     }
   })
@@ -891,7 +891,7 @@ function fmtTime(iso) {
   return new Date(iso).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false })
 }
 function repRoleClass(role) {
-  const map = { LOGISTICO: 'rep-role--blue', OPERATIVO: 'rep-role--green', SUPERVISOR: 'rep-role--purple', COORDINADOR: 'rep-role--orange' }
+  const map = { LOGISTICO: 'rep-role--blue', OPERATIVO: 'rep-role--green', SUPERVISOR: 'rep-role--purple', COORDINADOR: 'rep-role--orange', EJECUTIVO: 'rep-role--orange', EJECUTIVO_CUENTA: 'rep-role--orange' }
   return map[role] ?? 'rep-role--gray'
 }
 
@@ -900,7 +900,7 @@ function exportPersonal() {
   const headers = ['Persona', 'Rol', 'Evento', 'Fecha', 'Ingreso', 'Salida', 'Horas', 'Valor/hora', '% Extra', 'Estado', 'Total']
   const csv = rows.map(r => [
     r.user?.fullName ?? r.nombreExterno ?? '',
-    r.user?.role ?? 'Externo',
+    (r.user?.roles ?? []).join(', ') || 'Externo',
     `#${r.quotation?.numero} ${r.quotation?.cliente?.name ?? r.quotation?.empresa ?? ''}`,
     fmtDate(r.fecha),
     r.horaIngreso ? fmtTime(r.horaIngreso) : '',

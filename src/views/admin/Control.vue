@@ -22,9 +22,9 @@ import { useThumbHoverPreview } from '@/composables/useThumbHoverPreview'
 const { preview: thumbPreview, showPreview: showThumbPreview, hidePreview: hideThumbPreview } = useThumbHoverPreview()
 
 // Debe coincidir con EXTRA_COST_READ_ROLES en el backend (quotations.controller.ts)
-const EXTRA_COST_READ_ROLES = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO']
+const EXTRA_COST_READ_ROLES = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'LOGISTICO']
 const { user } = useAuth()
-const canSeeExtraCosts = computed(() => EXTRA_COST_READ_ROLES.includes(user.value?.roles?.[0]))
+const canSeeExtraCosts = computed(() => (user.value?.roles ?? []).some(r => EXTRA_COST_READ_ROLES.includes(r)))
 
 const activeTab = ref<'control' | 'equipo'>('control')
 

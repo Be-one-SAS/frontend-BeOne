@@ -972,7 +972,7 @@ const formatDateTime = (iso) =>
     </BaseTable>
 
     <!-- Paginación por cotización (no por fila) -->
-    <div v-if="comisionesTotalPages > 1" class="vc-pagination">
+    <div class="vc-pagination">
       <span class="vc-pag-info">
         Página {{ comisionesPage }} de {{ comisionesTotalPages }} · {{ comisionesTotalQuotations }} cotizaciones
       </span>

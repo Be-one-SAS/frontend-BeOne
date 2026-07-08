@@ -613,7 +613,7 @@ onMounted(fetchProducts)
       </div>
 
       <!-- Paginación -->
-      <div v-if="!loading && filteredSorted.length > 0" class="pp-pagination">
+      <div class="pp-pagination">
         <span class="pg-info">
           {{ (currentPage - 1) * Number(pageSize) + 1 }}–{{ Math.min(currentPage * Number(pageSize), filteredSorted.length) }}
           de {{ filteredSorted.length }}

@@ -277,7 +277,7 @@
             </table>
           </div>
 
-          <div v-if="recentTotalPages > 1" class="pp-pagination">
+          <div class="pp-pagination">
             <span class="pg-info">
               {{ (recentPage - 1) * recentPageSize + 1 }}–{{ Math.min(recentPage * recentPageSize, allRecentQuotations.length) }}
               de {{ allRecentQuotations.length }}

@@ -23,7 +23,7 @@
         </div>
         <div class="member-info">
           <span class="member-name">{{ member.user.fullName }}</span>
-          <span class="member-role">{{ member.user.role || 'Invitado' }}</span>
+          <span class="member-role">{{ (member.user.roles ?? []).join(', ') || 'Invitado' }}</span>
         </div>
         <button 
           v-if="!isReadOnly"
@@ -73,7 +73,7 @@
             </div>
             <div class="option-info">
               <span class="option-name">{{ u.fullName }}</span>
-              <span class="option-email">{{ u.email }} | {{ u.role }}</span>
+              <span class="option-email">{{ u.email }} | {{ (u.roles ?? []).join(', ') }}</span>
             </div>
             <span v-if="u.sede?.nombre" class="option-sede">{{ u.sede.nombre }}</span>
           </button>
@@ -169,7 +169,7 @@ const agregarMiembro = async (userData) => {
       id: userData.id,
       fullName: userData.fullName,
       email: userData.email,
-      role: userData.role
+      roles: userData.roles
     }
   }
 

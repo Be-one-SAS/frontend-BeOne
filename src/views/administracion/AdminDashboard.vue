@@ -247,7 +247,7 @@ const kpisIngresos = computed(() => {
   ]
 })
 
-const ROL_COLORS = { LOGISTICA: '#27C8D8', OPERATIVO: '#059669', SUPERVISOR: '#7C3AED', COORDINADOR: '#D97706', LIDER: '#0F1A2E' }
+const ROL_COLORS = { LOGISTICA: '#27C8D8', OPERATIVO: '#059669', SUPERVISOR: '#7C3AED', COORDINADOR: '#D97706', EJECUTIVO: '#D97706', EJECUTIVO_CUENTA: '#D97706', LIDER: '#0F1A2E' }
 const rolColor = (rol) => ROL_COLORS[rol] ?? '#94A3B8'
 
 async function load() {

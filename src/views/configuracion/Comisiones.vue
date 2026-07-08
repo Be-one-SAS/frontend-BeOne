@@ -265,7 +265,7 @@ onMounted(() => {
     </BaseTable>
 
     <!-- Paginación por cotización (no por fila) -->
-    <div v-if="totalPages > 1" class="com-pagination">
+    <div class="com-pagination">
       <span class="com-pag-info">Página {{ page }} de {{ totalPages }} · {{ totalQuotations }} cotizaciones</span>
       <div class="com-pag-btns">
         <button class="com-pag-btn" :disabled="page <= 1" @click="cambiarPagina(page - 1)">‹</button>
