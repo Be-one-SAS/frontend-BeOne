@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useAuth } from "../../composables/useAuth";
 import { getSedes } from "../../services/sedes.service";
-import { getCommissionsReport } from "../../services/quotation.service";
+import { getCommissionsReport, getCommissionsExport, getCommissionsVendedores } from "../../services/quotation.service";
 import { formatCOP } from "../../utils/currency.js";
 import SelectLabel from "../../components/input/SelectLabel.vue";
 import BaseTable from "../../components/ui/BaseTable.vue";
@@ -25,11 +25,13 @@ const estados = [
   { label: "Vencida",   value: "Vencida"   },
 ];
 
-const filtros = ref({ fechaDesde: '', fechaHasta: '', estado: '', search: '', sedeId: '' });
+const filtros = ref({ fechaDesde: '', fechaHasta: '', estado: '', search: '', sedeId: '', vendedor: '' });
 const rowsRaw = ref([]);
 const totals = ref(null);
 const loading = ref(false);
+const exporting = ref(false);
 const sedeOptions = ref([]);
+const vendedorOptions = ref([]);
 
 // Paginación por COTIZACIÓN (no por fila): una cotización con varios ítems
 // aporta varias filas, así que el backend pagina antes de explotar por producto.
@@ -83,6 +85,15 @@ const cargarSedes = async () => {
   }
 };
 
+const cargarVendedores = async () => {
+  try {
+    const { data } = await getCommissionsVendedores({ allSedes: true });
+    vendedorOptions.value = (Array.isArray(data) ? data : []).map(nombre => ({ value: nombre, label: nombre }));
+  } catch (error) {
+    console.error("[Comisiones] Error cargando vendedores:", error);
+  }
+};
+
 const cargarComisiones = async () => {
   loading.value = true;
   try {
@@ -114,8 +125,52 @@ const cambiarPagina = (p) => {
   cargarComisiones();
 };
 
+// Exporta TODO el resultado filtrado (sin paginar, tope de seguridad 2000
+// cotizaciones en el backend), no solo la página visible en pantalla.
+const exportarCSV = async () => {
+  exporting.value = true;
+  try {
+    const { data } = await getCommissionsExport({ ...filtros.value, allSedes: true });
+    const headers = ['Cotización', 'Producto', 'Tipo', 'Cliente', 'Vendedor', 'Fecha', 'Estado', 'Cantidad', 'Costo', 'Venta', '% Comisión', 'Comisión $'];
+    if (isAdminComisiones.value) headers.push('Margen equiv.', '% Estructural', 'Estructural $', 'Reserva');
+
+    const csvRows = data.data.map(r => {
+      const row = [
+        r.numero,
+        r.producto,
+        r.tipo === 'PROPIO' ? 'Propio' : 'Tercero',
+        r.empresa || '',
+        r.vendedorNombre || '',
+        r.fechaCotizacion ? new Date(r.fechaCotizacion).toLocaleDateString('es-CO') : '',
+        r.estado || '',
+        r.cantidad,
+        r.costo,
+        r.venta,
+        r.comisionVisiblePct,
+        r.comisionVisibleMonto,
+      ];
+      if (isAdminComisiones.value) row.push(r.margenEquivalente, r.comisionEstructuralPct, r.comisionEstructuralMonto, r.reserva);
+      return row;
+    });
+
+    const csv = [headers, ...csvRows].map(row => row.map(c => `"${c ?? ''}"`).join(',')).join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `comisiones-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("[Comisiones] Error exportando CSV:", error);
+  } finally {
+    exporting.value = false;
+  }
+};
+
 onMounted(() => {
   cargarSedes();
+  cargarVendedores();
   cargarComisiones();
 });
 </script>
@@ -161,8 +216,14 @@ onMounted(() => {
       <input
         v-model="filtros.search"
         type="text"
-        placeholder="Número, empresa o vendedor…"
+        placeholder="Número o empresa…"
         class="com-input"
+      />
+
+      <SelectLabel
+        v-model="filtros.vendedor"
+        :options="vendedorOptions"
+        placeholder="Todos los vendedores"
       />
 
       <SelectLabel
@@ -174,6 +235,10 @@ onMounted(() => {
 
       <button type="button" class="com-btn-apply" :disabled="loading" @click="aplicarFiltros">
         {{ loading ? 'Cargando…' : 'Aplicar filtros' }}
+      </button>
+
+      <button type="button" class="com-btn-export" :disabled="exporting || !rows.length" @click="exportarCSV">
+        {{ exporting ? 'Exportando…' : 'Exportar CSV' }}
       </button>
     </div>
 
@@ -324,6 +389,26 @@ onMounted(() => {
 
 .com-btn-apply:disabled { opacity: 0.6; cursor: not-allowed; }
 .com-btn-apply:hover:not(:disabled) { opacity: 0.9; }
+
+.com-btn-export {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #fff;
+  color: var(--text-1, #0F1A2E);
+  border: 1px solid #E2EBF6;
+  border-radius: 999px;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.com-btn-export:disabled { opacity: 0.5; cursor: not-allowed; }
+.com-btn-export:hover:not(:disabled) { background: #F8FAFC; }
 
 /* ─── Paginación ───────────────────────────────────────── */
 .com-pagination {
