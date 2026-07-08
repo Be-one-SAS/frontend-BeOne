@@ -780,10 +780,11 @@ const handleDeletePlan = async () => {
                               v-for="it in ev.items"
                               :key="`own-${it.id ?? it.productId}`"
                               class="ctrl-item-pill"
+                              :title="it.product?.nombre || it.product?.dispositivo || `Producto #${it.productId}`"
                               @mouseenter="showThumbPreview($event, it.product?.linkFotoDispositivo)"
                               @mouseleave="hideThumbPreview"
                             >
-                              {{ it.product?.dispositivo ?? it.dispositivo ?? it.productId }}
+                              {{ it.product?.nombre || it.product?.dispositivo || `Producto #${it.productId}` }}
                               <span class="ctrl-item-qty">×{{ it.cantidadProducto ?? it.quantity ?? 1 }}</span>
                             </span>
                             <span

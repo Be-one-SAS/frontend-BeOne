@@ -109,6 +109,7 @@ const cargarComisiones = async () => {
     totalQuotations.value = data.totalQuotations;
   } catch (error) {
     console.error("[Comisiones] Error cargando comisiones:", error);
+    alert('Error al cargar las comisiones. Verifica los filtros e intenta de nuevo.');
   } finally {
     loading.value = false;
   }

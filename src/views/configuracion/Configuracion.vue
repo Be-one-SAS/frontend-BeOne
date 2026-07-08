@@ -32,6 +32,14 @@
         </div>
         <span class="cfg-module-arrow">→</span>
       </RouterLink>
+      <RouterLink to="/configuracion/documentacion" class="cfg-module-card">
+        <div class="cfg-module-icon">📖</div>
+        <div>
+          <p class="cfg-module-title">Documentación</p>
+          <p class="cfg-module-desc">Guía de referencia: qué hace cada módulo del sistema y cómo funciona</p>
+        </div>
+        <span class="cfg-module-arrow">→</span>
+      </RouterLink>
     </div>
 
     <div class="cfg-section-label">Configuración general</div>
