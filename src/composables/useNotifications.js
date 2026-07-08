@@ -3,11 +3,18 @@ import { createGlobalState } from '@vueuse/core'
 import api from '@/services/api'
 import { useAuth } from '@/composables/useAuth'
 
+// Tope y backoff del reintento — ver comentario en evtSource.onerror más abajo
+// sobre por qué esto es necesario incluso con la detección de 401 vía /auth/me.
+const MAX_RECONNECT_ATTEMPTS = 6
+const BASE_RECONNECT_DELAY_MS = 5000
+const MAX_RECONNECT_DELAY_MS = 60000
+
 export const useNotifications = createGlobalState(() => {
   const notifications = ref([])
   const unread = computed(() => notifications.value.filter(n => !n.read).length)
   let evtSource = null
   let reconnectTimer = null
+  let reconnectAttempts = 0
 
   function connect(token) {
     if (evtSource) return
@@ -18,6 +25,10 @@ export const useNotifications = createGlobalState(() => {
     const url  = `${base}/notifications/stream?token=${encodeURIComponent(token)}`
 
     evtSource = new EventSource(url)
+
+    // Conexión sana → resetea el contador de reintentos (si veníamos de varios
+    // fallos y esta reconexión sí prendió, no arrastramos el backoff acumulado).
+    evtSource.onopen = () => { reconnectAttempts = 0 }
 
     // EventSource estándar — el backend NestJS SSE envía eventos con data: <json>
     evtSource.onmessage = (e) => {
@@ -36,6 +47,21 @@ export const useNotifications = createGlobalState(() => {
       evtSource = null
       clearTimeout(reconnectTimer)
 
+      // Tope duro de reintentos con backoff exponencial: si tras varios
+      // intentos seguimos sin poder reconectar (típicamente porque el token
+      // quedó inválido — sesión cerrada al iniciar sesión en otro dispositivo,
+      // ver auth.service.ts login() — y por lo que sea el flujo de abajo no
+      // logró refrescarlo/redirigir a tiempo), forzamos logout en vez de
+      // seguir golpeando al backend cada pocos segundos para siempre.
+      reconnectAttempts++
+      if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
+        const { setLogout } = useAuth()
+        setLogout()
+        window.location.href = '/login'
+        return
+      }
+      const delay = Math.min(BASE_RECONNECT_DELAY_MS * 2 ** (reconnectAttempts - 1), MAX_RECONNECT_DELAY_MS)
+
       // EventSource no expone el status code del error (podría ser un corte de
       // red pasajero o una sesión ya inválida — token vencido o cerrada porque
       // alguien inició sesión en otro dispositivo). Lo distinguimos pegándole
@@ -48,19 +74,22 @@ export const useNotifications = createGlobalState(() => {
           // Releer el token vigente (pudo haberse renovado por refresh silencioso
           // desde el retry anterior) en vez de reusar el `token` cerrado por closure.
           const { token: currentToken } = useAuth()
-          reconnectTimer = setTimeout(() => connect(currentToken.value ?? token), 5000)
+          reconnectTimer = setTimeout(() => connect(currentToken.value ?? token), delay)
         })
         .catch((err) => {
           if (err?.response?.status !== 401) {
             const { token: currentToken } = useAuth()
-            reconnectTimer = setTimeout(() => connect(currentToken.value ?? token), 5000)
+            reconnectTimer = setTimeout(() => connect(currentToken.value ?? token), delay)
           }
+          // Si fue 401: el interceptor de api.ts ya disparó logout+redirect en
+          // paralelo — no programamos otro intento.
         })
     }
   }
 
   function disconnect() {
     clearTimeout(reconnectTimer)
+    reconnectAttempts = 0
     evtSource?.close()
     evtSource = null
   }
