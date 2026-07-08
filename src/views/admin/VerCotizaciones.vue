@@ -88,7 +88,7 @@ const mostrarFiltroSedeComisiones = computed(() =>
   !user.value?.sedeId && userRoles.value.some(r => ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'].includes(r))
 );
 
-const comisionesFiltros = ref({ fechaDesde: '', fechaHasta: '', estado: '', search: '', sedeId: '' });
+const comisionesFiltros = ref({ fechaDesde: '', fechaHasta: '', estado: '', search: '', sedeId: '', vendedor: '' });
 const comisionesRowsRaw = ref([]);
 const loadingComisiones = ref(false);
 const sedeOptionsComisiones = ref([]);
@@ -140,8 +140,10 @@ const cargarSedesComisiones = async () => {
 const cargarComisiones = async () => {
   loadingComisiones.value = true;
   try {
+    const isAdmin = userRoles.value.some(r => ['ADMINISTRADOR', 'ADMIN', 'DIRECCION', 'LIDER', 'SUPERVISOR'].includes(r));
     const { data } = await getCommissionsReport({
       ...comisionesFiltros.value,
+      allSedes: isAdmin,
       page: comisionesPage.value,
       pageLimit: COMISIONES_PAGE_LIMIT,
     });
@@ -150,6 +152,7 @@ const cargarComisiones = async () => {
     comisionesTotalQuotations.value = data.totalQuotations;
   } catch (error) {
     console.error("Error cargando comisiones:", error);
+    alert('Error al cargar las comisiones. Verifica los filtros e intenta de nuevo.');
   } finally {
     loadingComisiones.value = false;
   }

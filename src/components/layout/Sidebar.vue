@@ -141,7 +141,7 @@ import {
   LogOut, CheckSquare, ClipboardCheck, SlidersHorizontal,
   Landmark, TableProperties, FileBarChart, ShoppingCart,
   Clock as ClockIcon, UserCircle2, ListOrdered, Target,
-  Pin, PinOff,
+  Pin, PinOff, BookOpen,
 } from 'lucide-vue-next'
 import { useAuth }               from '@/composables/useAuth'
 import { useSidebarPermissions, useMobileSidebar } from '@/composables/useSidebarPermissions'
@@ -308,6 +308,7 @@ const ALL_MENU_ITEMS = [
       { label: 'General',               route: '/configuracion',          viewKey: 'Configuracion',   icon: Settings,          roles: ['ADMIN', 'ADMINISTRADOR'] },
       { label: 'Parámetros cotización', route: '/admin/quotation-params', viewKey: 'QuotationParams', icon: SlidersHorizontal, roles: ['ADMIN'] },
       { label: 'Comisiones',            route: '/configuracion/comisiones', viewKey: 'ComisionesReporte', icon: DollarSign,     roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'] },
+      { label: 'Documentación',         route: '/configuracion/documentacion', viewKey: 'Documentacion', icon: BookOpen,        roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'] },
     ],
   },
 ]

@@ -324,6 +324,12 @@ const routes = [
         meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'] },
       },
       {
+        path: 'configuracion/documentacion',
+        name: 'Documentacion',
+        component: () => import('../views/configuracion/Documentacion.vue'),
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'] },
+      },
+      {
         path: 'materiales',
         name: 'Materiales',
         component: () => import('../views/materiales/Materiales.vue'),
