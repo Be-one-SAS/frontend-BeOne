@@ -438,7 +438,7 @@ watch([search, rolFiltro, statusFiltro], () => {
 })
 
 // ── Config ────────────────────────────────────────────
-const ROLES = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO']
+const ROLES = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO', 'VISOR']
 const TABLE_COLS = ['Usuario', 'Username', 'Rol', 'Estado', 'Último acceso', 'Creado', 'Acciones']
 
 // ── Badge maps ────────────────────────────────────────
@@ -451,6 +451,7 @@ const ROLE_BADGE = {
   COORDINADOR: 'bg-[#FFEDD5] text-[#C2410C]',
   LOGISTICO: 'bg-[#F1F5F9] text-[#64748B]',
   OPERATIVO: 'bg-[#D1FAE5] text-[#065F46]',
+  VISOR: 'bg-[#E0E7FF] text-[#4338CA]',
 }
 const STATUS_BADGE = {
   Activo: 'bg-[#DCFCE7] text-[#16A34A]',

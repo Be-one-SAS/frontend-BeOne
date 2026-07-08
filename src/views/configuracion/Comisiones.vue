@@ -11,7 +11,7 @@ const { user } = useAuth();
 const userRoles = computed(() => user.value?.roles ?? []);
 // Igual a ADMIN_ROLES en backend-BeOne/src/quotations/quotations.service.ts —
 // determina quién ve utilidad/margen/comisión estructural/reserva.
-const ADMIN_ROLES_COMISIONES = ['ADMINISTRADOR', 'ADMIN', 'DIRECCION', 'LIDER', 'SUPERVISOR'];
+const ADMIN_ROLES_COMISIONES = ['ADMINISTRADOR', 'ADMIN', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'VISOR'];
 const isAdminComisiones = computed(() => userRoles.value.some(r => ADMIN_ROLES_COMISIONES.includes(r)));
 // Esta vista siempre mira TODAS las sedes (allSedes=true en la request), sin
 // importar la sede propia del usuario — el filtro de sede sirve para acotar,

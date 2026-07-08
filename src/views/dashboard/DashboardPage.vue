@@ -354,7 +354,7 @@ const barChartEl  = ref(null)
 
 // ── RBAC ──────────────────────────────────────
 const isAdmin = computed(() =>
-  user.value?.roles?.some(r => ['ADMIN','ADMINISTRADOR','DIRECCION'].includes(r)) ?? false
+  user.value?.roles?.some(r => ['ADMIN','ADMINISTRADOR','DIRECCION','VISOR'].includes(r)) ?? false
 )
 
 const firstName = computed(() => user.value?.fullName?.split(' ')[0] || 'Usuario')

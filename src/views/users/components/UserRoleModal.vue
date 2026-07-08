@@ -111,7 +111,7 @@
 import { ref, watch } from 'vue'
 import {
   X, Shield, AlertTriangle, CheckCircle2,
-  TrendingUp, Eye, Truck, Users, UserCog, BarChart2,
+  TrendingUp, Eye, Truck, Users, UserCog, BarChart2, ScanEye,
 } from 'lucide-vue-next'
 
 // ── Props & Emits ─────────────────────────────────────
@@ -188,6 +188,13 @@ const ROLE_CONFIG = [
     iconColor:   '#065F46',
     description: 'Responsable operativo de eventos',
   },
+  {
+    key:         'VISOR',
+    icon:        ScanEye,
+    iconBg:      '#E0E7FF',
+    iconColor:   '#4338CA',
+    description: 'Solo lectura — ve todo, no puede editar',
+  },
 ]
 
 const ROLE_BADGE = {
@@ -199,6 +206,7 @@ const ROLE_BADGE = {
   COORDINADOR:   'bg-[#FFEDD5] text-[#C2410C]',
   LOGISTICO:     'bg-[#F1F5F9] text-[#64748B]',
   OPERATIVO:     'bg-[#D1FAE5] text-[#065F46]',
+  VISOR:         'bg-[#E0E7FF] text-[#4338CA]',
 }
 
 // ── Avatar helpers ────────────────────────────────────
