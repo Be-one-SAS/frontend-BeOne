@@ -104,7 +104,7 @@
                           </div>
                           <div class="tm-drop-info">
                             <span class="tm-drop-name">{{ u.fullName }}</span>
-                            <span class="tm-drop-role">{{ u.role }}</span>
+                            <span class="tm-drop-role">{{ (u.roles ?? []).join(', ') }}</span>
                           </div>
                           <span v-if="availability[u.id]" class="tm-avail-dot" :class="availability[u.id].available ? 'avail-ok' : 'avail-busy'">
                             {{ availability[u.id].available ? '● Libre' : '⚠ Ocupado' }}
@@ -151,7 +151,7 @@
                       <div class="tm-drop-avatar tm-drop-avatar--blue">{{ initials(u.fullName) }}</div>
                       <div class="tm-drop-info">
                         <span class="tm-drop-name">{{ u.fullName }}</span>
-                        <span class="tm-drop-role">{{ u.role }}</span>
+                        <span class="tm-drop-role">{{ (u.roles ?? []).join(', ') }}</span>
                       </div>
                       <span v-if="availability[u.id]" class="tm-avail-dot" :class="availability[u.id].available ? 'avail-ok' : 'avail-busy'">
                         {{ availability[u.id].available ? '● Libre' : '⚠ Ocupado' }}
@@ -196,7 +196,7 @@
                       <div class="tm-drop-avatar tm-drop-avatar--green">{{ initials(u.fullName) }}</div>
                       <div class="tm-drop-info">
                         <span class="tm-drop-name">{{ u.fullName }}</span>
-                        <span class="tm-drop-role">{{ u.role }}</span>
+                        <span class="tm-drop-role">{{ (u.roles ?? []).join(', ') }}</span>
                       </div>
                       <span v-if="availability[u.id]" class="tm-avail-dot" :class="availability[u.id].available ? 'avail-ok' : 'avail-busy'">
                         {{ availability[u.id].available ? '● Libre' : '⚠ Ocupado' }}
@@ -242,7 +242,7 @@ const emit  = defineEmits(['close', 'updated'])
 const AREAS = [
   { key: 'comercial',      label: 'Comercial',      roles: ['ADMIN', 'ADMINISTRADOR', 'LIDER', 'DIRECCION'], avatarBg: '#FEF3C7', avatarColor: '#B45309' },
   { key: 'administrativo', label: 'Administrativo',  roles: ['ADMIN', 'ADMINISTRADOR'],                       avatarBg: '#CCEFF2', avatarColor: '#27C8D8' },
-  { key: 'operativo',      label: 'Operativo',       roles: ['ADMIN', 'ADMINISTRADOR', 'OPERATIVO', 'LOGISTICO', 'SUPERVISOR', 'COORDINADOR'], avatarBg: '#D1FAE5', avatarColor: '#065F46' },
+  { key: 'operativo',      label: 'Operativo',       roles: ['ADMIN', 'ADMINISTRADOR', 'OPERATIVO', 'LOGISTICO', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA'], avatarBg: '#D1FAE5', avatarColor: '#065F46' },
 ]
 
 const TABS = [
@@ -276,20 +276,20 @@ const assignedCoords  = computed(() => allUsers.value.filter(u => coordIds.value
 const assignedMembers = computed(() => allUsers.value.filter(u => memberIds.value.includes(u.id)))
 
 const filteredCoords = computed(() => {
-  const roles = ['COORDINADOR', 'SUPERVISOR', 'ADMIN', 'ADMINISTRADOR', 'LOGISTICO', 'OPERATIVO']
+  const roles = ['COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'SUPERVISOR', 'ADMIN', 'ADMINISTRADOR', 'LOGISTICO', 'OPERATIVO']
   const q = coordSearch.value.toLowerCase()
-  return allUsers.value.filter(u => roles.includes(u.role) && (!q || u.fullName.toLowerCase().includes(q)))
+  return allUsers.value.filter(u => (u.roles ?? []).some(r => roles.includes(r)) && (!q || u.fullName.toLowerCase().includes(q)))
 })
 
 const filteredMembers = computed(() => {
-  const roles = ['LOGISTICO', 'OPERATIVO', 'COORDINADOR', 'SUPERVISOR', 'ADMINISTRADOR', 'ADMIN']
+  const roles = ['LOGISTICO', 'OPERATIVO', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'SUPERVISOR', 'ADMINISTRADOR', 'ADMIN']
   const q = memberSearch.value.toLowerCase()
-  return allUsers.value.filter(u => roles.includes(u.role) && (!q || u.fullName.toLowerCase().includes(q)))
+  return allUsers.value.filter(u => (u.roles ?? []).some(r => roles.includes(r)) && (!q || u.fullName.toLowerCase().includes(q)))
 })
 
 const filteredAreaUsers = (area) => {
   const q = areaSearch.value.toLowerCase()
-  return allUsers.value.filter(u => area.roles.includes(u.role) && (!q || u.fullName.toLowerCase().includes(q)))
+  return allUsers.value.filter(u => (u.roles ?? []).some(r => area.roles.includes(r)) && (!q || u.fullName.toLowerCase().includes(q)))
 }
 
 const isCoord  = (id) => coordIds.value.includes(id)

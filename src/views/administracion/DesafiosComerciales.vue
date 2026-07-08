@@ -103,7 +103,8 @@
               </div>
               <div class="kanban-card-meta">
                 <span class="badge badge-slate">{{ tipoLabel(d.tipo) }}</span>
-                <span v-if="d.tipo !== 'TAREA_EVENTO'" class="progreso-txt">{{ d.progreso }}/{{ d.metaObjetivo }}</span>
+                <span v-if="d.tipo === 'CIERRE_MONTO'" class="progreso-txt">{{ formatCOP(d.progreso) }}/{{ formatCOP(d.metaObjetivo) }}</span>
+                <span v-else-if="d.tipo !== 'TAREA_EVENTO'" class="progreso-txt">{{ d.progreso }}/{{ d.metaObjetivo }}</span>
               </div>
               <div class="kanban-card-footer">
                 <div class="comision-monto">{{ d.comisionGanada != null ? formatCOP(d.comisionGanada) : '—' }}</div>
@@ -176,9 +177,11 @@
                 <span class="hint-msg">Se marca cumplido automáticamente cuando esta cotización pase a "Aprobada".</span>
               </div>
 
-              <div v-if="form.tipo === 'CIERRE_MULTIPLE'" class="form-row">
+              <div v-if="form.tipo === 'CIERRE_MULTIPLE' || form.tipo === 'CIERRE_MONTO'" class="form-row">
                 <div class="field-group">
-                  <label class="field-label">Meta de tratos a cerrar <span class="req">*</span></label>
+                  <label class="field-label">
+                    {{ form.tipo === 'CIERRE_MONTO' ? 'Meta de ingresos a cerrar (COP)' : 'Meta de tratos a cerrar' }} <span class="req">*</span>
+                  </label>
                   <input v-model.number="form.metaObjetivo" type="number" min="1" class="field-input" />
                 </div>
                 <div class="field-group">
@@ -189,6 +192,9 @@
               </div>
               <p v-if="form.tipo === 'CIERRE_MULTIPLE'" class="hint-msg">
                 El progreso se calcula contando las cotizaciones de este supervisor que pasen a "Aprobada" entre hoy y la fecha límite.
+              </p>
+              <p v-if="form.tipo === 'CIERRE_MONTO'" class="hint-msg">
+                El progreso se calcula sumando el total de las cotizaciones de este supervisor que pasen a "Aprobada" entre hoy y la fecha límite.
               </p>
 
               <div v-if="form.tipo === 'TAREA_EVENTO'" class="field-group">
@@ -300,6 +306,7 @@ const quotations = ref([])
 const tipos = [
   { value: 'CIERRE_TRATO',    label: 'Cierre de trato específico' },
   { value: 'CIERRE_MULTIPLE', label: 'Meta de cierres múltiples' },
+  { value: 'CIERRE_MONTO',    label: 'Meta de ingresos ($)' },
   { value: 'TAREA_EVENTO',    label: 'Tarea de evento' },
 ]
 
@@ -323,7 +330,7 @@ const canBrowseAll = computed(() =>
   ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER'].some(r => authUser.value?.roles?.includes(r)),
 )
 
-const supervisores = computed(() => users.value.filter(u => u.role === 'SUPERVISOR'))
+const supervisores = computed(() => users.value.filter(u => u.roles?.includes('SUPERVISOR')))
 
 // Un tablero Trello por supervisor — pestañas para elegir cuál ver
 const supervisorTabs = computed(() => {
@@ -452,10 +459,11 @@ const handleSave = async () => {
   const f = form.value
   if (!f.titulo || !f.assignedToId || !f.comisionValor) return
   if (f.tipo === 'CIERRE_TRATO' && !f.quotationId) return
-  if (f.tipo === 'CIERRE_MULTIPLE' && !f.fechaLimite) return
+  if ((f.tipo === 'CIERRE_MULTIPLE' || f.tipo === 'CIERRE_MONTO') && !f.fechaLimite) return
 
   saving.value = true
   try {
+    const esMeta = f.tipo === 'CIERRE_MULTIPLE' || f.tipo === 'CIERRE_MONTO'
     const payload = {
       titulo: f.titulo,
       descripcion: f.descripcion || undefined,
@@ -465,8 +473,8 @@ const handleSave = async () => {
       comisionValor: Number(f.comisionValor),
       fechaInicio: f.fechaInicio ? `${f.fechaInicio}T00:00:00.000Z` : undefined,
       fechaLimite: f.fechaLimite ? `${f.fechaLimite}T23:59:59.000Z` : undefined,
-      quotationId: f.tipo !== 'CIERRE_MULTIPLE' && f.quotationId ? Number(f.quotationId) : undefined,
-      metaObjetivo: f.tipo === 'CIERRE_MULTIPLE' ? Number(f.metaObjetivo) || 1 : undefined,
+      quotationId: !esMeta && f.quotationId ? Number(f.quotationId) : undefined,
+      metaObjetivo: esMeta ? Number(f.metaObjetivo) || 1 : undefined,
     }
     if (editingDesafio.value) {
       await editDesafio(editingDesafio.value.id, payload)

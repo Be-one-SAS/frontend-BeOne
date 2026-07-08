@@ -103,7 +103,7 @@ const routes = [
         component: DashboardPage,
         meta: {
           requiresAuth: true,
-          roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR'],
+          roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA'],
         },
       },
 
@@ -112,19 +112,19 @@ const routes = [
         path: 'admin/cotizar/:id?',
         name: 'Cotizar',
         component: Cotizar,
-        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'LIDER', 'COORDINADOR'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'LIDER', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA'] },
       },
       {
         path: 'admin/ver-cotizaciones',
         name: 'VerCotizaciones',
         component: VerCotizaciones,
-        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA'] },
       },
       {
         path: 'customer/customer',
         name: 'Clientes',
         component: Customer,
-        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'COORDINADOR'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA'] },
       },
       {
         path: 'suppliers/suppliers',
@@ -136,7 +136,7 @@ const routes = [
         path: 'customer/price',
         name: 'ListPrice',
         component: PriceList,
-        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'LIDER', 'COORDINADOR'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'LIDER', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA'] },
       },
 
       // ── Productos ──────────────────────────────────────
@@ -144,13 +144,13 @@ const routes = [
         path: 'products',
         name: 'Productos',
         component: Products,
-        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA'] },
       },
       {
         path: 'products/no-propios',
         name: 'ProductosNoPropios',
         component: ProductsNoPropios,
-        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA'] },
       },
 
       // ── Control Operativo ──────────────────────────────
@@ -158,7 +158,7 @@ const routes = [
         path: 'admin/control',
         name: 'Control',
         component: () => import('../views/admin/Control.vue'),
-        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'LOGISTICO', 'OPERATIVO'] },
       },
 
       // ── Operativo ──────────────────────────────────────
@@ -166,19 +166,19 @@ const routes = [
         path: 'operativa/reporte',
         name: 'Reporte',
         component: Reporte,
-        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'LOGISTICO', 'OPERATIVO'] },
       },
       {
         path: 'operativa/turnos',
         name: 'RegistroTurno',
         component: () => import('../views/operativa/RegistroTurno.vue'),
-        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'LOGISTICO', 'OPERATIVO'] },
       },
       {
         path: 'operativa/checkins',
         name: 'CheckIns',
         component: () => import('../views/operativa/CheckIns.vue'),
-        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'LOGISTICO', 'OPERATIVO'] },
       },
       {
         path: 'operativa/checkins/admin',
@@ -206,13 +206,13 @@ const routes = [
         path: 'operativa/montajes',
         name: 'Montajes',
         component: () => import('../views/operativa/Montajes.vue'),
-        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'OPERATIVO'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'LOGISTICO', 'OPERATIVO'] },
       },
       {
         path: 'operativa/ordenes-compra',
         name: 'OrdenesCompra',
         component: () => import('../views/operativa/OrdenesCompra.vue'),
-        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'LOGISTICO', 'LIDER', 'OPERATIVO'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'LOGISTICO', 'LIDER', 'OPERATIVO'] },
       },
       {
         path: 'operativa/equipos',
@@ -276,6 +276,12 @@ const routes = [
         component: () => import('../views/administracion/DesafiosComerciales.vue'),
         meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'] },
       },
+      {
+        path: 'administracion/ejecutivos-cuenta',
+        name: 'EjecutivosCuenta',
+        component: () => import('../views/administracion/EjecutivosCuenta.vue'),
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER'] },
+      },
 
       // ── Usuarios ───────────────────────────────────────
       {
@@ -333,7 +339,7 @@ const routes = [
         path: 'materiales',
         name: 'Materiales',
         component: () => import('../views/materiales/Materiales.vue'),
-        meta: { roles: ['ADMIN', 'SUPERVISOR', 'COORDINADOR'] },
+        meta: { roles: ['ADMIN', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA'] },
       },
 
       // ── Perfil del usuario ──────────────────────────────

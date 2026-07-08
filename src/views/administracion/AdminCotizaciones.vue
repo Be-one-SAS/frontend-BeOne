@@ -179,7 +179,7 @@
       </div>
 
       <!-- Pagination -->
-      <div v-if="totalPages > 1" class="adm-pagination">
+      <div class="adm-pagination">
         <span class="adm-pag-info">{{ (page-1)*pageLimit + 1 }}–{{ Math.min(page*pageLimit, total) }} de {{ total }}</span>
         <div class="adm-pag-btns">
           <button class="adm-pag-btn" :disabled="page <= 1" @click="changePage(page - 1)">‹</button>

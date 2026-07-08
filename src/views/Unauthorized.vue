@@ -23,6 +23,8 @@ const ROLE_HOME = {
   OPERATIVO:    '/admin/control',
   LOGISTICO:    '/admin/control',
   COORDINADOR:  '/admin/control',
+  EJECUTIVO:    '/admin/control',
+  EJECUTIVO_CUENTA: '/admin/control',
   SUPERVISOR:   '/dashboard',
   LIDER:        '/dashboard',
   DIRECCION:    '/dashboard',
@@ -31,7 +33,7 @@ const ROLE_HOME = {
 }
 
 function goHome() {
-  const role = user.value?.roles?.[0] ?? user.value?.role
+  const role = user.value?.roles?.[0]
   router.replace(ROLE_HOME[role] ?? '/login')
 }
 </script>

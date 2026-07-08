@@ -50,13 +50,13 @@ export const useViewAccess = createGlobalState(() => {
    *        usados si la vista no está en la config dinámica o esta no cargó
    */
   function canAccess(viewKey, staticFallbackRoles) {
-    const userRole = user.value?.roles?.[0]
+    const userRoles = user.value?.roles ?? []
     // VISOR es de solo lectura pero puede navegar a cualquier ruta, igual que ADMIN.
-    if (userRole === 'ADMIN' || userRole === 'VISOR') return true
+    if (userRoles.includes('ADMIN') || userRoles.includes('VISOR')) return true
 
     const roles = getViewRoles(viewKey) ?? staticFallbackRoles
     if (!roles || roles.length === 0) return true // sin restricción declarada
-    return !!userRole && roles.includes(userRole)
+    return userRoles.some((r) => roles.includes(r))
   }
 
   return { config, ensureLoaded, getViewRoles, canAccess }

@@ -108,7 +108,7 @@
         </tbody>
       </table>
 
-      <div v-if="!loading && filteredSorted.length > 0" class="pagination-wrap">
+      <div class="pagination-wrap">
         <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">Ant</button>
         <span class="page-info">Pág {{ currentPage }} de {{ totalPages }}</span>
         <button class="page-btn" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">Sig</button>
@@ -144,7 +144,7 @@
                   <select v-model="form.assignedToId" class="field-input" :class="{ 'field-error': submitted && !form.assignedToId }">
                     <option value="">Seleccionar…</option>
                     <option v-for="u in availableUsers" :key="u.id" :value="u.id">
-                      {{ u.fullName }} ({{ u.role ?? u.roles?.[0] }})
+                      {{ u.fullName }} ({{ (u.roles ?? []).join(', ') }})
                     </option>
                   </select>
                   <span v-if="submitted && !form.assignedToId" class="err-msg">Requerido</span>

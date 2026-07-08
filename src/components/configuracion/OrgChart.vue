@@ -92,7 +92,7 @@ function buildLayout(W) {
     const users = (s.usuarios ?? []).map(u => ({
       id: `u${u.id}`, type: 'user',
       label: shortName(u.fullName),
-      sub: u.role,
+      sub: (u.roles ?? []).join(', '),
       isLider: s.lider?.id === u.id,
       color, w: USER_W, h: USER_H, x: 0, y: 0,
     }))

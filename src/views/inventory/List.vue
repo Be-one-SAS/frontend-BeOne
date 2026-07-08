@@ -534,7 +534,7 @@ onMounted(refetchAll)
 
       </BaseTable>
 
-      <div v-if="!loading && totalPages > 1" class="pp-pagination">
+      <div class="pp-pagination">
         <span class="pg-info">
           {{ (currentPage - 1) * pageSize + 1 }}–{{ Math.min(currentPage * pageSize, total) }}
           de {{ total }}

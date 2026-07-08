@@ -74,7 +74,7 @@
                   <span>{{ r.user?.fullName ?? '—' }}</span>
                 </div>
               </td>
-              <td><span class="ro-role-badge" :class="roleClass(r.user?.role)">{{ r.user?.role ?? '—' }}</span></td>
+              <td><span class="ro-role-badge" :class="roleClass(r.user?.roles?.[0])">{{ (r.user?.roles ?? []).join(', ') || '—' }}</span></td>
               <td v-if="!selectedQuotationId" class="ro-event-cell">
                 <span class="ro-event-num">#{{ r.quotation?.numero }}</span>
                 {{ r.quotation?.cliente?.name ?? r.quotation?.empresa ?? '—' }}
@@ -239,7 +239,7 @@ const calcTotal = (r) => {
 }
 
 const roleClass = (role) => {
-  const map = { LOGISTICA: 'ro-role--blue', OPERATIVO: 'ro-role--green', SUPERVISOR: 'ro-role--purple', COORDINADOR: 'ro-role--orange' }
+  const map = { LOGISTICA: 'ro-role--blue', OPERATIVO: 'ro-role--green', SUPERVISOR: 'ro-role--purple', COORDINADOR: 'ro-role--orange', EJECUTIVO: 'ro-role--orange', EJECUTIVO_CUENTA: 'ro-role--orange' }
   return map[role] ?? 'ro-role--gray'
 }
 </script>

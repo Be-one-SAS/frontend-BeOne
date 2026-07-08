@@ -14,6 +14,8 @@ export const rolePermissions: Record<string, string[]> = {
   LIDER:         ['Cotizaciones', 'Clientes', 'Productos (lectura)', 'Reservas', 'Tareas'],
   SUPERVISOR:    ['Reservas', 'Inventario', 'Control operativo', 'Materiales', 'Tareas'],
   COORDINADOR:   ['Sus cotizaciones asignadas', 'Control operativo', 'Materiales', 'Check-in/out'],
+  EJECUTIVO:         ['Sus cotizaciones asignadas', 'Control operativo', 'Materiales', 'Check-in/out'],
+  EJECUTIVO_CUENTA:  ['Sus cotizaciones asignadas', 'Control operativo', 'Materiales', 'Check-in/out'],
   LOGISTICO:     ['Control operativo', 'Materiales', 'Check-in/out'],
   OPERATIVO:     ['Control operativo', 'Materiales', 'Check-in/out'],
 }
@@ -55,7 +57,7 @@ export function useUsers() {
         u.fullName?.toLowerCase().includes(q) ||
         u.email?.toLowerCase().includes(q) ||
         u.username?.toLowerCase().includes(q)
-      const matchRol    = !rolFiltro.value    || u.role   === rolFiltro.value
+      const matchRol    = !rolFiltro.value    || (u.roles ?? []).includes(rolFiltro.value)
       const matchStatus = !statusFiltro.value || u.status === statusFiltro.value
       return matchSearch && matchRol && matchStatus
     })
@@ -66,7 +68,7 @@ export function useUsers() {
     total:    users.value.length,
     activos:  users.value.filter(u => u.status === 'Activo').length,
     inactivos: users.value.filter(u => u.status !== 'Activo').length,
-    roles:    new Set(users.value.map(u => u.role).filter(Boolean)).size,
+    roles:    new Set(users.value.flatMap(u => u.roles ?? [])).size,
   }))
 
   // ── Parser de error amigable ───────────────────────────

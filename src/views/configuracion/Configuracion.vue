@@ -429,7 +429,7 @@ import { usePermissions } from '@/composables/usePermissions'
 import api from '@/services/api'
 import { ChevronDown } from 'lucide-vue-next'
 
-const { hasRole, activeRole } = usePermissions()
+const { hasRole, activeRoles } = usePermissions()
 
 // ── Acceso a vistas por rol ──────────────────────────────────────────────
 const viewAccessViews    = ref([])  // [{ key, label, group, roles }]
@@ -499,7 +499,8 @@ function saveViewAccess() {
   // a su propio rol el acceso a "Configuración general", confirma antes —
   // de lo contrario podría no poder volver a entrar aquí a corregirlo.
   const configView = viewAccessViews.value.find(v => v.key === 'Configuracion')
-  const wouldSelfLock = activeRole.value !== 'ADMIN' && configView && !configView.roles.includes(activeRole.value)
+  const wouldSelfLock = !activeRoles.value.includes('ADMIN') && configView &&
+    !activeRoles.value.some(r => configView.roles.includes(r))
 
   if (wouldSelfLock) {
     showViewAccessSelfLockConfirm.value = true

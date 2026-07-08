@@ -350,7 +350,7 @@ async function executeDelete() {
       </div>
 
       <!-- Paginación -->
-      <div v-if="!loading && totalPages > 1" class="sp-pagination">
+      <div class="sp-pagination">
         <span class="pg-info">
           {{ (currentPage - 1) * Number(pageSize) + 1 }}–{{ Math.min(currentPage * Number(pageSize), filteredData.length) }}
           de {{ filteredData.length }}

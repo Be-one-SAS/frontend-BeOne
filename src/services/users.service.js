@@ -54,7 +54,7 @@ export const getUserById = async (id) => {
 /**
  * POST /users
  * Crea un nuevo usuario en el sistema.
- * @param {Object} payload - { fullName, email, username, password, role, status, ciudad, documento, telefono, notas }
+ * @param {Object} payload - { fullName, email, username, password, roles, status, ciudad, documento, telefono, notas }
  */
 export const createUser = async (payload) => {
   try {
@@ -84,17 +84,17 @@ export const updateUser = async (id, payload) => {
 }
 
 /**
- * PATCH /users/:id/role
- * Cambia el rol asignado a un usuario.
+ * PATCH /users/:id/roles
+ * Cambia los roles asignados a un usuario.
  * @param {number|string} id
- * @param {string} role - Valor del enum UserRole
+ * @param {string[]} roles - Valores del enum UserRole
  */
-export const updateUserRole = async (id, role) => {
+export const updateUserRoles = async (id, roles) => {
   try {
-    const response = await api.patch(`/users/${id}/role`, { role })
+    const response = await api.patch(`/users/${id}/roles`, { roles })
     return response.data
   } catch (error) {
-    console.error(`[users.service] Error en updateUserRole(${id}):`, error)
+    console.error(`[users.service] Error en updateUserRoles(${id}):`, error)
     throw error
   }
 }

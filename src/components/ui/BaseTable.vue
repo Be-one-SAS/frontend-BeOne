@@ -123,7 +123,7 @@
       </div>
 
       <!-- ── Paginación ──────────────────────────────── -->
-      <div v-if="!loading && totalPages > 1" class="bt-pagination">
+      <div class="bt-pagination">
         <span class="pg-info">
           {{ (currentPage - 1) * pageSize + 1 }}–{{ Math.min(currentPage * pageSize, rows.length) }}
           de {{ rows.length }}

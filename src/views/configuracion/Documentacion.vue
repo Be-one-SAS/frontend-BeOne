@@ -89,6 +89,8 @@ const irA = (id) => {
                 <tr><td><strong>LIDER</strong></td><td>Lidera comercialmente: crea y aprueba cotizaciones, gestiona parámetros de precios, ve reportes de su equipo.</td></tr>
                 <tr><td><strong>SUPERVISOR</strong></td><td>Supervisa operación y equipo comercial — incluye la gestión de Desafíos Comerciales de sus vendedores.</td></tr>
                 <tr><td><strong>COORDINADOR</strong></td><td>Coordina cotizaciones y la logística de eventos ya confirmados (montajes, check-ins, materiales).</td></tr>
+                <tr><td><strong>EJECUTIVO</strong></td><td>Mismo nivel de acceso que COORDINADOR: crea y ve sus propias cotizaciones, clientes y productos.</td></tr>
+                <tr><td><strong>EJECUTIVO_CUENTA</strong></td><td>Mismo nivel de acceso que COORDINADOR; además es el rol pensado para monitorearse en "Ejecutivos de Cuenta" desde el panel de su líder.</td></tr>
                 <tr><td><strong>LOGISTICO</strong></td><td>Ejecuta la operación en terreno: check-ins, montajes, registro de turnos.</td></tr>
                 <tr><td><strong>OPERATIVO</strong></td><td>Personal de campo con acceso operativo básico.</td></tr>
               </tbody>
@@ -325,7 +327,7 @@ const irA = (id) => {
               <thead><tr><th>Evento</th><th>Cuándo se dispara</th><th>A quién llega</th></tr></thead>
               <tbody>
                 <tr><td>Evento confirmado</td><td>La cotización pasa a Aprobada</td><td>Responsables + cliente</td></tr>
-                <tr><td>Resumen del lunes</td><td>Cada lunes 7:00 a.m.</td><td>Responsables de eventos de los próximos 8 días + Admin/Supervisor/Coordinador/Logístico</td></tr>
+                <tr><td>Resumen del lunes</td><td>Cada lunes 7:00 a.m.</td><td>Responsables de eventos de los próximos 8 días + Admin/Supervisor/Coordinador/Ejecutivo/Ejecutivo de Cuenta/Logístico</td></tr>
                 <tr><td>Despacho de camión</td><td>Se marca como despachado</td><td>Responsable operativo</td></tr>
                 <tr><td>Listas de chequeo OK</td><td>Se verifica el listado de materiales</td><td>Responsable operativo</td></tr>
                 <tr><td>Evento finalizado</td><td>Se marca el evento como finalizado</td><td>Los tres responsables</td></tr>

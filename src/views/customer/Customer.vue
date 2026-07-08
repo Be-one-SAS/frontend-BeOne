@@ -358,7 +358,7 @@ onMounted(async () => {
       </div>
 
       <!-- Paginación -->
-      <div v-if="!loading && totalPages > 1" class="cu-pagination">
+      <div class="cu-pagination">
         <span class="pg-info">
           {{ (currentPage - 1) * Number(pageSize) + 1 }}–{{ Math.min(currentPage * Number(pageSize), filteredData.length) }}
           de {{ filteredData.length }}

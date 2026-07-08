@@ -194,7 +194,7 @@ const login = async () => {
     const response = await auth({ email: email.value, password: password.value })
     const { access_token, refresh_token, user } = response.data
     authStore.login(user, access_token, refresh_token)
-    const role = user?.role ?? user?.roles?.[0]
+    const role = user?.roles?.[0]
     router.push(role === 'OPERATIVO' ? '/admin/control' : '/dashboard')
   } catch (error) {
     const status    = error?.response?.status

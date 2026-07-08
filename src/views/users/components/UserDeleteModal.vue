@@ -33,9 +33,12 @@
                 <span class="del-user-name">{{ usuario.fullName }}</span>
                 <span class="del-user-email">{{ usuario.email }}</span>
               </div>
-              <span class="role-badge" :class="roleBadgeClass[usuario.role]">
-                {{ usuario.role }}
-              </span>
+              <span
+                v-for="r in (usuario.roles ?? [])"
+                :key="r"
+                class="role-badge"
+                :class="roleBadgeClass[r]"
+              >{{ r }}</span>
             </div>
 
             <!-- ── Input de confirmación ── -->
