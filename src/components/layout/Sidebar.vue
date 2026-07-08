@@ -307,6 +307,7 @@ const ALL_MENU_ITEMS = [
     children: [
       { label: 'General',               route: '/configuracion',          viewKey: 'Configuracion',   icon: Settings,          roles: ['ADMIN', 'ADMINISTRADOR'] },
       { label: 'Parámetros cotización', route: '/admin/quotation-params', viewKey: 'QuotationParams', icon: SlidersHorizontal, roles: ['ADMIN'] },
+      { label: 'Comisiones',            route: '/configuracion/comisiones', viewKey: 'ComisionesReporte', icon: DollarSign,     roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'] },
     ],
   },
 ]

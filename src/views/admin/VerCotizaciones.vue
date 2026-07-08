@@ -1,15 +1,19 @@
 <script setup>
-import { ref, onMounted, computed, nextTick } from "vue";
-import { getQuotations, getQuotationById } from "../../services/quotation.service";
+import { ref, onMounted, computed, watch, nextTick } from "vue";
+import { getQuotations, getQuotationById, getCommissionsReport } from "../../services/quotation.service";
 import Badge from "../../components/badge/Badge.vue";
 import { useRouter, useRoute } from "vue-router";
 import { cancelReservation, confirmReservation } from "../../services/reservation.service";
 import BaseTable from "../../components/ui/BaseTable.vue";
+import SelectLabel from "../../components/input/SelectLabel.vue";
 import CollaboratorsManager from "./components/CollaboratorsManager.vue";
 import QuotationPDF from "../../components/quotation/QuotationPDF.vue";
 import { ChevronDown, Eye, CheckCircle, XCircle, FileText, Inbox, Users, Download, X, Printer, StickyNote, Plus, Trash2, Clock } from 'lucide-vue-next';
 import ThumbHoverPreview from '@/components/shared/ThumbHoverPreview.vue';
 import { useThumbHoverPreview } from '@/composables/useThumbHoverPreview';
+import { useAuth } from "../../composables/useAuth";
+import { getSedes } from "../../services/sedes.service";
+import { formatCOP } from "../../utils/currency.js";
 import {
   AREAS_NOTA,
   createNotaCotizacion,
@@ -69,6 +73,106 @@ const estados = [
   { label: "Rechazada", value: "Rechazada" },
   { label: "Vencida",   value: "Vencida"   },
 ];
+
+// ----------------------
+// TABS
+// ----------------------
+const activeTab = ref('listado'); // 'listado' | 'comisiones'
+
+// ----------------------
+// COMISIONES
+// ----------------------
+const { user } = useAuth();
+const userRoles = computed(() => user.value?.roles ?? []);
+const mostrarFiltroSedeComisiones = computed(() =>
+  !user.value?.sedeId && userRoles.value.some(r => ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'].includes(r))
+);
+
+const comisionesFiltros = ref({ fechaDesde: '', fechaHasta: '', estado: '', search: '', sedeId: '' });
+const comisionesRowsRaw = ref([]);
+const loadingComisiones = ref(false);
+const sedeOptionsComisiones = ref([]);
+
+// Paginación por COTIZACIÓN (no por fila): una cotización con varios ítems
+// aporta varias filas, así que el backend pagina antes de explotar por producto.
+const COMISIONES_PAGE_LIMIT = 30;
+const comisionesPage = ref(1);
+const comisionesTotalPages = ref(1);
+const comisionesTotalQuotations = ref(0);
+const comisionesVisiblePages = computed(() => {
+  const total = comisionesTotalPages.value;
+  const current = comisionesPage.value;
+  const start = Math.max(1, current - 2);
+  const end = Math.min(total, current + 2);
+  const pages = [];
+  for (let p = start; p <= end; p++) pages.push(p);
+  return pages;
+});
+
+// Vista simplificada de vendedor, una fila por producto (propio o de
+// tercero). El desglose completo (utilidad, margen equivalente, comisión
+// estructural, reserva) vive en /configuracion/comisiones.
+const comisionesColumns = [
+  { key: 'numero', label: 'Cotización', width: '90px' },
+  { key: 'producto', label: 'Producto' },
+  { key: 'tipo', label: 'Tipo', width: '90px' },
+  { key: 'empresa', label: 'Cliente' },
+  { key: 'vendedorNombre', label: 'Vendedor' },
+  { key: 'cantidad', label: 'Cant.', width: '70px' },
+  { key: 'costo', label: 'Costo' },
+  { key: 'venta', label: 'Venta' },
+  { key: 'comisionVisiblePct', label: '% Comisión' },
+  { key: 'comisionVisibleMonto', label: 'Comisión $' },
+];
+
+const comisionesRows = computed(() => comisionesRowsRaw.value);
+
+const cargarSedesComisiones = async () => {
+  if (!mostrarFiltroSedeComisiones.value) return;
+  try {
+    const { data } = await getSedes();
+    sedeOptionsComisiones.value = (Array.isArray(data) ? data : []).map(s => ({ value: s.id, label: s.nombre }));
+  } catch (error) {
+    console.error("Error cargando sedes:", error);
+  }
+};
+
+const cargarComisiones = async () => {
+  loadingComisiones.value = true;
+  try {
+    const { data } = await getCommissionsReport({
+      ...comisionesFiltros.value,
+      page: comisionesPage.value,
+      pageLimit: COMISIONES_PAGE_LIMIT,
+    });
+    comisionesRowsRaw.value = data.data;
+    comisionesTotalPages.value = data.totalPages;
+    comisionesTotalQuotations.value = data.totalQuotations;
+  } catch (error) {
+    console.error("Error cargando comisiones:", error);
+  } finally {
+    loadingComisiones.value = false;
+  }
+};
+
+const aplicarFiltrosComisiones = () => {
+  comisionesPage.value = 1;
+  cargarComisiones();
+};
+
+const cambiarPaginaComisiones = (p) => {
+  if (p < 1 || p > comisionesTotalPages.value || p === comisionesPage.value) return;
+  comisionesPage.value = p;
+  cargarComisiones();
+};
+
+// Carga perezosa: solo la primera vez que se entra a la pestaña
+watch(activeTab, (tab) => {
+  if (tab === 'comisiones' && !comisionesRowsRaw.value.length) {
+    cargarSedesComisiones();
+    cargarComisiones();
+  }
+});
 
 // ── Soft-lock countdown ──────────────────────────────────
 const LOCK_DAYS  = 7
@@ -394,6 +498,30 @@ const formatDateTime = (iso) =>
         <p class="vc-subtitle">{{ filteredQuotations.length }} cotizaciones encontradas</p>
       </div>
     </div>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- TABS                                       -->
+    <!-- ══════════════════════════════════════════ -->
+    <div class="vc-tabs">
+      <button
+        type="button"
+        class="vc-tab"
+        :class="{ 'vc-tab--active': activeTab === 'listado' }"
+        @click="activeTab = 'listado'"
+      >
+        Listado
+      </button>
+      <button
+        type="button"
+        class="vc-tab"
+        :class="{ 'vc-tab--active': activeTab === 'comisiones' }"
+        @click="activeTab = 'comisiones'"
+      >
+        Comisiones
+      </button>
+    </div>
+
+    <template v-if="activeTab === 'listado'">
 
     <!-- ══════════════════════════════════════════ -->
     <!-- FILTROS                                    -->
@@ -780,6 +908,86 @@ const formatDateTime = (iso) =>
 
     </div>
 
+    </template>
+
+    <template v-else-if="activeTab === 'comisiones'">
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- FILTROS — COMISIONES                       -->
+    <!-- ══════════════════════════════════════════ -->
+    <div class="bg-white rounded-[14px] p-4 mb-5 shadow-[0_1px_4px_rgba(39,200,216,.06)] grid grid-cols-1 md:grid-cols-5 gap-4">
+
+      <input v-model="comisionesFiltros.fechaDesde" type="date" class="vc-input" title="Desde" />
+      <input v-model="comisionesFiltros.fechaHasta" type="date" class="vc-input" title="Hasta" />
+
+      <SelectLabel
+        v-model="comisionesFiltros.estado"
+        :options="estados"
+        placeholder="Todos los estados"
+      />
+
+      <input
+        v-model="comisionesFiltros.search"
+        type="text"
+        placeholder="Número, empresa o vendedor…"
+        class="vc-input"
+      />
+
+      <SelectLabel
+        v-if="mostrarFiltroSedeComisiones"
+        v-model="comisionesFiltros.sedeId"
+        :options="sedeOptionsComisiones"
+        placeholder="Todas las unidades"
+      />
+
+      <button
+        type="button"
+        class="vc-btn-apply"
+        :disabled="loadingComisiones"
+        @click="aplicarFiltrosComisiones"
+      >
+        {{ loadingComisiones ? 'Cargando…' : 'Aplicar filtros' }}
+      </button>
+
+    </div>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- TABLA — COMISIONES                         -->
+    <!-- ══════════════════════════════════════════ -->
+    <BaseTable
+      :columns="comisionesColumns"
+      :rows="comisionesRows"
+      :loading="loadingComisiones"
+      empty-text="No hay cotizaciones con comisión en este período"
+      :page-size="500"
+    >
+      <template #cell-tipo="{ value }">{{ value === 'PROPIO' ? 'Propio' : 'Tercero' }}</template>
+      <template #cell-costo="{ value }">{{ formatCOP(value) }}</template>
+      <template #cell-venta="{ value }">{{ formatCOP(value) }}</template>
+      <template #cell-comisionVisiblePct="{ value }">{{ value }}%</template>
+      <template #cell-comisionVisibleMonto="{ value }">{{ formatCOP(value) }}</template>
+    </BaseTable>
+
+    <!-- Paginación por cotización (no por fila) -->
+    <div v-if="comisionesTotalPages > 1" class="vc-pagination">
+      <span class="vc-pag-info">
+        Página {{ comisionesPage }} de {{ comisionesTotalPages }} · {{ comisionesTotalQuotations }} cotizaciones
+      </span>
+      <div class="vc-pag-btns">
+        <button class="vc-pag-btn" :disabled="comisionesPage <= 1" @click="cambiarPaginaComisiones(comisionesPage - 1)">‹</button>
+        <button
+          v-for="p in comisionesVisiblePages"
+          :key="p"
+          class="vc-pag-btn"
+          :class="{ 'vc-pag-btn--active': p === comisionesPage }"
+          @click="cambiarPaginaComisiones(p)"
+        >{{ p }}</button>
+        <button class="vc-pag-btn" :disabled="comisionesPage >= comisionesTotalPages" @click="cambiarPaginaComisiones(comisionesPage + 1)">›</button>
+      </div>
+    </div>
+
+    </template>
+
     <!-- ══════════════════════════════════════════ -->
     <!-- MODAL ÉXITO                                -->
     <!-- ══════════════════════════════════════════ -->
@@ -1043,6 +1251,96 @@ const formatDateTime = (iso) =>
 }
 
 .vc-input::placeholder { color: var(--text-3, #94A3B8); }
+
+/* ─── Tabs ──────────────────────────────────────────── */
+.vc-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #E5EAF0;
+}
+
+.vc-tab {
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  color: var(--text-3, #94A3B8);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.vc-tab:hover { color: var(--text-1, #0F1A2E); }
+
+.vc-tab--active {
+  color: var(--primary, #27C8D8);
+  border-bottom-color: var(--primary, #27C8D8);
+}
+
+/* ─── Botón "Aplicar filtros" ─────────────────────────── */
+.vc-btn-apply {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--primary, #27C8D8);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.vc-btn-apply:disabled { opacity: 0.6; cursor: not-allowed; }
+.vc-btn-apply:hover:not(:disabled) { opacity: 0.9; }
+
+/* ─── Paginación ───────────────────────────────────────── */
+.vc-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.vc-pag-info {
+  font-size: 12px;
+  color: var(--text-3, #94A3B8);
+  font-family: 'Inter', sans-serif;
+}
+
+.vc-pag-btns { display: flex; gap: 4px; }
+
+.vc-pag-btn {
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid #E2EBF6;
+  background: #fff;
+  color: var(--text-1, #0F1A2E);
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.vc-pag-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.vc-pag-btn:hover:not(:disabled) { background: #F8FAFC; }
+
+.vc-pag-btn--active {
+  background: var(--primary, #27C8D8);
+  border-color: var(--primary, #27C8D8);
+  color: #fff;
+}
 
 /* ─── Tabla ─────────────────────────────────────────── */
 .vc-table {

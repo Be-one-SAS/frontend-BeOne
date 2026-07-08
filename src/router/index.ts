@@ -318,6 +318,12 @@ const routes = [
         meta: { roles: ['ADMIN', 'DIRECCION', 'ADMINISTRADOR'] },
       },
       {
+        path: 'configuracion/comisiones',
+        name: 'ComisionesReporte',
+        component: () => import('../views/configuracion/Comisiones.vue'),
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR'] },
+      },
+      {
         path: 'materiales',
         name: 'Materiales',
         component: () => import('../views/materiales/Materiales.vue'),

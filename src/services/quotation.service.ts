@@ -388,3 +388,16 @@ export const getPricingSummary = async (quotationId: number | string) => {
     }
 };
 
+// Reporte de comisiones (Motor V2) por cotización — sección "Comisiones" de /admin/ver-cotizaciones
+export const getCommissionsReport = async (filters: Record<string, any> = {}) => {
+    try {
+        const params = Object.fromEntries(
+            Object.entries(filters).filter(([, v]) => v !== null && v !== undefined && v !== ''),
+        );
+        const response = await api.get('/quotations/commissions', { params });
+        return response;
+    } catch (error) {
+        throw error;
+    }
+};
+

@@ -24,6 +24,14 @@
         </div>
         <span class="cfg-module-arrow">→</span>
       </RouterLink>
+      <RouterLink to="/configuracion/comisiones" class="cfg-module-card">
+        <div class="cfg-module-icon">💰</div>
+        <div>
+          <p class="cfg-module-title">Comisiones</p>
+          <p class="cfg-module-desc">Reporte de comisiones, utilidad y margen por cotización</p>
+        </div>
+        <span class="cfg-module-arrow">→</span>
+      </RouterLink>
     </div>
 
     <div class="cfg-section-label">Configuración general</div>
