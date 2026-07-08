@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
     <Transition name="modal-fade">
-      <div v-if="show" class="pcm-overlay" @click.self="onCancel">
+      <div v-if="show" class="pcm-overlay">
         <Transition name="modal-scale">
           <div v-if="show" class="pcm-card">
             <div class="pcm-icon-wrap">

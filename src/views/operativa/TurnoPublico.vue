@@ -121,7 +121,7 @@
 
     <!-- Modal hora -->
     <Transition name="tp-modal-fade">
-      <div v-if="modal" class="tp-modal-overlay" @click.self="modal = null">
+      <div v-if="modal" class="tp-modal-overlay">
         <div class="tp-modal">
           <div class="tp-modal-header">
             <div>

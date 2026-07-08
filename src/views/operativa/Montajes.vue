@@ -332,7 +332,7 @@
 
     <!-- Note modal -->
     <Transition name="fade">
-      <div v-if="noteModal.open" class="mont-modal-backdrop" @click.self="closeNote">
+      <div v-if="noteModal.open" class="mont-modal-backdrop">
         <div class="mont-modal">
           <h3 class="mont-modal-title">Nota</h3>
           <p class="mont-modal-item-name">{{ noteModal.item?.nombre }}</p>

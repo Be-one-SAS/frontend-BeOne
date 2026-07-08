@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
     <Transition name="modal-fade">
-      <div v-if="show" class="op-modal-overlay" @click.self="$emit('close')">
+      <div v-if="show" class="op-modal-overlay">
         <div class="op-modal-container">
 
           <!-- ══════════ HEADER ══════════ -->
@@ -264,7 +264,7 @@
 
           <!-- ══════════ SUB-MODAL: AGREGAR MATERIAL ══════════ -->
           <Transition name="fade">
-            <div v-if="showAddModal" class="sub-modal-overlay" @click.self="closeAddModal">
+            <div v-if="showAddModal" class="sub-modal-overlay">
               <div class="sub-modal-card">
 
                 <!-- STEP 1 — Origen -->
@@ -429,7 +429,7 @@
 
           <!-- ══════════ SUB-MODAL: EMITIR OC ══════════ -->
           <Transition name="fade">
-            <div v-if="showOCModal" class="sub-modal-overlay" @click.self="closeOCModal">
+            <div v-if="showOCModal" class="sub-modal-overlay">
               <div class="sub-modal-card oc-modal-card">
                 <h4 class="sub-modal-title">
                   <ShoppingCart :size="16" style="display:inline;vertical-align:middle;margin-right:6px" />
@@ -524,7 +524,7 @@
 
           <!-- ══════════ DELETE CONFIRM ══════════ -->
           <Transition name="fade">
-            <div v-if="pendingDelete" class="confirm-overlay" @click.self="pendingDelete = null">
+            <div v-if="pendingDelete" class="confirm-overlay">
               <div class="confirm-card">
                 <div class="confirm-icon">
                   <Trash2 :size="28" />
@@ -548,7 +548,7 @@
 
           <!-- ══════════ COMPLETE CONFIRM ══════════ -->
           <Transition name="fade">
-            <div v-if="showConfirm" class="confirm-overlay" @click.self="showConfirm = false">
+            <div v-if="showConfirm" class="confirm-overlay">
               <div class="confirm-card">
                 <div class="confirm-icon"><CheckCircle2 :size="32" /></div>
                 <h4 class="confirm-title">¿Confirmar Revisión?</h4>

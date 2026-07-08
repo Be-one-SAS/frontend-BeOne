@@ -5,7 +5,6 @@
         v-if="show"
         class="fixed inset-0 z-50 flex items-center justify-center p-4"
         style="background: rgba(15,26,46,0.45); backdrop-filter: blur(4px)"
-        @click.self="$emit('close')"
       >
         <Transition name="modal-scale">
           <div v-if="show" class="del-card">

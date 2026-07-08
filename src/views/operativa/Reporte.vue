@@ -268,7 +268,7 @@
          MODAL EDITOR
     ═══════════════════════════════════════ -->
     <Transition name="modal-fade">
-      <div v-if="editorEnc" class="rpt-modal-overlay" @click.self="closeEditor">
+      <div v-if="editorEnc" class="rpt-modal-overlay">
         <div class="rpt-modal ed-modal">
 
           <!-- Header fijo -->
@@ -445,7 +445,7 @@
          MODAL RESPUESTAS
     ═══════════════════════════════════════ -->
     <Transition name="modal-fade">
-      <div v-if="detailEnc" class="rpt-modal-overlay" @click.self="detailEnc = null">
+      <div v-if="detailEnc" class="rpt-modal-overlay">
         <div class="rpt-modal">
           <div class="rpt-modal-header">
             <div>

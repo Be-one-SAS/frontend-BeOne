@@ -96,7 +96,7 @@
 
     <!-- ═══════════ MODAL: Crear / Editar sede ════════════ -->
     <Teleport to="body">
-      <div v-if="showForm" class="sedes-overlay" @click.self="closeForm">
+      <div v-if="showForm" class="sedes-overlay">
         <div class="sedes-modal">
           <div class="sedes-modal-header">
             <h2>{{ editingSede ? 'Editar unidad de ejecución' : 'Nueva unidad de ejecución' }}</h2>
@@ -167,7 +167,7 @@
 
     <!-- ═══════════ MODAL: Gestionar usuarios ════════════ -->
     <Teleport to="body">
-      <div v-if="detailSede" class="sedes-overlay" @click.self="closeDetail">
+      <div v-if="detailSede" class="sedes-overlay">
         <div class="sedes-modal sedes-modal--wide">
           <div class="sedes-modal-header">
             <div>
@@ -298,7 +298,7 @@
 
     <!-- ═══════════ MODAL: Confirm delete ════════════ -->
     <Teleport to="body">
-      <div v-if="deleteTarget" class="sedes-overlay" @click.self="deleteTarget = null">
+      <div v-if="deleteTarget" class="sedes-overlay">
         <div class="sedes-modal sedes-modal--sm">
           <div class="sedes-modal-header">
             <h2>Eliminar sede</h2>

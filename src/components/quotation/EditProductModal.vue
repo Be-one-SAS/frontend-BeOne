@@ -58,7 +58,7 @@ const formatMoney = (val) => formatCOP(val || 0)
 <template>
   <Teleport to="body">
     <Transition name="epm-fade">
-      <div v-if="show" class="epm-overlay" @click.self="emit('close')">
+      <div v-if="show" class="epm-overlay">
         <div class="epm-panel">
 
           <!-- ══════════ HEADER ══════════ -->

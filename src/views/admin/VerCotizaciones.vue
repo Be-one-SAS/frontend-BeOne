@@ -1133,7 +1133,6 @@ const formatDateTime = (iso) =>
     <div
       v-if="isNotasModalOpen"
       class="fixed inset-0 bg-[rgba(15,26,46,0.4)] backdrop-blur-sm flex items-center justify-center z-50 p-4"
-      @click.self="closeNotasModal"
     >
       <div class="vc-notas-modal">
 
