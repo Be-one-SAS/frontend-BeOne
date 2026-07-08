@@ -339,7 +339,7 @@
     <!-- Modal: Cambiar contraseña (admin) -->
     <Teleport to="body">
       <Transition name="modal-fade">
-        <div v-if="showPwdModal" class="modal-overlay" @click.self="closePwdModal">
+        <div v-if="showPwdModal" class="modal-overlay">
           <div class="modal-box">
             <div class="modal-box-header">
               <KeyRound :size="18" style="color:#27C8D8" />

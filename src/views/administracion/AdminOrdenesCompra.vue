@@ -546,7 +546,7 @@
     <!-- ── Slide-over: Crear OC ───────────────────────── -->
     <Teleport to="body">
       <Transition name="backdrop-fade">
-        <div v-if="modal.open" class="oc-backdrop" @click.self="closeModal" />
+        <div v-if="modal.open" class="oc-backdrop" />
       </Transition>
       <Transition name="slideover">
         <div v-if="modal.open" class="oc-slideover">

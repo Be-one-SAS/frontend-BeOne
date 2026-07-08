@@ -168,7 +168,7 @@
 
     <!-- ══ Modal: Registrar/Editar turno ══ -->
     <Transition name="modal-fade">
-      <div v-if="rtModalOpen" class="rt-overlay" @click.self="closeRtModal">
+      <div v-if="rtModalOpen" class="rt-overlay">
         <div class="rt-modal">
           <div class="rt-modal-header">
             <h2 class="rt-modal-title">{{ rtEditing ? 'Editar turno' : 'Nuevo turno' }}</h2>
@@ -274,7 +274,7 @@
 
     <!-- ══ Modal: Agregar persona ══ -->
     <Transition name="modal-fade">
-      <div v-if="addPersonOpen" class="rt-overlay" @click.self="addPersonOpen = false">
+      <div v-if="addPersonOpen" class="rt-overlay">
         <div class="rt-modal rt-modal--narrow">
           <div class="rt-modal-header">
             <h2 class="rt-modal-title">Agregar persona al turno</h2>

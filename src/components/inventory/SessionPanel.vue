@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
     <Transition name="sp-fade">
-      <div v-if="show" class="sp-overlay" @click.self="tryClose">
+      <div v-if="show" class="sp-overlay">
         <div class="sp-card">
 
           <!-- Header -->

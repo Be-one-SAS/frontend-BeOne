@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
     <Transition name="mfe-fade">
-      <div v-if="show" class="mfe-overlay" @click.self="$emit('close')">
+      <div v-if="show" class="mfe-overlay">
         <div class="mfe-card">
 
           <!-- Header -->

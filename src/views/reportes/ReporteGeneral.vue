@@ -213,7 +213,7 @@
     ══════════════════════════════════════════════ -->
     <Teleport to="body">
       <Transition name="cc-modal-fade">
-        <div v-if="modalOpen" class="cc-modal-overlay" @click.self="cerrarModal">
+        <div v-if="modalOpen" class="cc-modal-overlay">
           <div class="cc-modal-card">
             <div class="cc-modal-header">
               <h3>{{ editando ? 'Editar costo' : 'Agregar costo' }}</h3>

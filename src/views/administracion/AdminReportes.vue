@@ -362,7 +362,7 @@
     </div>
 
     <!-- ══ Modal: Enviar reporte por correo ══════════════════════════ -->
-    <div v-if="enviarCorreo.open" class="po-modal-overlay" @click.self="closeEnviarCorreoModal">
+    <div v-if="enviarCorreo.open" class="po-modal-overlay">
       <div class="po-modal">
         <div class="po-modal-header">
           <h3 class="po-modal-title">{{ personaYaEnviada ? 'Reenviar reporte por correo' : 'Enviar reporte por correo' }}</h3>
@@ -402,7 +402,7 @@
     </div>
 
     <!-- ══ Modal: Envío masivo por correo ═════════════════════════════ -->
-    <div v-if="bulkEnviar.open" class="po-modal-overlay" @click.self="closeBulkEnviarModal">
+    <div v-if="bulkEnviar.open" class="po-modal-overlay">
       <div class="po-modal po-modal--wide">
         <div class="po-modal-header">
           <h3 class="po-modal-title">Enviar reportes por correo — envío masivo</h3>
@@ -457,7 +457,7 @@
     </div>
 
     <!-- ══ Modal: Vista previa de reporte ═════════════════════════════ -->
-    <div v-if="previewModal.open" class="po-modal-overlay" @click.self="closePreview">
+    <div v-if="previewModal.open" class="po-modal-overlay">
       <div class="po-modal po-modal--preview">
         <div class="po-modal-header">
           <h3 class="po-modal-title">{{ previewModal.title }}</h3>

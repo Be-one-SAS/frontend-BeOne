@@ -4,7 +4,6 @@
       <div
         v-if="show"
         class="overlay"
-        @click.self="$emit('close')"
       >
         <Transition name="modal-scale">
           <div v-if="show" class="modal-card">

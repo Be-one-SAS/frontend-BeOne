@@ -146,7 +146,7 @@
 
     <!-- ── Detail modal ───────────────────────────────── -->
     <Transition name="fade">
-      <div v-if="detailOC" class="oc-detail-backdrop" @click.self="detailOC = null">
+      <div v-if="detailOC" class="oc-detail-backdrop">
         <div class="oc-detail-modal">
           <div class="oc-detail-head">
             <div>

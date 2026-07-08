@@ -866,7 +866,7 @@ const handleDeletePlan = async () => {
 
     <!-- ── Modal Planimetría ── -->
     <Teleport to="body">
-      <div v-if="showPlanModal" class="plani-overlay" @click.self="closePlanModal">
+      <div v-if="showPlanModal" class="plani-overlay">
         <div class="plani-modal">
           <!-- Header -->
           <div class="plani-header">

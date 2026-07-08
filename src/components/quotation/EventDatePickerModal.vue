@@ -34,7 +34,7 @@
   <!-- ── MODAL ─────────────────────────────────────────────────── -->
   <teleport to="body">
     <transition name="edp-modal-fade">
-      <div v-if="isOpen" class="edp-overlay" @click.self="cancel">
+      <div v-if="isOpen" class="edp-overlay">
 
         <div class="edp-modal">
 

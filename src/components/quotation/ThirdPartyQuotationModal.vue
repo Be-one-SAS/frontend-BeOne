@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
     <Transition name="tq-fade">
-      <div v-if="show" class="tq-overlay" @click.self="$emit('close')">
+      <div v-if="show" class="tq-overlay">
         <div class="tq-modal" role="dialog" aria-modal="true">
 
           <!-- Header -->

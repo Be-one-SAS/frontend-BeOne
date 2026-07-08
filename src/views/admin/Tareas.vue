@@ -118,7 +118,7 @@
     <!-- Modal crear/editar -->
     <Teleport to="body">
       <Transition name="tp-fade">
-        <div v-if="showModal" class="overlay" @click.self="closeModal">
+        <div v-if="showModal" class="overlay">
           <div class="modal-box">
             <div class="modal-header">
               <div class="modal-title-wrap">
@@ -185,7 +185,7 @@
     <!-- Modal confirmar eliminación -->
     <Teleport to="body">
       <Transition name="tp-fade">
-        <div v-if="showDelete" class="overlay" @click.self="showDelete = false">
+        <div v-if="showDelete" class="overlay">
           <div class="modal-box modal-box--sm">
             <div class="modal-header">
               <div class="modal-title-wrap">
