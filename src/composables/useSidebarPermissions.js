@@ -47,6 +47,8 @@ export const useSidebarPermissions = () => {
    */
   const canSee = (roles) => {
     if (!roles || roles.length === 0) return true
+    // VISOR es de solo lectura pero ve todo el menú, igual que ADMIN.
+    if (userRole.value === 'VISOR') return true
     const role = userRole.value ?? 'ADMINISTRADOR'
     return roles.includes(role)
   }

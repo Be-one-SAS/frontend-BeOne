@@ -51,7 +51,8 @@ export const useViewAccess = createGlobalState(() => {
    */
   function canAccess(viewKey, staticFallbackRoles) {
     const userRole = user.value?.roles?.[0]
-    if (userRole === 'ADMIN') return true
+    // VISOR es de solo lectura pero puede navegar a cualquier ruta, igual que ADMIN.
+    if (userRole === 'ADMIN' || userRole === 'VISOR') return true
 
     const roles = getViewRoles(viewKey) ?? staticFallbackRoles
     if (!roles || roles.length === 0) return true // sin restricción declarada
