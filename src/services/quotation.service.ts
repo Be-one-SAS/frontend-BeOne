@@ -401,3 +401,29 @@ export const getCommissionsReport = async (filters: Record<string, any> = {}) =>
     }
 };
 
+// Mismo reporte de comisiones, sin paginar — para exportar a CSV
+export const getCommissionsExport = async (filters: Record<string, any> = {}) => {
+    try {
+        const params = Object.fromEntries(
+            Object.entries(filters).filter(([, v]) => v !== null && v !== undefined && v !== ''),
+        );
+        const response = await api.get('/quotations/commissions/export', { params });
+        return response;
+    } catch (error) {
+        throw error;
+    }
+};
+
+// Vendedores distintos para el selector de filtro del reporte de comisiones
+export const getCommissionsVendedores = async (filters: Record<string, any> = {}) => {
+    try {
+        const params = Object.fromEntries(
+            Object.entries(filters).filter(([, v]) => v !== null && v !== undefined && v !== ''),
+        );
+        const response = await api.get('/quotations/commissions/vendedores', { params });
+        return response;
+    } catch (error) {
+        throw error;
+    }
+};
+
