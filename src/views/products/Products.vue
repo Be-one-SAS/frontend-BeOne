@@ -9,6 +9,7 @@ import ConfirmModal from '@/components/modal/ConfirmModal.vue'
 import SelectLabel from '@/components/input/SelectLabel.vue'
 import ThumbHoverPreview from '@/components/shared/ThumbHoverPreview.vue'
 import { useThumbHoverPreview } from '@/composables/useThumbHoverPreview'
+import { useActionAccess } from '@/composables/useActionAccess'
 import {
   RefreshCw, ChevronUp, ChevronDown, Inbox,
   Pencil, Trash2, Plus, X, Camera,
@@ -17,6 +18,7 @@ import {
 } from 'lucide-vue-next'
 
 const router = useRouter()
+const { canDo } = useActionAccess()
 
 /** Lleva el costo (cop) y precio cliente directo (valorCuadroCotizador) de
  * este producto propio al Simulador de /admin/quotation-params. */
@@ -416,7 +418,11 @@ onMounted(fetchProducts)
         <button class="btn-reload" @click="resetFilters">
           <RefreshCw :size="13" /> Recargar
         </button>
-        <button class="btn-new-product" @click="openCreate">
+        <button
+          v-if="canDo('ProductoCrear', ['ADMINISTRADOR', 'SUPERVISOR'])"
+          class="btn-new-product"
+          @click="openCreate"
+        >
           <Plus :size="13" /> Nuevo producto
         </button>
       </div>
@@ -529,8 +535,8 @@ onMounted(fetchProducts)
                   <td class="pp-td" @click.stop>
                     <div class="pp-actions">
                       <button class="act-btn act-sim" title="Simular en Parámetros de Cotización" @click.stop="simularProducto(row)"><Calculator :size="12" /></button>
-                      <button class="act-btn act-edit" title="Editar" @click.stop="openEdit(row)"><Pencil :size="12" /></button>
-                      <button class="act-btn act-del"  title="Eliminar" @click.stop="confirmDelete(row)"><Trash2 :size="12" /></button>
+                      <button v-if="canDo('ProductoEditar', ['ADMINISTRADOR', 'SUPERVISOR'])" class="act-btn act-edit" title="Editar" @click.stop="openEdit(row)"><Pencil :size="12" /></button>
+                      <button v-if="canDo('ProductoEliminar', ['ADMINISTRADOR'])" class="act-btn act-del"  title="Eliminar" @click.stop="confirmDelete(row)"><Trash2 :size="12" /></button>
                     </div>
                   </td>
                 </tr>

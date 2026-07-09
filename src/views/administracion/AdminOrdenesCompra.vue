@@ -11,7 +11,7 @@
         <button class="oc-btn-ghost" @click="exportCSV" :disabled="!rows.length">
           <Download :size="14" /> Exportar CSV
         </button>
-        <button class="oc-btn-primary" @click="openCreate">
+        <button v-if="canDo('OrdenCompraCrear', OC_ROLES)" class="oc-btn-primary" @click="openCreate">
           <Plus :size="14" /> Nueva OC
         </button>
       </div>
@@ -154,7 +154,7 @@
           <div v-else-if="!filteredRows.length" class="oc-list-empty">
             <ShoppingCart :size="32" class="opacity-20" />
             <p>Sin órdenes{{ filters.search ? ' para esta búsqueda' : '' }}</p>
-            <button v-if="!filters.search" class="oc-btn-primary oc-btn-sm" @click="openCreate">
+            <button v-if="!filters.search && canDo('OrdenCompraCrear', OC_ROLES)" class="oc-btn-primary oc-btn-sm" @click="openCreate">
               <Plus :size="12" /> Crear OC
             </button>
           </div>
@@ -228,7 +228,7 @@
               <span class="oc-estado-pill oc-estado-lg" style="background:#F0FDF4;color:#166534">Aprobada</span>
             </div>
 
-            <button class="oc-emitir-btn" @click="emitirOC(selectedCot)">
+            <button v-if="canDo('OrdenCompraCrear', OC_ROLES)" class="oc-emitir-btn" @click="emitirOC(selectedCot)">
               <Plus :size="16" />
               Emitir Orden de Compra
             </button>
@@ -282,7 +282,7 @@
                 <div class="oc-det-section-title">
                   <ShoppingCart :size="13" /> Órdenes de compra emitidas ({{ ocsByCot(selectedCot).length }})
                 </div>
-                <button class="oc-btn-ghost oc-btn-sm" @click="emitirOC(selectedCot)">
+                <button v-if="canDo('OrdenCompraCrear', OC_ROLES)" class="oc-btn-ghost oc-btn-sm" @click="emitirOC(selectedCot)">
                   <Plus :size="12" /> Nueva OC
                 </button>
               </div>
@@ -290,7 +290,7 @@
               <div v-if="!ocsByCot(selectedCot).length" class="oc-cot-no-ocs">
                 <ShoppingCart :size="28" class="opacity-20" />
                 <p>No hay órdenes de compra para esta cotización.</p>
-                <button class="oc-emitir-btn-sm" @click="emitirOC(selectedCot)">
+                <button v-if="canDo('OrdenCompraCrear', OC_ROLES)" class="oc-emitir-btn-sm" @click="emitirOC(selectedCot)">
                   <Plus :size="14" /> Emitir primera OC
                 </button>
               </div>
@@ -323,7 +323,7 @@
               <h3>Selecciona una orden de compra</h3>
               <p>Haz clic en cualquier OC de la lista para ver el detalle completo.</p>
             </template>
-            <button class="oc-btn-primary" @click="openCreate">
+            <button v-if="canDo('OrdenCompraCrear', OC_ROLES)" class="oc-btn-primary" @click="openCreate">
               <Plus :size="14" /> Nueva orden de compra
             </button>
           </div>
@@ -366,7 +366,7 @@
               <button
                 v-for="action in estadoActions"
                 :key="action.next"
-                v-show="action.from.includes(selectedOC.estado)"
+                v-show="action.from.includes(selectedOC.estado) && canDo('OrdenCompraCambiarEstado', OC_ROLES)"
                 class="oc-estado-action-btn"
                 :style="{ background: action.bg, color: action.color, borderColor: action.color }"
                 @click="changeEstado(action.next)"
@@ -732,6 +732,10 @@ import {
 } from 'lucide-vue-next'
 import { getOrdenesCompra, createOrdenCompra, updateEstadoOC } from '@/services/admin-ordenes-compra.service.js'
 import { getAdminCotizaciones } from '@/services/administracion.service.js'
+import { useActionAccess } from '@/composables/useActionAccess'
+
+const { canDo } = useActionAccess()
+const OC_ROLES = ['ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'LOGISTICO', 'LIDER', 'DIRECCION', 'OPERATIVO']
 
 // ── ESTADOS (backend enum: EMITIDA | APROBADA | RECIBIDA | CANCELADA) ────────
 const ESTADOS_OC = [

@@ -10,10 +10,13 @@ import {
 } from '@/services/materiales.service'
 import { getProducts } from '@/services/products.service'
 import ModalReutilizable from '@/components/modal/ModalReutilizable.vue'
+import { useActionAccess } from '@/composables/useActionAccess'
 import {
   RefreshCw, Plus, Pencil, Trash2, X, Search,
   ChevronDown, Package, Layers, AlertCircle, CheckCircle2,
 } from 'lucide-vue-next'
+
+const { canDo } = useActionAccess()
 
 const route = useRoute()
 
@@ -357,7 +360,7 @@ onMounted(fetchData)
           <input type="checkbox" v-model="showInactive" />
           Ver inactivos
         </label>
-        <button class="btn-primary" @click="openCatCreate">
+        <button v-if="canDo('MaterialBaseGestionar', ['ADMINISTRADOR', 'SUPERVISOR'])" class="btn-primary" @click="openCatCreate">
           <Plus :size="13" /> Nuevo material
         </button>
       </div>
@@ -385,8 +388,9 @@ onMounted(fetchData)
               </div>
               <span class="cat-row-unit">{{ m.unidad }}</span>
               <div class="cat-row-actions">
-                <button class="act-btn act-edit" @click.stop="openCatEdit(m)"><Pencil :size="11" /></button>
+                <button v-if="canDo('MaterialBaseGestionar', ['ADMINISTRADOR', 'SUPERVISOR'])" class="act-btn act-edit" @click.stop="openCatEdit(m)"><Pencil :size="11" /></button>
                 <button
+                  v-if="m.activo ? canDo('MaterialBaseEliminar', ['ADMINISTRADOR']) : canDo('MaterialBaseGestionar', ['ADMINISTRADOR', 'SUPERVISOR'])"
                   class="act-btn"
                   :class="m.activo ? 'act-del' : 'act-restore'"
                   :title="m.activo ? 'Desactivar' : 'Activar'"
@@ -422,10 +426,10 @@ onMounted(fetchData)
             <span class="prod-mat-count">{{ prodMateriales.length }} materiales</span>
           </div>
           <div class="prod-action-btns">
-            <button class="btn-secondary" @click="openParser">
+            <button v-if="canDo('MaterialAsignarProducto', ['ADMINISTRADOR', 'SUPERVISOR'])" class="btn-secondary" @click="openParser">
               <Layers :size="13" /> Importar desde texto
             </button>
-            <button class="btn-primary" @click="openAddModal">
+            <button v-if="canDo('MaterialAsignarProducto', ['ADMINISTRADOR', 'SUPERVISOR'])" class="btn-primary" @click="openAddModal">
               <Plus :size="13" /> Agregar material
             </button>
           </div>
@@ -436,7 +440,7 @@ onMounted(fetchData)
         <div v-else-if="!prodMateriales.length" class="prod-empty">
           <Package :size="36" class="prod-empty-ico" />
           <p>Este producto no tiene materiales asignados.</p>
-          <button class="btn-primary" @click="openParser">Importar desde texto</button>
+          <button v-if="canDo('MaterialAsignarProducto', ['ADMINISTRADOR', 'SUPERVISOR'])" class="btn-primary" @click="openParser">Importar desde texto</button>
         </div>
         <div v-else class="prod-mat-table-wrap">
           <table class="prod-mat-table">
@@ -497,8 +501,8 @@ onMounted(fetchData)
                     </button>
                   </template>
                   <template v-else>
-                    <button class="act-btn act-edit" @click="startEditPm(pm)"><Pencil :size="11" /></button>
-                    <button class="act-btn act-del" @click="deletePm(pm)"><Trash2 :size="11" /></button>
+                    <button v-if="canDo('MaterialProductoEditar', ['ADMINISTRADOR', 'SUPERVISOR'])" class="act-btn act-edit" @click="startEditPm(pm)"><Pencil :size="11" /></button>
+                    <button v-if="canDo('MaterialProductoEliminar', ['ADMINISTRADOR', 'SUPERVISOR'])" class="act-btn act-del" @click="deletePm(pm)"><Trash2 :size="11" /></button>
                   </template>
                 </td>
               </tr>

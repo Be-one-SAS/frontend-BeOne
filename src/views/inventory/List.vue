@@ -6,12 +6,15 @@ import BaseTable     from '@/components/ui/BaseTable.vue'
 import ScanModal     from '@/components/inventory/ScanModal.vue'
 import SessionPanel  from '@/components/inventory/SessionPanel.vue'
 import SelectLabel   from '@/components/input/SelectLabel.vue'
+import { useActionAccess } from '@/composables/useActionAccess'
 import {
   Search, RefreshCw, ChevronUp, ChevronDown,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   QrCode, Wifi, AlertTriangle, Eye, X,
   PackageCheck, PackageSearch, Clock, Wrench, Smartphone, Layers,
 } from 'lucide-vue-next'
+
+const { canDo } = useActionAccess()
 
 /* ─── state ──────────────────────────────────────────────── */
 const items   = ref([])
@@ -259,7 +262,7 @@ onMounted(refetchAll)
         <p class="inv-subtitle">{{ total }} elementos encontrados</p>
       </div>
       <div class="inv-head-actions">
-        <button class="inv-btn-scan" @click="showScan = true">
+        <button v-if="canDo('InventarioEscanear', ['ADMINISTRADOR', 'SUPERVISOR', 'LOGISTICO'])" class="inv-btn-scan" @click="showScan = true">
           <QrCode :size="14" /> Escanear
         </button>
         <button class="inv-btn-session" @click="showSession = true">

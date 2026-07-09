@@ -48,14 +48,17 @@ import { useMobileSidebar } from '@/composables/useSidebarPermissions'
 import { useNotifications } from '@/composables/useNotifications'
 import { useAuth } from '@/composables/useAuth'
 import { useToast } from '@/composables/useToast'
+import { useActionAccess } from '@/composables/useActionAccess'
 
 const { showMobile, toggle: toggleMobile } = useMobileSidebar()
 const { connect, disconnect } = useNotifications()
 const { token, user } = useAuth()
 const { toastPrompt } = useToast()
+const { ensureLoaded: ensureActionAccessLoaded } = useActionAccess()
 
 onMounted(() => {
   if (token.value) connect(token.value)
+  ensureActionAccessLoaded()
 
   // Rol BEONE recién logueado (o recién salido de una sede): no ve nada
   // hasta elegir una desde el Topbar — un solo toast-prompt en vez de la

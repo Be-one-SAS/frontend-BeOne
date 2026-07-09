@@ -92,7 +92,7 @@
                           {{ ocsByItem[item.id].estado }}
                         </span>
                       </template>
-                      <button v-else class="p-card-oc-btn" @click="openOCModal(item)">
+                      <button v-else-if="canDo('OrdenCompraCrear', ['ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'LOGISTICO', 'LIDER', 'DIRECCION', 'OPERATIVO'])" class="p-card-oc-btn" @click="openOCModal(item)">
                         <ShoppingCart :size="13" />
                         Emitir OC
                       </button>
@@ -138,7 +138,7 @@
               <div class="flex items-center justify-between mb-0">
                 <h3 class="section-title">Lista de Materiales</h3>
                 <button
-                  v-if="activeMateriales.length > 0"
+                  v-if="activeMateriales.length > 0 && canDo('QuotationMaterialesGestionar', ['ADMINISTRADOR', 'SUPERVISOR', 'LOGISTICO', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA'])"
                   class="btn-validate-all"
                   :disabled="savingAll"
                   @click="handleValidarTodos"
@@ -154,7 +154,7 @@
                 <Package :size="40" class="op-empty-ico" />
                 <p>No hay materiales asignados</p>
                 <button
-                  v-if="productInfoItems.length > 0"
+                  v-if="productInfoItems.length > 0 && canDo('MaterialSync', ['ADMINISTRADOR', 'SUPERVISOR'])"
                   class="op-btn-sync"
                   :disabled="syncing"
                   @click="handleSync"
@@ -163,7 +163,7 @@
                   <span v-else>⚙️</span>
                   Sincronizar materiales del producto
                 </button>
-                <button class="op-btn-add-first" @click="openAddModal">
+                <button v-if="canDo('QuotationMaterialesGestionar', ['ADMINISTRADOR', 'SUPERVISOR', 'LOGISTICO', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA'])" class="op-btn-add-first" @click="openAddModal">
                   <Plus :size="14" /> Agregar material manualmente
                 </button>
               </div>
@@ -180,7 +180,7 @@
                   <div v-if="mat.validado" class="m-card-check">
                     <Check :size="12" stroke-width="3" />
                   </div>
-                  <button class="m-card-delete" @click.stop="pendingDelete = mat">
+                  <button v-if="canDo('QuotationMaterialesEliminar', ['ADMINISTRADOR', 'SUPERVISOR', 'LOGISTICO', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA'])" class="m-card-delete" @click.stop="pendingDelete = mat">
                     <Trash2 :size="12" />
                   </button>
                   <div v-if="mat.esExtra" class="m-card-badge">Extra</div>
@@ -192,7 +192,7 @@
                 </div>
 
                 <!-- Add card -->
-                <button class="m-card-add" @click="openAddModal">
+                <button v-if="canDo('QuotationMaterialesGestionar', ['ADMINISTRADOR', 'SUPERVISOR', 'LOGISTICO', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA'])" class="m-card-add" @click="openAddModal">
                   <Plus :size="20" />
                   <span>Agregar material</span>
                 </button>
@@ -597,7 +597,10 @@ import {
   syncProductosMateriales,
 } from '@/services/materiales.service'
 import { getOrdenesCompra, createOrdenCompra } from '@/services/ordenes-compra.service'
+import { useActionAccess } from '@/composables/useActionAccess'
 import api from '@/services/api'
+
+const { canDo } = useActionAccess()
 
 const props = defineProps({ show: Boolean, event: Object })
 const emit = defineEmits(['close', 'complete'])

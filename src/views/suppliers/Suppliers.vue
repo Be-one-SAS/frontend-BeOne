@@ -3,10 +3,13 @@ import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { listSuppliers, createSupplier, updateSupplier, deleteSupplier } from '../../services/suppliers.service'
 import ModalReutilizable from '@/components/modal/ModalReutilizable.vue'
 import ConfirmModal from '@/components/modal/ConfirmModal.vue'
+import { useActionAccess } from '@/composables/useActionAccess'
 import {
   ChevronDown, Inbox, Plus, Pencil, Trash2,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
 } from 'lucide-vue-next'
+
+const { canDo } = useActionAccess()
 
 const data    = ref([])
 const loading = ref(true)
@@ -167,7 +170,7 @@ async function executeDelete() {
             <option :value="50">50</option>
           </select>
         </div>
-        <button class="sp-btn-add" @click="openCreate">
+        <button v-if="canDo('ProveedorCrear', ['ADMINISTRADOR'])" class="sp-btn-add" @click="openCreate">
           <Plus :size="14" /> Nuevo proveedor
         </button>
       </div>
@@ -269,10 +272,10 @@ async function executeDelete() {
                   <!-- Acciones -->
                   <td class="sp-td sp-td-center" @click.stop>
                     <div class="sp-actions">
-                      <button class="sp-action-btn sp-action-edit" title="Editar" @click="openEdit(row)">
+                      <button v-if="canDo('ProveedorEditar', ['ADMINISTRADOR'])" class="sp-action-btn sp-action-edit" title="Editar" @click="openEdit(row)">
                         <Pencil :size="13" />
                       </button>
-                      <button class="sp-action-btn sp-action-del" title="Eliminar" @click="confirmDelete(row)">
+                      <button v-if="canDo('ProveedorEliminar', ['ADMINISTRADOR'])" class="sp-action-btn sp-action-del" title="Eliminar" @click="confirmDelete(row)">
                         <Trash2 :size="13" />
                       </button>
                     </div>

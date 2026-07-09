@@ -10,11 +10,14 @@ import {
 import { getMaterialesByProducto } from '@/services/materiales.service'
 import ModalReutilizable from '@/components/modal/ModalReutilizable.vue'
 import SelectLabel from '@/components/input/SelectLabel.vue'
+import { useActionAccess } from '@/composables/useActionAccess'
 import {
   ArrowLeft, RefreshCw, QrCode, Download, Wifi,
   Package, MapPin, Clock, AlertTriangle, CheckCircle,
   Wrench, Edit, ChevronRight, Tag, Layers,
 } from 'lucide-vue-next'
+
+const { canDo } = useActionAccess()
 
 const route  = useRoute()
 const router = useRouter()
@@ -434,7 +437,7 @@ onMounted(fetchAll)
                 <span v-if="editSuccess" class="inv-edit-saved">✓ Guardado</span>
               </transition>
               <template v-if="!editMode">
-                <button class="inv-btn-edit" @click="startEdit">
+                <button v-if="canDo('InventarioDetalles', ['ADMINISTRADOR', 'SUPERVISOR', 'LOGISTICO'])" class="inv-btn-edit" @click="startEdit">
                   <Edit :size="13" /> Editar
                 </button>
               </template>
@@ -521,14 +524,14 @@ onMounted(fetchAll)
                 <span class="inv-info-lbl">Disponibilidad</span>
                 <span class="inv-info-val-with-action">
                   <span :class="availClass(item.availabilityStatus)">{{ availLabel(item.availabilityStatus) }}</span>
-                  <button type="button" class="inv-btn-change" @click="openStatusModal">Cambiar</button>
+                  <button v-if="canDo('InventarioEstado', ['ADMINISTRADOR', 'SUPERVISOR', 'LOGISTICO'])" type="button" class="inv-btn-change" @click="openStatusModal">Cambiar</button>
                 </span>
               </div>
               <div class="inv-info-row">
                 <span class="inv-info-lbl">Condición</span>
                 <span class="inv-info-val-with-action">
                   <span :class="condClass(item.conditionStatus)">{{ condLabel(item.conditionStatus) }}</span>
-                  <button type="button" class="inv-btn-change" @click="openCondModal">Cambiar</button>
+                  <button v-if="canDo('InventarioCondicion', ['ADMINISTRADOR', 'SUPERVISOR', 'LOGISTICO'])" type="button" class="inv-btn-change" @click="openCondModal">Cambiar</button>
                 </span>
               </div>
               <div class="inv-info-row">
@@ -541,7 +544,7 @@ onMounted(fetchAll)
                 <span class="inv-info-lbl">Ubicación</span>
                 <span class="inv-info-val-with-action">
                   <span class="inv-info-val">{{ item.ubicacion || '—' }}</span>
-                  <button type="button" class="inv-btn-change" @click="openLocationModal">Cambiar</button>
+                  <button v-if="canDo('InventarioUbicacion', ['ADMINISTRADOR', 'SUPERVISOR', 'LOGISTICO'])" type="button" class="inv-btn-change" @click="openLocationModal">Cambiar</button>
                 </span>
                 <span class="inv-info-hint">Punto exacto dentro de la bodega (ej. "Estante 3, nivel B")</span>
               </div>
@@ -697,7 +700,7 @@ onMounted(fetchAll)
             <div v-else class="inv-qr-empty">
               <QrCode :size="36" class="inv-qr-empty-ico" />
               <p class="inv-qr-empty-txt">Este equipo no tiene código QR asignado</p>
-              <button class="inv-btn-generate" @click="handleGenerateQR" :disabled="qrLoading">
+              <button v-if="canDo('InventarioQR', ['ADMINISTRADOR', 'SUPERVISOR', 'LOGISTICO'])" class="inv-btn-generate" @click="handleGenerateQR" :disabled="qrLoading">
                 {{ qrLoading ? 'Generando…' : 'Generar código QR' }}
               </button>
             </div>

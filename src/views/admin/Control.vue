@@ -15,6 +15,7 @@ import ExtraCostsPanel from '@/components/quotation/ExtraCostsPanel.vue'
 import { createEncuesta, getEncuestas } from '@/services/encuestas.service'
 import { uploadPlanimetria, deletePlanimetria } from '@/services/administracion.service.js'
 import { useAuth } from '@/composables/useAuth'
+import { useActionAccess } from '@/composables/useActionAccess'
 import ThumbHoverPreview from '@/components/shared/ThumbHoverPreview.vue'
 import { useThumbHoverPreview } from '@/composables/useThumbHoverPreview'
 
@@ -24,6 +25,7 @@ const { preview: thumbPreview, showPreview: showThumbPreview, hidePreview: hideT
 // Debe coincidir con EXTRA_COST_READ_ROLES en el backend (quotations.controller.ts)
 const EXTRA_COST_READ_ROLES = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'LOGISTICO']
 const { user } = useAuth()
+const { canDo } = useActionAccess()
 const canSeeExtraCosts = computed(() => (user.value?.roles ?? []).some(r => EXTRA_COST_READ_ROLES.includes(r)))
 
 const activeTab = ref<'control' | 'equipo'>('control')
@@ -502,6 +504,7 @@ const handleDeletePlan = async () => {
                       </span>
                     </div>
                     <button
+                      v-if="canDo('QuotationMiembros', ['ADMINISTRADOR', 'LIDER', 'SUPERVISOR'])"
                       class="equipo-edit-btn"
                       @click.stop="openTeamModal(ev)"
                       title="Gestionar equipo"
@@ -900,7 +903,7 @@ const handleDeletePlan = async () => {
 
               <div class="plani-actions">
                 <button class="plani-btn plani-btn-sec" @click="planReplacing = true">Reemplazar</button>
-                <button class="plani-btn plani-btn-del" :disabled="planDeleting" @click="handleDeletePlan">
+                <button v-if="canDo('CotizacionPlanimetriaEliminar', ['ADMINISTRADOR', 'DIRECCION'])" class="plani-btn plani-btn-del" :disabled="planDeleting" @click="handleDeletePlan">
                   <span v-if="planDeleting" class="plani-spin" />
                   <span v-else>Eliminar</span>
                 </button>

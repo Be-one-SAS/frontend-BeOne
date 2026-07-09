@@ -3,10 +3,13 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { getCustomer } from '../../services/customer.service'
 import ModalReutilizable from '../../components/modal/ModalReutilizable.vue'
 import { updateClient, createClient } from '../../services/suppliers.service'
+import { useActionAccess } from '../../composables/useActionAccess'
 import {
   ChevronDown, Inbox, Pencil,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
 } from 'lucide-vue-next'
+
+const { canDo } = useActionAccess()
 
 const data    = ref([])
 const loading = ref(true)
@@ -185,7 +188,11 @@ onMounted(async () => {
             <option :value="50">50</option>
           </select>
         </div>
-        <button class="btn-new" @click="openCreateModal">
+        <button
+          v-if="canDo('ClienteCrear', ['ADMINISTRADOR', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA'])"
+          class="btn-new"
+          @click="openCreateModal"
+        >
           + Nuevo cliente
         </button>
       </div>
@@ -294,7 +301,11 @@ onMounted(async () => {
 
                   <!-- Acciones — @click.stop evita el toggle -->
                   <td class="cu-td" @click.stop>
-                    <button class="act-btn act-edit" @click.stop="openCustomerModal(row)">
+                    <button
+                      v-if="canDo('ClienteEditar', ['ADMINISTRADOR', 'LIDER', 'SUPERVISOR'])"
+                      class="act-btn act-edit"
+                      @click.stop="openCustomerModal(row)"
+                    >
                       <Pencil :size="12" /> Editar
                     </button>
                   </td>

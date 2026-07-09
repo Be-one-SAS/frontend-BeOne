@@ -9,7 +9,9 @@
         <input v-model="search" @focus="openModal = true" placeholder="Buscar cliente..."
           class="w-full bg-[#F8FAFC] border border-[#E5EAF0] rounded-full pl-9 pr-4 py-[9px] text-[13px] text-[#0F1A2E] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#27C8D8]/20 focus:border-[#27C8D8] cursor-pointer transition-colors" readonly />
       </div>
-      <button v-if="props.dataClient && props.dataClient.name" @click="abrirModalEdicion"
+      <button
+        v-if="props.dataClient && props.dataClient.name && canDo('ClienteEditar', ['ADMINISTRADOR', 'LIDER', 'SUPERVISOR'])"
+        @click="abrirModalEdicion"
         class="h-[37px] w-[37px] flex-shrink-0 bg-[#E0F9FA] hover:bg-[#CCEFF2] border border-[#A7EEF5] text-[#27C8D8] flex items-center justify-center rounded-full transition-colors"
         title="Editar cliente">
         <IconEdit class="w-[18px] h-[18px]" />
@@ -91,7 +93,9 @@
           <button class="px-[16px] py-[9px] text-[13px] font-semibold bg-[#F8FAFC] text-[#64748B] border border-[#E5EAF0] rounded-full hover:bg-[#E0F9FA] hover:text-[#27C8D8] hover:border-[#A7EEF5] transition-colors" @click="openModal = false">
             Cancelar
           </button>
-          <button v-if="!filteredClientes.length" class="px-[16px] py-[9px] text-[13px] font-semibold bg-[#27C8D8] text-white rounded-full hover:bg-[#1BAEBB] shadow-[0_2px_8px_rgba(39,200,216,0.18)] transition-all disabled:opacity-50 disabled:cursor-not-allowed" @click="agregarNuevoCliente"
+          <button
+            v-if="!filteredClientes.length && canDo('ClienteCrear', ['ADMINISTRADOR', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA'])"
+            class="px-[16px] py-[9px] text-[13px] font-semibold bg-[#27C8D8] text-white rounded-full hover:bg-[#1BAEBB] shadow-[0_2px_8px_rgba(39,200,216,0.18)] transition-all disabled:opacity-50 disabled:cursor-not-allowed" @click="agregarNuevoCliente"
             :disabled="!nuevoCliente.name">
             Agregar nuevo cliente
           </button>
@@ -147,7 +151,9 @@
           <button class="px-[16px] py-[9px] text-[13px] font-semibold bg-[#F8FAFC] text-[#64748B] border border-[#E5EAF0] rounded-full hover:bg-[#E0F9FA] hover:text-[#27C8D8] hover:border-[#A7EEF5] transition-colors" @click="modalEditar = false">
             Cancelar
           </button>
-          <button class="px-[16px] py-[9px] text-[13px] font-semibold bg-[#16A34A] text-white rounded-full hover:bg-[#15803D] shadow-[0_2px_8px_rgba(22,163,74,0.18)] transition-all disabled:opacity-50 disabled:cursor-not-allowed" @click="actualizarCliente"
+          <button
+            v-if="canDo('ClienteEditar', ['ADMINISTRADOR', 'LIDER', 'SUPERVISOR'])"
+            class="px-[16px] py-[9px] text-[13px] font-semibold bg-[#16A34A] text-white rounded-full hover:bg-[#15803D] shadow-[0_2px_8px_rgba(22,163,74,0.18)] transition-all disabled:opacity-50 disabled:cursor-not-allowed" @click="actualizarCliente"
             :disabled="!nuevoCliente.name">
             Guardar cambios
           </button>
@@ -161,7 +167,10 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import ModalReutilizable from '@/components/modal/ModalReutilizable.vue'
 import { createClient, getSuppliers, updateClient } from '../../services/suppliers.service'
+import { useActionAccess } from '../../composables/useActionAccess'
 import IconEdit from '../../Icons/IconEdit.vue'
+
+const { canDo } = useActionAccess()
 
 const props = defineProps({
   modelValue: String,

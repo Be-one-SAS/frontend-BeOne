@@ -133,7 +133,7 @@
             </div>
 
             <!-- Botón confirmar recepción (solo OCs aprobadas) -->
-            <div v-if="oc.estado === 'APROBADA'" class="oc-confirm-wrap" @click.stop>
+            <div v-if="oc.estado === 'APROBADA' && canDo('OrdenCompraCambiarEstado', OC_ROLES)" class="oc-confirm-wrap" @click.stop>
               <button class="oc-confirm-btn" @click.stop="confirmarRecepcion(oc)" :disabled="oc._saving">
                 <CheckCircle2 :size="13" />
                 Confirmar recepción
@@ -155,7 +155,7 @@
             </div>
             <div style="display:flex;align-items:center;gap:8px">
               <button
-                v-if="detailOC.estado === 'APROBADA'"
+                v-if="detailOC.estado === 'APROBADA' && canDo('OrdenCompraCambiarEstado', OC_ROLES)"
                 class="oc-detail-confirm-btn"
                 @click="confirmarRecepcionModal"
                 :disabled="detailOC._saving"
@@ -219,6 +219,10 @@ import {
   ShoppingCart, Calendar, Clock, User, Building2, Package, X, CheckCircle2,
 } from 'lucide-vue-next'
 import { getOrdenesCompra, updateOrdenCompraEstado } from '@/services/ordenes-compra.service.js'
+import { useActionAccess } from '@/composables/useActionAccess'
+
+const { canDo } = useActionAccess()
+const OC_ROLES = ['ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'LOGISTICO', 'LIDER', 'DIRECCION', 'OPERATIVO']
 
 const ESTADOS = ['EMITIDA', 'APROBADA', 'RECIBIDA', 'CANCELADA']
 
