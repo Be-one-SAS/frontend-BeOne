@@ -1119,6 +1119,7 @@ import ResumenCotizacion from '../../components/panels/ResumenCotizacion.vue';
 import ClienteFinalSelector from '../suppliers/ClienteFinalSelector.vue';
 import BarraInfo from '../../components/panels/BarraInfo.vue';
 import { useAuth } from '../../composables/useAuth';
+import { useActionAccess } from '../../composables/useActionAccess';
 import MapSelector from '../../components/map/MapSelector.vue';
 
 import { useRoute, useRouter } from 'vue-router';
@@ -1179,6 +1180,7 @@ const isEditMode  = ref(!!id);
 const modoEdicion = ref(false)
 
 const { user } = useAuth();
+const { canDo } = useActionAccess();
 const clienteSeleccionado   = ref({})
 const myClienteSeleccionado = ref({})
 
@@ -1258,13 +1260,12 @@ const {
   modalProductoNoSeleccionado
 })
 
-// Mismos roles que exige el backend para restaurar versiones
-// (POST /quotations/:id/versions/:versionId/restore) — user.roles es un
-// array, no un string único.
+// Refleja lo mismo que decide el backend para crear/restaurar versiones
+// (ActionAccessGuard + @ActionAccess('QuotationVersiones')) — configurable
+// desde /configuracion → "Acceso a acciones".
 const canManage = computed(() => {
   if (!user.value) return false;
-  const rolesPermitidos = ['ADMINISTRADOR', 'LIDER', 'SUPERVISOR'];
-  return (user.value.roles || []).some(r => rolesPermitidos.includes(r));
+  return canDo('QuotationVersiones', ['ADMINISTRADOR', 'LIDER', 'SUPERVISOR']);
 });
 
 // ── Lógica de Guardado y Versiones ───────────────────────────────────────

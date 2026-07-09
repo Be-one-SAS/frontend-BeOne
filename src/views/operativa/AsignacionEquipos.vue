@@ -157,7 +157,11 @@
 
               <!-- Acciones -->
               <td class="ae-td">
-                <button class="ae-btn-manage" @click="openTeamModal(ev)">
+                <button
+                  v-if="canDo('QuotationMiembros', ['ADMINISTRADOR', 'LIDER', 'SUPERVISOR'])"
+                  class="ae-btn-manage"
+                  @click="openTeamModal(ev)"
+                >
                   <UserCog :size="13" />
                   Equipo
                 </button>
@@ -226,9 +230,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { Users, UserCog, Search, CalendarDays } from 'lucide-vue-next'
 import { useControl } from '@/composables/useControl'
+import { useActionAccess } from '@/composables/useActionAccess'
 import TeamModal from '@/components/quotation/TeamModal.vue'
 
 const { eventos, loading, fetchEventos, fetchCoordinadores, refreshEventTeam } = useControl()
+const { canDo } = useActionAccess()
 
 // ── Team modal ──────────────────────────────────────
 const showTeamModal  = ref(false)

@@ -7,7 +7,7 @@
         <h1 class="page-title">Gestión de Usuarios</h1>
         <p class="page-sub">Administra los usuarios y sus roles en el sistema</p>
       </div>
-      <button class="btn-primary" @click="openCreate">
+      <button v-if="canDo('UsuarioCrear', ['ADMINISTRADOR', 'LIDER'])" class="btn-primary" @click="openCreate">
         <UserPlus :size="16" />
         Nuevo usuario
       </button>
@@ -116,8 +116,9 @@
             </td>
             <td>
               <div class="actions">
-                <button class="icon-btn" title="Editar" @click="openEdit(u)"><Pencil :size="15" /></button>
+                <button v-if="canDo('UsuarioEditar', ['ADMINISTRADOR', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'LOGISTICO'])" class="icon-btn" title="Editar" @click="openEdit(u)"><Pencil :size="15" /></button>
                 <button
+                  v-if="canDo('UsuarioActivarDesactivar', ['ADMINISTRADOR', 'LIDER'])"
                   class="icon-btn"
                   :title="u.isActive !== false ? 'Desactivar' : 'Activar'"
                   @click="handleToggle(u)"
@@ -245,7 +246,10 @@ import {
 } from 'lucide-vue-next'
 import { useUsers } from '@/composables/useUsers'
 import { useAuth } from '@/composables/useAuth'
+import { useActionAccess } from '@/composables/useActionAccess'
 import { reassignUser } from '@/services/users.service'
+
+const { canDo } = useActionAccess()
 
 const { users, loading, error, loadUsers: fetchUsers, upsertUser, toggleStatus } = useUsers()
 const { user: authUser } = useAuth()
@@ -302,10 +306,7 @@ const changePage = (p) => {
 watch([search, filterRole, filterActive], () => { currentPage.value = 1 })
 
 // Role check
-const canReassign = computed(() => {
-  const r = authUser.value?.roles?.[0]
-  return r === 'ADMIN'
-})
+const canReassign = computed(() => canDo('UsuarioReasignar', ['ADMINISTRADOR', 'LIDER']))
 
 // Helpers
 const roleCls = (role) => ({

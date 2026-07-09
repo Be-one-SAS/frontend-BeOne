@@ -124,6 +124,7 @@
               <button
                 class="mont-checkbox"
                 :class="{ checked: item.check.completado }"
+                :disabled="!canDo('MontajeCheckToggle', MONTAJE_ROLES)"
                 @click="toggleCheck(ev.id, item)"
               >
                 <Check v-if="item.check.completado" :size="14" />
@@ -171,6 +172,7 @@
               <button
                 class="mont-checkbox"
                 :class="{ checked: item.check.completado }"
+                :disabled="!canDo('MontajeCheckToggle', MONTAJE_ROLES)"
                 @click="toggleCheck(ev.id, item)"
               >
                 <Check v-if="item.check.completado" :size="14" />
@@ -209,6 +211,7 @@
               <button
                 class="mont-checkbox"
                 :class="{ checked: item.check.completado }"
+                :disabled="!canDo('MontajeCheckToggle', MONTAJE_ROLES)"
                 @click="toggleCheck(ev.id, item)"
               >
                 <Check v-if="item.check.completado" :size="14" />
@@ -345,7 +348,7 @@
           />
           <div class="mont-modal-actions">
             <button class="mont-modal-cancel" @click="closeNote">Cancelar</button>
-            <button class="mont-modal-save" :disabled="noteModal.saving" @click="saveNote">
+            <button v-if="canDo('MontajeCheckToggle', MONTAJE_ROLES)" class="mont-modal-save" :disabled="noteModal.saving" @click="saveNote">
               <span v-if="noteModal.saving">Guardando...</span>
               <span v-else>Guardar</span>
             </button>
@@ -366,6 +369,10 @@ import {
 import { getMontajes, upsertCheck } from '@/services/montajes.service.js'
 import { patchQuotation } from '@/services/quotation.service.ts'
 import NotasCotizacionPanel from '@/components/quotation/NotasCotizacionPanel.vue'
+import { useActionAccess } from '@/composables/useActionAccess'
+
+const { canDo } = useActionAccess()
+const MONTAJE_ROLES = ['ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'LOGISTICO', 'LIDER', 'OPERATIVO']
 
 const TABS = [
   { value: 'all',       label: 'Todos' },

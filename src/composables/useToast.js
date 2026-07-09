@@ -19,6 +19,21 @@ export const useToast = createGlobalState(() => {
    */
   const pushToast = (message, type = 'info', duration = 5000) => {
     if (!message) return
+
+    // Deduplicar: si ya se está mostrando un toast idéntico (mismo mensaje y
+    // tipo), no apilar otra tarjeta igual encima — reinicia su temporizador
+    // para que siga visible mientras el mismo error/aviso sigue ocurriendo.
+    const existing = toasts.value.find((t) => t.message === message && t.type === type)
+    if (existing) {
+      const oldTimer = timers.get(existing.id)
+      if (oldTimer) clearTimeout(oldTimer)
+      if (duration > 0) {
+        const timer = setTimeout(() => dismissToast(existing.id), duration)
+        timers.set(existing.id, timer)
+      }
+      return existing.id
+    }
+
     const id = ++nextId
     toasts.value.push({ id, message, type })
     if (duration > 0) {

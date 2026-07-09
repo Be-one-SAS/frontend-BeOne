@@ -12,6 +12,7 @@ import { ChevronDown, Eye, CheckCircle, XCircle, FileText, Inbox, Users, Downloa
 import ThumbHoverPreview from '@/components/shared/ThumbHoverPreview.vue';
 import { useThumbHoverPreview } from '@/composables/useThumbHoverPreview';
 import { useAuth } from "../../composables/useAuth";
+import { useActionAccess } from "../../composables/useActionAccess";
 import { getSedes } from "../../services/sedes.service";
 import { formatCOP } from "../../utils/currency.js";
 import {
@@ -84,6 +85,7 @@ const activeTab = ref('listado'); // 'listado' | 'comisiones'
 // ----------------------
 const { user } = useAuth();
 const userRoles = computed(() => user.value?.roles ?? []);
+const { canDo } = useActionAccess();
 const mostrarFiltroSedeComisiones = computed(() =>
   !user.value?.sedeId && userRoles.value.some(r => ['ADMIN', 'ADMINISTRADOR', 'DIRECCION'].includes(r))
 );
@@ -671,6 +673,7 @@ const formatDateTime = (iso) =>
 
                     <!-- Confirmar (lógica original exacta) -->
                     <button
+                      v-if="canDo('ReservationConfirm', ['ADMINISTRADOR', 'LIDER', 'SUPERVISOR'])"
                       :disabled="q?.isPublished"
                       @click.stop="confirmQuotation(q)"
                       :class="q?.isPublished ? 'act-btn act-disabled' : 'act-btn act-confirm'"
@@ -680,6 +683,7 @@ const formatDateTime = (iso) =>
 
                     <!-- Cancelar (lógica original exacta) -->
                     <button
+                      v-if="canDo('ReservationCancel', ['ADMINISTRADOR', 'LIDER', 'SUPERVISOR'])"
                       :disabled="!q?.isPublished"
                       @click.stop="cancelQuotation(q)"
                       :class="!q?.isPublished ? 'act-btn act-disabled' : 'act-btn act-cancel'"

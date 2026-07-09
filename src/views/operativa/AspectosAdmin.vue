@@ -9,14 +9,14 @@
         </button>
         <h1 class="aa-title">Aspectos de inspección</h1>
       </div>
-      <button class="aa-add-btn" @click="openAdd">
+      <button v-if="canDo('AspectoInspeccionGestionar', ['ADMINISTRADOR'])" class="aa-add-btn" @click="openAdd">
         <Plus :size="15" /> Agregar aspecto
       </button>
     </div>
 
     <!-- Acciones cuando está embebido -->
     <div v-if="embedded" class="aa-embedded-actions">
-      <button class="aa-add-btn" @click="openAdd">
+      <button v-if="canDo('AspectoInspeccionGestionar', ['ADMINISTRADOR'])" class="aa-add-btn" @click="openAdd">
         <Plus :size="15" /> Agregar aspecto
       </button>
     </div>
@@ -58,6 +58,7 @@
             <td class="aa-td-texto">{{ asp.texto }}</td>
             <td class="aa-td-estado">
               <button
+                v-if="canDo('AspectoInspeccionGestionar', ['ADMINISTRADOR'])"
                 class="aa-toggle-btn"
                 :class="asp.activo ? 'aa-toggle-on' : 'aa-toggle-off'"
                 :disabled="saving === `toggle-${asp.id}`"
@@ -73,6 +74,7 @@
               <div class="aa-actions-row">
                 <!-- Reordenar -->
                 <button
+                  v-if="canDo('AspectoInspeccionGestionar', ['ADMINISTRADOR'])"
                   class="aa-icon-btn"
                   title="Subir"
                   :disabled="idx === 0 || !!saving"
@@ -81,6 +83,7 @@
                   <ChevronUp :size="14" />
                 </button>
                 <button
+                  v-if="canDo('AspectoInspeccionGestionar', ['ADMINISTRADOR'])"
                   class="aa-icon-btn"
                   title="Bajar"
                   :disabled="idx === aspectos.length - 1 || !!saving"
@@ -90,12 +93,12 @@
                 </button>
 
                 <!-- Editar -->
-                <button class="aa-icon-btn aa-icon-edit" title="Editar" @click="openEdit(asp)">
+                <button v-if="canDo('AspectoInspeccionGestionar', ['ADMINISTRADOR'])" class="aa-icon-btn aa-icon-edit" title="Editar" @click="openEdit(asp)">
                   <Pencil :size="14" />
                 </button>
 
                 <!-- Eliminar -->
-                <button class="aa-icon-btn aa-icon-delete" title="Eliminar" @click="confirmDelete(asp)">
+                <button v-if="canDo('AspectoInspeccionEliminar', ['ADMINISTRADOR'])" class="aa-icon-btn aa-icon-delete" title="Eliminar" @click="confirmDelete(asp)">
                   <Trash2 :size="14" />
                 </button>
               </div>
@@ -162,6 +165,9 @@ import {
   getAspectosAdmin, createAspecto, updateAspecto,
   toggleAspecto, deleteAspecto, reorderAspectos,
 } from '../../services/aspectos.service.js'
+import { useActionAccess } from '../../composables/useActionAccess'
+
+const { canDo } = useActionAccess()
 
 defineProps({ embedded: { type: Boolean, default: false } })
 

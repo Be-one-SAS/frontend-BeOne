@@ -18,7 +18,7 @@
         <h1 class="page-title">Gestión de Usuarios</h1>
         <p class="page-sub">{{ filteredUsers.length }} usuarios encontrados</p>
       </div>
-      <button v-if="canCreate('usuarios')" class="btn-primary" @click="abrirModalCrear">
+      <button v-if="canDo('UsuarioCrear', ['ADMINISTRADOR', 'LIDER'])" class="btn-primary" @click="abrirModalCrear">
         <UserPlus :size="15" />
         Nuevo usuario
       </button>
@@ -153,7 +153,7 @@
                 <button class="action-btn" title="Ver perfil" style="--hbg:#CCEFF2; --hc:#27C8D8" @click="verPerfil(u)">
                   <Eye :size="15" />
                 </button>
-                <button v-if="canEdit('usuarios')" class="action-btn" title="Editar usuario"
+                <button v-if="canDo('UsuarioEditar', ['ADMINISTRADOR', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'LOGISTICO'])" class="action-btn" title="Editar usuario"
                   style="--hbg:#FEF3C7; --hc:#B45309" @click="abrirModalEditar(u)">
                   <Pencil :size="15" />
                 </button>
@@ -161,25 +161,25 @@
                   style="--hbg:#EDE9FE; --hc:#7C3AED" @click="abrirModalRol(u)">
                   <Shield :size="15" />
                 </button>
-                <button class="action-btn" :title="u.status === 'Activo' ? 'Desactivar usuario' : 'Activar usuario'"
+                <button v-if="canDo('UsuarioActivarDesactivar', ['ADMINISTRADOR', 'LIDER'])" class="action-btn" :title="u.status === 'Activo' ? 'Desactivar usuario' : 'Activar usuario'"
                   :style="u.status === 'Activo'
                     ? '--hbg:#FEE2E2; --hc:#B91C1C'
                     : '--hbg:#DCFCE7; --hc:#16A34A'" @click="handleToggle(u)">
                   <ToggleRight v-if="u.status === 'Activo'" :size="15" />
                   <ToggleLeft v-else :size="15" />
                 </button>
-                <button v-if="canEdit('usuarios')" class="action-btn"
+                <button v-if="canDo('UsuarioReenviarBienvenida', ['ADMINISTRADOR'])" class="action-btn"
                   :title="resendOkId === u.id ? '¡Correo enviado!' : 'Reenviar correo de bienvenida'"
                   :style="resendOkId === u.id ? '--hbg:#DCFCE7; --hc:#16A34A' : '--hbg:#D1FAE5; --hc:#065F46'"
                   :disabled="resendingId === u.id"
                   @click="handleResendBienvenida(u)">
                   <Mail :size="15" />
                 </button>
-                <button v-if="isCurrentUserAdmin" class="action-btn" title="Cambiar contraseña"
+                <button v-if="canDo('UsuarioResetPassword', [])" class="action-btn" title="Cambiar contraseña"
                   style="--hbg:#F0FDF4; --hc:#16A34A" @click="abrirModalPwd(u)">
                   <KeyRound :size="15" />
                 </button>
-                <button v-if="canDelete('usuarios')" class="action-btn" title="Eliminar usuario"
+                <button v-if="canDo('UsuarioEliminar', [])" class="action-btn" title="Eliminar usuario"
                   style="--hbg:#FEE2E2; --hc:#B91C1C" @click="abrirModalEliminar(u)">
                   <Trash2 :size="15" />
                 </button>
@@ -297,7 +297,7 @@
           <span class="td-meta">{{ getTimeAgo(u.lastLogin) }}</span>
         </div>
         <div class="mc-actions">
-          <button v-if="canEdit('usuarios')" class="action-btn" title="Editar" style="--hbg:#FEF3C7; --hc:#B45309"
+          <button v-if="canDo('UsuarioEditar', ['ADMINISTRADOR', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'LOGISTICO'])" class="action-btn" title="Editar" style="--hbg:#FEF3C7; --hc:#B45309"
             @click="abrirModalEditar(u)">
             <Pencil :size="15" />
           </button>
@@ -305,17 +305,17 @@
             @click="abrirModalRol(u)">
             <Shield :size="15" />
           </button>
-          <button class="action-btn" :title="u.status === 'Activo' ? 'Desactivar' : 'Activar'"
+          <button v-if="canDo('UsuarioActivarDesactivar', ['ADMINISTRADOR', 'LIDER'])" class="action-btn" :title="u.status === 'Activo' ? 'Desactivar' : 'Activar'"
             :style="u.status === 'Activo' ? '--hbg:#FEE2E2; --hc:#B91C1C' : '--hbg:#DCFCE7; --hc:#16A34A'"
             @click="handleToggle(u)">
             <ToggleRight v-if="u.status === 'Activo'" :size="15" />
             <ToggleLeft v-else :size="15" />
           </button>
-          <button v-if="isCurrentUserAdmin" class="action-btn" title="Cambiar contraseña"
+          <button v-if="canDo('UsuarioResetPassword', [])" class="action-btn" title="Cambiar contraseña"
             style="--hbg:#F0FDF4; --hc:#16A34A" @click="abrirModalPwd(u)">
             <KeyRound :size="15" />
           </button>
-          <button v-if="canDelete('usuarios')" class="action-btn" title="Eliminar" style="--hbg:#FEE2E2; --hc:#B91C1C"
+          <button v-if="canDo('UsuarioEliminar', [])" class="action-btn" title="Eliminar" style="--hbg:#FEE2E2; --hc:#B91C1C"
             @click="abrirModalEliminar(u)">
             <Trash2 :size="15" />
           </button>
@@ -403,6 +403,7 @@ import {
 import { useUsers, rolePermissions } from '@/composables/useUsers'
 import { useAuth } from '@/composables/useAuth'
 import { usePermissions } from '@/composables/usePermissions'
+import { useActionAccess } from '@/composables/useActionAccess'
 import { updateUserRoles, resendBienvenida, adminSetPassword } from '@/services/users.service'
 import UserFormModal from './components/UserFormModal.vue'
 import UserRoleModal from './components/UserRoleModal.vue'
@@ -410,7 +411,8 @@ import UserDeleteModal from './components/UserDeleteModal.vue'
 
 // ── Auth & permisos ───────────────────────────────────
 const { user } = useAuth()
-const { canCreate, canEdit, canDelete } = usePermissions()
+const { canEdit } = usePermissions()
+const { canDo } = useActionAccess()
 const currentUserRole = computed(() => user.value?.roles?.[0] ?? 'ADMIN')
 const isCurrentUserAdmin = computed(() => (user.value?.roles ?? []).includes('ADMIN'))
 

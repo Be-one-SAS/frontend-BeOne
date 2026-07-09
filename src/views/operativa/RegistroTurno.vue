@@ -397,19 +397,19 @@ import {
   deleteRegistro, getTurnoToken,
 } from '@/services/registros-turno.service'
 import { getUsers } from '@/services/users.service'
-import { useAuth } from '@/composables/useAuth'
+import { useActionAccess } from '@/composables/useActionAccess'
 
-const { user } = useAuth()
+const { canDo } = useActionAccess()
 
-// ── Roles ─────────────────────────────────────────────────────────
-const MANAGER_ROLES = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'LOGISTICO']
-const DELETE_ROLES  = ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA']
+// ── Roles (fallback estático — usado solo si la config dinámica no cargó) ──
+const MANAGER_ROLES = ['ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'LOGISTICO']
+const DELETE_ROLES  = ['ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA']
 
 const canManageTurnos = computed(() =>
-  (user.value?.roles ?? []).some(r => MANAGER_ROLES.includes(r))
+  canDo('TurnoCrear', MANAGER_ROLES) || canDo('TurnoEditar', MANAGER_ROLES)
 )
 const canDeleteTurnos = computed(() =>
-  (user.value?.roles ?? []).some(r => DELETE_ROLES.includes(r))
+  canDo('TurnoEliminar', DELETE_ROLES)
 )
 
 // ── Estado ─────────────────────────────────────────────────────────

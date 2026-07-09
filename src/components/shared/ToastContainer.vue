@@ -53,16 +53,29 @@ const ICONS = {
   gap: 10px;
   background: #fff;
   border-radius: 14px;
-  padding: 14px 16px;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
-  border-left: 4px solid #94A3B8;
+  padding: 12px 14px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14);
+  border: 1px solid #E5EAF0;
   cursor: pointer;
   font-family: 'Inter', sans-serif;
 }
 
-.toast-icon { flex-shrink: 0; margin-top: 1px; }
+.toast-icon {
+  flex-shrink: 0;
+  margin-top: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748B;
+  background: #F1F5F9;
+}
+.toast-icon svg { width: 15px; height: 15px; }
 .toast-message {
   flex: 1;
+  align-self: center;
   font-size: 13px;
   line-height: 1.5;
   color: #0F172A;
@@ -80,14 +93,16 @@ const ICONS = {
 }
 .toast-close:hover { background: #F1F5F9; color: #475569; }
 
-.toast--error   { border-left-color: #EF4444; }
-.toast--error   .toast-icon { color: #EF4444; }
-.toast--warning { border-left-color: #F59E0B; }
-.toast--warning .toast-icon { color: #F59E0B; }
-.toast--success { border-left-color: #16A34A; }
-.toast--success .toast-icon { color: #16A34A; }
-.toast--info    { border-left-color: #2563EB; }
-.toast--info    .toast-icon { color: #2563EB; }
+/* Tarjeta con relleno suave del color semántico + ícono en badge de color
+   sólido — reemplaza el viejo patrón "tarjeta blanca + barra lateral". */
+.toast--error   { background: #FEF2F2; border-color: #FECACA; }
+.toast--error   .toast-icon { background: #EF4444; color: #fff; }
+.toast--warning { background: #FFFBEB; border-color: #FDE68A; }
+.toast--warning .toast-icon { background: #F59E0B; color: #fff; }
+.toast--success { background: #F0FDF4; border-color: #BBF7D0; }
+.toast--success .toast-icon { background: #16A34A; color: #fff; }
+.toast--info    { background: #EFF6FF; border-color: #BFDBFE; }
+.toast--info    .toast-icon { background: #2563EB; color: #fff; }
 
 /* ── "prompt": invita a hacer algo — deliberadamente distinto de los
    toasts de estado (sin barra lateral, relleno en degradado, forma de
@@ -100,12 +115,8 @@ const ICONS = {
   box-shadow: 0 12px 32px rgba(234, 88, 12, 0.32);
 }
 .toast--prompt .toast-icon {
-  margin-top: 0;
   color: #fff;
   background: rgba(255, 255, 255, 0.22);
-  border-radius: 50%;
-  padding: 7px;
-  box-sizing: content-box;
 }
 .toast--prompt .toast-message { color: #fff; font-weight: 600; }
 .toast--prompt .toast-close   { color: rgba(255, 255, 255, 0.75); }

@@ -140,6 +140,7 @@
                   </div>
                   <button v-else class="adm-estado-btn"
                     :style="{ background: estadoStyle(row.estadoAdministrativo).bg, color: estadoStyle(row.estadoAdministrativo).color }"
+                    :disabled="!canDo('CotizacionEstadoAdmin', ADMIN_ROLES)"
                     @click="startEdit(row)" :title="row.saving ? 'Guardando…' : 'Clic para editar'">
                     <span v-if="row.saving" class="adm-saving-dot" />
                     {{ row.estadoAdministrativo || 'Sin estado' }}
@@ -149,6 +150,7 @@
                 <!-- VAL ADM badge -->
                 <td class="adm-td">
                   <button class="val-adm-badge" :class="row.validadoAdministrativamente ? 'val-ok' : 'val-no'"
+                    :disabled="!canDo('CotizacionValidarAdmin', ADMIN_ROLES)"
                     @click="handleToggleValAdm(row)" :title="row.validadoAdministrativamente ? 'Validado — clic para revertir' : 'Sin validar — clic para validar'">
                     <CheckCircle v-if="row.validadoAdministrativamente" :size="12" />
                     <XCircle v-else :size="12" />
@@ -232,6 +234,7 @@
               {{ drawerRow.estadoAdministrativo || 'Sin estado' }}
             </span>
             <button class="val-adm-badge" :class="drawerRow.validadoAdministrativamente ? 'val-ok' : 'val-no'"
+              :disabled="!canDo('CotizacionValidarAdmin', ADMIN_ROLES)"
               @click="handleToggleValAdm(drawerRow)"
               :title="drawerRow.validadoAdministrativamente ? 'Validado — clic para revertir' : 'Sin validar — clic para validar'">
               <CheckCircle v-if="drawerRow.validadoAdministrativamente" :size="11" />
@@ -337,27 +340,27 @@
             </div>
             <div class="evt-field">
               <label class="evt-fl">Empresa</label>
-              <input type="text" class="dso-input" v-model="infoForm[drawerRow.id].empresa" @blur="saveInfoGeneral(drawerRow)" placeholder="—" />
+              <input type="text" class="dso-input" v-model="infoForm[drawerRow.id].empresa" @blur="saveInfoGeneral(drawerRow)" placeholder="—" :disabled="!canDo('CotizacionInfoGeneral', ADMIN_ROLES)" />
             </div>
             <div class="evt-field">
               <label class="evt-fl">Contacto</label>
-              <input type="text" class="dso-input" v-model="infoForm[drawerRow.id].contacto" @blur="saveInfoGeneral(drawerRow)" placeholder="—" />
+              <input type="text" class="dso-input" v-model="infoForm[drawerRow.id].contacto" @blur="saveInfoGeneral(drawerRow)" placeholder="—" :disabled="!canDo('CotizacionInfoGeneral', ADMIN_ROLES)" />
             </div>
             <div class="evt-field evt-field-full">
               <label class="evt-fl">Descripción</label>
-              <input type="text" class="dso-input" v-model="infoForm[drawerRow.id].description" @blur="saveInfoGeneral(drawerRow)" placeholder="—" />
+              <input type="text" class="dso-input" v-model="infoForm[drawerRow.id].description" @blur="saveInfoGeneral(drawerRow)" placeholder="—" :disabled="!canDo('CotizacionInfoGeneral', ADMIN_ROLES)" />
             </div>
             <div class="evt-field">
               <label class="evt-fl">Región</label>
-              <input type="text" class="dso-input" v-model="infoForm[drawerRow.id].unidadEjecucion" @blur="saveInfoGeneral(drawerRow)" placeholder="—" />
+              <input type="text" class="dso-input" v-model="infoForm[drawerRow.id].unidadEjecucion" @blur="saveInfoGeneral(drawerRow)" placeholder="—" :disabled="!canDo('CotizacionInfoGeneral', ADMIN_ROLES)" />
             </div>
             <div class="evt-field">
               <label class="evt-fl">Ejecutivo</label>
-              <input type="text" class="dso-input" v-model="infoForm[drawerRow.id].agenteComercial" @blur="saveInfoGeneral(drawerRow)" placeholder="—" />
+              <input type="text" class="dso-input" v-model="infoForm[drawerRow.id].agenteComercial" @blur="saveInfoGeneral(drawerRow)" placeholder="—" :disabled="!canDo('CotizacionInfoGeneral', ADMIN_ROLES)" />
             </div>
             <div class="evt-field evt-field-full">
               <label class="evt-fl">Ubicación</label>
-              <input type="text" class="dso-input" v-model="infoForm[drawerRow.id].ubicacion" @blur="saveInfoGeneral(drawerRow)" placeholder="—" />
+              <input type="text" class="dso-input" v-model="infoForm[drawerRow.id].ubicacion" @blur="saveInfoGeneral(drawerRow)" placeholder="—" :disabled="!canDo('CotizacionInfoGeneral', ADMIN_ROLES)" />
             </div>
           </div>
 
@@ -510,6 +513,7 @@
       <!-- ── Validación administrativa ── sticky footer -->
       <div class="evt-val-footer">
         <button
+          v-if="canDo('CotizacionValidarAdmin', ADMIN_ROLES)"
           class="evt-val-btn"
           :class="drawerRow.validadoAdministrativamente ? 'evt-val-btn-revert' : 'evt-val-btn-ok'"
           @click="handleToggleValAdm(drawerRow)"
@@ -552,6 +556,10 @@ import { getUsers } from '@/services/users.service.js'
 import { ESTADOS_ADMIN, estadoAdminStyle } from '@/composables/useEstadoAdmin.js'
 import NotasCotizacionPanel from '@/components/quotation/NotasCotizacionPanel.vue'
 import FinancieroPanel      from '@/components/quotation/FinancieroPanel.vue'
+import { useActionAccess } from '@/composables/useActionAccess'
+
+const { canDo } = useActionAccess()
+const ADMIN_ROLES = ['ADMINISTRADOR', 'DIRECCION']
 
 function estadoStyle(e) { return estadoAdminStyle(e) }
 

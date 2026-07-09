@@ -148,6 +148,71 @@
       @cancel="showViewAccessSelfLockConfirm = false"
     />
 
+    <div class="cfg-section-label">Acceso a acciones por rol</div>
+    <div class="cfg-card">
+      <div class="rva-intro">
+        <p class="cfg-field-desc" style="max-width: 100%; margin: 0;">
+          Define qué roles pueden ejecutar cada acción de negocio (confirmar una reserva, gestionar el
+          equipo de una cotización, etc.). <strong>ADMIN siempre puede hacer todo</strong> y no es editable.
+          Esto sí cambia lo que la API permite — a diferencia de "Acceso a vistas", que solo controla el menú.
+        </p>
+        <div class="rva-intro-actions">
+          <button type="button" class="rva-link-btn" @click="setAllActionGroupsOpen(true)">Expandir todo</button>
+          <span class="rva-intro-sep">·</span>
+          <button type="button" class="rva-link-btn" @click="setAllActionGroupsOpen(false)">Contraer todo</button>
+        </div>
+      </div>
+
+      <p v-if="actionAccessLoading" class="cfg-field-desc">Cargando…</p>
+
+      <template v-else>
+        <div class="rva-groups">
+          <div v-for="group in groupedActions" :key="group.name" class="rva-group" :class="{ 'rva-group--open': openActionGroups.has(group.name) }">
+            <button type="button" class="rva-group-header" @click="toggleActionGroup(group.name)">
+              <ChevronDown :size="15" class="rva-group-chevron" />
+              <span class="rva-group-name">{{ group.name }}</span>
+              <span class="rva-group-count">{{ group.actions.length }}</span>
+            </button>
+
+            <div v-show="openActionGroups.has(group.name)" class="rva-table-scroll">
+              <table class="rva-table">
+                <thead>
+                  <tr>
+                    <th class="rva-th-label">Acción</th>
+                    <th class="rva-th-role rva-th-admin">ADMIN</th>
+                    <th v-for="role in actionAccessRoles" :key="role" class="rva-th-role">{{ role }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="action in group.actions" :key="action.key" class="rva-row">
+                    <td class="rva-label">{{ action.label }}</td>
+                    <td class="rva-cell rva-cell--admin">
+                      <input type="checkbox" checked disabled title="ADMIN siempre puede hacer esto" />
+                    </td>
+                    <td v-for="role in actionAccessRoles" :key="role" class="rva-cell">
+                      <input
+                        type="checkbox"
+                        :checked="action.roles.includes(role)"
+                        @change="toggleActionRole(action, role, $event.target.checked)"
+                      />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="cfg-field-control" style="margin-top: 14px;">
+          <button type="button" class="cfg-btn-save" :disabled="actionAccessSaving || !actionAccessDirty" @click="saveActionAccess">
+            {{ actionAccessSaving ? 'Guardando…' : 'Guardar cambios' }}
+          </button>
+        </div>
+        <p v-if="actionAccessSaved" class="cfg-field-saved">Guardado.</p>
+        <p v-if="actionAccessError" class="cfg-field-error">{{ actionAccessError }}</p>
+      </template>
+    </div>
+
     <div class="cfg-section-label">Encabezado del PDF de cotización</div>
     <div class="cfg-card">
       <!-- Logo -->
@@ -523,6 +588,82 @@ async function doSaveViewAccess() {
     viewAccessError.value = e?.response?.data?.message || 'Error al guardar'
   } finally {
     viewAccessSaving.value = false
+  }
+}
+
+// ── Acceso a acciones por rol ─────────────────────────────────────────────
+const actionAccessActions = ref([])  // [{ key, label, group, roles }]
+const actionAccessRoles   = ref([])  // roles configurables (sin ADMIN, siempre implícito)
+const actionAccessLoading = ref(false)
+const actionAccessSaving  = ref(false)
+const actionAccessSaved   = ref(false)
+const actionAccessDirty   = ref(false)
+const actionAccessError   = ref('')
+
+const groupedActions = computed(() => {
+  const groups = []
+  const byName = new Map()
+  for (const action of actionAccessActions.value) {
+    if (!byName.has(action.group)) {
+      const g = { name: action.group, actions: [] }
+      byName.set(action.group, g)
+      groups.push(g)
+    }
+    byName.get(action.group).actions.push(action)
+  }
+  return groups
+})
+
+const openActionGroups = ref(new Set())
+const toggleActionGroup = (name) => {
+  const next = new Set(openActionGroups.value)
+  next.has(name) ? next.delete(name) : next.add(name)
+  openActionGroups.value = next
+}
+const setAllActionGroupsOpen = (open) => {
+  openActionGroups.value = open ? new Set(groupedActions.value.map(g => g.name)) : new Set()
+}
+
+async function fetchRoleActionAccess() {
+  actionAccessLoading.value = true
+  actionAccessError.value = ''
+  try {
+    const { data } = await api.get('/app-config/role-action-access')
+    actionAccessActions.value = data.actions.map(a => ({ ...a, roles: [...a.roles] }))
+    actionAccessRoles.value = data.allRoles
+    openActionGroups.value = new Set(groupedActions.value.map(g => g.name))
+  } catch (e) {
+    actionAccessError.value = 'No se pudo cargar la configuración de acciones'
+  } finally {
+    actionAccessLoading.value = false
+  }
+}
+onMounted(fetchRoleActionAccess)
+
+function toggleActionRole(action, role, checked) {
+  if (checked) {
+    if (!action.roles.includes(role)) action.roles.push(role)
+  } else {
+    action.roles = action.roles.filter(r => r !== role)
+  }
+  actionAccessDirty.value = true
+  actionAccessSaved.value = false
+}
+
+async function saveActionAccess() {
+  actionAccessSaving.value = true
+  actionAccessError.value = ''
+  try {
+    const rolesMap = Object.fromEntries(actionAccessActions.value.map(a => [a.key, a.roles]))
+    const { data } = await api.patch('/app-config/role-action-access', { roles: rolesMap })
+    actionAccessActions.value = data.actions.map(a => ({ ...a, roles: [...a.roles] }))
+    actionAccessDirty.value = false
+    actionAccessSaved.value = true
+    setTimeout(() => { actionAccessSaved.value = false }, 2500)
+  } catch (e) {
+    actionAccessError.value = e?.response?.data?.message || 'Error al guardar'
+  } finally {
+    actionAccessSaving.value = false
   }
 }
 
