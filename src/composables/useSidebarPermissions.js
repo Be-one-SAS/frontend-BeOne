@@ -54,7 +54,9 @@ export const useSidebarPermissions = () => {
     // VISOR es de solo lectura pero ve todo el menú, igual que ADMIN.
     if (userRoles.includes('VISOR')) return true
     if (userRoles.length === 0) return roles.includes('ADMINISTRADOR')
-    return userRoles.some((r) => roles.includes(r))
+    // BEONE "viendo" una sede ve el menú tal como lo vería el LIDER real de esa sede.
+    const effectiveRoles = user.value?.isViewingAsSede ? [...userRoles, 'LIDER'] : userRoles
+    return effectiveRoles.some((r) => roles.includes(r))
   }
 
   /** Estilo CSS inline del badge del rol actual */

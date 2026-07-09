@@ -2,6 +2,7 @@
 import { createGlobalState } from '@vueuse/core';
 import { ref, computed } from 'vue';
 import axios from 'axios';
+import { useNotifications } from './useNotifications';
 
 export interface User {
   countryId: null
@@ -20,6 +21,9 @@ export interface User {
   sedeId?: number | null
   sedeName?: string | null
   avatar?: string | null
+  isViewingAsSede?: boolean
+  viewAsSedeId?: number | null
+  viewAsSedeName?: string | null
 }
 
 const PENDING_LOGOUT_KEY = 'pendingLogoutTokens';
@@ -119,6 +123,34 @@ export const useAuth = createGlobalState(() => {
     localStorage.setItem('userData', JSON.stringify(userData));
   };
 
+  // Rol BEONE: entra en modo "ver como el líder de esta sede" (solo lectura).
+  // Usa axios directo, como revokeToken(), para evitar el ciclo de import con services/api.ts.
+  const enterSede = async (sedeId: number) => {
+    const base = getApiBase();
+    const { data } = await axios.post(
+      `${base}/auth/enter-sede/${sedeId}`,
+      {},
+      { headers: { Authorization: `Bearer ${token.value}` } },
+    );
+    setTokens(data.access_token, data.refresh_token);
+    updateUserData(data.user);
+    useNotifications().reconnect(data.access_token);
+    return data.user as User;
+  };
+
+  const exitSede = async () => {
+    const base = getApiBase();
+    const { data } = await axios.post(
+      `${base}/auth/exit-sede`,
+      {},
+      { headers: { Authorization: `Bearer ${token.value}` } },
+    );
+    setTokens(data.access_token, data.refresh_token);
+    updateUserData(data.user);
+    useNotifications().reconnect(data.access_token);
+    return data.user as User;
+  };
+
   const setLogout = () => {
     // No bloquea el logout visual: la limpieza del cliente ocurre de inmediato.
     // La revocación en el backend (tokenVersion++) se reintenta en segundo
@@ -150,6 +182,8 @@ export const useAuth = createGlobalState(() => {
     login,
     setTokens,
     updateUserData,
+    enterSede,
+    exitSede,
     setLogout,
   };
 });

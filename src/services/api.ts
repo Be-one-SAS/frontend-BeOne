@@ -116,7 +116,17 @@ api.interceptors.response.use(
     const isCanceled = axios.isCancel(error)
     const message = error.response?.data?.message
       ?? (!error.response && !isCanceled ? 'No se pudo conectar con el servidor. Revisa tu conexión.' : null)
-    if (message && !isAuthEndpoint && !willSilentlyRetryAuth) {
+
+    // Rol BEONE sin sede elegida: TODA la API responde 403 a propósito (ver
+    // roles.guard.ts) hasta que elija una desde el Topbar — no son errores
+    // reales, así que no tiene sentido llenar la pantalla de toasts rojos.
+    // MainLayout.vue ya muestra un único toast-prompt invitando a elegir sede.
+    const { user } = useAuth()
+    const isBeoneWithoutSede = status === 403
+      && user.value?.roles?.includes('BEONE')
+      && !user.value?.isViewingAsSede
+
+    if (message && !isAuthEndpoint && !willSilentlyRetryAuth && !isBeoneWithoutSede) {
       useToast().toastError(message)
     }
 

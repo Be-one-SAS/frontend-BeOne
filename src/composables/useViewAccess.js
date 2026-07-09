@@ -54,9 +54,21 @@ export const useViewAccess = createGlobalState(() => {
     // VISOR es de solo lectura pero puede navegar a cualquier ruta, igual que ADMIN.
     if (userRoles.includes('ADMIN') || userRoles.includes('VISOR')) return true
 
+    // BEONE sin sede elegida: bypassa el guard para poder llegar al shell
+    // (Topbar con el switcher de sede) — sin esto queda varado en
+    // /unauthorized, una página sin Topbar, y nunca puede elegir una sede.
+    // Una vez que elige sede (isViewingAsSede), este bypass deja de aplicar
+    // y pasa a evaluarse como LIDER más abajo (effectiveRoles) — replicando
+    // fielmente lo que el líder real vería, no un acceso total.
+    if (userRoles.includes('BEONE') && !user.value?.isViewingAsSede) return true
+
     const roles = getViewRoles(viewKey) ?? staticFallbackRoles
     if (!roles || roles.length === 0) return true // sin restricción declarada
-    return userRoles.some((r) => roles.includes(r))
+
+    // BEONE "viendo" una sede navega exactamente las vistas que vería el
+    // LIDER real de esa sede (no un bypass total — LIDER no tiene acceso a todo).
+    const effectiveRoles = user.value?.isViewingAsSede ? [...userRoles, 'LIDER'] : userRoles
+    return effectiveRoles.some((r) => roles.includes(r))
   }
 
   return { config, ensureLoaded, getViewRoles, canAccess }

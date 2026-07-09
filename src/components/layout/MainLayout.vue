@@ -25,6 +25,9 @@
         <Topbar />
       </header>
 
+      <!-- Banner "viendo como líder de sede" (rol BEONE) -->
+      <ViewingAsSedeBanner />
+
       <!-- Contenido de la página -->
       <main class="page-content">
         <router-view />
@@ -39,17 +42,27 @@ import { onMounted, onBeforeUnmount } from 'vue'
 import { Menu, X } from 'lucide-vue-next'
 import Sidebar      from './Sidebar.vue'
 import Topbar       from './Topbar.vue'
+import ViewingAsSedeBanner from './ViewingAsSedeBanner.vue'
 import GlobalLoader from '@/components/ui/GlobalLoader.vue'
 import { useMobileSidebar } from '@/composables/useSidebarPermissions'
 import { useNotifications } from '@/composables/useNotifications'
 import { useAuth } from '@/composables/useAuth'
+import { useToast } from '@/composables/useToast'
 
 const { showMobile, toggle: toggleMobile } = useMobileSidebar()
 const { connect, disconnect } = useNotifications()
-const { token } = useAuth()
+const { token, user } = useAuth()
+const { toastPrompt } = useToast()
 
 onMounted(() => {
   if (token.value) connect(token.value)
+
+  // Rol BEONE recién logueado (o recién salido de una sede): no ve nada
+  // hasta elegir una desde el Topbar — un solo toast-prompt en vez de la
+  // lluvia de toasts de error 403 que dispararía cada llamada a la API.
+  if (user.value?.roles?.includes('BEONE') && !user.value?.isViewingAsSede) {
+    toastPrompt('Elige una sede en el Topbar para comenzar a navegar como su líder')
+  }
 })
 
 onBeforeUnmount(() => {
