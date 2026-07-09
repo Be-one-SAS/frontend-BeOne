@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import {
   ClipboardCheck, ClipboardX, ChevronDown, Search,
   Loader2, CheckCircle2, Users, Activity, Truck, CornerDownLeft,
-  ClipboardList, Link2, Copy, Check
+  ClipboardList, Link2, Copy, Check,
+  ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight,
 } from 'lucide-vue-next'
 import { useControl } from '@/composables/useControl'
 import OperationalListModal from '@/components/quotation/OperationalListModal.vue'
@@ -13,6 +14,7 @@ import AsignacionEquipos from '@/views/operativa/AsignacionEquipos.vue'
 import NotasCotizacionPanel from '@/components/quotation/NotasCotizacionPanel.vue'
 import ExtraCostsPanel from '@/components/quotation/ExtraCostsPanel.vue'
 import { createEncuesta, getEncuestas } from '@/services/encuestas.service'
+import { getChecklistEvento } from '@/services/checklist-evento.service.js'
 import { uploadPlanimetria, deletePlanimetria } from '@/services/administracion.service.js'
 import { useAuth } from '@/composables/useAuth'
 import { useActionAccess } from '@/composables/useActionAccess'
@@ -69,6 +71,24 @@ const filteredEventos = computed(() => {
     return coincideTexto && coincideUnidad && coincideEstado && dentroInicio && dentroFin
   })
 })
+
+// ── Paginación ────────────────────────────────────────
+const currentPage  = ref(1)
+const pageSize     = ref(25)
+
+const pagedEventos = computed(() => {
+  const start = (currentPage.value - 1) * Number(pageSize.value)
+  return filteredEventos.value.slice(start, start + Number(pageSize.value))
+})
+const totalPages = computed(() => Math.ceil(filteredEventos.value.length / Number(pageSize.value)))
+const visiblePages = computed(() => {
+  const total = totalPages.value, cur = currentPage.value
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  if (cur <= 4)          return [1, 2, 3, 4, 5, '...', total]
+  if (cur >= total - 3)  return [1, '...', total-4, total-3, total-2, total-1, total]
+  return [1, '...', cur-1, cur, cur+1, '...', total]
+})
+watch([search, unidadFiltro, estadoFiltro, fechaInicio, fechaFin], () => { currentPage.value = 1 })
 
 // ── Accordion ──────────────────────────────────────────
 const expandedRow = ref(null)
@@ -197,16 +217,30 @@ const calcEjec = (ev) => {
   return Math.round((flags.filter(Boolean).length / flags.length) * 100)
 }
 
-// ── LQ: estado del checklist desde localStorage ───────
-const CHECKLIST_STORAGE_KEY = 'be1_chk_v1'
-const checklistState = ref<Record<string, boolean[]>>({})
+// ── LQ: estado real de la lista de chequeo, desde el backend ──────────
+// (antes se leía de localStorage['be1_chk_v1'], una clave que solo
+// llenaba una vista local de CheckIns.vue y nunca reflejaba el checklist
+// público real que llena el equipo de campo vía /checklist/evento/:id)
+const checklistCompletion = ref<Record<number, true | { done: number; total: number }>>({})
 
-const loadChecklistState = () => {
-  try {
-    checklistState.value = JSON.parse(localStorage.getItem(CHECKLIST_STORAGE_KEY) || '{}')
-  } catch {
-    checklistState.value = {}
-  }
+const loadChecklistCompletion = async () => {
+  const pendientes = eventos.value.filter(ev => {
+    const all = [...(ev.items ?? []), ...(ev.thirdPartyItems ?? [])]
+    return all.some(i => i.requiereChecklist)
+  })
+  const resultados = await Promise.all(
+    pendientes.map(ev => getChecklistEvento(ev.id).catch(() => null)),
+  )
+  const map: Record<number, true | { done: number; total: number }> = {}
+  pendientes.forEach((ev, idx) => {
+    const data = resultados[idx]
+    const aspectos = data?.aspectos ?? []
+    const needed = (data?.juegos ?? []).filter((j: any) => j.requiereChecklist)
+    if (!data || aspectos.length === 0 || needed.length === 0) return
+    const done = needed.filter((j: any) => aspectos.every((a: any) => j.state?.[a.id] === true)).length
+    map[ev.id] = done === needed.length ? true : { done, total: needed.length }
+  })
+  checklistCompletion.value = map
 }
 
 // Retorna: null = sin items con checklist | true = todos completos | { done, total } = parcial
@@ -214,12 +248,7 @@ const lqStatus = (ev) => {
   const all = [...(ev.items ?? []), ...(ev.thirdPartyItems ?? [])]
   const needed = all.filter(i => i.requiereChecklist)
   if (needed.length === 0) return null
-  const done = needed.filter(i => {
-    const arr = checklistState.value[i.id]
-    return arr && arr.length > 0 && arr.every(v => v === true)
-  }).length
-  if (done === needed.length) return true
-  return { done, total: needed.length }
+  return checklistCompletion.value[ev.id] ?? { done: 0, total: needed.length }
 }
 
 // ── Modal Lista Operativa ──────────────────────────────
@@ -239,9 +268,9 @@ const onOpListComplete = async ({ eventId, notes }) => {
 }
 
 onMounted(async () => {
-  loadChecklistState()
   await fetchEventos()
   await loadEncuestas()
+  loadChecklistCompletion()
 })
 
 // ── Modal Planimetría ────────────────────────────────────
@@ -418,9 +447,10 @@ const handleDeletePlan = async () => {
           <thead>
             <tr class="vc-head-row">
               <th class="vc-th" style="width:28px"></th>
+              <th class="vc-th" style="width:32px">#</th>
               <th class="vc-th" style="width:68px">N° Evento</th>
-              <th class="vc-th" style="width:110px">LQ</th>
-              <th class="vc-th" style="width:100px">Región</th>
+              <th class="vc-th" style="width:110px">Agente</th>
+              <th class="vc-th" style="width:100px">Unidad Operativa</th>
               <th class="vc-th" style="min-width:160px">Evento</th>
               <th class="vc-th" style="width:140px">Equipo</th>
               <th class="vc-th vc-th-center" style="width:40px" title="Flujo del Evento">
@@ -430,6 +460,7 @@ const handleDeletePlan = async () => {
               <th class="vc-th" style="width:90px">F. Inicio</th>
               <th class="vc-th" style="width:90px">F. Fin</th>
               <th class="vc-th vc-th-center" style="width:60px" title="Encuesta de satisfacción"><ClipboardList :size="12" /></th>
+              <th class="vc-th vc-th-center" style="width:52px" title="Lista de Chequeo">LQ</th>
               <th class="vc-th vc-th-center" style="width:52px" title="Registro Fotográfico">Foto</th>
               <th class="vc-th vc-th-center" style="width:52px" title="Listado de Material">Mat.</th>
               <th class="vc-th vc-th-center" style="width:90px" title="Despacho y Retorno de vehículo">Vehículo</th>
@@ -446,7 +477,7 @@ const handleDeletePlan = async () => {
           </thead>
 
           <tbody>
-            <template v-for="ev in filteredEventos" :key="ev.id">
+            <template v-for="(ev, idx) in pagedEventos" :key="ev.id">
 
               <!-- ── Fila principal ── -->
               <tr class="vc-row" @click="toggleRow(ev.id)">
@@ -458,6 +489,11 @@ const handleDeletePlan = async () => {
                     class="vc-chevron"
                     :class="{ 'vc-chevron-open': expandedRow === ev.id }"
                   />
+                </td>
+
+                <!-- # -->
+                <td class="vc-td vc-td-center vc-row-num">
+                  {{ idx + 1 + (currentPage - 1) * Number(pageSize) }}
                 </td>
 
                 <!-- N° Evento -->
@@ -566,6 +602,19 @@ const handleDeletePlan = async () => {
                       </button>
                     </div>
                   </template>
+                </td>
+
+                <!-- LQ (automático — refleja la lista de chequeo real completada por el equipo de campo) -->
+                <td class="vc-td vc-td-center" @click.stop>
+                  <span v-if="lqStatus(ev) === null" class="ctrl-dispatch-empty">—</span>
+                  <div
+                    v-else
+                    class="ctrl-check ctrl-check-auto"
+                    :class="lqStatus(ev) === true ? 'ctrl-check-on' : 'ctrl-check-done'"
+                    :title="lqStatus(ev) === true ? 'Checklist completo' : `${lqStatus(ev).done}/${lqStatus(ev).total} ítems verificados`"
+                  >
+                    <span>{{ lqStatus(ev) === true ? '✓' : `${lqStatus(ev).done}/${lqStatus(ev).total}` }}</span>
+                  </div>
                 </td>
 
                 <!-- Foto (automático — se marca solo con check-in de campo que incluya fotos) -->
@@ -691,7 +740,7 @@ const handleDeletePlan = async () => {
 
               <!-- ── Fila expandida ── -->
               <tr class="vc-exp-tr">
-                <td :colspan="20" class="vc-exp-td">
+                <td :colspan="21" class="vc-exp-td">
                   <div
                     class="vc-exp-panel"
                     :class="{ 'vc-exp-open': expandedRow === ev.id }"
@@ -835,6 +884,24 @@ const handleDeletePlan = async () => {
           </tbody>
 
         </table>
+      </div>
+
+      <!-- Paginación -->
+      <div class="pp-pagination">
+        <span class="pg-info">
+          {{ (currentPage - 1) * Number(pageSize) + 1 }}–{{ Math.min(currentPage * Number(pageSize), filteredEventos.length) }}
+          de {{ filteredEventos.length }}
+        </span>
+        <div class="pg-pages">
+          <button class="pg-btn" :disabled="currentPage === 1" @click="currentPage = 1"><ChevronsLeft :size="14" /></button>
+          <button class="pg-btn" :disabled="currentPage === 1" @click="currentPage--"><ChevronLeft :size="14" /></button>
+          <template v-for="p in visiblePages" :key="p">
+            <span v-if="p === '...'" class="pg-ellipsis">…</span>
+            <button v-else class="pg-btn pg-num" :class="{ 'pg-active': p === currentPage }" @click="currentPage = p">{{ p }}</button>
+          </template>
+          <button class="pg-btn" :disabled="currentPage === totalPages" @click="currentPage++"><ChevronRight :size="14" /></button>
+          <button class="pg-btn" :disabled="currentPage === totalPages" @click="currentPage = totalPages"><ChevronsRight :size="14" /></button>
+        </div>
       </div>
     </div>
 
@@ -1210,22 +1277,6 @@ const handleDeletePlan = async () => {
 .ctrl-check-auto:hover { opacity: 1; }
 .ctrl-check:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* LQ — indicador de lista de chequeo */
-.ctrl-lq-empty {
-  color: #CBD5E1; font-size: 12px; font-family: 'Inter', sans-serif;
-}
-.ctrl-lq-done {
-  display: inline-flex; align-items: center; justify-content: center;
-  color: #16A34A;
-}
-.ctrl-lq-pending {
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 700;
-  background: #E0F9FA; color: #27C8D8;
-  border-radius: 99px; padding: 2px 7px;
-  font-family: 'Inter', sans-serif;
-}
-
 /* Spinner */
 .spin {
   animation: spin-anim 0.7s linear infinite;
@@ -1438,6 +1489,23 @@ const handleDeletePlan = async () => {
   border-color: #27C8D8;
   color: #27C8D8;
 }
+
+/* Row number */
+.vc-row-num {
+  font-size: 11px;
+  color: #94A3B8;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+/* ── Paginación ──────────────────────────────────────── */
+.pp-pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-top: 1px solid #F0FAFB; flex-wrap: wrap; gap: 8px; }
+.pg-info { font-size: 12px; color: #94A3B8; font-family: 'Inter', sans-serif; }
+.pg-pages { display: flex; align-items: center; gap: 4px; }
+.pg-btn { width: 30px; height: 30px; border-radius: 8px; border: 1px solid #E2EBF6; background: #FFFFFF; color: #64748B; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.12s; }
+.pg-btn:hover:not(:disabled) { background: #E0F9FA; color: #27C8D8; border-color: #A7EEF5; }
+.pg-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.pg-active { background: #27C8D8 !important; color: #FFFFFF !important; border-color: #27C8D8 !important; font-weight: 600; }
+.pg-ellipsis { color: #94A3B8; font-size: 13px; padding: 0 4px; }
 
 /* ── Encuesta ────────────────────────────────────────── */
 .enc-cell { min-width: 60px; }

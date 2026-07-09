@@ -197,7 +197,7 @@
                 <span v-if="tieneDescuento(q)" class="badge badge-bad">Con descuento</span>
               </div>
               <div v-if="q.productos.length" class="quote-products">
-                <div v-for="(p, i) in q.productos" :key="i" class="product-row">
+                <div v-for="(p, i) in visibleProducts(q)" :key="i" class="product-row">
                   <span class="product-tipo" :class="p.tipo === 'TERCERO' ? 'product-tipo--tp' : 'product-tipo--own'">
                     {{ p.tipo === 'TERCERO' ? 'Tercero' : 'Propio' }}
                   </span>
@@ -212,6 +212,14 @@
                   </span>
                   <span class="product-subtotal">{{ formatCOP(p.total) }}</span>
                 </div>
+                <button
+                  v-if="q.productos.length > PRODUCTS_PREVIEW_COUNT"
+                  class="quote-products-toggle"
+                  @click="toggleQuoteProducts(q.id)"
+                >
+                  <ChevronDown :size="13" class="toggle-chevron" :class="{ 'toggle-chevron--open': expandedQuotes.has(q.id) }" />
+                  {{ expandedQuotes.has(q.id) ? 'Ver menos' : `Ver ${q.productos.length - PRODUCTS_PREVIEW_COUNT} productos más` }}
+                </button>
               </div>
             </div>
           </div>
@@ -316,7 +324,7 @@
 <script setup>
 import { ref, reactive, computed, watch, nextTick, onMounted } from 'vue'
 import { Chart, registerables } from 'chart.js'
-import { AlertCircle, ChevronLeft, ChevronRight, Crown, Gauge, Plus, Target, X } from 'lucide-vue-next'
+import { AlertCircle, ChevronDown, ChevronLeft, ChevronRight, Crown, Gauge, Plus, Target, X } from 'lucide-vue-next'
 import SelectLabel from '@/components/input/SelectLabel.vue'
 import ThumbHoverPreview from '@/components/shared/ThumbHoverPreview.vue'
 import { useThumbHoverPreview } from '@/composables/useThumbHoverPreview'
@@ -398,6 +406,18 @@ watch(selectedId, async (id) => {
   await nextTick()
   drawChart()
 })
+
+// ── Productos por cotización: algunas tienen hasta ~30 ítems, así que se
+// muestra una vista previa y se expanden bajo demanda para no volver la
+// tarjeta gigante y descuadrar el resto de la sección ─────────────────
+const PRODUCTS_PREVIEW_COUNT = 1
+const expandedQuotes = reactive(new Set())
+const toggleQuoteProducts = (id) => {
+  if (expandedQuotes.has(id)) expandedQuotes.delete(id)
+  else expandedQuotes.add(id)
+}
+const visibleProducts = (q) =>
+  expandedQuotes.has(q.id) ? q.productos : q.productos.slice(0, PRODUCTS_PREVIEW_COUNT)
 
 // ── Paginación de cotizaciones (máx. 5 por página) ────────────
 const COTIZACIONES_PAGE_SIZE = 5
@@ -896,6 +916,17 @@ onMounted(async () => {
 .product-descuento { color: #94A3B8; white-space: nowrap; }
 .product-descuento--active { color: #EF4444; font-weight: 600; }
 .product-subtotal { color: #0F172A; font-weight: 600; white-space: nowrap; min-width: 90px; text-align: right; }
+
+.quote-products-toggle {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 6px; padding: 6px 4px 0;
+  background: none; border: none; border-top: 1px dashed #EEF1F7;
+  font-size: 12px; font-weight: 600; color: #27C8D8;
+  font-family: 'Inter', sans-serif; cursor: pointer;
+}
+.quote-products-toggle:hover { color: #1BAEBB; }
+.toggle-chevron { transition: transform 0.15s ease; }
+.toggle-chevron--open { transform: rotate(180deg); }
 
 .badge {
   display: inline-block; padding: 3px 10px; border-radius: 999px;

@@ -16,15 +16,15 @@ export const useNotifications = createGlobalState(() => {
   let reconnectTimer = null
   let reconnectAttempts = 0
 
-  function connect(token) {
+  function connect() {
     if (evtSource) return
 
     const base = import.meta.env.VITE_API_URL ?? 'http://localhost:3003/api'
-    // EventSource no soporta custom headers — pasamos el JWT como query param.
-    // El backend lo acepta vía jwt.strategy.ts (fromBearerOrQuery extractor).
-    const url  = `${base}/notifications/stream?token=${encodeURIComponent(token)}`
+    // La cookie httpOnly de sesión viaja sola — withCredentials hace que el
+    // navegador la adjunte igual que en cualquier request de axios.
+    const url = `${base}/notifications/stream`
 
-    evtSource = new EventSource(url)
+    evtSource = new EventSource(url, { withCredentials: true })
 
     // Conexión sana → resetea el contador de reintentos (si veníamos de varios
     // fallos y esta reconexión sí prendió, no arrastramos el backoff acumulado).
@@ -48,11 +48,11 @@ export const useNotifications = createGlobalState(() => {
       clearTimeout(reconnectTimer)
 
       // Tope duro de reintentos con backoff exponencial: si tras varios
-      // intentos seguimos sin poder reconectar (típicamente porque el token
-      // quedó inválido — sesión cerrada al iniciar sesión en otro dispositivo,
-      // ver auth.service.ts login() — y por lo que sea el flujo de abajo no
-      // logró refrescarlo/redirigir a tiempo), forzamos logout en vez de
-      // seguir golpeando al backend cada pocos segundos para siempre.
+      // intentos seguimos sin poder reconectar (típicamente porque la sesión
+      // quedó inválida — cerrada al iniciar sesión en otro dispositivo, ver
+      // auth.service.ts login() — y por lo que sea el flujo de abajo no logró
+      // refrescarla/redirigir a tiempo), forzamos logout en vez de seguir
+      // golpeando al backend cada pocos segundos para siempre.
       reconnectAttempts++
       if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
         const { setLogout } = useAuth()
@@ -63,7 +63,7 @@ export const useNotifications = createGlobalState(() => {
       const delay = Math.min(BASE_RECONNECT_DELAY_MS * 2 ** (reconnectAttempts - 1), MAX_RECONNECT_DELAY_MS)
 
       // EventSource no expone el status code del error (podría ser un corte de
-      // red pasajero o una sesión ya inválida — token vencido o cerrada porque
+      // red pasajero o una sesión ya inválida — cookie vencida o cerrada porque
       // alguien inició sesión en otro dispositivo). Lo distinguimos pegándole
       // a un endpoint autenticado real: si responde 401, el interceptor de
       // api.ts ya se encarga de sacar al usuario (logout + redirect a /login),
@@ -71,15 +71,11 @@ export const useNotifications = createGlobalState(() => {
       // cualquier otro error (red, backend caído), sí reintentamos como antes.
       api.get('/auth/me')
         .then(() => {
-          // Releer el token vigente (pudo haberse renovado por refresh silencioso
-          // desde el retry anterior) en vez de reusar el `token` cerrado por closure.
-          const { token: currentToken } = useAuth()
-          reconnectTimer = setTimeout(() => connect(currentToken.value ?? token), delay)
+          reconnectTimer = setTimeout(connect, delay)
         })
         .catch((err) => {
           if (err?.response?.status !== 401) {
-            const { token: currentToken } = useAuth()
-            reconnectTimer = setTimeout(() => connect(currentToken.value ?? token), delay)
+            reconnectTimer = setTimeout(connect, delay)
           }
           // Si fue 401: el interceptor de api.ts ya disparó logout+redirect en
           // paralelo — no programamos otro intento.
@@ -94,12 +90,12 @@ export const useNotifications = createGlobalState(() => {
     evtSource = null
   }
 
-  // Llamado tras un refresh de token exitoso: el EventSource hornea el token
-  // en la URL al conectar y no se puede actualizar in-place, así que hay que
-  // cerrar y reabrir la conexión con el nuevo token.
-  function reconnect(newToken) {
+  // Llamado tras un refresh de sesión o un enter/exit-sede: la cookie de auth
+  // ya está actualizada por el backend, solo hay que reabrir el stream para
+  // que el JwtStrategy la vuelva a validar con el payload vigente.
+  function reconnect() {
     disconnect()
-    connect(newToken)
+    connect()
   }
 
   function markRead(id) {

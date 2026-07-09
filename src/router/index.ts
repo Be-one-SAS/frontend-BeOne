@@ -371,7 +371,7 @@ const router = createRouter({
 // useAuth() debe llamarse FUERA del beforeEach para evitar
 // que lifecycle hooks internos se registren sin instancia activa
 // ─────────────────────────────────────────────────────────
-const { isAuthenticated, user } = useAuth()
+const { isAuthenticated, ensureAuthLoaded } = useAuth()
 const { ensureLoaded: ensureViewAccessLoaded, canAccess } = useViewAccess()
 
 router.beforeEach(async (to, _from, next) => {
@@ -383,19 +383,21 @@ router.beforeEach(async (to, _from, next) => {
   // 0b. Ruta pública (ej: /scan/:token, /checklist/:id) — pasa siempre
   if (to.meta.public) return next()
 
+  // La sesión vive en una cookie httpOnly — no hay forma síncrona de saber si
+  // sigue siendo válida en la primera carga de la app, así que se confirma
+  // contra /auth/me antes de decidir acceso. Memoizado: solo pega al backend
+  // una vez por carga (ver ensureAuthLoaded en useAuth.ts).
+  if (to.meta.requiresAuth || to.meta.guestOnly) {
+    await ensureAuthLoaded()
+  }
+
   // 1. Ruta protegida sin sesión → redirige al login
   if (to.meta.requiresAuth && !isAuthenticated.value) {
     return next('/login')
   }
 
-  // 2. Ruta de invitado con sesión activa → validar si el token es válido
+  // 2. Ruta de invitado con sesión activa → ir directo al dashboard
   if (to.meta.guestOnly && isAuthenticated.value) {
-    // Si hay token pero no hay usuario, el token es inválido → limpiar
-    if (!user.value) {
-      localStorage.removeItem('authToken')
-      localStorage.removeItem('userData')
-      return next()
-    }
     return next('/dashboard')
   }
 
