@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="">
   <head>
+    <!-- Redirect www → dominio canónico (Render no soporta redirects por dominio,
+         solo por ruta, así que se maneja aquí antes de que cargue cualquier otra cosa). -->
+    <script>
+      if (window.location.hostname === 'www.crm.beonecolombia.com') {
+        window.location.replace(
+          'https://crm.beonecolombia.com' + window.location.pathname + window.location.search + window.location.hash
+        );
+      }
+    </script>
     <meta charset="UTF-8" />
     <link rel="icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
