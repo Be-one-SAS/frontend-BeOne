@@ -26,7 +26,6 @@ export interface User {
   viewAsSedeName?: string | null
 }
 
-const PENDING_LOGOUT_KEY = 'pendingLogoutTokens';
 const LOGOUT_MAX_ATTEMPTS = 3;
 const LOGOUT_RETRY_DELAY_MS = 700;
 
@@ -34,88 +33,57 @@ const getApiBase = () => import.meta.env.VITE_API_URL ?? 'http://localhost:3003/
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const readPendingLogoutTokens = (): string[] => {
-  try {
-    return JSON.parse(localStorage.getItem(PENDING_LOGOUT_KEY) ?? '[]');
-  } catch {
-    return [];
-  }
-};
-
-const writePendingLogoutTokens = (tokens: string[]) => {
-  if (tokens.length) {
-    localStorage.setItem(PENDING_LOGOUT_KEY, JSON.stringify(tokens));
-  } else {
-    localStorage.removeItem(PENDING_LOGOUT_KEY);
-  }
-};
-
-// Intenta revocar un token en el backend (incrementa tokenVersion). Devuelve
-// true si quedó revocado o si un 401 confirma que ya estaba invalidado.
-const revokeToken = async (authToken: string): Promise<boolean> => {
+// access_token/refresh_token viajan como cookies httpOnly — el navegador las
+// adjunta solo en cada request (withCredentials), nunca pasan por JS ni por
+// localStorage. Solo se cachea `user` (datos de perfil, no sensibles) para
+// que la UI no parpadee mientras se confirma la sesión contra /auth/me.
+const revokeSession = async (): Promise<boolean> => {
   const base = getApiBase();
   for (let attempt = 1; attempt <= LOGOUT_MAX_ATTEMPTS; attempt++) {
     try {
-      await axios.post(`${base}/auth/logout`, {}, {
-        headers: { Authorization: `Bearer ${authToken}` },
-      });
+      await axios.post(`${base}/auth/logout`, {}, { withCredentials: true });
       return true;
     } catch (error: any) {
-      if (error?.response?.status === 401) return true;
+      if (error?.response?.status === 401) return true; // ya estaba invalidada
       if (attempt < LOGOUT_MAX_ATTEMPTS) await sleep(LOGOUT_RETRY_DELAY_MS * attempt);
     }
   }
+  // Si las 3 veces falla (p. ej. error de red), se abandona: no hay token que
+  // guardar para reintentar en la próxima carga (httpOnly = inaccesible desde
+  // JS), y el access_token igual expira solo del lado del servidor (12h).
   return false;
 };
 
-// Reintenta revocar tokens de logouts previos que no se pudieron confirmar
-// por fallas de red (p. ej. el usuario cerró sesión estando offline).
-const flushPendingLogouts = async () => {
-  const pending = readPendingLogoutTokens();
-  if (!pending.length) return;
-
-  const stillPending: string[] = [];
-  for (const pendingToken of pending) {
-    const revoked = await revokeToken(pendingToken);
-    if (!revoked) stillPending.push(pendingToken);
-  }
-  writePendingLogoutTokens(stillPending);
-};
-
-flushPendingLogouts();
-
 export const useAuth = createGlobalState(() => {
   const user = ref<User | null>(null);
-  const token = ref<string | null>(null);
-  const refreshToken = ref<string | null>(null);
-  const storedToken = localStorage.getItem('authToken');
-  const storedRefreshToken = localStorage.getItem('refreshToken');
   const storedUser = localStorage.getItem('userData');
-
-  if (storedToken && storedUser) {
-    token.value = storedToken;
-    refreshToken.value = storedRefreshToken;
-    user.value = JSON.parse(storedUser);
+  if (storedUser) {
+    try { user.value = JSON.parse(storedUser); } catch { /* ignora cache corrupta */ }
   }
 
-  const isAuthenticated = computed(() => !!token.value);
+  const isAuthenticated = computed(() => !!user.value);
 
-  const login = (userData: User, authToken: string, refreshTokenValue: string) => {
-    user.value = userData;
-    token.value = authToken;
-    refreshToken.value = refreshTokenValue;
-    localStorage.setItem('authToken', authToken);
-    localStorage.setItem('refreshToken', refreshTokenValue);
-    localStorage.setItem('userData', JSON.stringify(userData));
-    flushPendingLogouts();
+  // Confirma contra el backend si la cookie de sesión sigue siendo válida.
+  // Se memoiza: solo hace la llamada real una vez por carga de la app —
+  // navegaciones subsecuentes del router reusan el mismo resultado.
+  let authCheck: Promise<void> | null = null;
+  const ensureAuthLoaded = () => {
+    if (!authCheck) {
+      const base = getApiBase();
+      authCheck = axios.get(`${base}/auth/me`, { withCredentials: true })
+        .then(({ data }) => updateUserData(data))
+        .catch(() => {
+          user.value = null;
+          localStorage.removeItem('userData');
+        });
+    }
+    return authCheck;
   };
 
-  // Actualiza solo los tokens tras un refresh silencioso (no toca user/userData)
-  const setTokens = (authToken: string, refreshTokenValue: string) => {
-    token.value = authToken;
-    refreshToken.value = refreshTokenValue;
-    localStorage.setItem('authToken', authToken);
-    localStorage.setItem('refreshToken', refreshTokenValue);
+  const login = (userData: User) => {
+    user.value = userData;
+    localStorage.setItem('userData', JSON.stringify(userData));
+    authCheck = Promise.resolve();
   };
 
   const updateUserData = (userData: User) => {
@@ -124,17 +92,16 @@ export const useAuth = createGlobalState(() => {
   };
 
   // Rol BEONE: entra en modo "ver como el líder de esta sede" (solo lectura).
-  // Usa axios directo, como revokeToken(), para evitar el ciclo de import con services/api.ts.
+  // Usa axios directo, como revokeSession(), para evitar el ciclo de import con services/api.ts.
   const enterSede = async (sedeId: number) => {
     const base = getApiBase();
     const { data } = await axios.post(
       `${base}/auth/enter-sede/${sedeId}`,
       {},
-      { headers: { Authorization: `Bearer ${token.value}` } },
+      { withCredentials: true },
     );
-    setTokens(data.access_token, data.refresh_token);
     updateUserData(data.user);
-    useNotifications().reconnect(data.access_token);
+    useNotifications().reconnect();
     return data.user as User;
   };
 
@@ -143,44 +110,29 @@ export const useAuth = createGlobalState(() => {
     const { data } = await axios.post(
       `${base}/auth/exit-sede`,
       {},
-      { headers: { Authorization: `Bearer ${token.value}` } },
+      { withCredentials: true },
     );
-    setTokens(data.access_token, data.refresh_token);
     updateUserData(data.user);
-    useNotifications().reconnect(data.access_token);
+    useNotifications().reconnect();
     return data.user as User;
   };
 
   const setLogout = () => {
     // No bloquea el logout visual: la limpieza del cliente ocurre de inmediato.
-    // La revocación en el backend (tokenVersion++) se reintenta en segundo
-    // plano y, si la red falla del todo, queda en cola para reintentarse en
-    // el próximo arranque de la app o el próximo login exitoso.
-    const currentToken = token.value;
-
+    // La revocación en el backend (tokenVersion++ y borrado de las cookies)
+    // se reintenta en segundo plano un puñado de veces (revokeSession) — si
+    // falla del todo, el access_token expira solo (ver JWT_EXPIRES_IN).
     user.value = null;
-    token.value = null;
-    refreshToken.value = null;
-    localStorage.clear();
-
-    if (currentToken) {
-      revokeToken(currentToken).then((revoked) => {
-        if (!revoked) {
-          const pending = readPendingLogoutTokens();
-          pending.push(currentToken);
-          writePendingLogoutTokens(pending);
-        }
-      });
-    }
+    localStorage.removeItem('userData');
+    authCheck = Promise.resolve();
+    revokeSession();
   };
 
   return {
     user,
-    token,
-    refreshToken,
     isAuthenticated,
+    ensureAuthLoaded,
     login,
-    setTokens,
     updateUserData,
     enterSede,
     exitSede,

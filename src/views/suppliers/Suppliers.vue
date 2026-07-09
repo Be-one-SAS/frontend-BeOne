@@ -3,6 +3,7 @@ import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { listSuppliers, createSupplier, updateSupplier, deleteSupplier } from '../../services/suppliers.service'
 import ModalReutilizable from '@/components/modal/ModalReutilizable.vue'
 import ConfirmModal from '@/components/modal/ConfirmModal.vue'
+import SelectLabel from '@/components/input/SelectLabel.vue'
 import { useActionAccess } from '@/composables/useActionAccess'
 import {
   ChevronDown, Inbox, Plus, Pencil, Trash2,
@@ -16,6 +17,11 @@ const loading = ref(true)
 
 const searchQuery = ref('')
 const pageSize    = ref(25)
+const pageSizeOptions = [
+  { value: 10, label: '10 / pág.' },
+  { value: 25, label: '25 / pág.' },
+  { value: 50, label: '50 / pág.' },
+]
 
 /* ─── accordion ─────────────────────────────────────────── */
 const expandedRow = ref(null)
@@ -78,6 +84,14 @@ const EMPTY_FORM = {
   contactPerson: '', address: '', city: '', country: '',
   zoneOperation: '', website: '', portfolioLink: '', reliability: '', notes: '',
 }
+const FORM_KEYS = Object.keys(EMPTY_FORM)
+
+// El backend rechaza props fuera del DTO (id, createdAt, …) y @IsEmail()
+// no acepta '' como "vacío" — por eso el payload se arma explícitamente
+// a partir de FORM_KEYS en vez de esparcir `row`/`form` completos.
+function pickFormFields(source) {
+  return Object.fromEntries(FORM_KEYS.map(key => [key, source[key] ?? '']))
+}
 
 const formModal   = ref(false)
 const isEditing   = ref(false)
@@ -97,7 +111,7 @@ function openCreate() {
 function openEdit(row) {
   isEditing.value = true
   editingId.value = row.id
-  Object.assign(form, EMPTY_FORM, row)
+  Object.assign(form, pickFormFields(row))
   formError.value = ''
   formModal.value = true
 }
@@ -114,7 +128,13 @@ async function saveForm() {
   formSaving.value = true
   formError.value = ''
   try {
-    const payload = { ...form }
+    const picked = pickFormFields(form)
+    const payload = Object.fromEntries(
+      Object.entries(picked).map(([key, value]) => [
+        key,
+        typeof value === 'string' && value.trim() === '' ? undefined : value,
+      ])
+    )
     if (isEditing.value) {
       await updateSupplier(editingId.value, payload)
     } else {
@@ -164,11 +184,11 @@ async function executeDelete() {
       <div class="sp-head-actions">
         <div class="per-page-wrap">
           <span class="per-page-lbl">Por página</span>
-          <select v-model="pageSize" class="sp-input sp-input--sm">
-            <option :value="10">10</option>
-            <option :value="25">25</option>
-            <option :value="50">50</option>
-          </select>
+          <SelectLabel
+            v-model="pageSize"
+            :options="pageSizeOptions"
+            class="sp-select sp-select--sm"
+          />
         </div>
         <button v-if="canDo('ProveedorCrear', ['ADMINISTRADOR'])" class="sp-btn-add" @click="openCreate">
           <Plus :size="14" /> Nuevo proveedor
@@ -521,7 +541,11 @@ async function executeDelete() {
   box-shadow: 0 0 0 3px rgba(39,200,216, 0.1);
 }
 .sp-input::placeholder { color: var(--text-3, #94A3B8); }
-.sp-input--sm { width: 70px; text-align: center; }
+
+/* ─── Select (per página) ───────────────────────────────── */
+.sp-select { width: auto; }
+.sp-select :deep(.sl-trigger) { height: 34px; padding: 6px 14px; }
+.sp-select--sm { min-width: 112px; flex: none; }
 
 /* ─── Tabla ─────────────────────────────────────────────── */
 .sp-table {
@@ -693,12 +717,12 @@ async function executeDelete() {
 .sp-action-del:hover  { background: #FECACA; }
 
 /* ─── Formulario crear/editar ───────────────────────────── */
-.sp-form { width: min(640px, 90vw); max-height: 80vh; overflow-y: auto; padding: 4px; }
+.sp-form { width: 100%; max-height: 80vh; overflow-y: auto; padding: 4px; box-sizing: border-box; }
 .sp-form-title {
   font-family: 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 700;
   color: #0F1A2E; margin: 0 0 16px;
 }
-.sp-form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px 16px; }
+.sp-form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 16px; }
 .sp-form-field { display: flex; flex-direction: column; gap: 5px; }
 .sp-form-field--full { grid-column: 1 / -1; }
 .sp-form-lbl { font-size: 12px; font-weight: 600; color: #475569; font-family: 'Inter', sans-serif; }
@@ -727,6 +751,9 @@ async function executeDelete() {
 .sp-btn-save:hover:not(:disabled) { background: #1BAEBB; }
 .sp-btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
 
+@media (max-width: 860px) {
+  .sp-form-grid { grid-template-columns: repeat(2, 1fr); }
+}
 @media (max-width: 640px) {
   .sp-form-grid { grid-template-columns: 1fr; }
 }

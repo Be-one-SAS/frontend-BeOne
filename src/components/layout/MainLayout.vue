@@ -52,12 +52,12 @@ import { useActionAccess } from '@/composables/useActionAccess'
 
 const { showMobile, toggle: toggleMobile } = useMobileSidebar()
 const { connect, disconnect } = useNotifications()
-const { token, user } = useAuth()
+const { user } = useAuth()
 const { toastPrompt } = useToast()
 const { ensureLoaded: ensureActionAccessLoaded } = useActionAccess()
 
 onMounted(() => {
-  if (token.value) connect(token.value)
+  if (user.value) connect()
   ensureActionAccessLoaded()
 
   // Rol BEONE recién logueado (o recién salido de una sede): no ve nada

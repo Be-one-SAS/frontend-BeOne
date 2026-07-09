@@ -2,9 +2,10 @@
  * Instancia Axios centralizada de BeOne.
  *
  * Responsabilidades:
- *  1. Inyección automática del token de autenticación
+ *  1. Autenticación vía cookies httpOnly (withCredentials) — el navegador
+ *     adjunta access_token/refresh_token solo, no hay JWT que inyectar a mano
  *  2. Activación / desactivación del GlobalLoader en cada petición
- *  3. Manejo de errores 401 (logout automático)
+ *  3. Manejo de errores 401 (refresh silencioso + logout automático)
  *
  * Todos los servicios de la app importan desde aquí:
  *   import api from '@/services/api'   (o ruta relativa equivalente)
@@ -13,7 +14,6 @@
 import axios from 'axios'
 import { useGlobalLoader } from '@/composables/useGlobalLoader'
 import { useAuth }         from '@/composables/useAuth'
-import { useNotifications } from '@/composables/useNotifications'
 import { useToast } from '@/composables/useToast'
 
 // ─────────────────────────────────────────────────────────
@@ -43,6 +43,9 @@ const getLoadingMessage = (url = '', method = ''): string => {
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   timeout: 10000,
+  // Manda las cookies httpOnly de auth (access_token/refresh_token) en cada
+  // request — reemplaza la inyección manual de `Authorization: Bearer …`.
+  withCredentials: true,
 })
 
 // ─────────────────────────────────────────────────────────
@@ -50,34 +53,24 @@ const api = axios.create({
 // en paralelo cuando varias peticiones 401ean al mismo tiempo
 // ─────────────────────────────────────────────────────────
 let isRefreshing = false
-let refreshQueue: Array<{ resolve: (token: string) => void; reject: (err: unknown) => void }> = []
+let refreshQueue: Array<{ resolve: () => void; reject: (err: unknown) => void }> = []
 
-function flushRefreshQueue(error: unknown, token: string | null) {
+function flushRefreshQueue(error: unknown) {
   refreshQueue.forEach(({ resolve, reject }) => {
     if (error) reject(error)
-    else resolve(token as string)
+    else resolve()
   })
   refreshQueue = []
 }
 
 // ─────────────────────────────────────────────────────────
 // REQUEST interceptor
-//  → Inyecta token + activa loader
+//  → Activa el loader global (el token ya viaja solo, vía cookie)
 // ─────────────────────────────────────────────────────────
 api.interceptors.request.use((config) => {
-  // 1. Loader global
   const { startLoading } = useGlobalLoader()
   const message = getLoadingMessage(config.url, config.method)
   startLoading(message)
-
-  // 2. Token de autenticación
-  //    useAuth guarda con clave 'authToken' en localStorage
-  const { token } = useAuth()
-  const authToken = token.value ?? localStorage.getItem('authToken')
-  if (authToken) {
-    config.headers.Authorization = `Bearer ${authToken}`
-  }
-
   return config
 })
 
@@ -134,41 +127,28 @@ api.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    const { refreshToken, setTokens, setLogout } = useAuth()
-    if (!refreshToken.value) {
-      setLogout()
-      window.location.href = '/login'
-      return Promise.reject(error)
-    }
-
     originalRequest._retry = true
 
     // Si ya hay un refresh en curso, encolar esta petición y reintentarla
     // cuando el refresh resuelva, en vez de disparar N refresh en paralelo.
     if (isRefreshing) {
-      return new Promise((resolve, reject) => {
+      return new Promise<void>((resolve, reject) => {
         refreshQueue.push({ resolve, reject })
-      }).then((newToken) => {
-        originalRequest.headers.Authorization = `Bearer ${newToken}`
-        return api(originalRequest)
-      })
+      }).then(() => api(originalRequest))
     }
 
     isRefreshing = true
+    const { setLogout } = useAuth()
     try {
-      const { data } = await axios.post(`${api.defaults.baseURL}/auth/refresh`, {
-        refresh_token: refreshToken.value,
-      })
-      setTokens(data.access_token, data.refresh_token)
-      // El EventSource del SSE hornea el token viejo en su URL — hay que
-      // reabrirlo con el token nuevo para que las notificaciones sigan llegando.
-      useNotifications().reconnect(data.access_token)
-
-      flushRefreshQueue(null, data.access_token)
-      originalRequest.headers.Authorization = `Bearer ${data.access_token}`
+      // El refresh_token viaja como cookie httpOnly — no hace falta mandar nada
+      // en el body, el backend lo lee de la cookie y responde con cookies nuevas.
+      await axios.post(`${api.defaults.baseURL}/auth/refresh`, {}, { withCredentials: true })
+      // La conexión SSE ya no necesita reabrirse: la cookie de sesión no cambia
+      // de "lugar" al refrescarse (antes el token viajaba en la URL del stream).
+      flushRefreshQueue(null)
       return api(originalRequest)
     } catch (refreshError) {
-      flushRefreshQueue(refreshError, null)
+      flushRefreshQueue(refreshError)
       setLogout()
       window.location.href = '/login'
       return Promise.reject(refreshError)
