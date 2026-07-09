@@ -298,7 +298,7 @@ const ALL_MENU_ITEMS = [
     label: 'Ejecutivos de Cuenta',
     route: '/administracion/ejecutivos-cuenta',
     viewKey: 'EjecutivosCuenta',
-    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER'],
+    roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'EJECUTIVO', 'EJECUTIVO_CUENTA'],
   },
 
   // ── Grupo: Admin ──────────────────────────────────────

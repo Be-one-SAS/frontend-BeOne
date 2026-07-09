@@ -61,7 +61,7 @@
       </div>
       <div v-else class="goal-card goal-card--empty">
         <span>Sin meta de ingresos activa para {{ detail.fullName }}.</span>
-        <button class="btn-sm" @click="openMetaModal"><Plus :size="14" /> Definir meta</button>
+        <button v-if="canManage" class="btn-sm" @click="openMetaModal"><Plus :size="14" /> Definir meta</button>
       </div>
 
       <!-- KPI tiles del embudo -->
@@ -103,7 +103,7 @@
       <div class="section">
         <div class="section-header">
           <h3 class="section-title">Metas asignadas</h3>
-          <button class="btn-sm" @click="openMetaModal"><Plus :size="14" /> Nueva meta</button>
+          <button v-if="canManage" class="btn-sm" @click="openMetaModal"><Plus :size="14" /> Nueva meta</button>
         </div>
         <div v-if="!metasDelEjecutivo.length" class="section-empty">Sin metas asignadas todavía.</div>
         <div v-else class="metas-list">
@@ -122,7 +122,7 @@
       <!-- Bitácora de comentarios -->
       <div class="section">
         <h3 class="section-title">Bitácora de evaluación</h3>
-        <div class="comentario-input-row">
+        <div v-if="canManage" class="comentario-input-row">
           <input
             v-model="nuevoComentario"
             class="field-input"
@@ -298,6 +298,7 @@ import { getEjecutivos, getEjecutivoDetalle, getComentarios, crearComentario } f
 import { useDesafiosComerciales } from '@/composables/useDesafiosComerciales'
 import { getQuotations } from '@/services/quotation.service'
 import { formatCOP } from '@/utils/currency'
+import { useAuth } from '@/composables/useAuth'
 
 Chart.register(...registerables)
 
@@ -320,6 +321,15 @@ const fetchRoster = async () => {
 }
 
 const execOptions = computed(() => roster.value.map((e) => ({ value: e.id, label: e.fullName })))
+
+// Un EJECUTIVO/EJECUTIVO_CUENTA sin gente a cargo solo puede verse a sí mismo
+// (autoservicio de solo lectura) — el backend ya lo restringe, esto solo
+// evita mostrarle botones de "Nueva meta"/"Agregar comentario" que le darían
+// 403 al usarlos, ya que esas acciones son del líder, no de sí mismo.
+const { user: authUser } = useAuth()
+const canManage = computed(() =>
+  ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER'].some((r) => authUser.value?.roles?.includes(r)),
+)
 
 // ── Avatar del ejecutivo mostrado en el header ────────────────
 const AVATAR_COLORS = ['#27C8D8', '#7C3AED', '#B45309', '#B91C1C', '#16A34A', '#0EA5E9', '#C2410C']
