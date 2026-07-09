@@ -6,13 +6,39 @@
         <h1 class="page-title">Ejecutivos de Cuenta</h1>
         <p class="page-sub">Monitorea metas de ingresos, evaluación y cotizaciones de tu equipo comercial</p>
       </div>
-      <div v-if="detail" class="exec-profile">
-        <div class="exec-avatar" :style="{ background: getAvatarColor(detail.fullName) }">{{ getInitials(detail.fullName) }}</div>
-        <div class="exec-profile-info">
-          <span class="exec-profile-name">{{ detail.fullName }}</span>
-          <span class="exec-profile-email">{{ detail.email }}</span>
-          <div class="exec-profile-roles">
-            <span v-for="r in detail.roles" :key="r" class="badge badge-slate">{{ r }}</span>
+      <div v-if="detail" class="exec-profile-row">
+        <div class="exec-profile">
+          <div class="exec-avatar-wrap">
+            <img v-if="detail.avatar" :src="detail.avatar" class="exec-avatar-img" alt="" />
+            <div v-else class="exec-avatar" :style="{ background: getAvatarColor(detail.fullName) }">{{ getInitials(detail.fullName) }}</div>
+          </div>
+          <div class="exec-profile-info">
+            <span class="exec-profile-name">{{ detail.fullName }}</span>
+            <span class="exec-profile-email">{{ detail.email }}</span>
+            <div class="exec-profile-roles">
+              <span v-for="r in detail.roles" :key="r" class="badge badge-slate">{{ r }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Referencia visual "reporta a" — solo si tiene líder asignado -->
+        <div v-if="detail.lider" class="lider-link">
+          <svg class="lider-link-svg" viewBox="0 0 48 20" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M2,10 L38,10" />
+            <path d="M32,4 L40,10 L32,16" />
+          </svg>
+          <span class="lider-link-label">Reporta a</span>
+        </div>
+
+        <div v-if="detail.lider" class="lider-card">
+          <div class="lider-avatar-wrap">
+            <img v-if="detail.lider.avatar" :src="detail.lider.avatar" class="lider-avatar-img" alt="" />
+            <div v-else class="lider-avatar" :style="{ background: getAvatarColor(detail.lider.fullName) }">{{ getInitials(detail.lider.fullName) }}</div>
+          </div>
+          <div class="lider-info">
+            <span class="lider-tag"><Crown :size="10" /> Su líder</span>
+            <span class="lider-name">{{ detail.lider.fullName }}</span>
+            <span class="lider-role">{{ liderRoleLabel }}</span>
           </div>
         </div>
       </div>
@@ -290,7 +316,7 @@
 <script setup>
 import { ref, reactive, computed, watch, nextTick, onMounted } from 'vue'
 import { Chart, registerables } from 'chart.js'
-import { AlertCircle, ChevronLeft, ChevronRight, Gauge, Plus, Target, X } from 'lucide-vue-next'
+import { AlertCircle, ChevronLeft, ChevronRight, Crown, Gauge, Plus, Target, X } from 'lucide-vue-next'
 import SelectLabel from '@/components/input/SelectLabel.vue'
 import ThumbHoverPreview from '@/components/shared/ThumbHoverPreview.vue'
 import { useThumbHoverPreview } from '@/composables/useThumbHoverPreview'
@@ -331,11 +357,21 @@ const canManage = computed(() =>
   ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER'].some((r) => authUser.value?.roles?.includes(r)),
 )
 
-// ── Avatar del ejecutivo mostrado en el header ────────────────
+// ── Avatar del ejecutivo (y de su líder) mostrados en el header ──────────
 const AVATAR_COLORS = ['#27C8D8', '#7C3AED', '#B45309', '#B91C1C', '#16A34A', '#0EA5E9', '#C2410C']
 const getAvatarColor = (name) => AVATAR_COLORS[(name?.charCodeAt(0) ?? 0) % AVATAR_COLORS.length]
 const getInitials = (name) =>
   (name ?? '').trim().split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase()
+
+// Rol principal del líder para la tarjeta de referencia — prioriza el rol
+// jerárquico más alto en vez de mostrar el primero del array sin criterio.
+const ROLE_PRIORITY = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR']
+const ROLE_LABELS = { ADMIN: 'Admin', ADMINISTRADOR: 'Administrador', DIRECCION: 'Dirección', LIDER: 'Líder', SUPERVISOR: 'Supervisor' }
+const liderRoleLabel = computed(() => {
+  const roles = detail.value?.lider?.roles ?? []
+  const top = ROLE_PRIORITY.find((r) => roles.includes(r)) ?? roles[0]
+  return ROLE_LABELS[top] ?? top ?? '—'
+})
 
 // ── Ejecutivo seleccionado ───────────────────────────────────
 const selectedId    = ref('')
@@ -648,11 +684,18 @@ onMounted(async () => {
 }
 .page-sub { font-size: 13px; color: #64748B; margin: 0; }
 
+.exec-profile-row { display: flex; align-items: center; gap: 4px; }
+
 .exec-profile {
   display: flex; align-items: center; gap: 12px;
   background: #fff; border: 1px solid #EEF1F7; border-radius: 14px;
   padding: 10px 16px;
   box-shadow: 0 1px 4px rgba(39,200,216,.06);
+}
+.exec-avatar-wrap { flex-shrink: 0; width: 42px; height: 42px; }
+.exec-avatar-img {
+  width: 42px; height: 42px; border-radius: 50%; object-fit: cover;
+  border: 1px solid #EEF1F7;
 }
 .exec-avatar {
   width: 42px; height: 42px; border-radius: 50%;
@@ -663,6 +706,42 @@ onMounted(async () => {
 .exec-profile-name { font-weight: 700; font-size: 13px; color: #0F172A; }
 .exec-profile-email { font-size: 11px; color: #94A3B8; }
 .exec-profile-roles { display: flex; gap: 4px; margin-top: 2px; flex-wrap: wrap; }
+
+/* ── Referencia visual "reporta a" ───────────────────────── */
+.lider-link {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 2px; flex-shrink: 0; padding: 0 2px;
+}
+.lider-link-svg { width: 44px; height: 18px; stroke: #CBD5E1; fill: none; stroke-width: 1.6; }
+.lider-link-svg path:last-child { fill: #CBD5E1; stroke: none; }
+.lider-link-label {
+  font-size: 9px; font-weight: 600; color: #94A3B8;
+  text-transform: uppercase; letter-spacing: .04em; white-space: nowrap;
+}
+
+.lider-card {
+  display: flex; align-items: center; gap: 10px;
+  background: #FAFBFF; border: 1px dashed #D8DEEA; border-radius: 14px;
+  padding: 8px 14px;
+}
+.lider-avatar-wrap { flex-shrink: 0; width: 36px; height: 36px; }
+.lider-avatar-img {
+  width: 36px; height: 36px; border-radius: 50%; object-fit: cover;
+  border: 1px solid #E5EAF0;
+}
+.lider-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 700; font-size: 12px; flex-shrink: 0;
+}
+.lider-info { display: flex; flex-direction: column; gap: 1px; }
+.lider-tag {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 9px; font-weight: 700; color: #7C3AED;
+  text-transform: uppercase; letter-spacing: .04em;
+}
+.lider-name { font-weight: 700; font-size: 12px; color: #0F172A; }
+.lider-role { font-size: 11px; color: #94A3B8; }
 
 .filter-row { max-width: 360px; }
 

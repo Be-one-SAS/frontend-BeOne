@@ -955,8 +955,8 @@ const getAllJuegosForQt = (qt) => {
   return all
     .map(i => ({
       id:               i.id,
-      nombre:           i.product?.dispositivo || i.product?.nombre
-                        || i.catalogProduct?.dispositivo || i.catalogProduct?.nombre || '—',
+      nombre:           i.product?.nombre || i.product?.dispositivo
+                        || i.catalogProduct?.nombre || i.catalogProduct?.dispositivo || '—',
       qty:              i.cantidadProducto || i.cantidad || 1,
       requiereChecklist: !!i.requiereChecklist,
     }))
