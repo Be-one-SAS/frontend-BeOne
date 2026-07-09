@@ -280,7 +280,7 @@ const routes = [
         path: 'administracion/ejecutivos-cuenta',
         name: 'EjecutivosCuenta',
         component: () => import('../views/administracion/EjecutivosCuenta.vue'),
-        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER'] },
+        meta: { roles: ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'EJECUTIVO', 'EJECUTIVO_CUENTA'] },
       },
 
       // ── Usuarios ───────────────────────────────────────
