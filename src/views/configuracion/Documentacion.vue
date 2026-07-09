@@ -94,12 +94,17 @@ const irA = (id) => {
                 <tr><td><strong>EJECUTIVO_CUENTA</strong></td><td>Mismo nivel de acceso que COORDINADOR; además es el rol pensado para monitorearse en "Ejecutivos de Cuenta" desde el panel de su líder.</td></tr>
                 <tr><td><strong>LOGISTICO</strong></td><td>Ejecuta la operación en terreno: check-ins, montajes, registro de turnos.</td></tr>
                 <tr><td><strong>OPERATIVO</strong></td><td>Personal de campo con acceso operativo básico.</td></tr>
+                <tr><td><strong>VISOR</strong></td><td>Solo lectura — ve todo el sistema (todas las vistas, todos los reportes) pero no puede crear, editar ni eliminar nada.</td></tr>
+                <tr><td><strong>BEONE</strong></td><td>Sin acceso propio — elige una sede desde el selector "Sede" en la barra superior y entra en modo de solo lectura viendo exactamente lo que vería el líder real de esa sede. Pensado para soporte/auditoría entre sedes sin tener que pedirle la clave a nadie. Ver sección "Sedes" para el detalle.</td></tr>
               </tbody>
             </table>
             <p>
               Un usuario puede tener varios roles a la vez. El acceso real a cada pantalla se puede ajustar sin
               tocar código desde <strong>Configuración → Acceso a vistas por rol</strong>: ahí un ADMIN decide,
-              vista por vista, qué otros roles la ven en el menú.
+              vista por vista, qué otros roles la ven en el menú. De forma parecida, <strong>Configuración →
+              Acceso a acciones por rol</strong> decide qué roles pueden ejecutar acciones puntuales (confirmar
+              una reserva, crear un cliente, eliminar un producto, etc.) — ver sección "Configuración del
+              sistema" para el detalle de esta segunda tabla.
             </p>
           </div>
         </section>
@@ -212,6 +217,30 @@ const irA = (id) => {
               La estructura completa de sedes, con su organigrama visual, se administra en
               <strong>Configuración → Unidades de Ejecución</strong>.
             </p>
+
+            <h3 class="doc-h3">Rol BEONE — ver como líder de una sede</h3>
+            <p>
+              Pensado para soporte o auditoría: un usuario con rol <code>BEONE</code> no tiene acceso propio a
+              nada. Al iniciar sesión ve un aviso invitándolo a elegir una sede desde el selector
+              <strong>"Sede"</strong> que aparece en la barra superior (con un ícono de edificio por cada
+              opción). La lista solo muestra sedes <em>distintas</em> a la propia del usuario, si tiene una
+              asignada — no tiene sentido "ver como líder" de la sede en la que ya trabaja normalmente.
+            </p>
+            <p>
+              Al elegir una sede, entra en un modo temporal <strong>de solo lectura</strong>: ve exactamente lo
+              mismo que vería el líder real de esa sede (cotizaciones, dashboard, tareas, desafíos comerciales,
+              todo), pero no puede crear, editar ni eliminar nada — ningún botón de escritura aparece, y aunque
+              se intentara llamar a la API directamente, el backend lo rechaza igual. Mientras está en este modo
+              aparece un aviso naranja debajo del menú superior con el nombre de la sede y un botón
+              <strong>"Salir"</strong> para volver a su identidad real. Hay que salir antes de poder elegir otra
+              sede distinta.
+            </p>
+            <p>
+              Si una sede todavía no tiene líder asignado, aparece en la lista pero no se puede entrar a
+              "verla" — el sistema avisa que hay que asignarle un líder primero desde
+              <strong>Configuración → Unidades de Ejecución</strong> (no hay una vista de líder que replicar si
+              la sede no tiene uno).
+            </p>
           </div>
         </section>
 
@@ -323,7 +352,9 @@ const irA = (id) => {
               <strong>rol</strong>: cualquier usuario con rol <code>EJECUTIVO</code> o
               <code>EJECUTIVO_CUENTA</code> es candidato a aparecer. ADMIN y DIRECCION ven a todos los que
               tengan ese rol en toda la organización; un LIDER solo ve a los que además sean su subordinado
-              directo.
+              directo. Junto a la foto del ejecutivo seleccionado, si tiene un líder asignado en el
+              organigrama, aparece una tarjeta de referencia con la foto, nombre y rol de ese líder, conectada
+              con una flecha "Reporta a" — solo a modo informativo, de un vistazo.
             </p>
 
             <h3 class="doc-h3">Meta de ingresos y barra de progreso</h3>
@@ -373,7 +404,19 @@ const irA = (id) => {
               <li><strong>Encabezado del PDF</strong> — logo, logos de certificaciones y datos de contacto que aparecen en el PDF de cotización.</li>
               <li><strong>Banner del Dashboard</strong> — imagen y mensaje motivacional del panel de inicio.</li>
               <li><strong>Importación masiva</strong> — cargar clientes, productos o proveedores desde Excel de una sola vez.</li>
-              <li><strong>Acceso a vistas por rol</strong> — decide qué roles ven cada pantalla del menú (ADMIN siempre tiene acceso, no se puede quitar).</li>
+              <li><strong>Acceso a vistas por rol</strong> — decide qué roles ven cada pantalla del menú (ADMIN siempre tiene acceso, no se puede quitar). Solo controla la navegación/el menú, no lo que la API permite hacer.</li>
+              <li>
+                <strong>Acceso a acciones por rol</strong> — la contraparte que sí cambia lo que la API permite:
+                decide qué roles pueden ejecutar acciones de negocio puntuales, agrupadas por módulo
+                (Reservas, Cotizaciones, Clientes, Productos, Proveedores, Inventario, Materiales, Órdenes de
+                compra, Check-ins, Registro de turno, Montajes, Administración, Usuarios). Ejemplos: confirmar
+                o cancelar una reserva, crear/editar/eliminar un cliente o producto, cambiar el estado de una
+                orden de compra, activar/desactivar un usuario. ADMIN siempre puede hacer todo y no es editable.
+                Un botón desaparece de la pantalla apenas un rol pierde el permiso de esa acción — no hace falta
+                recargar la página. La única excepción, por seguridad, es <strong>cambiar los roles de otro
+                usuario</strong>: esa acción se queda fija en el código (solo ADMIN), nunca se puede volver
+                configurable — evita que alguien se autoasigne ADMIN a través de este panel.
+              </li>
               <li><strong>Unidades de Ejecución</strong> — administración de sedes y su organigrama (ver sección "Sedes" arriba).</li>
               <li><strong>Parámetros de cotización</strong> — IVA, márgenes base, utilidad mínima objetivo, y las tablas de comisión visible/estructural (ver sección "Precios y comisiones").</li>
               <li><strong>Comisiones</strong> — reporte detallado por producto, con filtros y exportación (ver sección "Precios y comisiones").</li>

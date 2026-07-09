@@ -1,6 +1,7 @@
 // src/composables/usePermissions.ts
 import { computed } from 'vue'
 import { useAuth } from './useAuth'
+import { withLiderIfViewingSede } from '@/utils/hierarchyRoles'
 
 export type AppRole =
   | 'ADMIN'
@@ -93,7 +94,7 @@ export const usePermissions = () => {
     const roles = user.value?.roles
     const base = !roles?.length ? ['ADMINISTRADOR'] : (roles as AppRole[])
     // BEONE "viendo" una sede ve exactamente lo que vería el LIDER real de esa sede.
-    return user.value?.isViewingAsSede ? [...base, 'LIDER'] : base
+    return withLiderIfViewingSede(base, user.value?.isViewingAsSede) as AppRole[]
   })
 
   const getAccess = (module: AppModule): AccessLevel => {

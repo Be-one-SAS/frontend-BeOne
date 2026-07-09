@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { createGlobalState } from '@vueuse/core'
 import api from '@/services/api'
 import { useAuth } from './useAuth'
+import { withLiderIfViewingSede } from '@/utils/hierarchyRoles'
 
 /**
  * Acceso a vistas por rol — configurable desde /configuracion (backend:
@@ -67,7 +68,7 @@ export const useViewAccess = createGlobalState(() => {
 
     // BEONE "viendo" una sede navega exactamente las vistas que vería el
     // LIDER real de esa sede (no un bypass total — LIDER no tiene acceso a todo).
-    const effectiveRoles = user.value?.isViewingAsSede ? [...userRoles, 'LIDER'] : userRoles
+    const effectiveRoles = withLiderIfViewingSede(userRoles, user.value?.isViewingAsSede)
     return effectiveRoles.some((r) => roles.includes(r))
   }
 
