@@ -226,7 +226,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'save'])
 
 // ── Config ────────────────────────────────────────────
-const ROLES = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'LOGISTICO', 'OPERATIVO', 'VISOR']
+const ROLES = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'LOGISTICO', 'OPERATIVO', 'VISOR', 'BEONE']
 const sedes       = ref([])
 const sedesError  = ref(false)
 const sedesLoaded = ref(false)
@@ -253,6 +253,7 @@ const ROLE_BADGE = {
   LOGISTICO:     'bg-[#DCFCE7] text-[#16A34A]',
   OPERATIVO:     'bg-[#D1FAE5] text-[#065F46]',
   VISOR:         'bg-[#E0E7FF] text-[#4338CA]',
+  BEONE:         'bg-[#FFF7ED] text-[#C2410C]',
 }
 
 // ── Modo ──────────────────────────────────────────────

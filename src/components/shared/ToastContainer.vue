@@ -19,7 +19,7 @@
 </template>
 
 <script setup>
-import { AlertCircle, CheckCircle2, Info, X, XCircle } from 'lucide-vue-next'
+import { AlertCircle, CheckCircle2, Info, MapPin, X, XCircle } from 'lucide-vue-next'
 import { useToast } from '@/composables/useToast'
 
 const { toasts, dismissToast } = useToast()
@@ -29,6 +29,7 @@ const ICONS = {
   warning: AlertCircle,
   success: CheckCircle2,
   info: Info,
+  prompt: MapPin,
 }
 </script>
 
@@ -87,6 +88,28 @@ const ICONS = {
 .toast--success .toast-icon { color: #16A34A; }
 .toast--info    { border-left-color: #2563EB; }
 .toast--info    .toast-icon { color: #2563EB; }
+
+/* ── "prompt": invita a hacer algo — deliberadamente distinto de los
+   toasts de estado (sin barra lateral, relleno en degradado, forma de
+   píldora) para que no se confunda con un error/warning. ── */
+.toast--prompt {
+  border-left: none;
+  border-radius: 99px;
+  padding: 10px 18px 10px 10px;
+  background: linear-gradient(135deg, #FB923C 0%, #EA580C 100%);
+  box-shadow: 0 12px 32px rgba(234, 88, 12, 0.32);
+}
+.toast--prompt .toast-icon {
+  margin-top: 0;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 50%;
+  padding: 7px;
+  box-sizing: content-box;
+}
+.toast--prompt .toast-message { color: #fff; font-weight: 600; }
+.toast--prompt .toast-close   { color: rgba(255, 255, 255, 0.75); }
+.toast--prompt .toast-close:hover { background: rgba(255, 255, 255, 0.18); color: #fff; }
 
 /* Entra deslizando desde la derecha, sale desvaneciendo */
 .toast-enter-active { transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1); }

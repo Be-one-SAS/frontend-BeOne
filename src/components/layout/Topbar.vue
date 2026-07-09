@@ -14,6 +14,7 @@
     </div>
 
     <div class="flex items-center gap-2">
+      <SedeSwitcher />
       <NotificationBell />
       <ProfileHeader />
     </div>
@@ -25,6 +26,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { LayoutDashboard, FileText, BarChart2, Settings2, ShieldCheck } from 'lucide-vue-next'
 import ProfileHeader    from '@/components/shared/ProfileHeader.vue'
 import NotificationBell from '@/components/shared/NotificationBell.vue'
+import SedeSwitcher     from './SedeSwitcher.vue'
 
 const router = useRouter()
 const route  = useRoute()

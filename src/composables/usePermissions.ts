@@ -13,6 +13,7 @@ export type AppRole =
   | 'EJECUTIVO_CUENTA'
   | 'LOGISTICO'
   | 'OPERATIVO'
+  | 'BEONE'
 
 export type AppModule =
   | 'cotizaciones'
@@ -29,7 +30,10 @@ export type AppModule =
 
 type AccessLevel = 'FULL' | 'READ' | 'OWN' | 'NONE'
 
-const PERMISSIONS: Record<AppModule, Record<AppRole, AccessLevel>> = {
+// Partial: BEONE (y cualquier rol futuro) puede quedar sin entrada — cae a
+// 'NONE' por defecto en getAccess(), que es lo que queremos antes de que
+// BEONE entre a ver una sede (ahí pasa a heredar el acceso de LIDER).
+const PERMISSIONS: Record<AppModule, Partial<Record<AppRole, AccessLevel>>> = {
   cotizaciones: {
     ADMIN: 'FULL', ADMINISTRADOR: 'FULL', DIRECCION: 'READ',
     LIDER: 'FULL', SUPERVISOR: 'READ', COORDINADOR: 'OWN', EJECUTIVO: 'OWN', EJECUTIVO_CUENTA: 'OWN', LOGISTICO: 'NONE', OPERATIVO: 'NONE',
@@ -87,15 +91,20 @@ export const usePermissions = () => {
 
   const activeRoles = computed((): AppRole[] => {
     const roles = user.value?.roles
-    if (!roles?.length) return ['ADMINISTRADOR']
-    return roles as AppRole[]
+    const base = !roles?.length ? ['ADMINISTRADOR'] : (roles as AppRole[])
+    // BEONE "viendo" una sede ve exactamente lo que vería el LIDER real de esa sede.
+    return user.value?.isViewingAsSede ? [...base, 'LIDER'] : base
   })
 
-  const getAccess = (module: AppModule): AccessLevel =>
-    activeRoles.value.reduce<AccessLevel>((best, role) => {
-      const level = PERMISSIONS[module]?.[role] ?? 'NONE'
-      return ACCESS_RANK[level] > ACCESS_RANK[best] ? level : best
+  const getAccess = (module: AppModule): AccessLevel => {
+    const level = activeRoles.value.reduce<AccessLevel>((best, role) => {
+      const roleLevel = PERMISSIONS[module]?.[role] ?? 'NONE'
+      return ACCESS_RANK[roleLevel] > ACCESS_RANK[best] ? roleLevel : best
     }, 'NONE')
+    // Tope de solo lectura: BEONE nunca puede crear/editar/borrar mientras ve una sede.
+    if (user.value?.isViewingAsSede && level !== 'NONE') return 'READ'
+    return level
+  }
 
   const hasRole = (role: AppRole | AppRole[]): boolean =>
     Array.isArray(role)

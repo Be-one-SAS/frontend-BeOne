@@ -14,7 +14,7 @@ export const useToast = createGlobalState(() => {
 
   /**
    * @param {string} message
-   * @param {'error'|'warning'|'success'|'info'} type
+   * @param {'error'|'warning'|'success'|'info'|'prompt'} type
    * @param {number} duration - ms antes de auto-cerrar (0 = no se cierra solo)
    */
   const pushToast = (message, type = 'info', duration = 5000) => {
@@ -41,6 +41,10 @@ export const useToast = createGlobalState(() => {
   const toastWarning = (message, duration = 6000) => pushToast(message, 'warning', duration)
   const toastSuccess = (message, duration = 4000) => pushToast(message, 'success', duration)
   const toastInfo    = (message, duration = 4000) => pushToast(message, 'info', duration)
+  // 'prompt': invita a hacer algo (no es un error ni una confirmación) —
+  // ToastContainer.vue le da un estilo propio, no el genérico con barra
+  // lateral de color de los otros tipos.
+  const toastPrompt  = (message, duration = 7000) => pushToast(message, 'prompt', duration)
 
-  return { toasts, pushToast, dismissToast, toastError, toastWarning, toastSuccess, toastInfo }
+  return { toasts, pushToast, dismissToast, toastError, toastWarning, toastSuccess, toastInfo, toastPrompt }
 })

@@ -116,7 +116,7 @@ import { ref, computed, watch } from 'vue'
 import {
   X, Shield, AlertTriangle, CheckCircle2,
   TrendingUp, Eye, Truck, Users, UserCog, BarChart2, ScanEye,
-  Briefcase, Gauge,
+  Briefcase, Gauge, MapPin,
 } from 'lucide-vue-next'
 
 // ── Props & Emits ─────────────────────────────────────
@@ -227,6 +227,13 @@ const ROLE_CONFIG = [
     iconColor:   '#4338CA',
     description: 'Solo lectura — ve todo, no puede editar',
   },
+  {
+    key:         'BEONE',
+    icon:        MapPin,
+    iconBg:      '#FFF7ED',
+    iconColor:   '#C2410C',
+    description: 'Ver como líder de cualquier sede — solo lectura',
+  },
 ]
 
 const ROLE_BADGE = {
@@ -241,6 +248,7 @@ const ROLE_BADGE = {
   LOGISTICO:     'bg-[#F1F5F9] text-[#64748B]',
   OPERATIVO:     'bg-[#D1FAE5] text-[#065F46]',
   VISOR:         'bg-[#E0E7FF] text-[#4338CA]',
+  BEONE:         'bg-[#FFF7ED] text-[#C2410C]',
 }
 
 // ── Avatar helpers ────────────────────────────────────
