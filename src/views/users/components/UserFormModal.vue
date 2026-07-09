@@ -87,7 +87,7 @@
                 <!-- Roles -->
                 <div class="field-wrap" style="grid-column: span 2">
                   <label class="field-lbl">Roles <span class="optional">(opcional, puedes elegir varios)</span></label>
-                  <div class="roles-chip-grid">
+                  <div v-if="canEditRoles" class="roles-chip-grid">
                     <button
                       v-for="r in ROLES"
                       :key="r"
@@ -97,6 +97,11 @@
                       @click="toggleFormRole(r)"
                     >{{ r }}</button>
                   </div>
+                  <div v-else class="roles-chip-grid roles-chip-grid--readonly">
+                    <span v-for="r in form.roles" :key="r" class="role-chip role-chip-selected role-chip--readonly" :class="ROLE_BADGE[r]">{{ r }}</span>
+                    <span v-if="!form.roles.length" class="optional">Sin roles asignados</span>
+                  </div>
+                  <p v-if="!canEditRoles" class="field-hint">Solo un ADMIN puede cambiar los roles de un usuario existente.</p>
                   <p v-if="errors.roles" class="err-msg">{{ errors.roles }}</p>
                 </div>
 
@@ -217,6 +222,7 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { X, Eye, EyeOff, Save } from 'lucide-vue-next'
 import { getSedes } from '@/services/sedes.service.js'
+import { useAuth } from '@/composables/useAuth'
 
 // ── Props & Emits ─────────────────────────────────────
 const props = defineProps({
@@ -224,6 +230,15 @@ const props = defineProps({
   usuario: { type: Object, default: null },  // null = crear, objeto = editar
 })
 const emit = defineEmits(['close', 'save'])
+
+// user.service.ts::update() solo aplica cambios de roles si isAdmin(currentUser)
+// — un LIDER/SUPERVISOR con el permiso "Editar usuario" (configurable desde
+// /configuracion → Acceso a acciones) puede editar los demás campos de un
+// usuario existente, pero si tocara roles el backend lo ignora en silencio.
+// Para no mostrar un "Guardado" falso, en modo edición el selector de roles
+// se oculta (solo lectura) para cualquiera que no sea ADMIN.
+const { user: authUser } = useAuth()
+const isCurrentUserAdmin = computed(() => (authUser.value?.roles ?? []).includes('ADMIN'))
 
 // ── Config ────────────────────────────────────────────
 const ROLES = ['ADMIN', 'ADMINISTRADOR', 'DIRECCION', 'LIDER', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'LOGISTICO', 'OPERATIVO', 'VISOR', 'BEONE']
@@ -258,6 +273,7 @@ const ROLE_BADGE = {
 
 // ── Modo ──────────────────────────────────────────────
 const isEdit = computed(() => !!props.usuario)
+const canEditRoles = computed(() => !isEdit.value || isCurrentUserAdmin.value)
 
 // ── Formulario ────────────────────────────────────────
 const form = reactive({
@@ -597,6 +613,15 @@ const guardar = () => {
 .role-chip-selected {
   opacity: 1;
   border-color: currentColor;
+}
+
+.role-chip--readonly { cursor: default; }
+
+.field-hint {
+  font-size: 11px;
+  color: var(--text-3, #94A3B8);
+  font-family: 'Inter', sans-serif;
+  margin: 4px 0 0;
 }
 
 /* ── Password ────────────────────────────────────────── */

@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { createGlobalState } from '@vueuse/core'
 import { useAuth } from './useAuth'
+import { withLiderIfViewingSede } from '@/utils/hierarchyRoles'
 
 // ─────────────────────────────────────────────────────────────────
 // MOBILE SIDEBAR STATE — singleton global para compartir entre
@@ -55,7 +56,7 @@ export const useSidebarPermissions = () => {
     if (userRoles.includes('VISOR')) return true
     if (userRoles.length === 0) return roles.includes('ADMINISTRADOR')
     // BEONE "viendo" una sede ve el menú tal como lo vería el LIDER real de esa sede.
-    const effectiveRoles = user.value?.isViewingAsSede ? [...userRoles, 'LIDER'] : userRoles
+    const effectiveRoles = withLiderIfViewingSede(userRoles, user.value?.isViewingAsSede)
     return effectiveRoles.some((r) => roles.includes(r))
   }
 

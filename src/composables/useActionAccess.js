@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { createGlobalState } from '@vueuse/core'
 import api from '@/services/api'
 import { useAuth } from './useAuth'
+import { withLiderIfViewingSede } from '@/utils/hierarchyRoles'
 
 /**
  * Acceso a acciones por rol — configurable desde /configuracion (backend:
@@ -55,11 +56,17 @@ export const useActionAccess = createGlobalState(() => {
     if (userRoles.includes('ADMIN')) return true
 
     const roles = getActionRoles(actionKey) ?? staticFallbackRoles
-    if (!roles || roles.length === 0) return true // sin restricción declarada
+    // A diferencia de useViewAccess.js (donde "sin roles" = vista sin
+    // restricción = todos pasan), acá "sin roles" significa que la acción es
+    // exclusiva de ADMIN (ya evaluado arriba) — un array vacío es justo cómo
+    // se marcan esas acciones (ver UsuarioEliminar/UsuarioResetPassword), no
+    // "todos permitidos". Devolver true acá dejaría botones de ADMIN
+    // visibles para cualquier rol mientras la config no haya cargado.
+    if (!roles || roles.length === 0) return false
 
     // BEONE "viendo" una sede puede hacer exactamente lo que podría hacer el
     // líder real de esa sede.
-    const effectiveRoles = user.value?.isViewingAsSede ? [...userRoles, 'LIDER'] : userRoles
+    const effectiveRoles = withLiderIfViewingSede(userRoles, user.value?.isViewingAsSede)
     return effectiveRoles.some((r) => roles.includes(r))
   }
 
