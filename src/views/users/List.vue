@@ -168,6 +168,13 @@
                   <ToggleRight v-if="u.status === 'Activo'" :size="15" />
                   <ToggleLeft v-else :size="15" />
                 </button>
+                <button v-if="canDo('UsuarioRevocarSesion', ['ADMINISTRADOR', 'LIDER'])" class="action-btn"
+                  :title="revokeOkId === u.id ? 'Sesión revocada' : 'Revocar sesión (forzar re-login)'"
+                  :style="revokeOkId === u.id ? '--hbg:#DCFCE7; --hc:#16A34A' : '--hbg:#FFF7ED; --hc:#C2410C'"
+                  :disabled="revokingId === u.id"
+                  @click="abrirModalRevocar(u)">
+                  <LogOut :size="15" />
+                </button>
                 <button v-if="canDo('UsuarioReenviarBienvenida', ['ADMINISTRADOR'])" class="action-btn"
                   :title="resendOkId === u.id ? '¡Correo enviado!' : 'Reenviar correo de bienvenida'"
                   :style="resendOkId === u.id ? '--hbg:#DCFCE7; --hc:#16A34A' : '--hbg:#D1FAE5; --hc:#065F46'"
@@ -311,6 +318,13 @@
             <ToggleRight v-if="u.status === 'Activo'" :size="15" />
             <ToggleLeft v-else :size="15" />
           </button>
+          <button v-if="canDo('UsuarioRevocarSesion', ['ADMINISTRADOR', 'LIDER'])" class="action-btn"
+            :title="revokeOkId === u.id ? 'Sesión revocada' : 'Revocar sesión'"
+            :style="revokeOkId === u.id ? '--hbg:#DCFCE7; --hc:#16A34A' : '--hbg:#FFF7ED; --hc:#C2410C'"
+            :disabled="revokingId === u.id"
+            @click="abrirModalRevocar(u)">
+            <LogOut :size="15" />
+          </button>
           <button v-if="canDo('UsuarioResetPassword', [])" class="action-btn" title="Cambiar contraseña"
             style="--hbg:#F0FDF4; --hc:#16A34A" @click="abrirModalPwd(u)">
             <KeyRound :size="15" />
@@ -339,6 +353,17 @@
 
     <UserDeleteModal :show="showDeleteModal" :usuario="usuarioEliminar" @close="showDeleteModal = false"
       @confirm="handleDeleteUser" />
+
+    <ConfirmModal
+      :show="!!revokeTarget"
+      title="¿Revocar sesión?"
+      :message="`«${revokeTarget?.fullName || revokeTarget?.name}» va a quedar desconectado y va a tener que iniciar sesión de nuevo. No afecta su rol ni su cuenta.`"
+      confirm-label="Sí, revocar"
+      cancel-label="Cancelar"
+      variant="warning"
+      @confirm="confirmRevoke"
+      @cancel="revokeTarget = null"
+    />
 
     <!-- Modal: Cambiar contraseña (admin) -->
     <Teleport to="body">
@@ -398,16 +423,17 @@ import { ref, computed, onMounted, watch } from 'vue'
 import {
   Users, UserPlus, Search, X, AlertCircle,
   Eye, EyeOff, Pencil, Shield, ToggleLeft, ToggleRight, Trash2,
-  UserCheck, UserX, BarChart2, Mail, KeyRound,
+  UserCheck, UserX, BarChart2, Mail, KeyRound, LogOut,
 } from 'lucide-vue-next'
 import { useUsers, rolePermissions } from '@/composables/useUsers'
 import { useAuth } from '@/composables/useAuth'
 import { usePermissions } from '@/composables/usePermissions'
 import { useActionAccess } from '@/composables/useActionAccess'
-import { updateUserRoles, resendBienvenida, adminSetPassword } from '@/services/users.service'
+import { updateUserRoles, resendBienvenida, adminSetPassword, revokeUserSession } from '@/services/users.service'
 import UserFormModal from './components/UserFormModal.vue'
 import UserRoleModal from './components/UserRoleModal.vue'
 import UserDeleteModal from './components/UserDeleteModal.vue'
+import ConfirmModal from '@/components/modal/ConfirmModal.vue'
 
 // ── Auth & permisos ───────────────────────────────────
 const { user } = useAuth()
@@ -578,6 +604,30 @@ const handleToggle = async (u) => {
     await toggleStatus(u)
   } catch (e) {
     actionError.value = e?.message ?? 'Error al cambiar el estado del usuario'
+  }
+}
+
+// ── Revocar sesión (forzar re-login) ──────────────────
+const revokeTarget    = ref(null)
+const revokingId      = ref(null)
+const revokeOkId      = ref(null)
+
+const abrirModalRevocar = (u) => { revokeTarget.value = u }
+
+const confirmRevoke = async () => {
+  const u = revokeTarget.value
+  if (!u) return
+  revokingId.value = u.id
+  actionError.value = ''
+  try {
+    await revokeUserSession(u.id)
+    revokeTarget.value = null
+    revokeOkId.value = u.id
+    setTimeout(() => { revokeOkId.value = null }, 3000)
+  } catch (e) {
+    actionError.value = e?.response?.data?.message ?? e?.message ?? 'Error al revocar la sesión'
+  } finally {
+    revokingId.value = null
   }
 }
 
