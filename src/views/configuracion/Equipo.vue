@@ -140,7 +140,13 @@ const levelOf = (roles) => {
   if (roles?.includes('ADMIN') && roles?.includes('BEONE')) return 0
   return ROLE_RANK[primaryRole(roles)] ?? 9
 }
-const roleLabel = (roles) => ROLE_LABEL[primaryRole(roles)] ?? (roles?.[0] ?? '—')
+// Caso especial: daimer003@gmail.com es la cuenta del desarrollador, no un
+// admin funcional del negocio — en el organigrama se identifica como tal en
+// vez de mostrar el rol técnico "Admin".
+const roleLabel = (user) => {
+  if (user?.email === 'daimer003@gmail.com') return 'Developer'
+  return ROLE_LABEL[primaryRole(user?.roles)] ?? (user?.roles?.[0] ?? '—')
+}
 const initialsOf = (name = '') => name.trim().split(/\s+/).slice(0, 2).map(w => w[0] ?? '').join('').toUpperCase() || '?'
 
 // Paleta por sede — mismos colores usados en EjecutivosCuenta.vue para que
@@ -410,7 +416,7 @@ function onMouseMove(e) {
       left: sx + 16,
       top: sy - 8,
       name: found.user.fullName,
-      roleLabel: roleLabel(found.user.roles),
+      roleLabel: roleLabel(found.user),
       sedeName: found.user.sede?.nombre || null,
       initials: initialsOf(found.user.fullName),
       avatar: found.user.avatar || null,
@@ -580,7 +586,7 @@ function draw() {
       ctx.fillText(firstName, p.x, p.y + r + 15)
       ctx.font = `500 9.5px 'Inter', sans-serif`
       ctx.fillStyle = '#94A3B8'
-      ctx.fillText(roleLabel(n.user.roles), p.x, p.y + r + 28)
+      ctx.fillText(roleLabel(n.user), p.x, p.y + r + 28)
       ctx.restore()
     }
   }
