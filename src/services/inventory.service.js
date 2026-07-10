@@ -67,9 +67,9 @@ export const getItemReservations = async (id) => {
   return res.data
 }
 
-/** GET /inventory/:id/history — últimos movimientos */
-export const getItemHistory = async (id) => {
-  const res = await api.get(`/inventory/${id}/history`)
+/** GET /inventory/:id/history — movimientos + notas de montaje, paginado */
+export const getItemHistory = async (id, page = 1, limit = 20) => {
+  const res = await api.get(`/inventory/${id}/history`, { params: { page, limit } })
   return res.data
 }
 

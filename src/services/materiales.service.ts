@@ -44,6 +44,17 @@ export const validarTodosMateriales = (cotizacionId: number): Promise<any> =>
 export const syncProductosMateriales = (): Promise<{ synced: number; skipped: number; productos: number }> =>
   api.post('/materiales/sync-productos').then(r => r.data)
 
+// ── Faltantes de retorno (Montajes) ───────────────────────────────────────
+export const getMaterialesFaltantes = (page = 1, limit = 20): Promise<{
+  data: Array<{
+    id: number; materialNombre: string; unidad: string; cantidad: number
+    nota: string | null; evento: { id: number; numero: number; empresa: string | null } | null
+    fecha: string
+  }>
+  total: number; page: number; limit: number; totalPages: number
+}> =>
+  api.get('/materiales/faltantes', { params: { page, limit } }).then(r => r.data)
+
 // ── Catálogo MaterialBase ─────────────────────────────────────────────────
 
 export const createMaterialBase = (dto: {
