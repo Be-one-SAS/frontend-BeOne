@@ -301,11 +301,30 @@ const irA = (id) => {
           <div class="doc-card">
             <ul class="doc-list">
               <li><strong>Check-ins</strong> — registro de llegada al evento con el equipo, checklist de seguridad, fotos y observaciones. Deja evidencia formal de las condiciones de inicio del servicio.</li>
-              <li><strong>Montajes</strong> — checklist de armado: por cada producto de la cotización se marca "completado" a medida que se instala, con barra de progreso por evento.</li>
+              <li>
+                <strong>Montajes</strong> — checklist de armado: por cada producto/tercero/material de la
+                cotización se marca "completado" a medida que se instala, con barra de progreso por evento
+                (paginado en la lista de eventos). Al registrar el <strong>retorno</strong> del vehículo se
+                habilita una segunda pasada — <strong>verificación de retorno</strong> — con un checkbox propio
+                por ítem para confirmar qué volvió realmente. Al finalizarla, el sistema compara lo que salió
+                contra lo que volvió: si todo coincide no pasa nada más; si falta algo, deja una nota automática
+                en el evento (visible también en el historial del producto en Inventario y en la pestaña
+                "Faltantes de retorno" de Materiales) y avisa por correo — solo mencionando lo faltante — al
+                responsable operativo de esa cotización.
+              </li>
               <li><strong>Registro de Turno</strong> — hora de entrada/salida del personal asignado a un evento, con su tarifa; alimenta directamente el Reporte Operacional.</li>
               <li><strong>Checklist de evento</strong> — control detallado por producto (no uno general), solo para los ítems marcados como "requiere checklist" al armar la cotización. Se llena vía un enlace público en sitio.</li>
-              <li><strong>Inventario</strong> — control físico de cada equipo: disponibilidad (Disponible / En reserva / No disponible) y condición (Operativo OK / En mantenimiento / Defectuoso, etc.), con bitácora de cada cambio y escaneo QR para inventarios rápidos.</li>
+              <li>
+                <strong>Inventario</strong> — control físico de cada equipo: disponibilidad (Disponible / En
+                reserva / No disponible) y condición (Operativo OK / En mantenimiento / Defectuoso, etc.), con
+                escaneo QR para inventarios rápidos. El <strong>historial de movimientos</strong> de cada equipo
+                combina la bitácora de cambios de estado con las notas de Montajes (salida y retorno) de todos
+                los eventos donde se usó ese equipo — con "Cargar más" en vez de mostrar todo de una, porque un
+                equipo con muchos eventos puede acumular bastante historial.
+              </li>
+              <li><strong>Materiales</strong> — catálogo de materiales base por categoría y qué materiales lleva cada producto por defecto. La pestaña <strong>"Faltantes de retorno"</strong> lista, paginado, los materiales que salieron a un evento y no volvieron (detectado desde Montajes), con la nota, el evento y la fecha de cada uno.</li>
               <li><strong>Asignación de Equipos</strong> — asigna personal (no productos) a los eventos confirmados; es la base del roster que luego usa Registro de Turno.</li>
+              <li><strong>Control</strong> (<code>/admin/control</code>) — tablero que centraliza el estado de cada evento aprobado en una sola tabla: despacho/retorno del vehículo, checklist de campo (LQ, con su porcentaje real de ítems verificados), montaje (Material, también en porcentaje), planilla de ejecución, registro fotográfico, encuesta de satisfacción y validación administrativa. Cada fila se expande para ver el detalle completo del evento.</li>
             </ul>
           </div>
         </section>
@@ -418,6 +437,7 @@ const irA = (id) => {
                 configurable — evita que alguien se autoasigne ADMIN a través de este panel.
               </li>
               <li><strong>Unidades de Ejecución</strong> — administración de sedes y su organigrama (ver sección "Sedes" arriba).</li>
+              <li><strong>Equipo</strong> — organigrama visual del equipo activo, dibujado como árbol: una rama por sede y, dentro de cada una, una fila por nivel de rol (Líder → Supervisor → Coordinador → Ejecutivo → Logístico/Operativo → Visor). ADMIN/ADMINISTRADOR/DIRECCION/BEONE se muestran aparte, como "Dirección", porque no dependen de una sede. No usa el organigrama (<code>parentId</code>) para armar el árbol —solo roles y sede—, porque ese dato no está cargado para todos los usuarios.</li>
               <li><strong>Parámetros de cotización</strong> — IVA, márgenes base, utilidad mínima objetivo, y las tablas de comisión visible/estructural (ver sección "Precios y comisiones").</li>
               <li><strong>Comisiones</strong> — reporte detallado por producto, con filtros y exportación (ver sección "Precios y comisiones").</li>
               <li><strong>Zona peligrosa</strong> (solo ADMIN) — descargar backup completo de la base de datos y archivos, o purgar permanentemente todos los productos. La purga queda bloqueada hasta hacer un backup primero, y pide una frase de confirmación.</li>
@@ -437,6 +457,7 @@ const irA = (id) => {
                 <tr><td>Resumen del lunes</td><td>Cada lunes 7:00 a.m.</td><td>Responsables de eventos de los próximos 8 días + Admin/Supervisor/Coordinador/Ejecutivo/Ejecutivo de Cuenta/Logístico</td></tr>
                 <tr><td>Despacho de camión</td><td>Se marca como despachado</td><td>Responsable operativo</td></tr>
                 <tr><td>Listas de chequeo OK</td><td>Se verifica el listado de materiales</td><td>Responsable operativo</td></tr>
+                <tr><td>Retorno con faltantes</td><td>Se finaliza la verificación de retorno en Montajes y algo no volvió</td><td>Responsable operativo — solo lista lo que falta</td></tr>
                 <tr><td>Evento finalizado</td><td>Se marca el evento como finalizado</td><td>Los tres responsables</td></tr>
                 <tr><td>Validado por Admin</td><td>Se activa la validación administrativa</td><td>Responsables comercial y operativo</td></tr>
                 <tr><td>Factura emitida</td><td>Se registra una factura</td><td>Responsable comercial</td></tr>

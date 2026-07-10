@@ -40,6 +40,14 @@
         </div>
         <span class="cfg-module-arrow">→</span>
       </RouterLink>
+      <RouterLink to="/configuracion/equipo" class="cfg-module-card">
+        <div class="cfg-module-icon">🌳</div>
+        <div>
+          <p class="cfg-module-title">Equipo</p>
+          <p class="cfg-module-desc">Organigrama visual del equipo — roles, sedes y niveles jerárquicos</p>
+        </div>
+        <span class="cfg-module-arrow">→</span>
+      </RouterLink>
     </div>
 
     <div class="cfg-section-label">Configuración general</div>

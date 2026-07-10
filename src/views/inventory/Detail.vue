@@ -14,7 +14,7 @@ import { useActionAccess } from '@/composables/useActionAccess'
 import {
   ArrowLeft, RefreshCw, QrCode, Download, Wifi,
   Package, MapPin, Clock, AlertTriangle, CheckCircle,
-  Wrench, Edit, ChevronRight, Tag, Layers,
+  Wrench, Edit, ChevronRight, Tag, Layers, CornerDownLeft,
 } from 'lucide-vue-next'
 
 const { canDo } = useActionAccess()
@@ -27,6 +27,10 @@ const id     = route.params.id
 const item        = ref(null)
 const reservations = ref([])
 const history     = ref([])
+const historyPage      = ref(1)
+const historyTotalPages = ref(1)
+const historyLoadingMore = ref(false)
+const HISTORY_PAGE_SIZE = 20
 const materiales  = ref([])
 const materialesLoading = ref(false)
 const loading     = ref(false)
@@ -239,6 +243,8 @@ const historyIcon = (type) => ({
   CONDITION: Wrench,
   LOCATION:  MapPin,
   RESERVATION: Tag,
+  MONTAJE:         Package,
+  MONTAJE_RETORNO: CornerDownLeft,
 }[type] || ChevronRight)
 
 const historyIconColor = (type) => ({
@@ -247,6 +253,8 @@ const historyIconColor = (type) => ({
   CONDITION: '#C2410C',
   LOCATION:  '#7C3AED',
   RESERVATION: '#B45309',
+  MONTAJE:         '#27C8D8',
+  MONTAJE_RETORNO: '#F59E0B',
 }[type] || '#64748B')
 
 const methodLabel = (m) => ({ QR: 'QR', NFC: 'NFC', MANUAL: 'Manual' }[m] || m || '')
@@ -301,11 +309,13 @@ const fetchAll = async () => {
     const [itemRes, resRes, histRes] = await Promise.all([
       getInventoryItem(id),
       getItemReservations(id),
-      getItemHistory(id),
+      getItemHistory(id, 1, HISTORY_PAGE_SIZE),
     ])
     item.value        = itemRes.data || itemRes
     reservations.value = resRes.data  || resRes  || []
-    history.value     = histRes.data  || histRes || []
+    history.value      = histRes.data || []
+    historyPage.value       = histRes.page ?? 1
+    historyTotalPages.value = histRes.totalPages ?? 1
 
     if (item.value?.qrCode) {
       await buildQrDataUrl(item.value.qrCode)
@@ -325,6 +335,24 @@ const fetchAll = async () => {
     console.error(e)
   } finally {
     materialesLoading.value = false
+  }
+}
+
+// Timeline creciente (movimientos + notas de montaje) — se agrega, no se
+// reemplaza, para no perder el scroll ni "saltar" la vista al pedir más.
+const loadMoreHistory = async () => {
+  if (historyLoadingMore.value || historyPage.value >= historyTotalPages.value) return
+  historyLoadingMore.value = true
+  try {
+    const nextPage = historyPage.value + 1
+    const res = await getItemHistory(id, nextPage, HISTORY_PAGE_SIZE)
+    history.value = [...history.value, ...(res.data || [])]
+    historyPage.value = res.page ?? nextPage
+    historyTotalPages.value = res.totalPages ?? historyTotalPages.value
+  } catch (e) {
+    console.error(e)
+  } finally {
+    historyLoadingMore.value = false
   }
 }
 
@@ -808,6 +836,15 @@ onMounted(fetchAll)
             <Clock :size="28" class="inv-empty-ico" />
             <p>Sin movimientos registrados</p>
           </div>
+
+          <button
+            v-if="historyPage < historyTotalPages"
+            class="inv-history-load-more"
+            :disabled="historyLoadingMore"
+            @click="loadMoreHistory"
+          >
+            {{ historyLoadingMore ? 'Cargando…' : 'Cargar más' }}
+          </button>
         </div>
 
       </div>
@@ -1269,6 +1306,23 @@ onMounted(fetchAll)
 }
 .inv-empty-ico { opacity: 0.4; }
 .inv-empty-state p { font-size: 13px; font-family: 'Inter', sans-serif; margin: 0; }
+
+.inv-history-load-more {
+  display: block;
+  margin: 14px auto 2px;
+  padding: 8px 20px;
+  border: 1px solid #CBD5E1;
+  background: #fff;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.inv-history-load-more:hover:not(:disabled) { background: #F0FAFB; border-color: #A7EEF5; color: #27C8D8; }
+.inv-history-load-more:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* ─── Modal ───────────────────────────────────────────────── */
 .inv-modal-body { display: flex; flex-direction: column; gap: 16px; }

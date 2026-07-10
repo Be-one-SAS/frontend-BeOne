@@ -7,13 +7,14 @@ import {
   getMaterialesByProducto, addMaterialToProducto,
   updateMaterialOfProducto, removeMaterialFromProducto,
   parseTextoMateriales, bulkAssignMateriales, migrateFromAccesorios,
+  getMaterialesFaltantes,
 } from '@/services/materiales.service'
 import { getProducts } from '@/services/products.service'
 import ModalReutilizable from '@/components/modal/ModalReutilizable.vue'
 import { useActionAccess } from '@/composables/useActionAccess'
 import {
   RefreshCw, Plus, Pencil, Trash2, X, Search,
-  ChevronDown, Package, Layers, AlertCircle, CheckCircle2,
+  ChevronDown, ChevronLeft, ChevronRight, Package, Layers, AlertCircle, CheckCircle2,
 } from 'lucide-vue-next'
 
 const { canDo } = useActionAccess()
@@ -21,7 +22,42 @@ const { canDo } = useActionAccess()
 const route = useRoute()
 
 // ── tabs ─────────────────────────────────────────────────────────────
-const tab = ref('catalogo') // 'catalogo' | 'producto'
+const tab = ref('catalogo') // 'catalogo' | 'producto' | 'faltantes'
+
+// ── faltantes de retorno (Montajes) ───────────────────────────────────
+const FALTANTES_PAGE_SIZE = 20
+const faltantes           = ref([])
+const faltantesLoading    = ref(false)
+const faltantesLoaded     = ref(false)
+const faltantesPage       = ref(1)
+const faltantesTotal      = ref(0)
+const faltantesTotalPages = ref(1)
+
+async function loadFaltantes(page = 1) {
+  faltantesLoading.value = true
+  try {
+    const res = await getMaterialesFaltantes(page, FALTANTES_PAGE_SIZE)
+    faltantes.value           = res.data
+    faltantesPage.value       = res.page
+    faltantesTotal.value      = res.total
+    faltantesTotalPages.value = res.totalPages
+    faltantesLoaded.value     = true
+  } catch (e) {
+    console.error(e)
+  } finally {
+    faltantesLoading.value = false
+  }
+}
+
+function goToFaltantesPage(page) {
+  if (page < 1 || page > faltantesTotalPages.value) return
+  loadFaltantes(page)
+}
+
+function formatFaltanteFecha(d) {
+  if (!d) return '—'
+  return new Date(d).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
+}
 
 // ── catálogo state ────────────────────────────────────────────────────
 const categorias   = ref([])
@@ -301,7 +337,13 @@ async function fetchData() {
   finally { catLoading.value = false }
 }
 
-onMounted(fetchData)
+onMounted(() => {
+  fetchData()
+  // Se carga en paralelo desde el arranque solo para poblar el badge de la
+  // pestaña (así se nota si hay faltantes sin tener que entrar a mirar) —
+  // el tab en sí no vuelve a pedirlo si ya se cargó (ver faltantesLoaded).
+  loadFaltantes()
+})
 </script>
 
 <template>
@@ -341,6 +383,10 @@ onMounted(fetchData)
       </button>
       <button :class="['tab-btn', { 'tab-active': tab === 'producto' }]" @click="tab = 'producto'">
         <Package :size="14" /> Materiales por producto
+      </button>
+      <button :class="['tab-btn', { 'tab-active': tab === 'faltantes' }]" @click="tab = 'faltantes'; if (!faltantesLoaded) loadFaltantes()">
+        <AlertCircle :size="14" /> Faltantes de retorno
+        <span v-if="faltantesTotal" class="tab-badge tab-badge--alert">{{ faltantesTotal }}</span>
       </button>
     </div>
 
@@ -517,6 +563,58 @@ onMounted(fetchData)
       </div>
     </div>
 
+    <!-- ══ TAB: FALTANTES DE RETORNO ══ -->
+    <div v-if="tab === 'faltantes'">
+      <div v-if="faltantesLoading" class="prod-loading">Cargando…</div>
+      <div v-else-if="!faltantes.length" class="prod-empty">
+        <CheckCircle2 :size="36" class="prod-empty-ico" style="color:#16A34A" />
+        <p>No hay materiales pendientes de retorno.</p>
+      </div>
+      <div v-else class="prod-mat-table-wrap">
+        <table class="prod-mat-table">
+          <thead>
+            <tr>
+              <th>Material</th>
+              <th class="th-qty">Cantidad</th>
+              <th>Evento</th>
+              <th>Nota</th>
+              <th class="th-unit">Fecha</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="f in faltantes" :key="f.id" class="pm-row">
+              <td class="td-name"><span class="pm-name">{{ f.materialNombre }}</span></td>
+              <td class="td-qty">{{ f.cantidad }} {{ f.unidad }}</td>
+              <td>
+                <router-link
+                  v-if="f.evento"
+                  :to="`/admin/cotizar/${f.evento.id}`"
+                  class="falt-evento-link"
+                >
+                  COT-{{ f.evento.numero }}<span v-if="f.evento.empresa"> · {{ f.evento.empresa }}</span>
+                </router-link>
+                <span v-else>—</span>
+              </td>
+              <td class="falt-nota">{{ f.nota || '—' }}</td>
+              <td class="td-unit">{{ formatFaltanteFecha(f.fecha) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div v-if="faltantes.length && faltantesTotalPages > 1" class="falt-pagination">
+        <span class="falt-pg-info">
+          {{ (faltantesPage - 1) * FALTANTES_PAGE_SIZE + 1 }}–{{ Math.min(faltantesPage * FALTANTES_PAGE_SIZE, faltantesTotal) }}
+          de {{ faltantesTotal }}
+        </span>
+        <div class="falt-pg-btns">
+          <button class="falt-pg-btn" :disabled="faltantesPage === 1" @click="goToFaltantesPage(faltantesPage - 1)"><ChevronLeft :size="14" /></button>
+          <span class="falt-pg-current">{{ faltantesPage }} / {{ faltantesTotalPages }}</span>
+          <button class="falt-pg-btn" :disabled="faltantesPage === faltantesTotalPages" @click="goToFaltantesPage(faltantesPage + 1)"><ChevronRight :size="14" /></button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- ══ MODAL: Crear/Editar material base ══ -->
@@ -690,6 +788,28 @@ onMounted(fetchData)
 .tab-active { color: #27C8D8; border-bottom-color: #27C8D8; background: #F0FAFB; }
 .tab-badge { background: #E2EBF6; color: #64748B; border-radius: 999px; font-size: 11px; padding: 1px 7px; }
 .tab-active .tab-badge { background: #A7EEF5; color: #27C8D8; }
+.tab-badge--alert { background: #FEE2E2; color: #B91C1C; font-weight: 700; }
+.tab-active .tab-badge--alert { background: #FECACA; color: #B91C1C; }
+
+/* FALTANTES DE RETORNO */
+.falt-evento-link { font-size: 12px; color: #27C8D8; font-weight: 600; text-decoration: none; }
+.falt-evento-link:hover { text-decoration: underline; }
+.falt-nota { padding: 10px 14px; font-size: 12.5px; color: #475569; max-width: 320px; white-space: normal; }
+
+.falt-pagination {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 4px; flex-wrap: wrap; gap: 8px;
+}
+.falt-pg-info { font-size: 12px; color: #94A3B8; }
+.falt-pg-btns { display: flex; align-items: center; gap: 8px; }
+.falt-pg-btn {
+  width: 28px; height: 28px; border-radius: 8px; border: 1px solid #E2E8F0;
+  background: #fff; color: #64748B; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all .12s ease;
+}
+.falt-pg-btn:hover:not(:disabled) { background: #E0F9FA; color: #27C8D8; border-color: #A7EEF5; }
+.falt-pg-btn:disabled { opacity: .35; cursor: not-allowed; }
+.falt-pg-current { font-size: 12px; font-weight: 600; color: #475569; min-width: 44px; text-align: center; }
 
 /* CATÁLOGO */
 .cat-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
