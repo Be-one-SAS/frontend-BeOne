@@ -10,6 +10,16 @@ export const upsertCheck = async ({ quotationId, itemType, itemId, completado, n
   return res.data
 }
 
+export const upsertCheckRetorno = async ({ quotationId, itemType, itemId, completadoRetorno, notaRetorno }) => {
+  const res = await api.post('/montajes/retorno-check', { quotationId, itemType, itemId, completadoRetorno, notaRetorno })
+  return res.data
+}
+
+export const finalizeRetorno = async (quotationId) => {
+  const res = await api.post(`/montajes/${quotationId}/retorno-finalizar`)
+  return res.data
+}
+
 export const getMontajePublic = async (quotationId) => {
   const res = await api.get(`/montajes/public/${quotationId}`)
   return res.data

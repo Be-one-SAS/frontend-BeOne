@@ -8,7 +8,7 @@ import BaseTable from "../../components/ui/BaseTable.vue";
 import SelectLabel from "../../components/input/SelectLabel.vue";
 import CollaboratorsManager from "./components/CollaboratorsManager.vue";
 import QuotationPDF from "../../components/quotation/QuotationPDF.vue";
-import { ChevronDown, Eye, CheckCircle, XCircle, FileText, Inbox, Users, Download, X, Printer, StickyNote, Plus, Trash2, Clock } from 'lucide-vue-next';
+import { ChevronDown, Eye, CheckCircle, XCircle, FileText, Inbox, Users, Download, X, Printer, StickyNote, Plus, Trash2, Clock, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-vue-next';
 import ThumbHoverPreview from '@/components/shared/ThumbHoverPreview.vue';
 import { useThumbHoverPreview } from '@/composables/useThumbHoverPreview';
 import { useAuth } from "../../composables/useAuth";
@@ -224,6 +224,24 @@ const filteredQuotations = computed(() => {
     return coincideTexto && coincideEstado && dentroInicio && dentroFin;
   });
 });
+
+// ── Paginación ────────────────────────────────────────
+const currentPage  = ref(1)
+const pageSize     = ref(25)
+
+const pagedQuotations = computed(() => {
+  const start = (currentPage.value - 1) * Number(pageSize.value)
+  return filteredQuotations.value.slice(start, start + Number(pageSize.value))
+})
+const totalPages = computed(() => Math.ceil(filteredQuotations.value.length / Number(pageSize.value)))
+const visiblePages = computed(() => {
+  const total = totalPages.value, cur = currentPage.value
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  if (cur <= 4)          return [1, 2, 3, 4, 5, '...', total]
+  if (cur >= total - 3)  return [1, '...', total-4, total-3, total-2, total-1, total]
+  return [1, '...', cur-1, cur, cur+1, '...', total]
+})
+watch([search, estadoFiltro, fechaInicioFiltro, fechaFinFiltro], () => { currentPage.value = 1 })
 
 // ----------------------
 // OBTENER COTIZACIONES
@@ -576,7 +594,7 @@ const formatDateTime = (iso) =>
 
           <!-- BODY -->
           <tbody>
-            <template v-for="(q, index) in filteredQuotations" :key="q.id">
+            <template v-for="(q, index) in pagedQuotations" :key="q.id">
 
               <!-- ── Fila principal ── -->
               <tr :id="`row-${q.id}`" class="vc-row" @click="toggleRow(q.id)">
@@ -591,7 +609,7 @@ const formatDateTime = (iso) =>
                 </td>
 
                 <!-- # -->
-                <td class="vc-td vc-td-center vc-idx">{{ index + 1 }}</td>
+                <td class="vc-td vc-td-center vc-idx">{{ index + 1 + (currentPage - 1) * Number(pageSize) }}</td>
 
                 <!-- Cotización: número + badge estado -->
                 <td class="vc-td">
@@ -902,6 +920,24 @@ const formatDateTime = (iso) =>
           </tbody>
 
         </table>
+      </div>
+
+      <!-- Paginación -->
+      <div class="pp-pagination">
+        <span class="pg-info">
+          {{ (currentPage - 1) * Number(pageSize) + 1 }}–{{ Math.min(currentPage * Number(pageSize), filteredQuotations.length) }}
+          de {{ filteredQuotations.length }}
+        </span>
+        <div class="pg-pages">
+          <button class="pg-btn" :disabled="currentPage === 1" @click="currentPage = 1"><ChevronsLeft :size="14" /></button>
+          <button class="pg-btn" :disabled="currentPage === 1" @click="currentPage--"><ChevronLeft :size="14" /></button>
+          <template v-for="p in visiblePages" :key="p">
+            <span v-if="p === '...'" class="pg-ellipsis">…</span>
+            <button v-else class="pg-btn pg-num" :class="{ 'pg-active': p === currentPage }" @click="currentPage = p">{{ p }}</button>
+          </template>
+          <button class="pg-btn" :disabled="currentPage === totalPages" @click="currentPage++"><ChevronRight :size="14" /></button>
+          <button class="pg-btn" :disabled="currentPage === totalPages" @click="currentPage = totalPages"><ChevronsRight :size="14" /></button>
+        </div>
       </div>
 
       <!-- ── Estado vacío ── -->
@@ -1347,6 +1383,16 @@ const formatDateTime = (iso) =>
   border-color: var(--primary, #27C8D8);
   color: #fff;
 }
+
+/* ─── Paginación (estilo Products) ───────────────────── */
+.pp-pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-top: 1px solid #F0FAFB; flex-wrap: wrap; gap: 8px; }
+.pg-info { font-size: 12px; color: #94A3B8; font-family: 'Inter', sans-serif; }
+.pg-pages { display: flex; align-items: center; gap: 4px; }
+.pg-btn { width: 30px; height: 30px; border-radius: 8px; border: 1px solid #E2EBF6; background: #FFFFFF; color: #64748B; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.12s; }
+.pg-btn:hover:not(:disabled) { background: #E0F9FA; color: #27C8D8; border-color: #A7EEF5; }
+.pg-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.pg-active { background: #27C8D8 !important; color: #FFFFFF !important; border-color: #27C8D8 !important; font-weight: 600; }
+.pg-ellipsis { color: #94A3B8; font-size: 13px; padding: 0 4px; }
 
 /* ─── Tabla ─────────────────────────────────────────── */
 .vc-table {
