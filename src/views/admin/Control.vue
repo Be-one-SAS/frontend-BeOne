@@ -15,6 +15,7 @@ import NotasCotizacionPanel from '@/components/quotation/NotasCotizacionPanel.vu
 import ExtraCostsPanel from '@/components/quotation/ExtraCostsPanel.vue'
 import { createEncuesta, getEncuestas } from '@/services/encuestas.service'
 import { getChecklistEvento } from '@/services/checklist-evento.service.js'
+import { getMontajes } from '@/services/montajes.service.js'
 import { uploadPlanimetria, deletePlanimetria } from '@/services/administracion.service.js'
 import { useAuth } from '@/composables/useAuth'
 import { useActionAccess } from '@/composables/useActionAccess'
@@ -251,6 +252,29 @@ const lqStatus = (ev) => {
   return checklistCompletion.value[ev.id] ?? { done: 0, total: needed.length }
 }
 
+// ── Mat.: progreso real del checklist de Montajes (antes solo mostraba
+// listadoMaterial como ✓/✗, que también se puede marcar desde el modal
+// "Lista Operativa" — si el evento no pasó por Montajes no hay progreso que
+// mostrar y se cae de vuelta al booleano). Un solo GET /montajes trae todos
+// los eventos de una — no hace falta pedirlo por evento como en LQ.
+const montajeProgress = ref<Record<number, { done: number; total: number }>>({})
+
+const loadMontajeProgress = async () => {
+  try {
+    const montajes = await getMontajes()
+    const map: Record<number, { done: number; total: number }> = {}
+    for (const m of montajes) {
+      if (m.progress?.total > 0) map[m.id] = { done: m.progress.completados, total: m.progress.total }
+    }
+    montajeProgress.value = map
+  } catch {
+    montajeProgress.value = {}
+  }
+}
+
+// Retorna: { done, total } si el evento tiene checklist de montaje | null si no
+const matStatus = (ev) => montajeProgress.value[ev.id] ?? null
+
 // ── Modal Lista Operativa ──────────────────────────────
 const showOpListModal = ref(false)
 const selectedEvent   = ref(null)
@@ -271,6 +295,7 @@ onMounted(async () => {
   await fetchEventos()
   await loadEncuestas()
   loadChecklistCompletion()
+  loadMontajeProgress()
 })
 
 // ── Modal Planimetría ────────────────────────────────────
@@ -628,9 +653,20 @@ const handleDeletePlan = async () => {
                   </div>
                 </td>
 
-                <!-- Material (automático — se marca al completar la Lista Operativa) -->
+                <!-- Material: progreso real del checklist de Montajes cuando existe;
+                     si el evento no pasó por Montajes, cae al booleano listadoMaterial
+                     (también marcable desde el modal "Lista Operativa"). -->
                 <td class="vc-td vc-td-center" @click.stop>
                   <div
+                    v-if="matStatus(ev)"
+                    class="ctrl-check ctrl-check-auto"
+                    :class="matStatus(ev).done === matStatus(ev).total ? 'ctrl-check-on' : 'ctrl-check-done'"
+                    :title="`Montajes: ${matStatus(ev).done}/${matStatus(ev).total} ítems completados`"
+                  >
+                    <span>{{ matStatus(ev).done === matStatus(ev).total ? '✓' : `${matStatus(ev).done}/${matStatus(ev).total}` }}</span>
+                  </div>
+                  <div
+                    v-else
                     class="ctrl-check ctrl-check-auto"
                     :class="ev.listadoMaterial ? 'ctrl-check-done' : 'ctrl-check-off'"
                     :title="ev.listadoMaterial ? 'Material Completo (automático desde Lista Operativa)' : 'Pendiente — se completa desde Lista Operativa'"

@@ -111,8 +111,12 @@
               <p class="card-sub">Cantidad — últimos 6 meses</p>
             </div>
           </div>
-          <div style="position:relative;height:140px;width:100%">
+          <div v-if="hasMonthlyData" style="position:relative;height:140px;width:100%">
             <canvas ref="barChartEl"></canvas>
+          </div>
+          <div v-else class="chart-empty" style="height:140px">
+            <BarChart3 :size="22" class="chart-empty-icon" />
+            <span>Sin cotizaciones en los últimos 6 meses</span>
           </div>
         </div>
 
@@ -124,7 +128,7 @@
               <p class="card-sub">Todas las cotizaciones</p>
             </div>
           </div>
-          <div class="donut-wrap">
+          <div v-if="hasStatusData" class="donut-wrap">
             <div style="position:relative;height:150px;width:150px;flex-shrink:0">
               <canvas ref="donutCanvas"></canvas>
               <div class="donut-center">
@@ -139,6 +143,10 @@
                 <span class="legend-pct">{{ pct(s.count, stats.totals.count) }}%</span>
               </div>
             </div>
+          </div>
+          <div v-else class="chart-empty" style="height:150px">
+            <PieChart :size="22" class="chart-empty-icon" />
+            <span>Sin cotizaciones registradas todavía</span>
           </div>
         </div>
 
@@ -306,7 +314,7 @@ import { formatCOP } from '@/utils/currency.js'
 import {
   DollarSign, FileText, Users, CheckCircle2, ChevronRight,
   ChevronLeft, ChevronsLeft, ChevronsRight,
-  FilePlus, Building2, Archive,
+  FilePlus, Building2, Archive, BarChart3, PieChart,
 } from 'lucide-vue-next'
 import Loader from '@/components/ui/Loader.vue'
 import Chart from 'chart.js/auto'
@@ -390,6 +398,12 @@ const todayLabel = computed(() => {
 // ── KPI derived ───────────────────────────────
 const monthlyValues = computed(() => stats.value.monthlyQuotations.map(m => m.totalValue))
 const monthlyCounts = computed(() => stats.value.monthlyQuotations.map(m => m.count))
+
+// Los meses/estados siempre llegan como filas (aunque estén en cero) — sin
+// esto Chart.js dibuja un donut/barras degenerados (todo en 0) en vez de no
+// dibujar nada, dejando solo el "0" flotando en blanco.
+const hasMonthlyData = computed(() => stats.value.monthlyQuotations.some(m => m.count > 0))
+const hasStatusData  = computed(() => stats.value.statusBreakdown.some(s => s.count > 0))
 
 const valueTrendPct = computed(() => {
   const cur = stats.value.currentMonth.totalValue
@@ -491,7 +505,7 @@ const taskPrioClass = (t) =>
 
 // ── Charts ────────────────────────────────────
 const buildBarChart = () => {
-  if (!barChartEl.value || !stats.value.monthlyQuotations.length) return
+  if (!barChartEl.value || !hasMonthlyData.value) return
   const months = stats.value.monthlyQuotations
   const labels = months.map(m =>
     new Date(m.month + '-01').toLocaleDateString('es-CO', { month: 'short' })
@@ -530,7 +544,7 @@ const buildBarChart = () => {
 }
 
 const buildDonut = () => {
-  if (!donutCanvas.value || !stats.value.statusBreakdown.length) return
+  if (!donutCanvas.value || !hasStatusData.value) return
   const data = stats.value.statusBreakdown.slice(0, 6)
   new Chart(donutCanvas.value, {
     type: 'doughnut',
@@ -953,6 +967,18 @@ tr:last-child td { border-bottom: none; }
   font-family: 'Inter', sans-serif;
   text-align: center; padding: 12px 0;
 }
+
+/* Reemplaza el canvas de un chart cuando no hay datos — evita el "0"
+   flotando en blanco que dejaba Chart.js con un dataset en cero. */
+.chart-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px;
+  color: #B9C2D0;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  text-align: center;
+}
+.chart-empty-icon { color: #D8DEE8; }
 
 /* ── RESPONSIVE ─────────────────────────────── */
 

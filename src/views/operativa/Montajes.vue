@@ -53,7 +53,7 @@
     <!-- Events list -->
     <div v-else class="mont-events">
       <div
-        v-for="ev in filteredEvents"
+        v-for="ev in pagedEvents"
         :key="ev.id"
         class="mont-event"
       >
@@ -156,6 +156,16 @@
               >
                 <MessageSquare :size="14" />
               </button>
+              <button
+                v-if="showRetornoCheck(ev) && item.check.completado"
+                class="mont-checkbox mont-checkbox--retorno"
+                :class="{ checked: item.check.completadoRetorno }"
+                :disabled="!canDo('MontajeCheckToggle', MONTAJE_ROLES)"
+                title="¿Volvió este ítem?"
+                @click.stop="toggleCheckRetorno(ev.id, item)"
+              >
+                <CornerDownLeft v-if="item.check.completadoRetorno" :size="13" />
+              </button>
             </div>
           </template>
 
@@ -195,6 +205,16 @@
               >
                 <MessageSquare :size="14" />
               </button>
+              <button
+                v-if="showRetornoCheck(ev) && item.check.completado"
+                class="mont-checkbox mont-checkbox--retorno"
+                :class="{ checked: item.check.completadoRetorno }"
+                :disabled="!canDo('MontajeCheckToggle', MONTAJE_ROLES)"
+                title="¿Volvió este ítem?"
+                @click.stop="toggleCheckRetorno(ev.id, item)"
+              >
+                <CornerDownLeft v-if="item.check.completadoRetorno" :size="13" />
+              </button>
             </div>
           </template>
 
@@ -233,6 +253,16 @@
                 title="Agregar nota"
               >
                 <MessageSquare :size="14" />
+              </button>
+              <button
+                v-if="showRetornoCheck(ev) && item.check.completado"
+                class="mont-checkbox mont-checkbox--retorno"
+                :class="{ checked: item.check.completadoRetorno }"
+                :disabled="!canDo('MontajeCheckToggle', MONTAJE_ROLES)"
+                title="¿Volvió este ítem?"
+                @click.stop="toggleCheckRetorno(ev.id, item)"
+              >
+                <CornerDownLeft v-if="item.check.completadoRetorno" :size="13" />
               </button>
             </div>
           </template>
@@ -329,7 +359,61 @@
             </div>
 
           </div>
+
+          <!-- Verificación de retorno: se habilita al registrar el retorno del
+               vehículo — compara lo marcado como vuelto (checkbox naranja en
+               cada ítem) contra lo que salió. -->
+          <div v-if="ev.retorno" class="mont-retorno-panel">
+            <div v-if="!ev.retornoVerificado" class="mont-retorno-pending">
+              <div class="mont-retorno-progress-wrap">
+                <div class="mont-retorno-progress-bar" :style="{ width: retornoPct(ev) + '%' }" />
+              </div>
+              <span class="mont-retorno-progress-label">
+                {{ ev.progressRetorno.completados }}/{{ ev.progressRetorno.total }} verificados
+              </span>
+              <button
+                class="mont-retorno-finalize-btn"
+                :disabled="retornoFinalizing.has(ev.id)"
+                @click.stop="finalizeRetornoCheck(ev)"
+              >
+                {{ retornoFinalizing.has(ev.id) ? 'Finalizando…' : 'Finalizar verificación de retorno' }}
+              </button>
+            </div>
+            <div v-else class="mont-retorno-done" :class="{ 'mont-retorno-done--faltantes': retornoResult[ev.id]?.faltantes?.length }">
+              <AlertCircle v-if="retornoResult[ev.id]?.faltantes?.length" :size="14" />
+              <Check v-else :size="14" />
+              <span v-if="retornoResult[ev.id]?.faltantes?.length">
+                Retorno verificado — faltaron {{ retornoResult[ev.id].faltantes.length }} ítem(s). Se dejó una nota en el evento y se avisó por correo al responsable operativo.
+              </span>
+              <span v-else-if="retornoResult[ev.id]">Retorno verificado — todo volvió completo.</span>
+              <span v-else>Retorno verificado. Revisa las notas del evento para el detalle.</span>
+            </div>
+          </div>
+
         </div>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <div v-if="!loading && !error && filteredEvents.length > 0" class="mont-pagination">
+      <div class="mont-pp-wrap">
+        <span class="mont-pp-lbl">Por página</span>
+        <SelectLabel
+          v-model="pageSize"
+          :options="MONT_PAGE_SIZE_OPTIONS"
+          class="mont-pp-select"
+        />
+      </div>
+      <span class="mont-pg-info">
+        {{ (currentPage - 1) * pageSize + 1 }}–{{ Math.min(currentPage * pageSize, filteredEvents.length) }}
+        de {{ filteredEvents.length }}
+      </span>
+      <div class="mont-pg-btns">
+        <button class="mont-pg-btn" :disabled="currentPage === 1" @click="currentPage = 1"><ChevronsLeft :size="14" /></button>
+        <button class="mont-pg-btn" :disabled="currentPage === 1" @click="currentPage--"><ChevronLeft :size="14" /></button>
+        <span class="mont-pg-current">{{ currentPage }} / {{ totalPages }}</span>
+        <button class="mont-pg-btn" :disabled="currentPage === totalPages" @click="currentPage++"><ChevronRight :size="14" /></button>
+        <button class="mont-pg-btn" :disabled="currentPage === totalPages" @click="currentPage = totalPages"><ChevronsRight :size="14" /></button>
       </div>
     </div>
 
@@ -360,18 +444,22 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import {
   RefreshCw, Search, AlertCircle, PackageCheck, ChevronDown, ChevronRight,
   Calendar, FileText, Package, Truck, Layers, Check, MessageSquare,
   Users, Download, CornerDownLeft, CornerUpLeft,
+  ChevronLeft, ChevronsLeft, ChevronsRight,
 } from 'lucide-vue-next'
-import { getMontajes, upsertCheck } from '@/services/montajes.service.js'
+import { getMontajes, upsertCheck, upsertCheckRetorno, finalizeRetorno } from '@/services/montajes.service.js'
 import { patchQuotation } from '@/services/quotation.service.ts'
 import NotasCotizacionPanel from '@/components/quotation/NotasCotizacionPanel.vue'
+import SelectLabel from '@/components/input/SelectLabel.vue'
 import { useActionAccess } from '@/composables/useActionAccess'
+import { useToast } from '@/composables/useToast'
 
 const { canDo } = useActionAccess()
+const { toastError } = useToast()
 const MONTAJE_ROLES = ['ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'LOGISTICO', 'LIDER', 'OPERATIVO']
 
 const TABS = [
@@ -397,6 +485,17 @@ const noteModal = ref({
 
 const pdfGenerating  = ref(null)
 const vehicleSaving  = ref(new Set())
+const retornoFinalizing = ref(new Set())
+const retornoResult  = ref({})
+
+// ── Paginación ──────────────────────────────────
+const MONT_PAGE_SIZE_OPTIONS = [
+  { value: 10, label: '10 / pág.' },
+  { value: 25, label: '25 / pág.' },
+  { value: 50, label: '50 / pág.' },
+]
+const pageSize    = ref(10)
+const currentPage = ref(1)
 
 async function load() {
   loading.value = true
@@ -450,6 +549,13 @@ const filteredEvents = computed(() => {
   })
 })
 
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredEvents.value.length / Number(pageSize.value))))
+const pagedEvents = computed(() => {
+  const start = (currentPage.value - 1) * Number(pageSize.value)
+  return filteredEvents.value.slice(start, start + Number(pageSize.value))
+})
+watch([search, activeTab, pageSize], () => { currentPage.value = 1 })
+
 function filterItems(items) {
   if (activeTab.value === 'completed') return items.filter(i => i.check.completado)
   if (activeTab.value === 'pending')   return items.filter(i => !i.check.completado)
@@ -501,6 +607,67 @@ function updateProgress(ev) {
   const all = [...ev.products, ...ev.thirdPartyItems, ...ev.materials]
   ev.progress.total       = all.length
   ev.progress.completados = all.filter(i => i.check.completado).length
+}
+
+// ── Verificación de retorno ──────────────────────
+function showRetornoCheck(ev) {
+  return ev.retorno && !ev.retornoVerificado
+}
+
+function updateProgressRetorno(ev) {
+  const all = [...ev.products, ...ev.thirdPartyItems, ...ev.materials]
+  const salieron = all.filter(i => i.check.completado)
+  ev.progressRetorno.total       = salieron.length
+  ev.progressRetorno.completados = salieron.filter(i => i.check.completadoRetorno).length
+}
+
+function retornoPct(ev) {
+  if (!ev.progressRetorno?.total) return 0
+  return Math.round((ev.progressRetorno.completados / ev.progressRetorno.total) * 100)
+}
+
+async function toggleCheckRetorno(quotationId, item) {
+  const ev = events.value.find(e => e.id === quotationId)
+  if (!ev) return
+  const target = findItem(ev, item)
+  if (!target) return
+
+  const newVal = !target.check.completadoRetorno
+  target.check.completadoRetorno = newVal
+  updateProgressRetorno(ev)
+
+  try {
+    await upsertCheckRetorno({
+      quotationId,
+      itemType:          item.type,
+      itemId:            item.id,
+      completadoRetorno: newVal,
+      notaRetorno:       target.check.notaRetorno,
+    })
+  } catch {
+    target.check.completadoRetorno = !newVal
+    updateProgressRetorno(ev)
+    toastError('No se pudo guardar la verificación de retorno')
+  }
+}
+
+async function finalizeRetornoCheck(ev) {
+  if (retornoFinalizing.value.has(ev.id)) return
+  const s = new Set(retornoFinalizing.value)
+  s.add(ev.id)
+  retornoFinalizing.value = s
+
+  try {
+    const result = await finalizeRetorno(ev.id)
+    retornoResult.value = { ...retornoResult.value, [ev.id]: result }
+    ev.retornoVerificado = true
+  } catch (e) {
+    toastError(e?.response?.data?.message || 'No se pudo finalizar la verificación de retorno')
+  } finally {
+    const s2 = new Set(retornoFinalizing.value)
+    s2.delete(ev.id)
+    retornoFinalizing.value = s2
+  }
 }
 
 function openNote(quotationId, item) {
@@ -1363,6 +1530,101 @@ async function downloadMaterialsPDF(ev) {
   font-family: 'Inter', sans-serif;
   cursor: not-allowed;
 }
+
+/* ── Checkbox de verificación de retorno (naranja, distinto del de montaje) ── */
+.mont-checkbox--retorno {
+  border-color: #FDBA74;
+}
+.mont-checkbox--retorno.checked {
+  background: #F59E0B;
+  border-color: #F59E0B;
+}
+
+/* ── Panel de verificación de retorno ── */
+.mont-retorno-panel {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #FFFBEB;
+  border: 1.5px solid #FDE68A;
+}
+.mont-retorno-pending {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.mont-retorno-progress-wrap {
+  flex: 1;
+  min-width: 80px;
+  height: 6px;
+  background: #FDE68A;
+  border-radius: 99px;
+  overflow: hidden;
+}
+.mont-retorno-progress-bar {
+  height: 100%;
+  background: #F59E0B;
+  border-radius: 99px;
+  transition: width 0.3s ease;
+}
+.mont-retorno-progress-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #92400E;
+  white-space: nowrap;
+}
+.mont-retorno-finalize-btn {
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: none;
+  background: #F59E0B;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.mont-retorno-finalize-btn:hover:not(:disabled) { background: #D97706; }
+.mont-retorno-finalize-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.mont-retorno-done {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #15803D;
+}
+.mont-retorno-done svg { flex-shrink: 0; color: #22C55E; }
+.mont-retorno-done--faltantes { color: #B45309; }
+.mont-retorno-done--faltantes svg { color: #F59E0B; }
+
+/* ── Paginación ──────────────────────────────────── */
+.mont-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px 4px 4px;
+}
+.mont-pp-wrap { display: flex; align-items: center; gap: 8px; }
+.mont-pp-lbl { font-size: 12px; color: #94A3B8; font-family: 'Inter', sans-serif; white-space: nowrap; }
+.mont-pp-select { width: auto; }
+.mont-pp-select :deep(.sl-trigger) { height: 34px; padding: 6px 14px; }
+.mont-pg-info { font-size: 12px; color: #94A3B8; font-family: 'Inter', sans-serif; }
+.mont-pg-btns { display: flex; align-items: center; gap: 4px; }
+.mont-pg-btn {
+  width: 30px; height: 30px; border-radius: 8px; border: 1px solid #E2E8F0;
+  background: #fff; color: #64748B; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all .12s ease;
+}
+.mont-pg-btn:hover:not(:disabled) { background: #E0F9FA; color: #27C8D8; border-color: #A7EEF5; }
+.mont-pg-btn:disabled { opacity: .35; cursor: not-allowed; }
+.mont-pg-current { font-size: 12px; font-weight: 600; color: #475569; min-width: 44px; text-align: center; }
 
 /* Dispatched badge in event header */
 .mont-dispatched-badge {
