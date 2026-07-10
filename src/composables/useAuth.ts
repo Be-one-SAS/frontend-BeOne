@@ -66,15 +66,36 @@ export const useAuth = createGlobalState(() => {
   // Confirma contra el backend si la cookie de sesión sigue siendo válida.
   // Se memoiza: solo hace la llamada real una vez por carga de la app —
   // navegaciones subsecuentes del router reusan el mismo resultado.
+  //
+  // El access_token dura 12h y el refresh_token 7 días: si al recargar el
+  // sitio el access_token ya expiró (cookie borrada sola por el navegador)
+  // pero el refresh_token sigue vigente, un 401 acá NO debe desloguear de
+  // una — primero se intenta /auth/refresh (mismo mecanismo que el
+  // interceptor de services/api.ts) y solo si eso también falla se limpia
+  // la sesión. Sin esto, cualquier recarga pasadas las 12h forzaba un
+  // re-login aunque quedaran días de sesión válida.
   let authCheck: Promise<void> | null = null;
   const ensureAuthLoaded = () => {
     if (!authCheck) {
       const base = getApiBase();
+      const clearSession = () => {
+        user.value = null;
+        localStorage.removeItem('userData');
+      };
       authCheck = axios.get(`${base}/auth/me`, { withCredentials: true })
         .then(({ data }) => updateUserData(data))
-        .catch(() => {
-          user.value = null;
-          localStorage.removeItem('userData');
+        .catch(async (error) => {
+          if (error?.response?.status !== 401) {
+            clearSession();
+            return;
+          }
+          try {
+            await axios.post(`${base}/auth/refresh`, {}, { withCredentials: true });
+            const { data } = await axios.get(`${base}/auth/me`, { withCredentials: true });
+            updateUserData(data);
+          } catch {
+            clearSession();
+          }
         });
     }
     return authCheck;

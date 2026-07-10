@@ -115,6 +115,22 @@ export const toggleUserStatus = async (id) => {
 }
 
 /**
+ * PATCH /users/:id/revoke-session
+ * Fuerza el cierre de cualquier sesión activa de este usuario (tokenVersion++)
+ * — no toca su rol ni su estado, solo lo obliga a iniciar sesión de nuevo.
+ * @param {number|string} id
+ */
+export const revokeUserSession = async (id) => {
+  try {
+    const response = await api.patch(`/users/${id}/revoke-session`)
+    return response.data
+  } catch (error) {
+    console.error(`[users.service] Error en revokeUserSession(${id}):`, error)
+    throw error
+  }
+}
+
+/**
  * PATCH /users/:id/reassign
  * Reasigna el superior (parentId) de un usuario.
  * @param {number|string} id
