@@ -179,6 +179,12 @@ let worldNodes = []       // { id, x, y, r, kind:'person'|'sedeHeader', ... }
 let worldConnectors = []  // { x1,y1,x2,y2, color, delay }
 let worldWidth = 0
 let worldHeight = 0
+// Delay de entrada del último nodo/conector (ver nextDelay() en computeLayout) —
+// el loop de animación lo necesita para saber cuánto durar. Con pocas sedes
+// pasaba desapercibido porque el presupuesto fijo de antes (880ms) alcanzaba;
+// con varias sedes y decenas de personas el último nodo podía tener un delay
+// mayor a eso y quedaba sin dibujarse nunca (invisible, no solo cortado).
+let maxAnimDelay = 0
 
 function buildTree() {
   const root = users.value.filter(u => levelOf(u.roles) <= 1)
@@ -300,6 +306,7 @@ function computeLayout() {
   worldConnectors = connectors
   worldWidth = totalW
   worldHeight = maxY - ROOT_Y + 80
+  maxAnimDelay = delayStep * 28
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -352,7 +359,12 @@ function resetView() {
   const pad = 60
   const scaleX = (w - pad * 2) / Math.max(worldWidth, 1)
   const scaleY = (h - pad * 2) / Math.max(worldHeight, 1)
-  camera.scale = Math.min(1.05, Math.max(0.35, Math.min(scaleX, scaleY)))
+  // Sin piso de 0.35: con varias sedes el árbol puede ser más ancho que
+  // eso permite encoger, y las ramas de los extremos (p. ej. Antioquia,
+  // Israel) quedaban fuera de pantalla al cargar — solo se veía la rama
+  // del centro (Cundinamarca). El piso de 0.15 evita un escalado a cero,
+  // no evita que quepa todo el árbol.
+  camera.scale = Math.min(1.05, Math.max(0.15, Math.min(scaleX, scaleY)))
   camera.x = w / 2
   camera.y = pad - ROOT_Y * camera.scale + 26
   needsRedraw = true
@@ -364,7 +376,7 @@ function zoomBy(delta) {
   const cx = wrap.clientWidth / 2
   const cy = wrap.clientHeight / 2
   const before = screenToWorld(cx, cy)
-  camera.scale = Math.min(2.2, Math.max(0.3, camera.scale + delta))
+  camera.scale = Math.min(2.2, Math.max(0.15, camera.scale + delta))
   const after = worldToScreen(before.x, before.y)
   camera.x += cx - after.x
   camera.y += cy - after.y
@@ -648,7 +660,7 @@ function lighten(hex, amt) {
 
 function loop() {
   const elapsed = performance.now() - animStart
-  if (elapsed < ANIM_DURATION + 400 || needsRedraw) {
+  if (elapsed < maxAnimDelay + ANIM_DURATION + 50 || needsRedraw) {
     draw()
     needsRedraw = false
   }
