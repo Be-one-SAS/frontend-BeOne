@@ -15,6 +15,7 @@ import { useAuth } from "../../composables/useAuth";
 import { useActionAccess } from "../../composables/useActionAccess";
 import { getSedes } from "../../services/sedes.service";
 import { formatCOP } from "../../utils/currency.js";
+import ConfirmModal from "../../components/modal/ConfirmModal.vue";
 import {
   AREAS_NOTA,
   createNotaCotizacion,
@@ -35,6 +36,12 @@ const selectedQuotation = ref(null);
 //  NUEVO → modal de éxito
 const isSuccessModalOpen = ref(false);
 const confirmedQuotation = ref(null);
+const successAction = ref('confirm'); // 'confirm' | 'cancel' — el modal de éxito cambia su mensaje según cuál se ejecutó
+
+// Confirmación previa a cancelar (Pendiente o Aprobada) — antes se cancelaba
+// de una al primer click, sin dar chance de arrepentirse.
+const cancelTarget = ref(null);
+const canCancelQuotation = (q) => q?.isPublished || q?.quotationStatus?.name === 'Pendiente';
 
 //  NUEVO → modal vista cliente
 const isClientPreviewOpen = ref(false);
@@ -293,6 +300,7 @@ const confirmQuotation = async (quotation) => {
     await confirmReservation(quotation.id, true);
 
     confirmedQuotation.value = quotation;
+    successAction.value = 'confirm';
     isSuccessModalOpen.value = true;
 
     await loadQuotations();
@@ -303,11 +311,15 @@ const confirmQuotation = async (quotation) => {
   }
 };
 
-const cancelQuotation = async (quotation) => {
+const executeCancelQuotation = async () => {
+  const quotation = cancelTarget.value;
+  if (!quotation) return;
   try {
     await cancelReservation(quotation.id);
 
+    cancelTarget.value = null;
     confirmedQuotation.value = quotation;
+    successAction.value = 'cancel';
     isSuccessModalOpen.value = true;
 
     await loadQuotations();
@@ -315,6 +327,7 @@ const cancelQuotation = async (quotation) => {
     console.log("Cotización cancelada:", quotation.id);
   } catch (error) {
     console.error("No se pudo cancelar la cotización", error);
+    cancelTarget.value = null;
   }
 }
 
@@ -699,12 +712,12 @@ const formatDateTime = (iso) =>
                       <CheckCircle :size="12" /> Confirmar
                     </button>
 
-                    <!-- Cancelar (lógica original exacta) -->
+                    <!-- Cancelar — habilitado para Pendiente (libera el soft-lock) y Aprobada (libera la reserva) -->
                     <button
                       v-if="canDo('ReservationCancel', ['ADMINISTRADOR', 'LIDER', 'SUPERVISOR'])"
-                      :disabled="!q?.isPublished"
-                      @click.stop="cancelQuotation(q)"
-                      :class="!q?.isPublished ? 'act-btn act-disabled' : 'act-btn act-cancel'"
+                      :disabled="!canCancelQuotation(q)"
+                      @click.stop="cancelTarget = q"
+                      :class="!canCancelQuotation(q) ? 'act-btn act-disabled' : 'act-btn act-cancel'"
                     >
                       <XCircle :size="12" /> Cancelar
                     </button>
@@ -1032,6 +1045,22 @@ const formatDateTime = (iso) =>
     </template>
 
     <!-- ══════════════════════════════════════════ -->
+    <!-- CONFIRMAR CANCELACIÓN                      -->
+    <!-- ══════════════════════════════════════════ -->
+    <ConfirmModal
+      :show="!!cancelTarget"
+      title="¿Cancelar cotización?"
+      :message="cancelTarget?.quotationStatus?.name === 'Pendiente'
+        ? `Vas a cancelar la cotización #${cancelTarget?.numero}. Se liberará el bloqueo temporal de los productos que tenía reservados mientras estaba pendiente.`
+        : `Vas a cancelar la cotización #${cancelTarget?.numero}, ya aprobada. Se liberará la reserva de sus productos.`"
+      confirm-label="Sí, cancelar"
+      cancel-label="Volver"
+      variant="danger"
+      @confirm="executeCancelQuotation"
+      @cancel="cancelTarget = null"
+    />
+
+    <!-- ══════════════════════════════════════════ -->
     <!-- MODAL ÉXITO                                -->
     <!-- ══════════════════════════════════════════ -->
     <div
@@ -1039,12 +1068,16 @@ const formatDateTime = (iso) =>
       class="fixed inset-0 bg-[rgba(15,26,46,0.4)] backdrop-blur-sm flex items-center justify-center z-50"
     >
       <div class="bg-white rounded-[var(--r-2xl)] shadow-[var(--shadow-modal)] max-w-md w-full p-6 space-y-4">
-        <h3 class="text-[16px] font-semibold text-[#16A34A] font-['Plus_Jakarta_Sans',sans-serif]">
-          Cotización confirmada con éxito
+        <h3
+          class="text-[16px] font-semibold font-['Plus_Jakarta_Sans',sans-serif]"
+          :class="successAction === 'cancel' ? 'text-[#B91C1C]' : 'text-[#16A34A]'"
+        >
+          {{ successAction === 'cancel' ? 'Cotización cancelada' : 'Cotización confirmada con éxito' }}
         </h3>
         <p class="text-[13px] text-text-2">
-          Los productos agregados en esta cotización no estarán disponibles
-          en las fechas establecidas.
+          {{ successAction === 'cancel'
+            ? 'Los productos de esta cotización quedaron liberados y disponibles para otras fechas.'
+            : 'Los productos agregados en esta cotización no estarán disponibles en las fechas establecidas.' }}
         </p>
         <div class="flex justify-end">
           <button

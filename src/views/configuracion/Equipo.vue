@@ -80,20 +80,32 @@
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { RefreshCw, AlertCircle, Plus, Minus, MapPin } from 'lucide-vue-next'
 import { getCollaboratorCandidates } from '@/services/users.service.js'
+import { getSedes } from '@/services/sedes.service'
 
 /* ══════════════════════════════════════════════════════════════
    Datos
    ══════════════════════════════════════════════════════════════ */
-const loading = ref(true)
-const error   = ref(null)
-const users   = ref([])
+const loading  = ref(true)
+const error    = ref(null)
+const users    = ref([])
+const allSedes = ref([])
 
 const load = async () => {
   loading.value = true
   error.value   = null
   try {
-    const data = await getCollaboratorCandidates()
-    users.value = data || []
+    // getSedes() va en su propio catch: es una vista aparte
+    // (@ViewAccess('UnidadesEjecucion')) con roles configurables desde
+    // /configuracion — si un rol no tiene acceso a esa vista, el organigrama
+    // no debe romperse, solo queda sin las ramas vacías (ver buildTree()).
+    const [collabData, sedesRes] = await Promise.all([
+      getCollaboratorCandidates(),
+      getSedes().catch(() => null),
+    ])
+    users.value = collabData || []
+    // Solo sedes activas: una sede desactivada no debe aparecer como rama
+    // vacía en el organigrama, igual que un usuario inactivo no aparece.
+    allSedes.value = (sedesRes?.data ?? []).filter(s => s.activa)
     await nextTick()
     buildAndAnimate()
   } catch (e) {
@@ -195,6 +207,13 @@ function buildTree() {
     const key = u.sedeId ?? 'none'
     if (!bySede.has(key)) bySede.set(key, { id: u.sedeId ?? null, nombre: u.sede?.nombre || 'Sin sede asignada', users: [] })
     bySede.get(key).users.push(u)
+  }
+  // Sedes activas sin ningún colaborador activo asignado todavía (recién
+  // creadas, o cuyo único usuario quedó inactivo) — sin esto, la rama de esa
+  // sede no se dibujaba nunca porque el árbol se armaba solo a partir de los
+  // usuarios devueltos, no de la lista real de sedes.
+  for (const sede of allSedes.value) {
+    if (!bySede.has(sede.id)) bySede.set(sede.id, { id: sede.id, nombre: sede.nombre, users: [] })
   }
   const branches = [...bySede.values()].sort((a, b) => {
     if (a.nombre === 'Sin sede asignada') return 1
