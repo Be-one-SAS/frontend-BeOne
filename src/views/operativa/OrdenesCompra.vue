@@ -7,9 +7,18 @@
         <h1 class="oc-title">Órdenes de Compra</h1>
         <p class="oc-sub">{{ totalOCs }} OC{{ totalOCs !== 1 ? 's' : '' }} en total</p>
       </div>
-      <button class="oc-refresh" @click="load" :disabled="loading">
-        <RefreshCw :size="15" :class="{ spin: loading }" />
-      </button>
+      <div style="display:flex; align-items:center; gap:8px">
+        <button
+          v-if="canDo('OrdenCompraCrear', OC_ROLES)"
+          class="oc-cash-btn"
+          @click="openCashModal"
+        >
+          <Banknote :size="15" /> Nueva OC en efectivo
+        </button>
+        <button class="oc-refresh" @click="load" :disabled="loading">
+          <RefreshCw :size="15" :class="{ spin: loading }" />
+        </button>
+      </div>
     </div>
 
     <!-- ── Filtros ─────────────────────────────────────── -->
@@ -89,15 +98,13 @@
               </div>
               <div class="oc-card-right">
                 <!-- Estado dropdown -->
-                <div class="oc-estado-ctrl" @click.stop>
-                  <select
-                    class="oc-estado-select"
-                    :value="oc.estado"
+                <div class="oc-estado-ctrl oc-estado-ctrl-select" @click.stop>
+                  <SelectLabel
+                    :model-value="oc.estado"
+                    :options="ESTADOS"
                     :disabled="oc._saving"
-                    @change="changeEstado(oc, $event.target.value)"
-                  >
-                    <option v-for="e in ESTADOS" :key="e" :value="e">{{ e }}</option>
-                  </select>
+                    @update:model-value="v => changeEstado(oc, v)"
+                  />
                   <div v-if="oc._saving" class="oc-saving-dot" />
                 </div>
               </div>
@@ -108,13 +115,17 @@
                 <Building2 :size="13" />
                 <span>{{ oc.proveedorNombre }}</span>
               </div>
-              <div v-if="oc.thirdPartyItem" class="oc-card-producto">
+              <div v-if="oc.tipo === 'EFECTIVO'" class="oc-card-producto">
+                <Banknote :size="13" />
+                <span>Efectivo · {{ oc.descripcion }}</span>
+              </div>
+              <div v-else-if="oc.thirdPartyItem" class="oc-card-producto">
                 <Package :size="13" />
                 <span>{{ oc.thirdPartyItem.catalogProduct?.nombre || oc.thirdPartyItem.catalogProduct?.dispositivo || oc.descripcion }}</span>
               </div>
               <div class="oc-card-detail">
-                <span>{{ oc.cantidad }} {{ oc.thirdPartyItem ? 'uds' : '' }}</span>
-                <span class="oc-card-sep">·</span>
+                <span v-if="oc.tipo !== 'EFECTIVO'">{{ oc.cantidad }} {{ oc.thirdPartyItem ? 'uds' : '' }}</span>
+                <span v-if="oc.tipo !== 'EFECTIVO'" class="oc-card-sep">·</span>
                 <span class="oc-card-total">{{ fmtMoney(oc.precioTotal) }}</span>
                 <span v-if="oc.condicionesPago" class="oc-card-sep">·</span>
                 <span v-if="oc.condicionesPago" class="oc-card-pago">{{ oc.condicionesPago }}</span>
@@ -189,11 +200,11 @@
             </div>
             <!-- Detalle -->
             <div class="oc-detail-section">
-              <h4 class="oc-detail-section-title">Detalle del pedido</h4>
-              <div class="oc-detail-row"><span class="oc-detail-label">Descripción</span><span>{{ detailOC.descripcion }}</span></div>
-              <div class="oc-detail-row"><span class="oc-detail-label">Cantidad</span><span>{{ detailOC.cantidad }}</span></div>
-              <div class="oc-detail-row"><span class="oc-detail-label">Precio unitario</span><span>{{ fmtMoney(detailOC.precioUnitario) }}</span></div>
-              <div class="oc-detail-row"><span class="oc-detail-label">Precio total</span><span class="oc-detail-total">{{ fmtMoney(detailOC.precioTotal) }}</span></div>
+              <h4 class="oc-detail-section-title">{{ detailOC.tipo === 'EFECTIVO' ? 'Detalle del gasto' : 'Detalle del pedido' }}</h4>
+              <div class="oc-detail-row"><span class="oc-detail-label">{{ detailOC.tipo === 'EFECTIVO' ? 'Concepto' : 'Descripción' }}</span><span>{{ detailOC.descripcion }}</span></div>
+              <div v-if="detailOC.tipo !== 'EFECTIVO'" class="oc-detail-row"><span class="oc-detail-label">Cantidad</span><span>{{ detailOC.cantidad }}</span></div>
+              <div v-if="detailOC.tipo !== 'EFECTIVO'" class="oc-detail-row"><span class="oc-detail-label">Precio unitario</span><span>{{ fmtMoney(detailOC.precioUnitario) }}</span></div>
+              <div class="oc-detail-row"><span class="oc-detail-label">{{ detailOC.tipo === 'EFECTIVO' ? 'Monto' : 'Precio total' }}</span><span class="oc-detail-total">{{ fmtMoney(detailOC.precioTotal) }}</span></div>
               <div v-if="detailOC.condicionesPago" class="oc-detail-row"><span class="oc-detail-label">Pago</span><span>{{ detailOC.condicionesPago }}</span></div>
             </div>
             <!-- Entrega -->
@@ -208,6 +219,55 @@
         </div>
       </div>
     </Transition>
+
+    <!-- ── Nueva OC en efectivo ──────────────────────────── -->
+    <Transition name="fade">
+      <div v-if="cashModalOpen" class="oc-detail-backdrop" @click.self="closeCashModal">
+        <div class="oc-detail-modal">
+          <div class="oc-detail-head">
+            <h3 class="oc-detail-num" style="margin:0">Nueva OC en efectivo</h3>
+            <button class="oc-detail-close" @click="closeCashModal"><X :size="20" /></button>
+          </div>
+          <div class="oc-detail-body">
+            <div v-if="cashError" class="oc-error" style="margin:0">
+              <AlertCircle :size="16" /> {{ cashError }}
+            </div>
+
+            <div class="oc-detail-section">
+              <h4 class="oc-detail-section-title">Evento</h4>
+              <SelectLabel
+                v-model="cashForm.quotationId"
+                :options="quotEventoOptions"
+                placeholder="Selecciona una cotización aprobada…"
+              />
+              <p v-if="!quotDisponibles.length" style="font-size:12px;color:#94A3B8;margin:2px 0 0">
+                No hay cotizaciones aprobadas disponibles.
+              </p>
+            </div>
+
+            <div class="oc-detail-section">
+              <h4 class="oc-detail-section-title">Proveedor / Beneficiario</h4>
+              <input v-model="cashForm.proveedorNombre" class="oc-input" style="width:100%" placeholder="Nombre (requerido)" />
+              <input v-model="cashForm.proveedorContacto" class="oc-input" style="width:100%" placeholder="Contacto (opcional)" />
+              <input v-model="cashForm.proveedorTelefono" class="oc-input" style="width:100%" placeholder="Teléfono (opcional)" />
+              <input v-model="cashForm.proveedorEmail" class="oc-input" style="width:100%" placeholder="Email (opcional)" />
+            </div>
+
+            <div class="oc-detail-section">
+              <h4 class="oc-detail-section-title">Gasto</h4>
+              <textarea v-model="cashForm.descripcion" class="oc-input" style="width:100%; height:64px; padding:8px 10px; resize:vertical" placeholder="Concepto del gasto (ej: viáticos, combustible, imprevistos)"></textarea>
+              <input v-model.number="cashForm.precioUnitario" type="number" min="0" step="0.01" class="oc-input" style="width:100%" placeholder="Monto en efectivo (COP)" />
+              <input v-model="cashForm.condicionesPago" class="oc-input" style="width:100%" placeholder="Condiciones de pago (opcional)" />
+              <textarea v-model="cashForm.notas" class="oc-input" style="width:100%; height:52px; padding:8px 10px; resize:vertical" placeholder="Notas (opcional)"></textarea>
+            </div>
+
+            <button class="oc-detail-confirm-btn" style="width:100%; justify-content:center; padding:10px" :disabled="cashSaving" @click="submitCashOC">
+              {{ cashSaving ? 'Creando…' : 'Crear orden de compra' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -217,14 +277,16 @@ import { formatCOP } from '@/utils/currency.js'
 import {
   RefreshCw, Search, ChevronDown, Check, AlertCircle,
   ShoppingCart, Calendar, Clock, User, Building2, Package, X, CheckCircle2,
+  Plus, Banknote,
 } from 'lucide-vue-next'
-import { getOrdenesCompra, updateOrdenCompraEstado } from '@/services/ordenes-compra.service.js'
+import { getOrdenesCompra, updateOrdenCompraEstado, createOrdenCompra, getQuotationsDisponiblesOC } from '@/services/ordenes-compra.service.js'
 import { useActionAccess } from '@/composables/useActionAccess'
+import SelectLabel from '@/components/input/SelectLabel.vue'
 
 const { canDo } = useActionAccess()
 const OC_ROLES = ['ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'LOGISTICO', 'LIDER', 'DIRECCION', 'OPERATIVO']
 
-const ESTADOS = ['EMITIDA', 'APROBADA', 'RECIBIDA', 'CANCELADA']
+const ESTADOS = ['EMITIDA', 'APROBADA', 'RECIBIDA', 'EJECUTADA', 'CANCELADA']
 
 // ── Helpers ───────────────────────────────────────────────
 function fmtDate(d) {
@@ -345,6 +407,76 @@ async function confirmarRecepcionModal() {
 
 // ── Detail ────────────────────────────────────────────────
 function openDetail(oc) { detailOC.value = oc }
+
+// ── Nueva OC en efectivo (sin producto — monto ligado a un evento) ────────
+const cashModalOpen  = ref(false)
+const cashSaving     = ref(false)
+const cashError      = ref('')
+const quotDisponibles = ref([])
+const quotEventoOptions = computed(() => quotDisponibles.value.map(q => ({
+  value: q.id,
+  label: `#${q.numero} — ${q.empresa || q.cliente?.name || q.description || 'Sin nombre'}`,
+})))
+const emptyCashForm = () => ({
+  quotationId: '',
+  proveedorNombre: '',
+  proveedorContacto: '',
+  proveedorTelefono: '',
+  proveedorEmail: '',
+  descripcion: '',
+  precioUnitario: null,
+  condicionesPago: '',
+  notas: '',
+})
+const cashForm = ref(emptyCashForm())
+
+async function openCashModal() {
+  cashError.value = ''
+  cashForm.value = emptyCashForm()
+  cashModalOpen.value = true
+  try {
+    const res = await getQuotationsDisponiblesOC()
+    quotDisponibles.value = res.data ?? []
+  } catch {
+    quotDisponibles.value = []
+  }
+}
+
+function closeCashModal() {
+  if (cashSaving.value) return
+  cashModalOpen.value = false
+}
+
+async function submitCashOC() {
+  const f = cashForm.value
+  if (!f.quotationId || !f.proveedorNombre.trim() || !f.descripcion.trim() || !f.precioUnitario || f.precioUnitario <= 0) {
+    cashError.value = 'Completa evento, proveedor/beneficiario, concepto y monto.'
+    return
+  }
+  cashSaving.value = true
+  cashError.value = ''
+  try {
+    await createOrdenCompra({
+      quotationId: Number(f.quotationId),
+      tipo: 'EFECTIVO',
+      cantidad: 1,
+      proveedorNombre: f.proveedorNombre.trim(),
+      proveedorContacto: f.proveedorContacto.trim() || undefined,
+      proveedorTelefono: f.proveedorTelefono.trim() || undefined,
+      proveedorEmail: f.proveedorEmail.trim() || undefined,
+      descripcion: f.descripcion.trim(),
+      precioUnitario: Number(f.precioUnitario),
+      condicionesPago: f.condicionesPago.trim() || undefined,
+      notas: f.notas.trim() || undefined,
+    })
+    cashModalOpen.value = false
+    await load()
+  } catch (e) {
+    cashError.value = e?.response?.data?.message || 'No se pudo crear la orden de compra en efectivo'
+  } finally {
+    cashSaving.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -370,6 +502,15 @@ function openDetail(oc) { detailOC.value = oc }
   border: 1.5px solid #E2E8F0; border-radius: 8px; background: #fff; color: #64748B; cursor: pointer;
 }
 .oc-refresh:hover { background: #F8FAFC; }
+.oc-cash-btn {
+  display: flex; align-items: center; gap: 6px;
+  height: 34px; padding: 0 14px;
+  border: 1.5px solid #16A34A; border-radius: 8px;
+  background: #F0FDF4; color: #166534;
+  font-size: 13px; font-weight: 700; font-family: 'Inter', sans-serif;
+  cursor: pointer; transition: background .15s;
+}
+.oc-cash-btn:hover { background: #DCFCE7; }
 
 /* Filters */
 .oc-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
@@ -417,6 +558,7 @@ function openDetail(oc) { detailOC.value = oc }
 .oc-badge-emitida  { background: #E0F9FA; color: #27C8D8; }
 .oc-badge-aprobada { background: #F0FDF4; color: #166534; }
 .oc-badge-recibida { background: #1E293B; color: #F1F5F9; }
+.oc-badge-ejecutada{ background: #EDE9FE; color: #6D28D9; }
 .oc-badge-cancelada{ background: #FEF2F2; color: #991B1B; }
 
 /* Loading / Error / Empty */
@@ -429,11 +571,14 @@ function openDetail(oc) { detailOC.value = oc }
 
 /* Groups */
 .oc-groups { display: flex; flex-direction: column; gap: 16px; }
-.oc-group { background: #fff; border-radius: 16px; box-shadow: 0 1px 4px rgba(39,200,216,.06), 0 2px 8px rgba(39,200,216,.06); overflow: hidden; }
+/* Sin overflow:hidden — clipaba el menú desplegable de SelectLabel (estado
+   por OC), que se abre con position:absolute y escapa del borde del grupo. */
+.oc-group { background: #fff; border-radius: 16px; box-shadow: 0 1px 4px rgba(39,200,216,.06), 0 2px 8px rgba(39,200,216,.06); }
 
 .oc-group-head {
   display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
   padding: 14px 18px; background: #F8FAFC; border-bottom: 1.5px solid #E2E8F0;
+  border-radius: 16px 16px 0 0;
 }
 .oc-group-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .oc-group-num { font-size: 11px; font-weight: 700; color: #27C8D8; }
@@ -461,12 +606,7 @@ function openDetail(oc) { detailOC.value = oc }
 .oc-card-right { display: flex; align-items: center; gap: 8px; }
 
 .oc-estado-ctrl { display: flex; align-items: center; gap: 6px; }
-.oc-estado-select {
-  padding: 4px 8px; border: 1.5px solid #E2E8F0; border-radius: 7px;
-  font-size: 12px; font-family: 'Inter', sans-serif; color: #374151;
-  background: #F8FAFC; outline: none; cursor: pointer;
-}
-.oc-estado-select:focus { border-color: #27C8D8; }
+.oc-estado-ctrl-select { width: 168px; }
 .oc-saving-dot { width: 7px; height: 7px; border-radius: 50%; background: #27C8D8; animation: blink 0.8s alternate infinite; }
 @keyframes blink { from { opacity: 1 } to { opacity: 0.2 } }
 
