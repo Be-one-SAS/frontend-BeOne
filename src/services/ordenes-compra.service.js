@@ -15,6 +15,12 @@ export const getOrdenCompra = async (id) => {
   return res.data
 }
 
+// Selector de eventos (cotizaciones Aprobadas) para el formulario de nueva OC.
+export const getQuotationsDisponiblesOC = async () => {
+  const res = await api.get('/ordenes-compra/cotizaciones-disponibles')
+  return res.data
+}
+
 export const updateOrdenCompraEstado = async (id, estado) => {
   const res = await api.patch(`/ordenes-compra/${id}/estado`, { estado })
   return res.data

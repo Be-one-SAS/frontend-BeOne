@@ -366,7 +366,7 @@
               <button
                 v-for="action in estadoActions"
                 :key="action.next"
-                v-show="action.from.includes(selectedOC.estado) && canDo('OrdenCompraCambiarEstado', OC_ROLES)"
+                v-show="action.from.includes(selectedOC.estado) && (!action.tipoOnly || selectedOC.tipo === action.tipoOnly) && canDo('OrdenCompraCambiarEstado', OC_ROLES)"
                 class="oc-estado-action-btn"
                 :style="{ background: action.bg, color: action.color, borderColor: action.color }"
                 @click="changeEstado(action.next)"
@@ -568,20 +568,11 @@
               <h3 class="oc-mo-sec-title"><FileText :size="13" /> Cotización aprobada <span class="oc-required">*</span></h3>
               <div class="oc-mo-field">
                 <label class="oc-mo-label">Selecciona la cotización</label>
-                <select
-                  v-model.number="modal.oc.quotationId"
-                  class="oc-mo-input oc-mo-select"
-                  :class="{ 'oc-input-error': formErrors.quotationId }"
-                >
-                  <option :value="null" disabled>— Selecciona una cotización aprobada —</option>
-                  <option
-                    v-for="cot in cotizacionesAprobadas"
-                    :key="cot.id"
-                    :value="cot.id"
-                  >
-                    # {{ cot.numero }} · {{ cot.description || cot.empresa }} ({{ cot.cliente?.name || '—' }})
-                  </option>
-                </select>
+                <SelectLabel
+                  v-model="modal.oc.quotationId"
+                  :options="cotizacionesAprobadasOptions"
+                  placeholder="— Selecciona una cotización aprobada —"
+                />
                 <span v-if="formErrors.quotationId" class="oc-field-error">La cotización es requerida</span>
               </div>
             </div>
@@ -733,15 +724,17 @@ import {
 import { getOrdenesCompra, createOrdenCompra, updateEstadoOC } from '@/services/admin-ordenes-compra.service.js'
 import { getAdminCotizaciones } from '@/services/administracion.service.js'
 import { useActionAccess } from '@/composables/useActionAccess'
+import SelectLabel from '@/components/input/SelectLabel.vue'
 
 const { canDo } = useActionAccess()
 const OC_ROLES = ['ADMINISTRADOR', 'SUPERVISOR', 'COORDINADOR', 'EJECUTIVO', 'EJECUTIVO_CUENTA', 'LOGISTICO', 'LIDER', 'DIRECCION', 'OPERATIVO']
 
-// ── ESTADOS (backend enum: EMITIDA | APROBADA | RECIBIDA | CANCELADA) ────────
+// ── ESTADOS (backend enum: EMITIDA | APROBADA | RECIBIDA | EJECUTADA | CANCELADA) ────────
 const ESTADOS_OC = [
   { value: 'EMITIDA',   label: 'Emitida',   bg: '#FEFCE8', color: '#854D0E' },
   { value: 'APROBADA',  label: 'Aprobada',  bg: '#F0FDF4', color: '#166534' },
   { value: 'RECIBIDA',  label: 'Recibida',  bg: '#E0F9FA', color: '#27C8D8' },
+  { value: 'EJECUTADA', label: 'Ejecutada', bg: '#EDE9FE', color: '#6D28D9' },
   { value: 'CANCELADA', label: 'Cancelada', bg: '#FEF2F2', color: '#991B1B' },
 ]
 
@@ -753,10 +746,14 @@ function estadoLabel(val) {
   return ESTADOS_OC.find(x => x.value === val)?.label || val || 'Emitida'
 }
 
-// Flujo de estado: EMITIDA → APROBADA → RECIBIDA | CANCELADA
+// Flujo de estado: EMITIDA → APROBADA → RECIBIDA → EJECUTADA | CANCELADA
+// Las OC en efectivo (tipo EFECTIVO) no tienen un "recibido" físico, así que
+// además pueden pasar directo de APROBADA a EJECUTADA (ver tipoOnly abajo).
 const estadoActions = [
-  { next: 'APROBADA',  label: 'Aprobar OC',     from: ['EMITIDA'],             bg: '#F0FDF4', color: '#166534', icon: BadgeCheck },
+  { next: 'APROBADA',  label: 'Aprobar OC',      from: ['EMITIDA'],             bg: '#F0FDF4', color: '#166534', icon: BadgeCheck },
   { next: 'RECIBIDA',  label: 'Marcar recibida', from: ['APROBADA'],            bg: '#E0F9FA', color: '#27C8D8', icon: CheckCircle2 },
+  { next: 'EJECUTADA', label: 'Marcar ejecutada', from: ['RECIBIDA'],           bg: '#EDE9FE', color: '#6D28D9', icon: BadgeCheck },
+  { next: 'EJECUTADA', label: 'Marcar ejecutada', from: ['APROBADA'],           bg: '#EDE9FE', color: '#6D28D9', icon: BadgeCheck, tipoOnly: 'EFECTIVO' },
   { next: 'CANCELADA', label: 'Cancelar',        from: ['EMITIDA', 'APROBADA'], bg: '#FEF2F2', color: '#991B1B', icon: XCircle },
 ]
 
@@ -787,6 +784,10 @@ const cotizacionesAprobadas = ref([])
 const loadingCots           = ref(false)
 const selectedCot           = ref(null)
 const cotFilter             = ref('pendiente')
+const cotizacionesAprobadasOptions = computed(() => cotizacionesAprobadas.value.map(cot => ({
+  value: cot.id,
+  label: `#${cot.numero} · ${cot.description || cot.empresa} (${cot.cliente?.name || '—'})`,
+})))
 
 const filters  = ref({ search: '' })
 const formErrors = ref({})
