@@ -452,7 +452,7 @@
             </div>
             <QuotationProductsCardList
               :items="items"
-              :valorHoraAdicional="valorHoraAdicional"
+              :porcentajeHoraAdicional="porcentajeHoraAdicional"
               @edit="abrirModalEdicion"
               linkFoto="https://placehold.co/600x400/f3f4f6/1f2937?text=Imagen+del+Producto"
               @delete="eliminarItem"
@@ -1231,7 +1231,7 @@ const {
   modalCotizacionExitosa,
   saveQuotation,
   quotationId, // ✅ ADDED
-  valorHoraAdicional
+  porcentajeHoraAdicional
 } = useQuotation()
 
 const {
@@ -1425,7 +1425,7 @@ const calcularTotalFila = (item) => {
   const sub = calcularSubtotalItem(item)
   const dsc = Number(item.descuentoPct) || 0
   const aum = Number(item.aumentoPct) || 0
-  const horasExtra = (item.horasAdicionales || 0) * valorHoraAdicional.value
+  const horasExtra = sub * (item.horasAdicionales || 0) * porcentajeHoraAdicional.value / 100
   return sub - (sub * dsc / 100) + (sub * aum / 100) + horasExtra
 }
 
@@ -1444,7 +1444,7 @@ const calcularTotalFilaTercero = (item) => {
   else sub = (item.costoUnitario || 0) * (item.cantidad || 1) * (item.cantidadJornada || 1)
   const dsc = Number(item.descuentoPct) || 0
   const aum = Number(item.aumentoPct) || 0
-  const horasExtra = (item.horasAdicionales || 0) * valorHoraAdicional.value
+  const horasExtra = sub * (item.horasAdicionales || 0) * porcentajeHoraAdicional.value / 100
   return sub - (sub * dsc / 100) + (sub * aum / 100) + horasExtra
 }
 

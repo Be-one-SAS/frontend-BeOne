@@ -170,7 +170,7 @@ const props = defineProps({
     required: false,
     default: ''
   },
-  valorHoraAdicional: {
+  porcentajeHoraAdicional: {
     type: Number,
     required: false,
     default: 0
@@ -192,7 +192,7 @@ const totalesFilas = computed(() =>
     const sub = (item.unitPrice || 0) * (item.cantidadJornada || 0) * (item.cantidadProducto || 0)
     const dsc = Number(item.descuentoPct) || 0
     const aum = Number(item.aumentoPct) || 0
-    const horasExtra = (item.horasAdicionales || 0) * props.valorHoraAdicional
+    const horasExtra = sub * (item.horasAdicionales || 0) * props.porcentajeHoraAdicional / 100
     return sub - (sub * dsc / 100) + (sub * aum / 100) + horasExtra
   })
 )

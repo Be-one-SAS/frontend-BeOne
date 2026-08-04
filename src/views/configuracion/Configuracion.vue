@@ -84,9 +84,9 @@
 
       <div class="cfg-field-row">
         <div>
-          <p class="cfg-field-title">Valor hora adicional</p>
+          <p class="cfg-field-title">% de aumento por hora adicional</p>
           <p class="cfg-field-desc">
-            Tarifa por hora que se cobra cuando en una cotización se agregan horas adicionales a un producto (propio o de tercero).
+            Cada hora adicional que se agregue a un producto (propio o de tercero) aplica este porcentaje como aumento sobre el subtotal de la fila. Ej.: 3 horas × 13% = 39% de aumento.
           </p>
         </div>
         <div class="cfg-field-control">
@@ -795,7 +795,7 @@ async function fetchValorHoraAdicional() {
   valorHoraError.value   = ''
   try {
     const { data } = await api.get('/app-config/horas-adicionales')
-    valorHoraSaved.value  = data?.valorHora ?? 0
+    valorHoraSaved.value  = data?.porcentajeHora ?? 0
     valorHoraEdited.value = valorHoraSaved.value
   } catch (e) {
     valorHoraError.value = e?.response?.data?.message || 'Error al cargar la configuración'
@@ -807,7 +807,7 @@ async function fetchValorHoraAdicional() {
 async function saveValorHoraAdicional() {
   const nuevo = valorHoraEdited.value
   if (typeof nuevo !== 'number' || nuevo < 0) {
-    valorHoraError.value = 'El valor por hora debe ser un número mayor o igual a 0'
+    valorHoraError.value = 'El porcentaje por hora debe ser un número mayor o igual a 0'
     return
   }
 
@@ -815,7 +815,7 @@ async function saveValorHoraAdicional() {
   valorHoraError.value     = ''
   valorHoraSavedFlag.value = false
   try {
-    await api.patch('/app-config/horas-adicionales', { valorHora: nuevo })
+    await api.patch('/app-config/horas-adicionales', { porcentajeHora: nuevo })
     valorHoraSaved.value     = nuevo
     valorHoraSavedFlag.value = true
     setTimeout(() => { valorHoraSavedFlag.value = false }, 2500)
