@@ -18,6 +18,7 @@
               <th class="th-product">Producto</th>
               <th class="th-center">Q. Jornada</th>
               <th class="th-center">Q. Producto</th>
+              <th class="th-center">Horas adic.</th>
               <th class="th-center">Precio unit.</th>
               <th class="th-center">Desc. (%)</th>
               <th class="th-center">Aumento (%)</th>
@@ -75,6 +76,17 @@
                 />
               </td>
 
+              <!-- Horas adicionales -->
+              <td class="td-center" @click.stop>
+                <input
+                  v-model.number="item.horasAdicionales"
+                  type="number"
+                  min="0"
+                  class="prd-hours-input"
+                  @click.stop
+                />
+              </td>
+
               <!-- Precio unitario -->
               <td class="td-center prd-price">
                 {{ format(item.unitPrice) }}
@@ -125,7 +137,7 @@
           </tbody>
           <tfoot>
             <tr class="prd-subtotal-row">
-              <td colspan="8" class="td-subtotal-label">Subtotal equipos propios</td>
+              <td colspan="9" class="td-subtotal-label">Subtotal equipos propios</td>
               <td class="td-subtotal-val">{{ format(subtotalItems) }}</td>
               <td></td>
             </tr>
@@ -157,6 +169,11 @@ const props = defineProps({
     type: String,
     required: false,
     default: ''
+  },
+  valorHoraAdicional: {
+    type: Number,
+    required: false,
+    default: 0
   }
 })
 
@@ -175,7 +192,8 @@ const totalesFilas = computed(() =>
     const sub = (item.unitPrice || 0) * (item.cantidadJornada || 0) * (item.cantidadProducto || 0)
     const dsc = Number(item.descuentoPct) || 0
     const aum = Number(item.aumentoPct) || 0
-    return sub - (sub * dsc / 100) + (sub * aum / 100)
+    const horasExtra = (item.horasAdicionales || 0) * props.valorHoraAdicional
+    return sub - (sub * dsc / 100) + (sub * aum / 100) + horasExtra
   })
 )
 
@@ -408,6 +426,32 @@ const format = formatCOP
 }
 .prd-qty-input::-webkit-outer-spin-button,
 .prd-qty-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Input de horas adicionales — mismo estilo que Q. Jornada / Q. Producto */
+.prd-hours-input {
+  width: 52px;
+  padding: 4px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  color: #475569;
+  background: #F1F5F9;
+  border: 1px solid #E5EAF0;
+  border-radius: 99px;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.prd-hours-input:focus {
+  border-color: #27C8D8;
+  background: #F8FAFC;
+  box-shadow: 0 0 0 2px rgba(39,200,216, 0.12);
+}
+.prd-hours-input::-webkit-outer-spin-button,
+.prd-hours-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }

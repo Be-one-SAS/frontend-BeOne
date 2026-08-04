@@ -90,9 +90,7 @@
     <div class="note-box">
       <div class="note-box-title">Nota 1</div>
       <ol class="note-box-list">
-        <li>Se envía cotización con el fin de ser aprobada por el cliente.</li>
-        <li>Se confirma reserva con el 50% del valor del alquiler.</li>
-        <li>Se envía factura de venta y se cancela el 50% restante antes del evento.</li>
+        <li v-for="(item, i) in nota1Items" :key="i">{{ item }}</li>
       </ol>
     </div>
 
@@ -107,6 +105,7 @@
             <th class="col-img">Producto</th>
             <th class="col-q">Q Jornada</th>
             <th class="col-cant">Cantidad</th>
+            <th class="col-horas">Horas adic.</th>
             <th class="col-desc">Descripción</th>
             <th class="col-precio">Precio Unitario</th>
             <th class="col-subtotal">Subtotal</th>
@@ -129,6 +128,7 @@
               </td>
               <td class="cell-c">{{ item.cantidadJornada || item.quantity || 1 }}</td>
               <td class="cell-c">{{ item.cantidadProducto || 1 }}</td>
+              <td class="cell-c">{{ item.horasAdicionales || 0 }}</td>
               <td class="cell-desc">{{ item.product?.nombre || item.product?.dispositivo || item.producto?.nombre || item.nombre || item.dispositivo || item.descripcion || 'Producto' }}</td>
               <td class="cell-num">{{ formatCurrency(item.unitPrice || 0) }}</td>
               <td class="cell-num">{{ formatCurrency((item.unitPrice || 0) * getQuantity(item)) }}</td>
@@ -150,6 +150,7 @@
               </td>
               <td class="cell-c">{{ item.cantidadJornada || 1 }}</td>
               <td class="cell-c">{{ item.cantidad || 1 }}</td>
+              <td class="cell-c">{{ item.horasAdicionales || 0 }}</td>
               <td class="cell-desc">
                 {{ item.catalogProduct?.nombre || item.catalogProduct?.dispositivo || item.catalogItem?.nombre || item.nombre || item.descripcion || 'Producto de tercero' }}
               </td>
@@ -160,7 +161,7 @@
             </tr>
           </template>
           <tr class="row-total-label">
-            <td :colspan="tieneDescuento ? 8 : 7" class="cell-total-label">Valor Total</td>
+            <td :colspan="tieneDescuento ? 9 : 8" class="cell-total-label">Valor Total</td>
           </tr>
         </tbody>
       </table>
@@ -260,6 +261,27 @@ onMounted(async () => {
   }
 })
 
+// Tarifa global de horas adicionales — editable desde /configuracion.
+const valorHoraAdicional = ref(0)
+onMounted(async () => {
+  try {
+    const { data } = await api.get('/app-config/horas-adicionales')
+    valorHoraAdicional.value = data?.valorHora ?? 0
+  } catch {
+    // Sin config guardada aún (o falla de red) — se queda en 0.
+  }
+})
+
+// Editable desde /configuracion → sección "Nota 1"; si aún no hay config
+// guardada, cae al texto fijo original.
+const nota1Items = computed(() => pdfHeader.value.notas?.nota1?.length
+  ? pdfHeader.value.notas.nota1
+  : [
+      'Se envía cotización con el fin de ser aprobada por el cliente.',
+      'Se confirma reserva con el 50% del valor del alquiler.',
+      'Se envía factura de venta y se cancela el 50% restante antes del evento.',
+    ])
+
 // Genera una línea ondulada suave tipo "M0,y Q.. .. Q.. ..." — varias capas
 // con distinto baseline/amplitud/opacidad dan el efecto de líneas fluidas
 // superpuestas del diseño de referencia, sin depender de un asset externo.
@@ -348,7 +370,8 @@ const calculateItemTotal = (item) => {
   const subtotal = unitPrice * quantity
   const descuento = subtotal * (descuentoPct / 100)
   const aumento = subtotal * (aumentoPct / 100)
-  return subtotal - descuento + aumento
+  const horasExtra = (item.horasAdicionales || 0) * valorHoraAdicional.value
+  return subtotal - descuento + aumento + horasExtra
 }
 
 const subtotal = computed(() => {
@@ -357,12 +380,12 @@ const subtotal = computed(() => {
 
   const itemsTotal = items.reduce((sum, item) => {
     const unitPrice = item.unitPrice || 0
-    return sum + (unitPrice * getQuantity(item))
+    return sum + (unitPrice * getQuantity(item)) + (item.horasAdicionales || 0) * valorHoraAdicional.value
   }, 0)
 
   const thirdPartyTotal = thirdParty.reduce((sum, item) => {
     const unitPrice = item.precioUnitario || item.costo || 0
-    return sum + (unitPrice * getQuantity(item))
+    return sum + (unitPrice * getQuantity(item)) + (item.horasAdicionales || 0) * valorHoraAdicional.value
   }, 0)
 
   return itemsTotal + thirdPartyTotal
@@ -681,7 +704,8 @@ const total = computed(() => subtotalAjustado.value + iva.value)
 .col-img { width: 12%; text-align: center; }
 .col-q { width: 7%; text-align: center; }
 .col-cant { width: 7%; text-align: center; }
-.col-desc { width: 25%; }
+.col-horas { width: 7%; text-align: center; }
+.col-desc { width: 20%; }
 .col-precio { width: 13%; text-align: right; }
 .col-subtotal { width: 13%; text-align: right; }
 .col-dcto { width: 7%; text-align: center; }
