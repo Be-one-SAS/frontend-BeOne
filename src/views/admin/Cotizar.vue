@@ -452,6 +452,7 @@
             </div>
             <QuotationProductsCardList
               :items="items"
+              :valorHoraAdicional="valorHoraAdicional"
               @edit="abrirModalEdicion"
               linkFoto="https://placehold.co/600x400/f3f4f6/1f2937?text=Imagen+del+Producto"
               @delete="eliminarItem"
@@ -490,6 +491,7 @@
                       <th class="th-product">Producto</th>
                       <th class="th-center">Q. Jornada</th>
                       <th class="th-center">Q. Producto</th>
+                      <th class="th-center">Horas adic.</th>
                       <th class="th-center">Precio unit.</th>
                       <th class="th-center">Desc. (%)</th>
                       <th class="th-center">Aumento (%)</th>
@@ -534,6 +536,16 @@
                           @click.stop
                         />
                       </td>
+                      <td class="td-center" @click.stop>
+                        <input
+                          v-model.number="it.horasAdicionales"
+                          type="number"
+                          min="0"
+                          placeholder="Ej: 0"
+                          class="prd-hours-input"
+                          @click.stop
+                        />
+                      </td>
                       <td class="td-center prd-price">
                         {{ formatCOP(it.costoUnitario ?? null) }}
                       </td>
@@ -570,7 +582,7 @@
                   </tbody>
                   <tfoot>
                     <tr class="prd-subtotal-row">
-                      <td colspan="8" class="td-subtotal-label">Subtotal productos terceros</td>
+                      <td colspan="9" class="td-subtotal-label">Subtotal productos terceros</td>
                       <td class="td-subtotal-val">{{ formatCOP(totalesFilasTerceros.reduce((s, v) => s + v, 0)) }}</td>
                       <td></td>
                     </tr>
@@ -1218,7 +1230,8 @@ const {
   loading,
   modalCotizacionExitosa,
   saveQuotation,
-  quotationId // ✅ ADDED
+  quotationId, // ✅ ADDED
+  valorHoraAdicional
 } = useQuotation()
 
 const {
@@ -1350,6 +1363,7 @@ const agregarItemTercero = (item) => {
       descuentoPct: existente.descuentoPct,
       aumentoPct: existente.aumentoPct,
       cantidadJornada: existente.cantidadJornada,
+      horasAdicionales: existente.horasAdicionales,
     }
     terceroEditIndex.value = null
     return
@@ -1357,9 +1371,10 @@ const agregarItemTercero = (item) => {
 
   itemsTerceros.value.push({
     ...item,
-    descuentoPct:    typeof item.descuentoPct === 'number' ? item.descuentoPct : 0,
-    aumentoPct:      typeof item.aumentoPct === 'number' ? item.aumentoPct : 0,
-    cantidadJornada: typeof item.cantidadJornada === 'number' ? item.cantidadJornada : 1,
+    descuentoPct:     typeof item.descuentoPct === 'number' ? item.descuentoPct : 0,
+    aumentoPct:       typeof item.aumentoPct === 'number' ? item.aumentoPct : 0,
+    cantidadJornada:  typeof item.cantidadJornada === 'number' ? item.cantidadJornada : 1,
+    horasAdicionales: typeof item.horasAdicionales === 'number' ? item.horasAdicionales : 0,
     // Ensure costoUnitario is preserved from the modal
     costoUnitario: item.costoUnitario,
   })
@@ -1410,7 +1425,8 @@ const calcularTotalFila = (item) => {
   const sub = calcularSubtotalItem(item)
   const dsc = Number(item.descuentoPct) || 0
   const aum = Number(item.aumentoPct) || 0
-  return sub - (sub * dsc / 100) + (sub * aum / 100)
+  const horasExtra = (item.horasAdicionales || 0) * valorHoraAdicional.value
+  return sub - (sub * dsc / 100) + (sub * aum / 100) + horasExtra
 }
 
 // Totales de filas propias como computed para reactividad garantizada
@@ -1428,7 +1444,8 @@ const calcularTotalFilaTercero = (item) => {
   else sub = (item.costoUnitario || 0) * (item.cantidad || 1) * (item.cantidadJornada || 1)
   const dsc = Number(item.descuentoPct) || 0
   const aum = Number(item.aumentoPct) || 0
-  return sub - (sub * dsc / 100) + (sub * aum / 100)
+  const horasExtra = (item.horasAdicionales || 0) * valorHoraAdicional.value
+  return sub - (sub * dsc / 100) + (sub * aum / 100) + horasExtra
 }
 
 // Totales de filas terceros como computed para reactividad garantizada
@@ -3092,7 +3109,7 @@ watch(modalCotizacionExitosa, (val) => {
   .field-sel, .qty-input, .picker-btn, .s-input { font-size: 11px; padding: 6px 10px; }
   .prd-table td, .prd-table th { padding: 8px 10px; font-size: 11px; }
   .prd-thumb { width: 40px; height: 40px; }
-  .prd-discount-input, .prd-increase-input, .prd-qty-input { width: 48px; padding: 3px 6px; font-size: 11px; }
+  .prd-discount-input, .prd-increase-input, .prd-qty-input, .prd-hours-input { width: 48px; padding: 3px 6px; font-size: 11px; }
   .fin-bar-item { padding: 10px 14px; }
   .fin-bar-val { font-size: 13px; }
   .fin-bar-val--total { font-size: 18px; }
@@ -3469,6 +3486,32 @@ watch(modalCotizacionExitosa, (val) => {
 }
 .prd-qty-input::-webkit-outer-spin-button,
 .prd-qty-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Input de horas adicionales — mismo estilo que Q. Jornada / Q. Producto */
+.prd-hours-input {
+  width: 52px;
+  padding: 4px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  color: #475569;
+  background: #F1F5F9;
+  border: 1px solid #E5EAF0;
+  border-radius: 99px;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.prd-hours-input:focus {
+  border-color: #27C8D8;
+  background: #F8FAFC;
+  box-shadow: 0 0 0 2px rgba(39,200,216, 0.12);
+}
+.prd-hours-input::-webkit-outer-spin-button,
+.prd-hours-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }

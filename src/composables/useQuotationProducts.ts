@@ -182,6 +182,7 @@ export function useQuotationProducts({
             unitPrice: productPrice.value,
             descuentoPct: 0,
             aumentoPct: 0,
+            horasAdicionales: 0,
             // Guardados para recalcular si cambia la lista de precio
             _productBoxes: selectedProduct.value.productBoxes || [],
             _valorCuadroCotizador: selectedProduct.value.valorCuadroCotizador ?? null,

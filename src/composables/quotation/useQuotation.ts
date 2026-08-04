@@ -1,4 +1,4 @@
-import { reactive, computed, ref } from 'vue'
+import { reactive, computed, ref, onMounted } from 'vue'
 
 import {
   createQuotation,
@@ -11,6 +11,7 @@ import {
 } from '../../services/quotation.service'
 
 import { useAuth } from '../../composables/useAuth' // ✅ CHANGED — para obtener createdById
+import api from '../../services/api'
 
 export function useQuotation() {
 
@@ -23,6 +24,17 @@ export function useQuotation() {
   const loading = ref(false)
   const quotationId = ref<number | null>(null)
   const modalCotizacionExitosa = ref(false)
+
+  // Tarifa global de horas adicionales — editable desde /configuracion.
+  const valorHoraAdicional = ref(0)
+  onMounted(async () => {
+    try {
+      const { data } = await api.get('/app-config/horas-adicionales')
+      valorHoraAdicional.value = data?.valorHora ?? 0
+    } catch {
+      // Sin config guardada aún (o falla de red) — se queda en 0.
+    }
+  })
 
   const cotizacion = reactive({
     numero: 2,
@@ -80,12 +92,13 @@ export function useQuotation() {
   const calcularSubtotalItem = (item: any) =>
     (item.unitPrice || 0) * (item.cantidadProducto || 0) * (item.cantidadJornada || 0)
 
-  // Calcular total de un item propio (con descuento y aumento)
+  // Calcular total de un item propio (con descuento, aumento y horas adicionales)
   const calcularTotalItem = (item: any) => {
     const subtotal = calcularSubtotalItem(item)
     const descuento = (item.descuentoPct || 0)
     const aumento   = (item.aumentoPct || 0)
-    return subtotal - (subtotal * descuento / 100) + (subtotal * aumento / 100)
+    const horasExtra = (item.horasAdicionales || 0) * valorHoraAdicional.value
+    return subtotal - (subtotal * descuento / 100) + (subtotal * aumento / 100) + horasExtra
   }
 
   // Calcular subtotal de un item tercero (sin descuento)
@@ -97,12 +110,13 @@ export function useQuotation() {
     return (item.costoUnitario || 0) * (item.cantidad || 1) * (item.cantidadJornada || 1)
   }
 
-  // Calcular total de un item tercero (con descuento y aumento)
+  // Calcular total de un item tercero (con descuento, aumento y horas adicionales)
   const calcularTotalTercero = (item: any) => {
     const subtotal = calcularSubtotalTercero(item)
     const descuento = (item.descuentoPct || 0)
     const aumento   = (item.aumentoPct || 0)
-    return subtotal - (subtotal * descuento / 100) + (subtotal * aumento / 100)
+    const horasExtra = (item.horasAdicionales || 0) * valorHoraAdicional.value
+    return subtotal - (subtotal * descuento / 100) + (subtotal * aumento / 100) + horasExtra
   }
 
   // Subtotal SIN descuentos (propios)
@@ -205,6 +219,7 @@ export function useQuotation() {
         cantidadProducto: it.cantidadProducto ?? 1,
         descuentoPct:     typeof it.descuentoPct === 'number' ? it.descuentoPct : 0,
         aumentoPct:       typeof it.aumentoPct === 'number' ? it.aumentoPct : 0,
+        horasAdicionales: typeof it.horasAdicionales === 'number' ? it.horasAdicionales : 0,
       }))
 
       cotizacion.members = data.members || [] // ✅ ADDED
@@ -217,19 +232,20 @@ export function useQuotation() {
 
   // Maps a third-party item to the fields expected by the backend DTO
   const mapThirdPartyItem = (it: any) => ({
-    catalogItemId:   it.catalogItemId ?? it.id,
-    cantidad:        it.cantidad        ?? 1,
-    cantidadJornada: it.cantidadJornada ?? 1,
-    costoUnitario:   it.costoUnitario   ?? 0,
-    margenVariable:  it.margenVariable  ?? 0,
-    descuentoPct:    it.descuentoPct    ?? 0,
-    aumentoPct:      it.aumentoPct      ?? 0,
-    comisionPct:     it.comisionPct     ?? 0,
-    dispositivo:     it.dispositivo     || undefined,
-    descripcion:     it.descripcion     || undefined,
-    categoria:       it.categoria       || undefined,
-    bodega:          it.bodega          || undefined,
-    nombre:          it.nombre          || undefined,
+    catalogItemId:    it.catalogItemId ?? it.id,
+    cantidad:         it.cantidad        ?? 1,
+    cantidadJornada:  it.cantidadJornada ?? 1,
+    costoUnitario:    it.costoUnitario   ?? 0,
+    margenVariable:   it.margenVariable  ?? 0,
+    descuentoPct:     it.descuentoPct    ?? 0,
+    aumentoPct:       it.aumentoPct      ?? 0,
+    horasAdicionales: it.horasAdicionales ?? 0,
+    comisionPct:      it.comisionPct     ?? 0,
+    dispositivo:      it.dispositivo     || undefined,
+    descripcion:      it.descripcion     || undefined,
+    categoria:        it.categoria       || undefined,
+    bodega:           it.bodega          || undefined,
+    nombre:           it.nombre          || undefined,
   })
 
   const saveQuotation = async () => {
@@ -311,6 +327,7 @@ export function useQuotation() {
             cantidadProducto: it.cantidadProducto ?? 1,
             descuentoPct:     it.descuentoPct     ?? 0,
             aumentoPct:       it.aumentoPct        ?? 0,
+            horasAdicionales: it.horasAdicionales  ?? 0,
           }))
         if (ownItems.length > 0) {
           await addQuotationItems(quotationId.value, ownItems)
@@ -345,6 +362,7 @@ export function useQuotation() {
             cantidadProducto: it.cantidadProducto ?? 1,
             descuentoPct:     it.descuentoPct     ?? 0,
             aumentoPct:       it.aumentoPct        ?? 0,
+            horasAdicionales: it.horasAdicionales  ?? 0,
           }))
         if (ownItems.length > 0) {
           await addQuotationItems(data.id, ownItems)
@@ -387,6 +405,7 @@ export function useQuotation() {
     quotationId,
     loading,
     modalCotizacionExitosa,
+    valorHoraAdicional,
 
     // computed
     subtotal,

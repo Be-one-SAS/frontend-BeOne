@@ -79,6 +79,35 @@
       </div>
       <p v-if="numberingSaved" class="cfg-field-saved">Guardado — la próxima cotización usará este valor como referencia.</p>
       <p v-if="numberingError" class="cfg-field-error">{{ numberingError }}</p>
+
+      <div class="cfg-divider" />
+
+      <div class="cfg-field-row">
+        <div>
+          <p class="cfg-field-title">Valor hora adicional</p>
+          <p class="cfg-field-desc">
+            Tarifa por hora que se cobra cuando en una cotización se agregan horas adicionales a un producto (propio o de tercero).
+          </p>
+        </div>
+        <div class="cfg-field-control">
+          <input
+            v-model.number="valorHoraEdited"
+            type="number"
+            min="0"
+            class="cfg-input"
+            :disabled="valorHoraLoading || valorHoraSaving"
+          />
+          <button
+            class="cfg-btn-save"
+            :disabled="valorHoraLoading || valorHoraSaving || valorHoraEdited === valorHoraSaved"
+            @click="saveValorHoraAdicional"
+          >
+            {{ valorHoraSaving ? 'Guardando…' : 'Guardar' }}
+          </button>
+        </div>
+      </div>
+      <p v-if="valorHoraSavedFlag" class="cfg-field-saved">Guardado.</p>
+      <p v-if="valorHoraError" class="cfg-field-error">{{ valorHoraError }}</p>
     </div>
 
     <div class="cfg-section-label">Acceso a vistas por rol</div>
@@ -312,6 +341,24 @@
       </div>
       <p v-if="contactoSaved" class="cfg-field-saved">Guardado.</p>
       <p v-if="contactoError" class="cfg-field-error">{{ contactoError }}</p>
+
+      <div class="cfg-divider" />
+
+      <!-- Nota 1 (cotización) -->
+      <div class="cfg-field-row">
+        <div>
+          <p class="cfg-field-title">Nota 1 (cotización)</p>
+          <p class="cfg-field-desc">Una línea por punto. Se muestra como lista numerada en el PDF, debajo del texto introductorio.</p>
+        </div>
+      </div>
+      <textarea v-model="nota1Text" class="cfg-textarea" rows="4"></textarea>
+      <div class="cfg-field-control" style="margin-top: 10px;">
+        <button type="button" class="cfg-btn-save" :disabled="nota1Saving" @click="saveNota1">
+          {{ nota1Saving ? 'Guardando…' : 'Guardar' }}
+        </button>
+      </div>
+      <p v-if="nota1Saved" class="cfg-field-saved">Guardado.</p>
+      <p v-if="nota1Error" class="cfg-field-error">{{ nota1Error }}</p>
     </div>
 
     <div class="cfg-section-label">Banner del Dashboard</div>
@@ -735,6 +782,52 @@ async function confirmSaveStartNumber() {
 onMounted(fetchQuotationNumbering)
 onMounted(() => { if (hasRole('ADMIN')) fetchBackupStatus() })
 
+// ── Configuración general — valor hora adicional ──
+const valorHoraSaved     = ref(null) // último valor confirmado por el backend
+const valorHoraEdited    = ref(null) // valor en el input
+const valorHoraLoading   = ref(false)
+const valorHoraSaving    = ref(false)
+const valorHoraSavedFlag = ref(false)
+const valorHoraError     = ref('')
+
+async function fetchValorHoraAdicional() {
+  valorHoraLoading.value = true
+  valorHoraError.value   = ''
+  try {
+    const { data } = await api.get('/app-config/horas-adicionales')
+    valorHoraSaved.value  = data?.valorHora ?? 0
+    valorHoraEdited.value = valorHoraSaved.value
+  } catch (e) {
+    valorHoraError.value = e?.response?.data?.message || 'Error al cargar la configuración'
+  } finally {
+    valorHoraLoading.value = false
+  }
+}
+
+async function saveValorHoraAdicional() {
+  const nuevo = valorHoraEdited.value
+  if (typeof nuevo !== 'number' || nuevo < 0) {
+    valorHoraError.value = 'El valor por hora debe ser un número mayor o igual a 0'
+    return
+  }
+
+  valorHoraSaving.value    = true
+  valorHoraError.value     = ''
+  valorHoraSavedFlag.value = false
+  try {
+    await api.patch('/app-config/horas-adicionales', { valorHora: nuevo })
+    valorHoraSaved.value     = nuevo
+    valorHoraSavedFlag.value = true
+    setTimeout(() => { valorHoraSavedFlag.value = false }, 2500)
+  } catch (e) {
+    valorHoraError.value = e?.response?.data?.message || 'Error al guardar la configuración'
+  } finally {
+    valorHoraSaving.value = false
+  }
+}
+
+onMounted(fetchValorHoraAdicional)
+
 // ── Encabezado del PDF de cotización — logo + logos de certificación + contacto ──
 const pdfHeaderConfig = reactive({ logo: null, partners: [], contacto: {} })
 
@@ -753,12 +846,18 @@ const contactoSaving = ref(false)
 const contactoSaved  = ref(false)
 const contactoError  = ref('')
 
+const nota1Text   = ref('') // una línea = un punto de la lista
+const nota1Saving = ref(false)
+const nota1Saved  = ref(false)
+const nota1Error  = ref('')
+
 async function fetchPdfHeaderConfig() {
   try {
     const { data } = await api.get('/app-config/pdf-header')
     pdfHeaderConfig.logo     = data.logo ?? null
     pdfHeaderConfig.partners = data.partners ?? []
     Object.assign(contactoForm, data.contacto ?? {})
+    nota1Text.value = (data.notas?.nota1 ?? []).join('\n')
   } catch (e) {
     logoError.value = 'No se pudo cargar la configuración del encabezado'
   }
@@ -850,6 +949,22 @@ async function saveContacto() {
     contactoError.value = e?.response?.data?.message || 'Error al guardar'
   } finally {
     contactoSaving.value = false
+  }
+}
+
+async function saveNota1() {
+  nota1Saving.value = true
+  nota1Error.value = ''
+  try {
+    const items = nota1Text.value.split('\n').map(s => s.trim()).filter(Boolean)
+    const { data } = await api.patch('/app-config/pdf-header/nota1', { items })
+    nota1Text.value = (data.notas?.nota1 ?? []).join('\n')
+    nota1Saved.value = true
+    setTimeout(() => { nota1Saved.value = false }, 2500)
+  } catch (e) {
+    nota1Error.value = e?.response?.data?.message || 'Error al guardar'
+  } finally {
+    nota1Saving.value = false
   }
 }
 
@@ -1172,6 +1287,22 @@ async function confirmPurge({ confirmPhrase, secretKey }) {
 }
 .cfg-input:focus { border-color: #27C8D8; box-shadow: 0 0 0 3px rgba(39,200,216,0.1); }
 .cfg-input:disabled { opacity: 0.6; cursor: not-allowed; }
+.cfg-textarea {
+  width: 100%;
+  min-height: 90px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  border: 1px solid #E2EBF6;
+  border-radius: 8px;
+  background: #F8FAFC;
+  color: #0F1A2E;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.cfg-textarea:focus { border-color: #27C8D8; box-shadow: 0 0 0 3px rgba(39,200,216,0.1); }
+.cfg-textarea:disabled { opacity: 0.6; cursor: not-allowed; }
 .cfg-btn-save {
   height: 36px;
   padding: 0 16px;
