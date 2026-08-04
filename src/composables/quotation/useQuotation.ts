@@ -25,12 +25,14 @@ export function useQuotation() {
   const quotationId = ref<number | null>(null)
   const modalCotizacionExitosa = ref(false)
 
-  // Tarifa global de horas adicionales — editable desde /configuracion.
-  const valorHoraAdicional = ref(0)
+  // % de aumento por hora adicional — editable desde /configuracion. Cada
+  // hora adicional aplica este porcentaje como aumento sobre el subtotal
+  // (ej. 3 horas × 13% = 39% de aumento), no es un valor fijo en pesos.
+  const porcentajeHoraAdicional = ref(0)
   onMounted(async () => {
     try {
       const { data } = await api.get('/app-config/horas-adicionales')
-      valorHoraAdicional.value = data?.valorHora ?? 0
+      porcentajeHoraAdicional.value = data?.porcentajeHora ?? 0
     } catch {
       // Sin config guardada aún (o falla de red) — se queda en 0.
     }
@@ -97,7 +99,7 @@ export function useQuotation() {
     const subtotal = calcularSubtotalItem(item)
     const descuento = (item.descuentoPct || 0)
     const aumento   = (item.aumentoPct || 0)
-    const horasExtra = (item.horasAdicionales || 0) * valorHoraAdicional.value
+    const horasExtra = subtotal * (item.horasAdicionales || 0) * porcentajeHoraAdicional.value / 100
     return subtotal - (subtotal * descuento / 100) + (subtotal * aumento / 100) + horasExtra
   }
 
@@ -115,7 +117,7 @@ export function useQuotation() {
     const subtotal = calcularSubtotalTercero(item)
     const descuento = (item.descuentoPct || 0)
     const aumento   = (item.aumentoPct || 0)
-    const horasExtra = (item.horasAdicionales || 0) * valorHoraAdicional.value
+    const horasExtra = subtotal * (item.horasAdicionales || 0) * porcentajeHoraAdicional.value / 100
     return subtotal - (subtotal * descuento / 100) + (subtotal * aumento / 100) + horasExtra
   }
 
@@ -405,7 +407,7 @@ export function useQuotation() {
     quotationId,
     loading,
     modalCotizacionExitosa,
-    valorHoraAdicional,
+    porcentajeHoraAdicional,
 
     // computed
     subtotal,

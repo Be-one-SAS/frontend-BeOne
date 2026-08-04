@@ -261,12 +261,13 @@ onMounted(async () => {
   }
 })
 
-// Tarifa global de horas adicionales — editable desde /configuracion.
-const valorHoraAdicional = ref(0)
+// % de aumento por hora adicional — editable desde /configuracion. Cada
+// hora adicional aplica este porcentaje como aumento sobre el subtotal.
+const porcentajeHoraAdicional = ref(0)
 onMounted(async () => {
   try {
     const { data } = await api.get('/app-config/horas-adicionales')
-    valorHoraAdicional.value = data?.valorHora ?? 0
+    porcentajeHoraAdicional.value = data?.porcentajeHora ?? 0
   } catch {
     // Sin config guardada aún (o falla de red) — se queda en 0.
   }
@@ -370,7 +371,7 @@ const calculateItemTotal = (item) => {
   const subtotal = unitPrice * quantity
   const descuento = subtotal * (descuentoPct / 100)
   const aumento = subtotal * (aumentoPct / 100)
-  const horasExtra = (item.horasAdicionales || 0) * valorHoraAdicional.value
+  const horasExtra = subtotal * (item.horasAdicionales || 0) * porcentajeHoraAdicional.value / 100
   return subtotal - descuento + aumento + horasExtra
 }
 
@@ -380,12 +381,14 @@ const subtotal = computed(() => {
 
   const itemsTotal = items.reduce((sum, item) => {
     const unitPrice = item.unitPrice || 0
-    return sum + (unitPrice * getQuantity(item)) + (item.horasAdicionales || 0) * valorHoraAdicional.value
+    const itemSubtotal = unitPrice * getQuantity(item)
+    return sum + itemSubtotal + itemSubtotal * (item.horasAdicionales || 0) * porcentajeHoraAdicional.value / 100
   }, 0)
 
   const thirdPartyTotal = thirdParty.reduce((sum, item) => {
     const unitPrice = item.precioUnitario || item.costo || 0
-    return sum + (unitPrice * getQuantity(item)) + (item.horasAdicionales || 0) * valorHoraAdicional.value
+    const itemSubtotal = unitPrice * getQuantity(item)
+    return sum + itemSubtotal + itemSubtotal * (item.horasAdicionales || 0) * porcentajeHoraAdicional.value / 100
   }, 0)
 
   return itemsTotal + thirdPartyTotal
