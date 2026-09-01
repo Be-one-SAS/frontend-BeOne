@@ -47,10 +47,10 @@ const visiblePages = computed(() => {
   return pages;
 });
 
-// Una fila por producto (propio o de tercero). El % de comisión es el mismo
-// para todos los productos de una misma cotización (el motor de pricing
-// calcula un único margen equivalente ponderado, no uno por producto) — lo
-// que cambia por fila es el $ de comisión, proporcional a la venta de ese producto.
+// Una fila por producto (propio o de tercero). Desde 2026-09 el % de
+// comisión se calcula con el margen propio de CADA producto (terceros: su
+// margen comercial; propios: el margen ficticio fijo), así que puede variar
+// entre productos de una misma cotización — ya no es un único % repartido.
 const columnsBase = [
   { key: 'numero', label: 'Cotización', width: '90px' },
   { key: 'producto', label: 'Producto' },
