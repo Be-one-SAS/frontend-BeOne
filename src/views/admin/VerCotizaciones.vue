@@ -897,6 +897,7 @@ const formatDateTime = (iso) =>
                             <span class="vc-product-badge vc-badge-own">Propio</span>
                             <span
                               class="vc-product-name"
+                              :title="item.product?.nombre || item.product?.dispositivo"
                               @mouseenter="showThumbPreview($event, item.product?.linkFotoDispositivo)"
                               @mouseleave="hideThumbPreview"
                             >{{ item.product?.nombre || item.product?.dispositivo }}</span>
@@ -911,6 +912,7 @@ const formatDateTime = (iso) =>
                             <span class="vc-product-badge vc-badge-tp">Tercero</span>
                             <span
                               class="vc-product-name"
+                              :title="item.catalogProduct?.nombre || item.catalogProduct?.dispositivo || item.catalogProduct?.descripcion"
                               @mouseenter="showThumbPreview($event, item.catalogProduct?.linkFotoDispositivo)"
                               @mouseleave="hideThumbPreview"
                             >{{ item.catalogProduct?.nombre || item.catalogProduct?.dispositivo || item.catalogProduct?.descripcion }}</span>
@@ -1655,7 +1657,7 @@ const formatDateTime = (iso) =>
   padding: 6px 10px;
 }
 .vc-product-name {
-  flex: 1; font-size: 13px; font-weight: 500; color: #0F172A;
+  flex: 1; min-width: 0; font-size: 13px; font-weight: 500; color: #0F172A;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   cursor: default;
 }
