@@ -71,6 +71,14 @@ export function useQuotation() {
     createdById: null as number | null,
     version: 1,
     members: [] as any[],
+    // Tramos de fecha adicionales — el evento puede tener huecos (ej. día 5,
+    // hueco el 6, evento 7 y 8). El primer tramo sigue siendo los campos
+    // planos de arriba (fechaInicioEvento, etc.) por compatibilidad con el
+    // resto de la UI (Paso 4, PDF); cada elemento aquí es un tramo extra con
+    // la misma forma (fechaInicioMontaje, horarioInicioMontaje,
+    // fechaInicioEvento, horarioInicio, fechaFinEvento, horarioFin,
+    // fechaFinMontaje, horarioFinMontaje). Ver saveQuotation()/loadQuotation().
+    tramosAdicionales: [] as any[],
   })
 
   const items = ref<any[]>([])
@@ -204,15 +212,25 @@ export function useQuotation() {
       Object.assign(cotizacion, data)
       cotizacion.createdById = data.createdById // ✅ ADDED
 
-      // Map operationWindow → flat date/time fields used by the form
-      cotizacion.fechaInicioEvento    = data.operationWindow?.eventStartAt?.split('T')[0]        ?? ''
-      cotizacion.horarioInicio        = data.operationWindow?.eventStartAt?.split('T')[1]?.slice(0, 5) ?? '00:00'
-      cotizacion.fechaFinEvento       = data.operationWindow?.eventEndAt?.split('T')[0]          ?? ''
-      cotizacion.horarioFin           = data.operationWindow?.eventEndAt?.split('T')[1]?.slice(0, 5)   ?? '00:00'
-      cotizacion.fechaInicioMontaje   = data.operationWindow?.setupStartAt?.split('T')[0]        ?? ''
-      cotizacion.horarioInicioMontaje = data.operationWindow?.setupStartAt?.split('T')[1]?.slice(0, 5) ?? '00:00'
-      cotizacion.fechaFinMontaje      = data.operationWindow?.teardownEndAt?.split('T')[0]       ?? ''
-      cotizacion.horarioFinMontaje    = data.operationWindow?.teardownEndAt?.split('T')[1]?.slice(0, 5) ?? '00:00'
+      // Map eventTramos (nuevo, array) u operationWindow (legado, un solo
+      // tramo) → campos planos del primer tramo + tramosAdicionales.
+      const tramosApi = (data.eventTramos && data.eventTramos.length > 0)
+        ? data.eventTramos
+        : (data.operationWindow ? [data.operationWindow] : [])
+
+      const tramoFromApi = (tr: any) => ({
+        fechaInicioMontaje:   tr?.setupStartAt?.split('T')[0] ?? '',
+        horarioInicioMontaje: tr?.setupStartAt?.split('T')[1]?.slice(0, 5) ?? '00:00',
+        fechaInicioEvento:    tr?.eventStartAt?.split('T')[0] ?? '',
+        horarioInicio:        tr?.eventStartAt?.split('T')[1]?.slice(0, 5) ?? '00:00',
+        fechaFinEvento:       tr?.eventEndAt?.split('T')[0] ?? '',
+        horarioFin:           tr?.eventEndAt?.split('T')[1]?.slice(0, 5) ?? '00:00',
+        fechaFinMontaje:      tr?.teardownEndAt?.split('T')[0] ?? '',
+        horarioFinMontaje:    tr?.teardownEndAt?.split('T')[1]?.slice(0, 5) ?? '00:00',
+      })
+
+      Object.assign(cotizacion, tramoFromApi(tramosApi[0]))
+      cotizacion.tramosAdicionales = tramosApi.slice(1).map(tramoFromApi)
 
       // Map items — API returns quantity but the form uses cantidadJornada/cantidadProducto
       items.value = (data.items || []).map((it: any) => ({
@@ -304,16 +322,23 @@ export function useQuotation() {
         // Only send the user-controlled discount percentage (0 is a valid value).
         descuentoPct: cotizacion.descuentoPct ?? undefined,
 
-        // ── Ventana operativa ─────────────────────────────────────
-        // Construida como objeto anidado combinando fecha + hora
+        // ── Tramos de fecha ────────────────────────────────────────
+        // El primer tramo son los campos planos de siempre; el resto (si el
+        // evento tiene huecos: día 5, hueco el 6, evento 7-8) vienen de
+        // cotizacion.tramosAdicionales. Ver EventTramoDto en el backend.
         ...(cotizacion.fechaInicioEvento && cotizacion.fechaFinEvento &&
             cotizacion.fechaInicioMontaje && cotizacion.fechaFinMontaje && {
-          operationWindow: {
-            setupStartAt:  `${cotizacion.fechaInicioMontaje}T${cotizacion.horarioInicioMontaje}:00.000Z`,
-            eventStartAt:  `${cotizacion.fechaInicioEvento}T${cotizacion.horarioInicio}:00.000Z`,
-            eventEndAt:    `${cotizacion.fechaFinEvento}T${cotizacion.horarioFin}:00.000Z`,
-            teardownEndAt: `${cotizacion.fechaFinMontaje}T${cotizacion.horarioFinMontaje}:00.000Z`,
-          },
+          eventTramos: [
+            cotizacion,
+            // Ignora tramos adicionales que el usuario agregó pero no llenó.
+            ...cotizacion.tramosAdicionales.filter((t: any) =>
+              t.fechaInicioMontaje && t.fechaFinMontaje && t.fechaInicioEvento && t.fechaFinEvento),
+          ].map((t: any) => ({
+            setupStartAt:  `${t.fechaInicioMontaje}T${t.horarioInicioMontaje}:00.000Z`,
+            eventStartAt:  `${t.fechaInicioEvento}T${t.horarioInicio}:00.000Z`,
+            eventEndAt:    `${t.fechaFinEvento}T${t.horarioFin}:00.000Z`,
+            teardownEndAt: `${t.fechaFinMontaje}T${t.horarioFinMontaje}:00.000Z`,
+          })),
         }),
       }
 

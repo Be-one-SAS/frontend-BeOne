@@ -55,9 +55,20 @@ export function useQuotationProducts({
     const cargarProductos = async () => {
         if (!validarCalendario()) return
 
+        // Disponibilidad se revisa contra TODOS los tramos de fecha (el
+        // primero son los campos planos de cotizacion; los demás, si el
+        // evento tiene huecos, vienen de tramosAdicionales) — un producto
+        // bloqueado en cualquier tramo no se ofrece, aunque esté libre en
+        // los días huecos entre tramos.
+        const tramos = [
+            { setupStartAt: cotizacion.fechaInicioMontaje, teardownEndAt: cotizacion.fechaFinMontaje },
+            ...(cotizacion.tramosAdicionales || [])
+                .filter((t: any) => t.fechaInicioMontaje && t.fechaFinMontaje)
+                .map((t: any) => ({ setupStartAt: t.fechaInicioMontaje, teardownEndAt: t.fechaFinMontaje })),
+        ]
+
         const response = await getProductsEndReservation({
-            setupStartAt: cotizacion.fechaInicioMontaje,
-            teardownEndAt: cotizacion.fechaFinMontaje,
+            tramos,
             isSameCity: true
         })
 
