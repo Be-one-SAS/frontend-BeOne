@@ -1,22 +1,15 @@
 import { computed, watch } from 'vue'
 
 export function useQuotationCalendar(cotizacion: any, items: any, modalCalendarioIncompleto: any) {
+  // El primer tramo son los campos planos de cotizacion; cada tramo
+  // adicional (evento con huecos) debe estar completo también — uno a
+  // medio llenar no debería dejar pasar la validación silenciosamente.
   const calendarioCompleto = computed(() => {
-    const {
-      fechaInicioEvento,
-      fechaFinEvento,
-      horarioInicio,
-      horarioFin,
-      fechaInicioMontaje,
-      fechaFinMontaje,
-      horarioInicioMontaje,
-      horarioFinMontaje
-    } = cotizacion
-
-    return (
-   cotizacion.fechaInicioMontaje &&
-    cotizacion.fechaFinMontaje
+    const tramo1Completo = !!(cotizacion.fechaInicioMontaje && cotizacion.fechaFinMontaje)
+    const adicionalesCompletos = (cotizacion.tramosAdicionales || []).every(
+      (t: any) => t.fechaInicioMontaje && t.fechaFinMontaje && t.fechaInicioEvento && t.fechaFinEvento,
     )
+    return tramo1Completo && adicionalesCompletos
   })
 
   const validarCalendario = () => {

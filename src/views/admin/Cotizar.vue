@@ -264,6 +264,82 @@
             />
           </div>
 
+          <!-- Card: Tramos adicionales — evento con huecos (ej. día 5, nada
+               el 6, evento el 7 y 8). Cada tramo libera el equipo durante
+               los días fuera de su propio rango. -->
+          <div
+            v-for="(tramo, tIdx) in cotizacion.tramosAdicionales"
+            :key="tIdx"
+            class="form-card tramo-extra-card"
+          >
+            <div class="section-header">
+              <CalendarDays :size="18" class="icon-primary" />
+              <span>Rango de fechas adicional</span>
+              <button
+                type="button"
+                class="tramo-remove-btn"
+                title="Quitar este rango de fechas"
+                @click="cotizacion.tramosAdicionales.splice(tIdx, 1)"
+              >
+                <Trash2 :size="14" />
+              </button>
+            </div>
+            <p class="tramo-extra-hint">
+              Usa esto cuando el evento tiene un día sin actividad entre fechas
+              (ej. evento el día 5, nada el 6, evento el 7 y el 8) — este
+              rango libera el equipo durante los días fuera de su propio
+              tramo, para que otras cotizaciones puedan reservarlo.
+            </p>
+
+            <div class="tramo-extra-grid">
+              <div>
+                <div class="tramo-extra-subtitle">Calendario del evento</div>
+                <EventDatePickerModal
+                  :fechaInicio="tramo.fechaInicioEvento"
+                  :horaInicio="tramo.horarioInicio"
+                  :fechaFin="tramo.fechaFinEvento"
+                  :horaFin="tramo.horarioFin"
+                  :fechaInicioEvento="tramo.fechaInicioEvento"
+                  :horaInicioEvento="tramo.horarioInicio"
+                  :fechaFinEvento="tramo.fechaFinEvento"
+                  :horaFinEvento="tramo.horarioFin"
+                  calendarType="evento"
+                  @update:fechaInicio="tramo.fechaInicioEvento = $event"
+                  @update:horaInicio="tramo.horarioInicio = $event"
+                  @update:fechaFin="tramo.fechaFinEvento = $event"
+                  @update:horaFin="tramo.horarioFin = $event"
+                />
+              </div>
+              <div>
+                <div class="tramo-extra-subtitle">Operación y montaje</div>
+                <EventDatePickerModal
+                  :fechaInicio="tramo.fechaInicioMontaje"
+                  :horaInicio="tramo.horarioInicioMontaje"
+                  :fechaFin="tramo.fechaFinMontaje"
+                  :horaFin="tramo.horarioFinMontaje"
+                  :fechaInicioEvento="tramo.fechaInicioEvento"
+                  :horaInicioEvento="tramo.horarioInicio"
+                  :fechaFinEvento="tramo.fechaFinEvento"
+                  :horaFinEvento="tramo.horarioFin"
+                  calendarType="montaje"
+                  @update:fechaInicio="tramo.fechaInicioMontaje = $event"
+                  @update:horaInicio="tramo.horarioInicioMontaje = $event"
+                  @update:fechaFin="tramo.fechaFinMontaje = $event"
+                  @update:horaFin="tramo.horarioFinMontaje = $event"
+                />
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            class="btn-add-tramo"
+            @click="agregarTramoAdicional"
+          >
+            <Plus :size="14" />
+            Agregar otro rango de fechas (evento con hueco)
+          </button>
+
         </template>
 
         <!-- ╔══════════════════════════════════════════════╗
@@ -1557,15 +1633,24 @@ const getCotizacion = async () => {
     cotizacion.empresa             = data.empresa;
     cotizacion.contacto            = data.contacto;
     cotizacion.correo              = data.correo;
-    // Map operationWindow → flat date/time fields used by the form inputs
-    cotizacion.fechaInicioEvento   = data.operationWindow?.eventStartAt?.split('T')[0]        ?? ''
-    cotizacion.horarioInicio       = data.operationWindow?.eventStartAt?.split('T')[1]?.slice(0, 5) ?? '00:00'
-    cotizacion.fechaFinEvento      = data.operationWindow?.eventEndAt?.split('T')[0]          ?? ''
-    cotizacion.horarioFin          = data.operationWindow?.eventEndAt?.split('T')[1]?.slice(0, 5)   ?? '00:00'
-    cotizacion.fechaInicioMontaje  = data.operationWindow?.setupStartAt?.split('T')[0]        ?? ''
-    cotizacion.horarioInicioMontaje= data.operationWindow?.setupStartAt?.split('T')[1]?.slice(0, 5) ?? '00:00'
-    cotizacion.fechaFinMontaje     = data.operationWindow?.teardownEndAt?.split('T')[0]       ?? ''
-    cotizacion.horarioFinMontaje   = data.operationWindow?.teardownEndAt?.split('T')[1]?.slice(0, 5) ?? '00:00'
+    // Map eventTramos (nuevo, array) u operationWindow (legado, un solo
+    // tramo) → campos planos del primer tramo + tramosAdicionales (evento
+    // con huecos: día 5, hueco el 6, evento 7-8).
+    const tramosApiCotizacion = (data.eventTramos && data.eventTramos.length > 0)
+      ? data.eventTramos
+      : (data.operationWindow ? [data.operationWindow] : [])
+    const tramoDesdeApi = (tr) => ({
+      fechaInicioMontaje:   tr?.setupStartAt?.split('T')[0] ?? '',
+      horarioInicioMontaje: tr?.setupStartAt?.split('T')[1]?.slice(0, 5) ?? '00:00',
+      fechaInicioEvento:    tr?.eventStartAt?.split('T')[0] ?? '',
+      horarioInicio:        tr?.eventStartAt?.split('T')[1]?.slice(0, 5) ?? '00:00',
+      fechaFinEvento:       tr?.eventEndAt?.split('T')[0] ?? '',
+      horarioFin:           tr?.eventEndAt?.split('T')[1]?.slice(0, 5) ?? '00:00',
+      fechaFinMontaje:      tr?.teardownEndAt?.split('T')[0] ?? '',
+      horarioFinMontaje:    tr?.teardownEndAt?.split('T')[1]?.slice(0, 5) ?? '00:00',
+    })
+    Object.assign(cotizacion, tramoDesdeApi(tramosApiCotizacion[0]))
+    cotizacion.tramosAdicionales = tramosApiCotizacion.slice(1).map(tramoDesdeApi)
     cotizacion.ubicacion           = data.ubicacion;
     cotizacion.linkMaps            = data.linkMaps;
     cotizacion.asistentes          = data.asistentes;
@@ -1797,6 +1882,17 @@ const duracionMontaje = computed(() => {
   if (isNaN(diff) || diff < 1) return null
   return `${diff} ${diff === 1 ? 'día' : 'días'}`
 })
+
+// Agrega un tramo de fecha adicional vacío — para eventos con huecos (ej.
+// evento el día 5, nada el 6, evento el 7 y el 8). Ver cotizacion.tramosAdicionales.
+const agregarTramoAdicional = () => {
+  cotizacion.tramosAdicionales.push({
+    fechaInicioMontaje: '', horarioInicioMontaje: '00:00',
+    fechaInicioEvento: '', horarioInicio: '00:00',
+    fechaFinEvento: '', horarioFin: '00:00',
+    fechaFinMontaje: '', horarioFinMontaje: '00:00',
+  })
+}
 
 // ── Notas de la cotización ──────────────────────────────────────────────────
 const notas = ref([])
@@ -3204,6 +3300,74 @@ watch(modalCotizacionExitosa, (val) => {
 .btn-add-tercero:hover {
   background: #CCEFF2;
   border-color: #8EEAF3;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TRAMOS ADICIONALES — evento con huecos (Paso 2)
+═══════════════════════════════════════════════════════════ */
+.tramo-extra-card { border: 1px dashed #A7EEF5; }
+
+.tramo-remove-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #94A3B8;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.tramo-remove-btn:hover { background: #FEE2E2; color: #B91C1C; }
+
+.tramo-extra-hint {
+  font-size: 12px;
+  color: #64748B;
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+
+.tramo-extra-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 768px) {
+  .tramo-extra-grid { grid-template-columns: 1fr; }
+}
+
+.tramo-extra-subtitle {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94A3B8;
+  margin-bottom: 8px;
+}
+
+.btn-add-tramo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #fff;
+  color: #27C8D8;
+  border: 1.5px dashed #A7EEF5;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-add-tramo:hover {
+  background: #F0FAFB;
+  border-color: #27C8D8;
 }
 
 .tercero-empty {
