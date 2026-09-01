@@ -721,6 +721,10 @@
                         <th class="th-center">Cant.</th>
                         <th class="th-right">Precio unit.</th>
                         <th class="th-right">Total factura</th>
+                        <th class="th-right">
+                          Comisión (est.)
+                          <span class="th-hint" title="Estimado con el margen de este ítem. El valor oficial se calcula para toda la cotización, ver pestaña Comisiones.">?</span>
+                        </th>
                         <th class="th-right">Utilidad final</th>
                       </tr>
                     </thead>
@@ -734,6 +738,10 @@
                         <td class="td-right prd-total">
                           {{ formatCOP(calcularTotalFilaTercero(it)) }}
                         </td>
+                        <td class="td-right prd-comision">
+                          <span class="prd-comision-pct">{{ (it.comisionPct ?? 0).toFixed(1) }}%</span>
+                          <span class="prd-comision-monto">{{ formatCOP(it.comisionMonto ?? 0) }}</span>
+                        </td>
                         <td class="td-right font-semibold" style="color: #059669">
                           {{ formatCOP(it.utilidadFinal ?? it.utilidadNeta ?? null) }}
                         </td>
@@ -743,6 +751,7 @@
                       <tr class="prd-subtotal-row">
                         <td colspan="3" class="td-subtotal-label">Subtotal productos terceros</td>
                         <td class="td-subtotal-val">{{ formatCOP(subtotalTerceros) }}</td>
+                        <td></td>
                         <td></td>
                       </tr>
                     </tfoot>
@@ -3463,6 +3472,17 @@ watch(modalCotizacionExitosa, (val) => {
 
 .prd-price { color: #374151; font-weight: 500; }
 .prd-total { font-weight: 700; color: #27C8D8; }
+
+.th-hint {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 14px; height: 14px; margin-left: 3px; border-radius: 50%;
+  background: #E2E8F0; color: #64748B; font-size: 9px; font-weight: 700;
+  cursor: help; vertical-align: middle;
+}
+
+.prd-comision { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.prd-comision-pct { font-size: 11px; font-weight: 600; color: #C2410C; }
+.prd-comision-monto { font-size: 13px; font-weight: 600; color: #374151; }
 
 /* Input de Q. Jornada / Q. Producto (mismo patrón que QuotationProductsCardList.vue) */
 .prd-qty-input {
