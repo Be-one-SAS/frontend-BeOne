@@ -631,7 +631,7 @@ const formatDateTime = (iso) =>
                     <Badge :estado="q.quotationStatus?.name" />
                     <!-- Barra de progreso de bloqueo temporal -->
                     <template v-if="pendingLockInfo(q)">
-                      <div style="width:100%;display:flex;flex-direction:column;gap:3px;margin-top:4px">
+                      <div style="width:100%;max-width:220px;display:flex;flex-direction:column;gap:3px;margin-top:4px">
                         <!-- Label -->
                         <div
                           style="display:flex;align-items:center;gap:3px;font-size:10px;font-weight:600"
