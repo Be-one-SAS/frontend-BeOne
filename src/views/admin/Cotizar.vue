@@ -496,6 +496,10 @@
                       <th class="th-center">Desc. (%)</th>
                       <th class="th-center">Aumento (%)</th>
                       <th class="th-center">Total</th>
+                      <th class="th-center">
+                        Comisión (est.)
+                        <span class="th-hint" title="Estimado con el margen de este ítem. El valor oficial se calcula para toda la cotización, ver pestaña Comisiones.">?</span>
+                      </th>
                       <th class="th-center">Acciones</th>
                     </tr>
                   </thead>
@@ -573,6 +577,10 @@
                       <td class="td-center prd-total">
                         {{ formatCOP(totalesFilasTerceros[i]) }}
                       </td>
+                      <td class="td-center prd-comision" @click.stop>
+                        <span class="prd-comision-pct">{{ (it.comisionPct ?? 0).toFixed(1) }}%</span>
+                        <span class="prd-comision-monto">{{ formatCOP(it.comisionMonto ?? 0) }}</span>
+                      </td>
                       <td class="td-center" @click.stop>
                         <button class="prd-action-btn" style="--hbg:#FEE2E2; --hc:#B91C1C" @click="eliminarItemTercero(i)" title="Eliminar">
                           <Trash2 :size="14" />
@@ -584,6 +592,7 @@
                     <tr class="prd-subtotal-row">
                       <td colspan="9" class="td-subtotal-label">Subtotal productos terceros</td>
                       <td class="td-subtotal-val">{{ formatCOP(totalesFilasTerceros.reduce((s, v) => s + v, 0)) }}</td>
+                      <td></td>
                       <td></td>
                     </tr>
                   </tfoot>
@@ -3480,7 +3489,9 @@ watch(modalCotizacionExitosa, (val) => {
   cursor: help; vertical-align: middle;
 }
 
-.prd-comision { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.prd-comision { display: flex; flex-direction: column; gap: 1px; }
+.prd-comision.td-right  { align-items: flex-end; }
+.prd-comision.td-center { align-items: center; }
 .prd-comision-pct { font-size: 11px; font-weight: 600; color: #C2410C; }
 .prd-comision-monto { font-size: 13px; font-weight: 600; color: #374151; }
 
