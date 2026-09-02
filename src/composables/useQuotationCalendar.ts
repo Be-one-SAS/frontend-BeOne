@@ -5,7 +5,10 @@ export function useQuotationCalendar(cotizacion: any, items: any, modalCalendari
   // adicional (evento con huecos) debe estar completo también — uno a
   // medio llenar no debería dejar pasar la validación silenciosamente.
   const calendarioCompleto = computed(() => {
-    const tramo1Completo = !!(cotizacion.fechaInicioMontaje && cotizacion.fechaFinMontaje)
+    const tramo1Completo = !!(
+      cotizacion.fechaInicioEvento && cotizacion.fechaFinEvento &&
+      cotizacion.fechaInicioMontaje && cotizacion.fechaFinMontaje
+    )
     const adicionalesCompletos = (cotizacion.tramosAdicionales || []).every(
       (t: any) => t.fechaInicioMontaje && t.fechaFinMontaje && t.fechaInicioEvento && t.fechaFinEvento,
     )
