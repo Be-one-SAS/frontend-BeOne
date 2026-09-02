@@ -1002,14 +1002,12 @@
         <template v-if="pasoActual < 4">
           <div
             class="btn-next-wrap"
-            :data-tip="pasoActual === 2 && !cotizacion.linkMaps
-              ? 'Selecciona una ubicación en el mapa para continuar'
-              : undefined"
+            :data-tip="pasoTipMensaje"
           >
             <button
               @click="irAPaso(pasoActual + 1)"
               class="btn-next"
-              :disabled="pasoActual === 2 && !cotizacion.linkMaps"
+              :disabled="!!pasoTipMensaje"
             >
               Siguiente <ChevronRight :size="16" />
             </button>
@@ -1340,6 +1338,42 @@ const {
   calendarioCompleto,
   validarCalendario
 } = useQuotationCalendar(cotizacion, items, modalCalendarioIncompleto)
+
+// Mensajes que bloquean "Siguiente" en cada paso — null/undefined cuando ya
+// se puede avanzar. Cubren tanto el botón Siguiente como el salto directo
+// por el stepper (ver irAPaso), para que no se pueda saltar un paso sin
+// gestionar sus campos obligatorios.
+const paso1TipMensaje = computed(() => {
+  if (!cotizacion.cliente) return 'Selecciona un cliente para continuar'
+  if (!cotizacion.empresa) return 'Selecciona a quién se factura (Facturar a) para continuar'
+  if (!cotizacion.contacto) return 'Ingresa el nombre de contacto para continuar'
+  if (!cotizacion.correo) return 'Ingresa el correo de contacto para continuar'
+  if (!cotizacion.celular) return 'Ingresa el teléfono de contacto para continuar'
+  if (!cotizacion.unidadEjecucion) return 'Selecciona la región operativa para continuar'
+  return undefined
+})
+
+const paso2TipMensaje = computed(() => {
+  if (!cotizacion.linkMaps) return 'Selecciona una ubicación en el mapa para continuar'
+  if (!calendarioCompleto.value) return 'Completa las fechas de Evento y Montaje (y de cada rango adicional) para continuar'
+  return undefined
+})
+
+const paso3TipMensaje = computed(() => {
+  if (!items.value.length && !itemsTerceros.value.length) return 'Agrega al menos un producto para continuar'
+  return undefined
+})
+
+// Mensaje de bloqueo de un paso dado — usado por el botón Siguiente y por
+// irAPaso() para el salto directo por el stepper.
+const mensajeDelPaso = (n) => {
+  if (n === 1) return paso1TipMensaje.value
+  if (n === 2) return paso2TipMensaje.value
+  if (n === 3) return paso3TipMensaje.value
+  return undefined
+}
+
+const pasoTipMensaje = computed(() => mensajeDelPaso(pasoActual.value))
 
 const {
   productosFiltrados,
@@ -1858,6 +1892,15 @@ watch(pasoActual, () => {
 }, { flush: 'post' })
 
 const irAPaso = (n) => {
+  // Retroceder siempre se permite. Solo al avanzar (por el stepper o el
+  // botón Siguiente) se valida que ningún paso intermedio (1..n-1) tenga
+  // campos sin gestionar — cubre tanto avanzar uno a uno como saltar
+  // directo por el stepper (ej. de paso 1 al 4 sin pasar por 2 y 3).
+  if (n > pasoActual.value) {
+    for (let s = 1; s < n; s++) {
+      if (mensajeDelPaso(s)) return
+    }
+  }
   pasoActual.value = n
 }
 
