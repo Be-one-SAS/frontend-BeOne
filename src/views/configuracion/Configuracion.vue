@@ -273,6 +273,27 @@
 
       <div class="cfg-divider" />
 
+      <!-- Foto del evento (hero del encabezado) -->
+      <div class="cfg-field-row">
+        <div>
+          <p class="cfg-field-title">Foto del evento</p>
+          <p class="cfg-field-desc">Aparece a la derecha del encabezado, junto al logo. Sin una propia, se usa un fondo degradado de marca.</p>
+        </div>
+        <div class="cfg-field-control">
+          <div class="pdfh-logo-preview pdfh-hero-preview" @click="heroImageFileInput?.click()">
+            <img v-if="pdfHeaderConfig.heroImage?.url" :src="pdfHeaderConfig.heroImage.url" alt="Foto del evento" />
+            <span v-else class="pdfh-logo-placeholder">Predeterminado</span>
+          </div>
+          <input ref="heroImageFileInput" type="file" accept="image/*" style="display:none" @change="onHeroImageFileChange" />
+          <button type="button" class="cfg-btn-save" :disabled="heroImageUploading" @click="heroImageFileInput?.click()">
+            {{ heroImageUploading ? 'Subiendo…' : 'Cambiar foto' }}
+          </button>
+        </div>
+      </div>
+      <p v-if="heroImageError" class="cfg-field-error">{{ heroImageError }}</p>
+
+      <div class="cfg-divider" />
+
       <!-- Logos de certificación (patrón del medio) -->
       <div class="cfg-field-row">
         <div>
@@ -332,6 +353,10 @@
         <div class="pdfh-contacto-field">
           <label class="pdfh-lbl">Instagram</label>
           <input v-model="contactoForm.instagram" type="text" class="cfg-input" />
+        </div>
+        <div class="pdfh-contacto-field">
+          <label class="pdfh-lbl">URL de portafolio (código QR)</label>
+          <input v-model="contactoForm.portafolioUrl" type="text" class="cfg-input" placeholder="https://…" />
         </div>
       </div>
       <div class="cfg-field-control" style="margin-top: 10px;">
@@ -829,11 +854,15 @@ async function saveValorHoraAdicional() {
 onMounted(fetchValorHoraAdicional)
 
 // ── Encabezado del PDF de cotización — logo + logos de certificación + contacto ──
-const pdfHeaderConfig = reactive({ logo: null, partners: [], contacto: {} })
+const pdfHeaderConfig = reactive({ logo: null, heroImage: null, partners: [], contacto: {} })
 
 const logoFileInput   = ref(null)
 const logoUploading   = ref(false)
 const logoError       = ref('')
+
+const heroImageFileInput = ref(null)
+const heroImageUploading = ref(false)
+const heroImageError     = ref('')
 
 const partnerFileInput  = ref(null)
 const newPartnerName    = ref('')
@@ -841,7 +870,7 @@ const partnerUploading  = ref(false)
 const partnerRemovingId = ref(null)
 const partnerError      = ref('')
 
-const contactoForm   = reactive({ ciudad: '', direccion: '', pbx: '', celular: '', instagram: '' })
+const contactoForm   = reactive({ ciudad: '', direccion: '', pbx: '', celular: '', instagram: '', portafolioUrl: '' })
 const contactoSaving = ref(false)
 const contactoSaved  = ref(false)
 const contactoError  = ref('')
@@ -854,8 +883,9 @@ const nota1Error  = ref('')
 async function fetchPdfHeaderConfig() {
   try {
     const { data } = await api.get('/app-config/pdf-header')
-    pdfHeaderConfig.logo     = data.logo ?? null
-    pdfHeaderConfig.partners = data.partners ?? []
+    pdfHeaderConfig.logo      = data.logo ?? null
+    pdfHeaderConfig.heroImage = data.heroImage ?? null
+    pdfHeaderConfig.partners  = data.partners ?? []
     Object.assign(contactoForm, data.contacto ?? {})
     nota1Text.value = (data.notas?.nota1 ?? []).join('\n')
   } catch (e) {
@@ -880,6 +910,26 @@ async function onLogoFileChange(e) {
     logoError.value = e?.response?.data?.message || 'Error al subir el logo'
   } finally {
     logoUploading.value = false
+    e.target.value = ''
+  }
+}
+
+async function onHeroImageFileChange(e) {
+  const file = e.target.files[0]
+  if (!file) return
+  heroImageUploading.value = true
+  heroImageError.value = ''
+  try {
+    const form = new FormData()
+    form.append('file', file)
+    const { data } = await api.patch('/app-config/pdf-header/hero-image', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    pdfHeaderConfig.heroImage = data.heroImage
+  } catch (e) {
+    heroImageError.value = e?.response?.data?.message || 'Error al subir la foto'
+  } finally {
+    heroImageUploading.value = false
     e.target.value = ''
   }
 }
@@ -1333,6 +1383,8 @@ async function confirmPurge({ confirmPhrase, secretKey }) {
 .pdfh-logo-placeholder { font-size: 9px; color: #94A3B8; text-align: center; padding: 0 4px; }
 
 .banner-preview { width: 140px; height: 56px; }
+.pdfh-hero-preview { width: 140px; height: 100px; }
+.pdfh-hero-preview img { object-fit: cover; }
 .banner-preview img { object-fit: cover; width: 100%; height: 100%; }
 .banner-message-input { width: 320px; }
 .cfg-btn-remove {
