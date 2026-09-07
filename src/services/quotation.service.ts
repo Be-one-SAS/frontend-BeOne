@@ -225,6 +225,18 @@ export const removeQuotationMember = async (quotationId: number, userId: number)
     }
 };
 
+// Reactiva una cotización Expirada: vuelve a Pendiente con un nuevo soft-lock de 7 días
+export const reactivateQuotation = async (id: number) => {
+    try {
+        const response = await api.patch(`/quotations/${id}/reactivate`, {}, {
+            headers: { 'Content-Type': 'application/json' },
+        });
+        return response;
+    } catch (error) {
+        throw error;
+    }
+};
+
 // Reemplaza la lista completa de coordinadores de una cotización (M2M)
 export const patchQuotation = async (id: number, fields: Record<string, any>) => {
     try {
