@@ -42,6 +42,7 @@ export function useQuotation() {
     numero: 2,
     fechaCotizacion: '',
     description: '',
+    consideraciones: '',
     agenteComercial: '',
     cliente: '',
     clienteId: null as number | null,
@@ -297,6 +298,7 @@ export function useQuotation() {
         // ── Datos del agente/comercial ────────────────────────────
         agenteComercial:   cotizacion.agenteComercial || undefined,
         description:       cotizacion.description     || undefined,
+        consideraciones:   cotizacion.consideraciones || undefined,
 
         // ── Datos de contacto ─────────────────────────────────────
         contacto:          cotizacion.contacto || undefined,

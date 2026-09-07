@@ -238,6 +238,18 @@
             />
           </div>
 
+          <!-- Botón: Consideraciones de la Cotización -->
+          <button
+            type="button"
+            class="consideraciones-btn"
+            @click="showConsideracionesModal = true"
+          >
+            <ClipboardList :size="18" class="icon-primary" />
+            <span>Consideraciones de la Cotización</span>
+            <span v-if="cotizacion.consideraciones" class="consideraciones-badge">Agregadas</span>
+            <ChevronRight :size="16" class="consideraciones-arrow" />
+          </button>
+
           <!-- Card: Operación y Montaje -->
           <div class="form-card">
             <div class="section-header">
@@ -1135,6 +1147,33 @@
       </div>
     </ModalReutilizable>
 
+    <!-- Modal: Consideraciones de la Cotización -->
+    <ModalReutilizable :show="showConsideracionesModal" @close="showConsideracionesModal = false">
+      <div class="p-2">
+        <h2 class="text-[16px] font-bold text-primary mb-1 font-['Plus_Jakarta_Sans',sans-serif] flex items-center gap-2">
+          <ClipboardList :size="18" class="icon-primary" />
+          Consideraciones de la Cotización
+        </h2>
+        <p class="text-[13px] text-text-2 mb-4">
+          Estas consideraciones se mostrarán en la vista previa y en el PDF de la cotización.
+        </p>
+        <textarea
+          v-model="cotizacion.consideraciones"
+          class="nota-textarea"
+          rows="8"
+          placeholder="Escribe las consideraciones de la cotización…"
+        />
+        <div class="flex justify-end mt-4">
+          <button
+            class="px-[18px] py-[9px] text-[13px] font-semibold bg-primary text-white rounded-[8px] shadow-[var(--shadow-btn)] hover:bg-primary-dark transition"
+            @click="showConsideracionesModal = false"
+          >
+            Listo
+          </button>
+        </div>
+      </div>
+    </ModalReutilizable>
+
     <!-- Modal: cotización creada exitosamente -->
     <ModalReutilizable :show="modalCotizacionExitosa" @close="modalCotizacionExitosa = false">
       <div class="modal-exitosa">
@@ -1191,7 +1230,7 @@
           </button>
           <button
             class="modal-btn modal-btn--primary"
-            @click="push({ path: '/admin/ver-cotizaciones', query: { id: quotationId } })"
+            @click="push({ path: '/admin/ver-cotizaciones', query: { id: createdQuotationId } })"
           >
             Ver cotizaciones
           </button>
@@ -1266,6 +1305,7 @@ import {
   CheckCircle2,
   StickyNote,
   History,
+  ClipboardList,
 } from 'lucide-vue-next'
 
 import {
@@ -1299,6 +1339,7 @@ const facturarA = computed(() => {
 })
 const modalCalendarioIncompleto = ref(false);
 const modalProductoNoSeleccionado = ref(false);
+const showConsideracionesModal = ref(false);
 const showVersionsHistory = ref(false); // ✅ ADDED
 
 // ── Preview ampliado al hover sobre miniaturas de productos (paso 3) ──
@@ -1689,7 +1730,8 @@ const getCotizacion = async () => {
     cotizacion.linkMaps            = data.linkMaps;
     cotizacion.asistentes          = data.asistentes;
     cotizacion.vigencia            = data.vigencia;
-    cotizacion.description         = data.description; 
+    cotizacion.description         = data.description;
+    cotizacion.consideraciones     = data.consideraciones || '';
     cotizacion.unidadEjecucion     = data.unidadEjecucion;
     cotizacion.tipoSuelo           = data.tipoSuelo;
     cotizacion.quotationStatusId   = data.quotationStatusId;
@@ -1863,11 +1905,20 @@ const resetFormularioNuevo = () => {
 }
 const handleClearDraft = resetFormularioNuevo
 
+// Id de la cotización recién creada — se captura ANTES de resetFormularioNuevo()
+// (que pone quotationId.value en null) porque el modal de éxito sigue abierto
+// y su formulario de notas / botón "Ver cotizaciones" necesitan seguir
+// apuntando a la cotización que se acaba de crear.
+const createdQuotationId = ref(null)
+
 // Al crear una cotización nueva con éxito, deja el formulario listo para la
 // siguiente — sin esto, los campos y los items quedaban visibles aunque ya
 // se hubiera creado, y el paso seguía en el 4.
 watch(modalCotizacionExitosa, (val) => {
-  if (val) resetFormularioNuevo()
+  if (val) {
+    createdQuotationId.value = quotationId.value
+    resetFormularioNuevo()
+  }
 })
 
 const pasos = [
@@ -1998,7 +2049,7 @@ const agregarNotaModal = async () => {
     const creada = await createNotaCotizacion({
       contenido: notaModal.value.contenido.trim(),
       area: notaModal.value.area,
-      cotizacionId: Number(quotationId.value),
+      cotizacionId: Number(createdQuotationId.value),
     })
     notasModal.value.push(creada)
     notaModal.value = { contenido: '', area: '' }
@@ -2261,6 +2312,40 @@ watch(modalCotizacionExitosa, (val) => {
   padding: 20px 24px;
   box-shadow: 0 1px 4px rgba(39,200,216,.06), 0 4px 16px rgba(39,200,216,.08);
   border: 1px solid #EEF1F7;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BOTÓN: CONSIDERACIONES DE LA COTIZACIÓN
+═══════════════════════════════════════════════════════════ */
+.consideraciones-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: #FFFFFF;
+  border: 1.5px dashed #27C8D8;
+  border-radius: 18px;
+  padding: 16px 24px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: #0F1A2E;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  box-shadow: 0 1px 4px rgba(39,200,216,.06);
+}
+.consideraciones-btn:hover { background: #F0FAFB; border-color: #14B8C4; }
+.consideraciones-arrow { margin-left: auto; color: #94A3B8; flex-shrink: 0; }
+.consideraciones-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: #D1FAE5;
+  color: #065F46;
+  border-radius: 99px;
+  padding: 2px 8px;
+  font-family: 'Inter', sans-serif;
 }
 
 /* ═══════════════════════════════════════════════════════════
