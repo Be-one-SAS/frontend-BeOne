@@ -1,218 +1,229 @@
 <template>
   <div ref="pdfContent" class="pdf-container">
-    <!-- HEADER -->
-    <div class="pdf-header">
-      <div class="header-logo">
+
+    <!-- ══════════════ HEADER ══════════════ -->
+    <div class="np-header">
+      <div class="np-header-left">
         <img
           :src="pdfHeader.logo?.url || '/assets/logo.png'"
           alt="Be One Entretenimiento"
-          class="logo-image"
+          class="np-logo"
           crossorigin="anonymous"
         />
+
+        <div class="np-headline">
+          <p class="np-eyebrow">PROPUESTA DE <strong>SERVICIOS</strong></p>
+          <h1 class="np-title">VIVE LA EXPERIENCIA</h1>
+          <h1 class="np-title np-title-accent">BE ONE</h1>
+          <div class="np-title-rule"></div>
+        </div>
+
+        <p class="np-intro">
+          En respuesta a su amable solicitud, es un gusto para Be One SAS presentar
+          nuestra oferta de servicios para la realización de su evento.
+        </p>
       </div>
 
-      <div class="header-middle">
-        <svg class="header-wave" viewBox="0 0 480 92" preserveAspectRatio="none" aria-hidden="true">
-          <path
-            v-for="(wp, i) in wavePaths"
-            :key="i"
-            :d="wp.d"
-            :opacity="wp.opacity"
-            fill="none"
-            stroke="#cbd5e1"
-            stroke-width="1.4"
-          />
-        </svg>
-        <div v-if="pdfHeader.partners?.length" class="header-partners">
-          <img
-            v-for="p in pdfHeader.partners"
-            :key="p.id"
-            :src="p.imageUrl"
-            :alt="p.nombre"
-            class="partner-logo"
-            crossorigin="anonymous"
-          />
-        </div>
-      </div>
-
-      <div class="header-contact">
-        <div class="contact-row">
-          <span class="contact-label">{{ pdfHeader.contacto?.ciudad || 'Medellín' }}:</span>
-          {{ pdfHeader.contacto?.direccion || 'Calle 34a # 80b 05' }}
-        </div>
-        <div class="contact-row"><span class="contact-label">PBX:</span> {{ pdfHeader.contacto?.pbx || '6015481954' }}</div>
-        <div class="contact-row"><span class="contact-label">Celular:</span> {{ pdfHeader.contacto?.celular || '3219466564' }}</div>
-        <div class="contact-row contact-social">
-          <Instagram :size="11" class="ig-icon" />
-          {{ pdfHeader.contacto?.instagram || 'beone.eventoscorporativos' }}
+      <div class="np-header-right" :style="heroStyle">
+        <div class="np-hero-badges">
+          <div class="np-badge">
+            <FileText :size="13" class="np-badge-icon" />
+            <div class="np-badge-text">
+              <span class="np-badge-label">No. Cotización</span>
+              <span class="np-badge-value">{{ quotation.numero }}</span>
+            </div>
+          </div>
+          <div class="np-badge">
+            <Calendar :size="13" class="np-badge-icon" />
+            <div class="np-badge-text">
+              <span class="np-badge-label">Fecha de cotización</span>
+              <span class="np-badge-value">{{ formatDate(quotation.fechaCotizacion) }}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- INFO TABLE -->
-    <table class="info-table">
-      <thead>
-        <tr><th colspan="2" class="section-header">Información de Cotización</th></tr>
-      </thead>
-      <tbody>
-        <tr class="info-row"><td class="info-label">No. Cotización</td><td class="info-value"><strong>{{ quotation.numero }}-2026</strong></td></tr>
-        <tr class="info-row"><td class="info-label">Agente Comercial</td><td class="info-value">{{ quotation.agenteComercial || '—' }}</td></tr>
-        <tr class="info-row"><td class="info-label">Fecha de Cotización</td><td class="info-value">{{ formatDate(quotation.fechaCotizacion) }}</td></tr>
-        <tr class="info-row"><td class="info-label">Cliente</td><td class="info-value">{{ quotation?.cliente?.name || '—' }}</td></tr>
-        <tr class="info-row"><td class="info-label">Empresa</td><td class="info-value">{{ quotation.empresa || '—' }}</td></tr>
-        <tr class="info-row"><td class="info-label">Contacto</td><td class="info-value">{{ quotation.contacto || '—' }}</td></tr>
-        <tr class="info-row"><td class="info-label">Correo</td><td class="info-value">{{ quotation.correo || '—' }}</td></tr>
-        <tr class="info-row"><td class="info-label">Celular</td><td class="info-value">{{ quotation.celular || '—' }}</td></tr>
-      </tbody>
-    </table>
+    <!-- ══════════════ INFO BAR (Cliente / Evento / Unidad) ══════════════ -->
+    <div class="np-infobar">
+      <div class="np-info-col">
+        <div class="np-info-col-title"><User :size="13" /> Cliente</div>
+        <div class="np-info-line"><span>Contacto:</span><strong>{{ quotation.contacto || '—' }}</strong></div>
+        <div class="np-info-line"><span>Empresa:</span><strong>{{ quotation.empresa || quotation?.cliente?.name || '—' }}</strong></div>
+        <div class="np-info-line"><span>Correo:</span><strong>{{ quotation.correo || '—' }}</strong></div>
+        <div class="np-info-line"><span>Celular:</span><strong>{{ quotation.celular || '—' }}</strong></div>
+      </div>
 
-    <table class="info-table">
-      <thead>
-        <tr><th colspan="2" class="section-header">Información del Evento</th></tr>
-      </thead>
-      <tbody>
-        <tr class="info-row"><td class="info-label">Inicio Evento</td><td class="info-value">{{ formatDate(quotation.operationWindow?.eventStartAt) }} {{ formatTime(quotation.operationWindow?.eventStartAt) }}</td></tr>
-        <tr class="info-row"><td class="info-label">Fin Evento</td><td class="info-value">{{ formatDate(quotation.operationWindow?.eventEndAt) }} {{ formatTime(quotation.operationWindow?.eventEndAt) }}</td></tr>
-        <tr class="info-row"><td class="info-label">Ubicación</td><td class="info-value">{{ quotation.ubicacion || '—' }}</td></tr>
-        <tr class="info-row"><td class="info-label">Link Maps</td><td class="info-value"><span v-if="quotation.linkMaps" class="maps-link">{{ quotation.linkMaps }}</span><span v-else>—</span></td></tr>
-        <tr class="info-row"><td class="info-label">Asistentes</td><td class="info-value">{{ quotation.asistentes || '—' }}</td></tr>
-        <tr class="info-row"><td class="info-label">Región operativa</td><td class="info-value">{{ quotation.unidadEjecucion || '—' }}{{ quotation.tipoSuelo ? ' · ' + quotation.tipoSuelo : '' }}</td></tr>
-        <tr class="info-row"><td class="info-label">Vigencia</td><td class="info-value">{{ quotation.vigencia || '—' }}</td></tr>
-      </tbody>
-    </table>
+      <div class="np-info-col">
+        <div class="np-info-col-title"><CalendarDays :size="13" /> Información del evento</div>
+        <div class="np-info-line"><span>Fecha - evento - inicio:</span><strong>{{ formatDate(quotation.operationWindow?.eventStartAt) }}</strong></div>
+        <div class="np-info-line"><span>Fecha - evento - fin:</span><strong>{{ formatDate(quotation.operationWindow?.eventEndAt) }}</strong></div>
+        <div class="np-info-line"><span>Locación evento:</span><strong>{{ quotation.ubicacion || '—' }}</strong></div>
+        <div class="np-info-line"><span>Link dirección en maps:</span><strong class="np-info-link">{{ quotation.linkMaps || '—' }}</strong></div>
+        <div class="np-info-line"><span>Horario inicio evento:</span><strong>{{ formatTime(quotation.operationWindow?.eventStartAt) }}</strong></div>
+        <div class="np-info-line"><span>Horario finalización evento:</span><strong>{{ formatTime(quotation.operationWindow?.eventEndAt) }}</strong></div>
+        <div class="np-info-line"><span>Número de asistentes:</span><strong>{{ quotation.asistentes || '—' }}</strong></div>
+      </div>
 
-    <!-- INTRO -->
-    <div class="intro-text">
-      En respuesta a su amable solicitud, es un gusto para Be One SAS presentar nuestra oferta de servicios para la realización de su evento.
+      <div class="np-info-col np-info-col-mini">
+        <div class="np-mini-block">
+          <MapPin :size="16" class="np-mini-icon" />
+          <div><span class="np-mini-label">Unidad ejecución:</span><strong class="np-mini-value">{{ quotation.unidadEjecucion || '—' }}</strong></div>
+        </div>
+        <div class="np-mini-block">
+          <Layers :size="16" class="np-mini-icon" />
+          <div><span class="np-mini-label">Tipo de suelo:</span><strong class="np-mini-value">{{ quotation.tipoSuelo || '—' }}</strong></div>
+        </div>
+        <div class="np-mini-block">
+          <CalendarCheck :size="16" class="np-mini-icon" />
+          <div><span class="np-mini-label">Vigencia de cotización:</span><strong class="np-mini-value">{{ quotation.vigencia || '—' }}</strong></div>
+        </div>
+      </div>
     </div>
 
-    <!-- NOTA 1 -->
-    <div class="note-box">
-      <div class="note-box-title">Nota 1</div>
-      <ol class="note-box-list">
-        <li v-for="(item, i) in nota1Items" :key="i">{{ item }}</li>
-      </ol>
-    </div>
-
-    <!-- SERVICES TABLE -->
-    <div class="services-section">
-      <div class="services-panel">
-        <div class="services-section-header">Producción Logística</div>
-
-        <table class="services-table">
+    <!-- ══════════════ PRODUCCIÓN LOGÍSTICA ══════════════ -->
+    <div class="np-table-wrap">
+      <div class="np-table-header"><Truck :size="15" /> PRODUCCIÓN <strong>LOGÍSTICA</strong></div>
+      <table class="np-table">
         <thead>
           <tr>
-            <th class="col-img">Producto</th>
-            <th class="col-q">Q Jornada</th>
-            <th class="col-cant">Cantidad</th>
-            <th class="col-horas">Horas adic.</th>
-            <th class="col-desc">Descripción</th>
-            <th class="col-precio">Precio Unitario</th>
-            <th class="col-subtotal">Subtotal</th>
-            <th class="col-dcto" v-if="tieneDescuento">% Dcto</th>
-            <th class="col-total">Total</th>
+            <th class="np-th-c">Item</th>
+            <th class="np-th-c">Q. Jornada</th>
+            <th class="np-th-c">Cantidad</th>
+            <th>Descripción</th>
+            <th class="np-th-r">Precio unitario</th>
+            <th class="np-th-r">Subtotal ítem</th>
           </tr>
         </thead>
         <tbody>
-          <template v-for="(item, idx) in (quotation.items || [])" :key="'own-' + idx">
-            <tr>
-              <td class="cell-img">
-                <img
-                  v-if="isUploadedImage(item.product?.linkFotoDispositivo)"
-                  :src="item.product.linkFotoDispositivo"
-                  :alt="item.product?.nombre || 'Producto'"
-                  class="product-thumb"
-                  crossorigin="anonymous"
-                />
-                <div v-else class="product-thumb-placeholder">Sin foto</div>
-              </td>
-              <td class="cell-c">{{ item.cantidadJornada || item.quantity || 1 }}</td>
-              <td class="cell-c">{{ item.cantidadProducto || 1 }}</td>
-              <td class="cell-c">{{ item.horasAdicionales || 0 }}</td>
-              <td class="cell-desc">{{ item.product?.nombre || item.product?.dispositivo || item.producto?.nombre || item.nombre || item.dispositivo || item.descripcion || 'Producto' }}</td>
-              <td class="cell-num">{{ formatCurrency(item.unitPrice || 0) }}</td>
-              <td class="cell-num">{{ formatCurrency((item.unitPrice || 0) * getQuantity(item)) }}</td>
-              <td class="cell-c" v-if="tieneDescuento">{{ getDescuentoPct(item) }}%</td>
-              <td class="cell-num">{{ formatCurrency(calculateItemTotal(item)) }}</td>
-            </tr>
-          </template>
-          <template v-for="(item, idx) in (quotation.thirdPartyItems || [])" :key="'third-' + idx">
-            <tr class="row-third">
-              <td class="cell-img">
-                <img
-                  v-if="isUploadedImage(item.catalogProduct?.linkFotoDispositivo)"
-                  :src="item.catalogProduct.linkFotoDispositivo"
-                  :alt="item.catalogProduct?.nombre || 'Producto'"
-                  class="product-thumb"
-                  crossorigin="anonymous"
-                />
-                <div v-else class="product-thumb-placeholder">Sin foto</div>
-              </td>
-              <td class="cell-c">{{ item.cantidadJornada || 1 }}</td>
-              <td class="cell-c">{{ item.cantidad || 1 }}</td>
-              <td class="cell-c">{{ item.horasAdicionales || 0 }}</td>
-              <td class="cell-desc">
-                {{ item.catalogProduct?.nombre || item.catalogProduct?.dispositivo || item.catalogItem?.nombre || item.nombre || item.descripcion || 'Producto de tercero' }}
-              </td>
-              <td class="cell-num">{{ formatCurrency(item.precioUnitario || item.costo || 0) }}</td>
-              <td class="cell-num">{{ formatCurrency((item.precioUnitario || item.costo || 0) * getQuantity(item)) }}</td>
-              <td class="cell-c" v-if="tieneDescuento">{{ getDescuentoPct(item) }}%</td>
-              <td class="cell-num">{{ formatCurrency(item.precioTotal || calculateItemTotal(item)) }}</td>
-            </tr>
-          </template>
-          <tr class="row-total-label">
-            <td :colspan="tieneDescuento ? 9 : 8" class="cell-total-label">Valor Total</td>
+          <tr v-for="(fila, idx) in filaItems" :key="fila.key">
+            <td class="np-td-c">{{ idx + 1 }}</td>
+            <td class="np-td-c">{{ fila.jornada }}</td>
+            <td class="np-td-c">{{ fila.cantidad }}</td>
+            <td class="np-td-desc">
+              <div class="np-row-icon">
+                <img v-if="fila.imagen" :src="fila.imagen" :alt="fila.nombre" crossorigin="anonymous" />
+                <Package v-else :size="18" />
+              </div>
+              <div class="np-row-desc-text">
+                <strong>{{ fila.nombre }}</strong>
+                <p v-if="fila.descripcion">{{ fila.descripcion }}</p>
+              </div>
+            </td>
+            <td class="np-td-num">{{ formatCurrency(fila.unitPrice) }}</td>
+            <td class="np-td-num">{{ formatCurrency(fila.subtotalItem) }}</td>
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- ══════════════ TOTALES + COMPROMISO ══════════════ -->
+    <div class="np-summary-row">
+      <div class="np-total-card">
+        <div class="np-total-tag"><Tag :size="18" /></div>
+        <div class="np-total-label">Valor total</div>
+        <div class="np-total-amount">{{ formatCurrency(total) }}</div>
+        <p class="np-total-thanks">Gracias por permitirnos ser parte de experiencias que conectan y dejan huella.</p>
+        <p class="np-total-signature">Be One</p>
       </div>
 
-      <!-- TOTALS -->
-      <div class="totals-wrapper">
-        <table class="totals-table">
-          <thead>
-            <tr>
-              <th>Subtotal</th>
-              <th v-if="tieneDescuento">Con Descuento</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>{{ formatCurrency(subtotal) }}</td>
-              <td v-if="tieneDescuento">{{ formatCurrency(subtotalAjustado) }}</td>
-              <td>{{ formatCurrency(subtotalAjustado) }}</td>
-            </tr>
-            <tr>
-              <td :colspan="tieneDescuento ? 2 : 1" class="totals-label">IVA (19%)</td>
-              <td>{{ formatCurrency(iva) }}</td>
-            </tr>
-            <tr class="row-grand-total">
-              <td :colspan="tieneDescuento ? 2 : 1" class="totals-label grand">Valor Total</td>
-              <td class="grand-value">{{ formatCurrency(total) }}</td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="np-breakdown-card">
+        <div class="np-breakdown-row">
+          <span>Subtotal</span>
+          <strong>{{ formatCurrency(subtotalAjustado) }}</strong>
+        </div>
+        <div class="np-breakdown-row">
+          <span>IVA (19%)</span>
+          <strong>{{ formatCurrency(iva) }}</strong>
+        </div>
+        <div class="np-breakdown-row np-breakdown-total">
+          <span>Valor total</span>
+          <strong>{{ formatCurrency(total) }}</strong>
+        </div>
+      </div>
+
+      <div class="np-compromiso-card">
+        <div class="np-compromiso-title"><ShieldCheck :size="15" /> Nuestro compromiso</div>
+        <ul class="np-compromiso-list">
+          <li><Check :size="12" /> Experiencias memorables</li>
+          <li><Check :size="12" /> Seguridad y calidad</li>
+          <li><Check :size="12" /> Puntualidad y cumplimiento</li>
+          <li><Check :size="12" /> Equipo profesional</li>
+        </ul>
       </div>
     </div>
 
-    <!-- NOTA 2 -->
-    <div class="note-box">
-      <div class="note-box-title">Nota 2</div>
-      <p class="note-text"><strong>Condiciones del servicio:</strong> La presente cotización tiene una validez de {{ quotation.vigencia || '30 días' }}. Los precios están expresados en pesos colombianos e incluyen IVA cuando aplica.</p>
-      <p class="note-text"><strong>Política de cancelación:</strong> Cancelaciones con menos de 48 horas de anticipación al evento tendrán un cargo del 50% del valor total. No-shows (no presentación) tendrán un cargo del 100%.</p>
+    <!-- ══════════════ ELABORÓ / REVISÓ / QR ══════════════ -->
+    <div class="np-signoff-row">
+      <div class="np-signoff-col">
+        <div class="np-signoff-label">Elaboró</div>
+        <div class="np-signoff-name">{{ quotation.createdBy?.fullName || quotation.agenteComercial || '—' }}</div>
+        <div class="np-signoff-role">Dirección Comercial</div>
+        <div v-if="quotation.createdBy?.telefono" class="np-signoff-contact"><Phone :size="10" /> {{ quotation.createdBy.telefono }}</div>
+        <div v-if="quotation.createdBy?.email" class="np-signoff-contact"><Mail :size="10" /> {{ quotation.createdBy.email }}</div>
+      </div>
+
+      <div v-if="quotation.responsableOperativo" class="np-signoff-col">
+        <div class="np-signoff-label">Revisó</div>
+        <div class="np-signoff-name">{{ quotation.responsableOperativo.fullName }}</div>
+        <div class="np-signoff-role">Dirección Operativa{{ quotation.unidadEjecucion ? ' ' + quotation.unidadEjecucion : '' }}</div>
+        <div v-if="quotation.responsableOperativo.telefono" class="np-signoff-contact"><Phone :size="10" /> {{ quotation.responsableOperativo.telefono }}</div>
+        <div v-if="quotation.responsableOperativo.email" class="np-signoff-contact"><Mail :size="10" /> {{ quotation.responsableOperativo.email }}</div>
+      </div>
+
+      <div v-if="qrDataUrl" class="np-qr-col">
+        <img :src="qrDataUrl" alt="QR portafolio" class="np-qr-img" />
+        <div class="np-qr-text">
+          <strong>Conoce más de nuestros servicios</strong>
+          <p>Escanea el código QR para ver imágenes y videos de nuestras atracciones y montajes.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ NOTAS / CONDICIONES ══════════════ -->
+    <div class="np-footer-notes">
+      <div class="np-note-dark">
+        <div class="np-note-dark-title"><FileText :size="14" /> Notas importantes</div>
+        <ul class="np-note-dark-list">
+          <li v-for="(item, i) in nota1Items" :key="i"><Check :size="11" class="np-note-check" /> {{ item }}</li>
+        </ul>
+      </div>
+      <div class="np-note-dark">
+        <div class="np-note-dark-title"><ShieldCheck :size="14" /> Condiciones de servicio y política de cancelación</div>
+        <p class="np-note-dark-text">
+          Para reservar el servicio debemos recibir su confirmación formal con Orden de compra,
+          Carta de confirmación o documento que acredite la aceptación de la oferta y pago del
+          50% sobre el valor total de la oferta; el 50% restante deberá ser pagado 15 días
+          después de radicada la factura.
+        </p>
+        <p class="np-note-dark-text">
+          Con el fin de asegurar la disponibilidad del lugar, atracciones, equipos y/o servicios,
+          se sugiere reservar con 30 días de anticipación a la fecha del evento.
+        </p>
+        <p class="np-note-dark-text np-note-dark-strong">Política de cancelación:</p>
+        <p class="np-note-dark-text">
+          <strong>Temporada alta (junio a diciembre):</strong> se debe cancelar el evento mínimo 30 días
+          hábiles antes de la fecha prevista, de lo contrario no se realizará la devolución del pago de
+          anticipo o pago total realizado.
+        </p>
+        <p class="np-note-dark-text">
+          <strong>Temporada baja (enero a mayo):</strong> se debe cancelar el evento mínimo 8 días
+          hábiles antes de la fecha prevista, de lo contrario no se realizará la devolución del pago de
+          anticipo o pago total realizado.
+        </p>
+      </div>
     </div>
 
     <!-- CONSIDERACIONES DE LA COTIZACIÓN -->
-    <div v-if="quotation.consideraciones" class="note-box">
-      <div class="note-box-title">Consideraciones de la Cotización</div>
-      <p class="note-text note-text-pre">{{ quotation.consideraciones }}</p>
+    <div v-if="quotation.consideraciones" class="np-note-dark np-note-full">
+      <div class="np-note-dark-title"><ClipboardList :size="14" /> Consideraciones de la cotización</div>
+      <p class="np-note-dark-text np-note-text-pre">{{ quotation.consideraciones }}</p>
     </div>
 
-    <!-- GALERÍA DE PRODUCTOS (página aparte) -->
+    <!-- ══════════════ GALERÍA DE PRODUCTOS (página aparte) ══════════════ -->
     <div v-if="galleryItems.length" class="gallery-page">
       <div class="gallery-panel">
-        <div class="services-section-header">Galería de Productos</div>
+        <div class="np-table-header"><Package :size="15" /> Galería de <strong>productos</strong></div>
         <div class="gallery-grid">
           <div v-for="(g, idx) in galleryItems" :key="'gal-' + idx" class="gallery-card">
             <img
@@ -229,19 +240,44 @@
       </div>
     </div>
 
-    <!-- FOOTER -->
-    <div class="pdf-footer">
-      <p class="footer-text">Gracias por confiar en Be One Entretenimiento</p>
-      <p class="footer-date">Documento generado el {{ new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' }) }}</p>
+    <!-- ══════════════ FOOTER FINAL ══════════════ -->
+    <div class="np-final-footer">
+      <img
+        :src="pdfHeader.logo?.url || '/assets/logo.png'"
+        alt="Be One Entretenimiento"
+        class="np-footer-logo"
+        crossorigin="anonymous"
+      />
+      <div class="np-footer-cats">
+        <div class="np-footer-cat"><PartyPopper :size="16" /><span>Eventos<br />Corporativos</span></div>
+        <div class="np-footer-cat"><Music :size="16" /><span>Conciertos<br />y Festivales</span></div>
+        <div class="np-footer-cat"><Sparkles :size="16" /><span>Atracciones<br />de Gran Formato</span></div>
+        <div class="np-footer-cat"><Users :size="16" /><span>Activaciones<br />Experienciales</span></div>
+      </div>
+      <p class="np-footer-tagline">Eventos únicos<br />diseñados para impactar.</p>
+    </div>
+    <div v-if="pdfHeader.partners?.length" class="np-footer-partners">
+      <img
+        v-for="p in pdfHeader.partners"
+        :key="p.id"
+        :src="p.imageUrl"
+        :alt="p.nombre"
+        crossorigin="anonymous"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { formatCOP } from '@/utils/currency.js'
 import api from '@/services/api'
-import { Instagram } from 'lucide-vue-next'
+import QRCode from 'qrcode'
+import {
+  FileText, Calendar, User, CalendarDays, MapPin, Layers, CalendarCheck,
+  Truck, Package, Tag, ShieldCheck, Check, Phone, Mail, ClipboardList,
+  PartyPopper, Music, Sparkles, Users,
+} from 'lucide-vue-next'
 
 const props = defineProps({
   quotation: {
@@ -252,10 +288,10 @@ const props = defineProps({
 
 const pdfContent = ref(null)
 
-// ── Encabezado configurable (logo + logos de certificación + datos/RRSS) ──
-// Editable desde /configuracion → AppConfigService (key 'pdf_header'). El
-// patrón ondulado de fondo NO es configurable, se genera acá mismo.
-const pdfHeader = ref({ logo: null, partners: [], contacto: {} })
+// ── Encabezado configurable (logo + foto del evento + logos de certificación
+// + contacto/QR) — editable desde /configuracion → AppConfigService (key
+// 'pdf_header').
+const pdfHeader = ref({ logo: null, heroImage: null, partners: [], contacto: {} })
 
 onMounted(async () => {
   try {
@@ -263,7 +299,8 @@ onMounted(async () => {
     pdfHeader.value = data
   } catch {
     // Sin config guardada aún (o falla de red) — se queda con los defaults
-    // (logo estático, sin logos de certificación) y el PDF sigue funcionando.
+    // (logo estático, sin foto de evento, sin logos de certificación) y el
+    // PDF sigue funcionando.
   }
 })
 
@@ -284,35 +321,34 @@ onMounted(async () => {
 const nota1Items = computed(() => pdfHeader.value.notas?.nota1?.length
   ? pdfHeader.value.notas.nota1
   : [
-      'Se envía cotización con el fin de ser aprobada por el cliente.',
-      'Se confirma reserva con el 50% del valor del alquiler.',
-      'Se envía factura de venta y se cancela el 50% restante antes del evento.',
+      'Todos los productos y/o servicios cotizados están sujetos a disponibilidad de inventarios y cambio de costos sin previo aviso.',
+      'Los valores de artistas/grupos/shows no incluyen Rider Técnico, el cual se debe cotizar dependiendo del o de los artistas elegidos.',
+      'Los valores descritos son por un día de evento o la jornada descrita en la cotización (Q. Jornada).',
+      'La vigencia de esta oferta es la descrita al inicio de esta cotización.',
+      'Únicamente se reserva el servicio cotizado con carta de aprobación de la oferta, Orden de Compra o documento formal que haga sus veces.',
+      'No incluye valor de parqueadero.',
     ])
 
-// Genera una línea ondulada suave tipo "M0,y Q.. .. Q.. ..." — varias capas
-// con distinto baseline/amplitud/opacidad dan el efecto de líneas fluidas
-// superpuestas del diseño de referencia, sin depender de un asset externo.
-const wavePath = (baseY, amp, width, step) => {
-  let d = `M0,${baseY}`
-  let x = 0
-  let up = true
-  while (x < width) {
-    const nx = Math.min(x + step, width)
-    const cy = up ? baseY - amp : baseY + amp
-    d += ` Q${x + (nx - x) / 2},${cy} ${nx},${baseY}`
-    x = nx
-    up = !up
-  }
-  return d
-}
+// Foto del evento en el header — sin una configurada desde /configuracion,
+// cae a la foto por defecto del proyecto (public/assets/fondo-login.webp).
+const heroStyle = computed(() => {
+  const url = pdfHeader.value.heroImage?.url || '/assets/fondo-login.webp'
+  return { backgroundImage: `url(${url})` }
+})
 
-const WAVE_WIDTH = 480
-const wavePaths = [
-  { d: wavePath(22, 12, WAVE_WIDTH, 68), opacity: 0.5 },
-  { d: wavePath(38, 9,  WAVE_WIDTH, 58), opacity: 0.35 },
-  { d: wavePath(54, 15, WAVE_WIDTH, 76), opacity: 0.45 },
-  { d: wavePath(70, 8,  WAVE_WIDTH, 54), opacity: 0.3 },
-]
+// QR hacia el portafolio configurado en /configuracion — sin URL, se omite
+// el bloque entero en vez de mostrar un QR que no lleve a ningún lado.
+const qrDataUrl = ref(null)
+watch(() => pdfHeader.value.contacto?.portafolioUrl, async (url) => {
+  if (!url) { qrDataUrl.value = null; return }
+  try {
+    qrDataUrl.value = await QRCode.toDataURL(url, {
+      width: 160, margin: 1, color: { dark: '#0F1A2E', light: '#FFFFFF' },
+    })
+  } catch {
+    qrDataUrl.value = null
+  }
+}, { immediate: true })
 
 // Solo se aceptan imágenes que vengan de nuestro propio servicio de carga
 // (R2) — links viejos (Google Drive, etc.) no sirven bytes de imagen directa
@@ -320,27 +356,11 @@ const wavePaths = [
 const r2PublicUrl = import.meta.env.VITE_R2_PUBLIC_URL
 const isUploadedImage = (url) => !!url && !!r2PublicUrl && url.startsWith(r2PublicUrl)
 
-const galleryItems = computed(() => {
-  const own = (props.quotation.items || []).map((item) => ({
-    nombre: item.product?.nombre || item.product?.dispositivo || item.producto?.nombre || item.nombre || item.dispositivo || item.descripcion || 'Producto',
-    image: isUploadedImage(item.product?.linkFotoDispositivo) ? item.product.linkFotoDispositivo : null,
-    tercero: false,
-  }))
-
-  const third = (props.quotation.thirdPartyItems || []).map((item) => ({
-    nombre: item.catalogProduct?.nombre || item.catalogProduct?.dispositivo || item.catalogItem?.nombre || item.nombre || item.descripcion || 'Producto de tercero',
-    image: isUploadedImage(item.catalogProduct?.linkFotoDispositivo) ? item.catalogProduct.linkFotoDispositivo : null,
-    tercero: true,
-  }))
-
-  return [...own, ...third]
-})
-
 const formatDate = (iso) => {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('es-CO', {
     day: '2-digit',
-    month: 'short',
+    month: '2-digit',
     year: 'numeric'
   })
 }
@@ -380,6 +400,49 @@ const calculateItemTotal = (item) => {
   const horasExtra = subtotal * (item.horasAdicionales || 0) * porcentajeHoraAdicional.value / 100
   return subtotal - descuento + aumento + horasExtra
 }
+
+// Filas unificadas (propios + terceros) para la tabla "Producción Logística".
+const filaItems = computed(() => {
+  const own = (props.quotation.items || []).map((item, i) => ({
+    key: 'own-' + i,
+    nombre: item.product?.nombre || item.product?.dispositivo || item.producto?.nombre || item.nombre || item.dispositivo || item.descripcion || 'Producto',
+    descripcion: item.product?.descripcion || item.descripcion || '',
+    imagen: isUploadedImage(item.product?.linkFotoDispositivo) ? item.product.linkFotoDispositivo : null,
+    jornada: item.cantidadJornada || item.quantity || 1,
+    cantidad: item.cantidadProducto || 1,
+    unitPrice: item.unitPrice || 0,
+    subtotalItem: calculateItemTotal(item),
+  }))
+
+  const third = (props.quotation.thirdPartyItems || []).map((item, i) => ({
+    key: 'third-' + i,
+    nombre: item.catalogProduct?.nombre || item.catalogProduct?.dispositivo || item.catalogItem?.nombre || item.nombre || item.descripcion || 'Producto de tercero',
+    descripcion: item.catalogProduct?.descripcion || item.descripcion || '',
+    imagen: isUploadedImage(item.catalogProduct?.linkFotoDispositivo) ? item.catalogProduct.linkFotoDispositivo : null,
+    jornada: item.cantidadJornada || 1,
+    cantidad: item.cantidad || 1,
+    unitPrice: item.precioUnitario || item.costo || 0,
+    subtotalItem: item.precioTotal || calculateItemTotal(item),
+  }))
+
+  return [...own, ...third]
+})
+
+const galleryItems = computed(() => {
+  const own = (props.quotation.items || []).map((item) => ({
+    nombre: item.product?.nombre || item.product?.dispositivo || item.producto?.nombre || item.nombre || item.dispositivo || item.descripcion || 'Producto',
+    image: isUploadedImage(item.product?.linkFotoDispositivo) ? item.product.linkFotoDispositivo : null,
+    tercero: false,
+  }))
+
+  const third = (props.quotation.thirdPartyItems || []).map((item) => ({
+    nombre: item.catalogProduct?.nombre || item.catalogProduct?.dispositivo || item.catalogItem?.nombre || item.nombre || item.descripcion || 'Producto de tercero',
+    image: isUploadedImage(item.catalogProduct?.linkFotoDispositivo) ? item.catalogProduct.linkFotoDispositivo : null,
+    tercero: true,
+  }))
+
+  return [...own, ...third]
+})
 
 const subtotal = computed(() => {
   const items = props.quotation.items || []
@@ -445,8 +508,6 @@ const aumentoTotal = computed(() => {
   return itemsAumento + thirdPartyAumento
 })
 
-const tieneDescuento = computed(() => descuentoTotal.value > 0)
-
 const subtotalAjustado = computed(() => subtotal.value - descuentoTotal.value + aumentoTotal.value)
 
 const iva = computed(() => subtotalAjustado.value * 0.19)
@@ -458,11 +519,10 @@ const total = computed(() => subtotalAjustado.value + iva.value)
 .pdf-container {
   font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
   font-size: 11.5px;
-  line-height: 1.65;
+  line-height: 1.55;
   letter-spacing: 0.1px;
   color: #1e293b;
   background: white;
-  padding: 24px 28px;
   max-width: 210mm;
   margin: 0 auto;
   -webkit-print-color-adjust: exact;
@@ -470,415 +530,559 @@ const total = computed(() => subtotalAjustado.value + iva.value)
 }
 
 /* ── HEADER ───────────────────────────────────── */
-.pdf-header {
+.np-header {
   display: flex;
-  justify-content: space-between;
   align-items: stretch;
-  gap: 16px;
-  margin-bottom: 20px;
-  padding-bottom: 14px;
-  border-bottom: 2px solid #27c8d8;
+  min-height: 220px;
 }
 
-.header-logo {
-  display: flex;
-  align-items: flex-start;
+.np-header-left {
+  width: 42%;
   flex-shrink: 0;
+  padding: 20px 20px 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.logo-image {
+.np-logo {
   display: block;
-  max-height: 44px;
+  align-self: flex-start;
+  max-height: 40px;
   max-width: 160px;
   height: auto;
   width: auto;
-}
-
-/* ── Patrón del medio: líneas onduladas fijas + logos de certificación ── */
-.header-middle {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-  min-height: 64px;
-  align-self: stretch;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: visible;
-}
-
-.header-wave {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.header-partners {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  z-index: 1;
-  width: 100%;
-  height: auto;
-}
-
-.partner-logo {
-  display: block;
-  max-height: 60px;
-  max-width: 220px;
-  width: auto;
-  height: auto;
   object-fit: contain;
 }
 
-.header-contact {
-  text-align: right;
-  font-size: 9.5px;
+.np-headline { margin-top: 6px; }
+
+.np-eyebrow {
+  margin: 0 0 2px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: #27c8d8;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+}
+
+.np-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.12;
+  color: #0f1a2e;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  letter-spacing: -0.2px;
+}
+
+.np-title-accent { color: #27c8d8; }
+
+.np-title-rule {
+  width: 46px;
+  height: 3px;
+  border-radius: 2px;
+  background: #27c8d8;
+  margin-top: 8px;
+}
+
+.np-intro {
+  margin: 6px 0 0;
+  font-size: 10.5px;
   color: #64748b;
-  line-height: 1.7;
-  flex-shrink: 0;
+  line-height: 1.65;
 }
 
-.contact-row {
-  margin: 1px 0;
+.np-header-right {
+  flex: 1;
+  position: relative;
+  clip-path: polygon(10% 0, 100% 0, 100% 100%, 0% 100%);
+  background-size: cover;
+  background-position: center;
+  background-color: #0f1a2e;
 }
 
-.contact-label {
-  font-weight: 600;
-  color: #475569;
+.np-hero-badges {
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  display: flex;
+  gap: 8px;
 }
 
-.contact-social {
+.np-badge {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 4px;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 10px;
+  padding: 6px 10px;
+  box-shadow: 0 2px 8px rgba(15, 26, 46, 0.25);
 }
 
-.ig-icon {
+.np-badge-icon { color: #27c8d8; flex-shrink: 0; }
+
+.np-badge-text { display: flex; flex-direction: column; line-height: 1.25; }
+
+.np-badge-label {
+  font-size: 7px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #64748b;
+}
+
+.np-badge-value {
+  font-size: 11px;
+  font-weight: 800;
+  color: #0f1a2e;
+}
+
+/* ── INFO BAR ─────────────────────────────────── */
+.np-infobar {
+  display: flex;
+  border-bottom: 2px solid #f1f5f9;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.np-info-col {
+  flex: 1;
+  padding: 14px 18px;
+  border-right: 1px solid #eef2f7;
+}
+
+.np-info-col:last-child { border-right: none; }
+
+.np-info-col-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   color: #27c8d8;
+  margin-bottom: 8px;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+}
+
+.np-info-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 9.5px;
+  padding: 3px 0;
+  border-bottom: 1px dashed #f1f5f9;
+}
+
+.np-info-line span {
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-weight: 600;
   flex-shrink: 0;
 }
 
-/* ── SECTION HEADERS ──────────────────────────── */
-.section-header {
-  background: #f1f5f9;
+.np-info-line strong {
   color: #1e293b;
-  font-weight: 700;
-  text-align: left;
-  padding: 9px 14px;
-  font-size: 12.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-/* ── INFO TABLES ──────────────────────────────── */
-.info-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 10px;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  overflow: hidden;
-  break-inside: avoid;
-  page-break-inside: avoid;
-}
-
-.info-table td {
-  padding: 7px 14px;
-  border: 1px solid #e2e8f0;
-  font-size: 11px;
-  vertical-align: top;
-}
-
-.info-label {
-  background: #f8fafc;
   font-weight: 600;
-  color: #475569;
-  width: 34%;
-  white-space: nowrap;
-}
-
-.info-value {
-  color: #1e293b;
-  font-weight: 500;
-}
-
-.maps-link {
-  color: #475569;
-  text-decoration: underline;
-  word-break: break-all;
-}
-
-/* ── INTRO TEXT ───────────────────────────────── */
-.intro-text {
-  margin: 16px 0;
-  padding: 14px 16px;
-  background: #f8fafc;
-  border-left: 3px solid #cbd5e1;
-  border-radius: 0 8px 8px 0;
-  font-size: 11.5px;
-  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
-  color: #334155;
-  line-height: 1.7;
-  break-inside: avoid;
-  page-break-inside: avoid;
-}
-
-/* ── NOTES BOX ────────────────────────────────── */
-.note-box {
-  margin: 12px 0;
-  padding: 12px 14px;
-  background: #fffbeb;
-  border: 1px solid #fde68a;
-  border-radius: 10px;
-  break-inside: avoid;
-  page-break-inside: avoid;
-}
-
-.note-box-title {
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 7px;
-  font-size: 11.5px;
-  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-}
-
-.note-box-list {
-  margin: 0;
-  padding-left: 18px;
-  font-size: 10.5px;
-  color: #475569;
-  line-height: 1.6;
-}
-
-.note-box-list li {
-  margin: 3px 0;
-}
-
-.note-text {
-  font-size: 10.5px;
-  color: #475569;
-  margin: 6px 0;
-  line-height: 1.6;
-}
-
-.note-text-pre {
-  white-space: pre-wrap;
+  text-align: right;
   word-break: break-word;
 }
 
-/* ── SERVICES SECTION ─────────────────────────── */
-.services-section {
-  margin: 20px 0;
+.np-info-link { font-size: 8.5px; }
+
+.np-info-col-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
 }
 
-.services-panel {
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  overflow: hidden;
+.np-mini-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.services-section-header {
-  background: #f1f5f9;
-  color: #1e293b;
-  padding: 9px 14px;
-  font-size: 12.5px;
+.np-mini-icon {
+  color: #27c8d8;
+  flex-shrink: 0;
+  background: #e6fbfd;
+  border-radius: 8px;
+  padding: 6px;
+  width: 28px;
+  height: 28px;
+  box-sizing: border-box;
+}
+
+.np-mini-label {
+  display: block;
+  font-size: 8px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
-  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
-  border-bottom: 1px solid #e2e8f0;
+  letter-spacing: 0.4px;
+  color: #94a3b8;
 }
 
-.services-table {
+.np-mini-value {
+  display: block;
+  font-size: 11px;
+  color: #1e293b;
+  font-weight: 700;
+}
+
+/* ── PRODUCCIÓN LOGÍSTICA ─────────────────────── */
+.np-table-wrap {
+  margin: 18px 24px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.np-table-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #0f1a2e;
+  color: #ffffff;
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+}
+
+.np-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 10.5px;
 }
 
-.services-table thead th {
+.np-table thead th {
   background: #f8fafc;
-  color: #1e293b;
+  color: #475569;
   font-weight: 700;
   text-align: left;
-  padding: 9px 6px;
-  font-size: 9.5px;
+  padding: 8px 10px;
+  font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.4px;
-  border: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
 }
 
-.col-img { width: 12%; text-align: center; }
-.col-q { width: 7%; text-align: center; }
-.col-cant { width: 7%; text-align: center; }
-.col-horas { width: 7%; text-align: center; }
-.col-desc { width: 20%; }
-.col-precio { width: 13%; text-align: right; }
-.col-subtotal { width: 13%; text-align: right; }
-.col-dcto { width: 7%; text-align: center; }
-.col-total { width: 13%; text-align: right; }
+.np-th-c { text-align: center; }
+.np-th-r { text-align: right; }
 
-.services-table tbody td {
-  padding: 8px 6px;
-  border: 1px solid #e2e8f0;
-  font-size: 10.5px;
-  vertical-align: top;
-}
-
-.services-table tbody tr {
+.np-table tbody tr {
   break-inside: avoid;
   page-break-inside: avoid;
+  border-bottom: 1px solid #eef2f7;
 }
 
-.cell-c {
-  text-align: center;
-  color: #475569;
-}
-
-.cell-img {
-  text-align: center;
+.np-table tbody td {
+  padding: 10px;
   vertical-align: middle;
-  padding: 4px;
 }
 
-.product-thumb {
-  display: block;
-  width: 40px;
-  height: 40px;
-  object-fit: cover;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  margin: 0 auto;
-}
+.np-td-c { text-align: center; color: #475569; font-weight: 600; }
 
-.product-thumb-placeholder {
+.np-td-desc { display: flex; align-items: center; gap: 10px; }
+
+.np-row-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #e6fbfd;
+  color: #27c8d8;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  margin: 0 auto;
-  border-radius: 8px;
-  border: 1px dashed #cbd5e1;
-  background: #f8fafc;
-  color: #94a3b8;
-  font-size: 6.5px;
-  text-align: center;
-  line-height: 1.2;
+  flex-shrink: 0;
+  overflow: hidden;
 }
 
-.cell-desc {
-  font-weight: 600;
-  color: #1e293b;
+.np-row-icon img { width: 100%; height: 100%; object-fit: cover; }
+
+.np-row-desc-text strong {
+  display: block;
+  color: #0f1a2e;
+  font-size: 10.5px;
 }
 
-.cell-num {
+.np-row-desc-text p {
+  margin: 2px 0 0;
+  color: #64748b;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.np-td-num {
   text-align: right;
   font-family: 'JetBrains Mono', 'Courier New', monospace;
-  font-weight: 600;
-  font-size: 9.5px;
-}
-
-.row-third {
-  background: #f0f9ff;
-}
-
-.row-total-label {
-  background: #f1f5f9;
-}
-
-.cell-total-label {
-  text-align: right;
   font-weight: 700;
-  color: #1e293b;
-  text-transform: uppercase;
-  padding: 9px 14px;
-  font-size: 11.5px;
-  letter-spacing: 0.5px;
-  border: 1px solid #e2e8f0;
+  font-size: 10px;
+  color: #0f1a2e;
+  white-space: nowrap;
 }
 
-/* ── TOTALS ───────────────────────────────────── */
-.totals-wrapper {
-  margin-top: 12px;
+/* ── TOTALES + COMPROMISO ─────────────────────── */
+.np-summary-row {
   display: flex;
-  justify-content: flex-end;
+  gap: 14px;
+  margin: 0 24px 18px;
+  align-items: stretch;
   break-inside: avoid;
   page-break-inside: avoid;
 }
 
-.totals-table {
-  width: 320px;
-  border-collapse: collapse;
-  font-size: 10.5px;
-  border-radius: 10px;
-  overflow: hidden;
+.np-total-card {
+  flex: 1.1;
+  background: #0f1a2e;
+  border-radius: 12px;
+  padding: 16px 18px;
+  color: #ffffff;
 }
 
-.totals-table thead th {
-  background: #f1f5f9;
-  color: #1e293b;
-  font-weight: 700;
-  text-align: center;
-  padding: 8px 6px;
+.np-total-tag {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: rgba(39, 200, 216, 0.18);
+  color: #27c8d8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.np-total-label {
   font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #94a3b8;
+}
+
+.np-total-amount {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 2px 0 8px;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+}
+
+.np-total-thanks {
+  font-size: 9px;
+  color: #cbd5e1;
+  line-height: 1.5;
+  margin: 0 0 8px;
+}
+
+.np-total-signature {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-style: italic;
+  font-size: 15px;
+  color: #27c8d8;
+  margin: 0;
+}
+
+.np-breakdown-card {
+  flex: 1;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.np-breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10.5px;
+}
+
+.np-breakdown-row span { color: #64748b; font-weight: 600; }
+.np-breakdown-row strong {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #1e293b;
+  font-size: 11px;
+}
+
+.np-breakdown-total {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid #e2e8f0;
+}
+.np-breakdown-total span { color: #0f1a2e; font-weight: 700; font-size: 11.5px; }
+.np-breakdown-total strong { color: #27c8d8; font-size: 14px; }
+
+.np-compromiso-card {
+  flex: 1.1;
+  background: #0f1a2e;
+  border-radius: 12px;
+  padding: 16px 18px;
+  color: #ffffff;
+}
+
+.np-compromiso-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.4px;
-  border: 1px solid #e2e8f0;
+  color: #27c8d8;
+  margin-bottom: 10px;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
 }
 
-.totals-table tbody td {
-  padding: 8px 10px;
-  border: 1px solid #e2e8f0;
-  text-align: center;
-  font-family: 'JetBrains Mono', 'Courier New', monospace;
-  font-weight: 600;
+.np-compromiso-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+
+.np-compromiso-list li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   font-size: 10px;
+  color: #e2e8f0;
 }
 
-.totals-label {
-  text-align: right;
-  font-weight: 600;
-  color: #475569;
-  padding-right: 12px;
-  font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+.np-compromiso-list li svg { color: #27c8d8; flex-shrink: 0; }
+
+/* ── ELABORÓ / REVISÓ / QR ─────────────────────── */
+.np-signoff-row {
+  display: flex;
+  gap: 16px;
+  margin: 0 24px 18px;
+  padding-top: 14px;
+  border-top: 1px solid #eef2f7;
+  break-inside: avoid;
+  page-break-inside: avoid;
 }
 
-.row-grand-total td {
-  background: #f1f5f9;
-  color: #1e293b;
+.np-signoff-col { flex: 1; }
+
+.np-signoff-label {
+  font-size: 9px;
   font-weight: 700;
-  padding: 8px 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #27c8d8;
+  margin-bottom: 3px;
+}
+
+.np-signoff-name { font-size: 11.5px; font-weight: 700; color: #0f1a2e; }
+.np-signoff-role { font-size: 9px; color: #64748b; margin-bottom: 4px; }
+
+.np-signoff-contact {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  color: #475569;
+  margin-top: 2px;
+}
+.np-signoff-contact svg { color: #94a3b8; flex-shrink: 0; }
+
+.np-qr-col {
+  flex: 1.3;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.np-qr-img {
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
   border: 1px solid #e2e8f0;
+  flex-shrink: 0;
 }
 
-.totals-label.grand {
-  color: #1e293b;
-  font-size: 11.5px;
+.np-qr-text strong {
+  display: block;
+  font-size: 9.5px;
+  color: #0f1a2e;
+  margin-bottom: 2px;
 }
 
-.grand-value {
-  font-size: 14px;
+.np-qr-text p {
+  margin: 0;
+  font-size: 8.5px;
+  color: #64748b;
+  line-height: 1.5;
 }
+
+/* ── NOTAS / CONDICIONES (dark) ────────────────── */
+.np-footer-notes {
+  display: flex;
+  gap: 14px;
+  margin: 0 24px 14px;
+}
+
+.np-note-dark {
+  flex: 1;
+  background: #0f1a2e;
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: #cbd5e1;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.np-note-full { margin: 0 24px 18px; }
+
+.np-note-dark-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #ffffff;
+  margin-bottom: 8px;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+}
+
+.np-note-dark-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+
+.np-note-dark-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.np-note-check { color: #27c8d8; flex-shrink: 0; margin-top: 2px; }
+
+.np-note-dark-text {
+  font-size: 9px;
+  line-height: 1.6;
+  margin: 0 0 6px;
+}
+.np-note-dark-text:last-child { margin-bottom: 0; }
+.np-note-dark-text strong { color: #ffffff; }
+.np-note-dark-strong { color: #ffffff; font-weight: 700; margin-bottom: 4px; }
+
+.np-note-text-pre { white-space: pre-wrap; word-break: break-word; }
 
 /* ── GALERÍA DE PRODUCTOS ─────────────────────── */
 .gallery-page {
-  margin-top: 20px;
+  margin: 20px 24px 0;
   break-before: page;
   page-break-before: always;
+  padding-top: 20px;
 }
 
 .gallery-panel {
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
 }
 
@@ -932,26 +1136,67 @@ const total = computed(() => subtotalAjustado.value + iva.value)
   line-height: 1.4;
 }
 
-/* ── FOOTER ───────────────────────────────────── */
-.pdf-footer {
-  margin-top: 28px;
-  padding-top: 14px;
-  border-top: 2px solid #e2e8f0;
+/* ── FOOTER FINAL ─────────────────────────────── */
+.np-final-footer {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 16px 24px;
+  border-top: 2px solid #0f1a2e;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.np-footer-logo { height: 30px; width: auto; flex-shrink: 0; }
+
+.np-footer-cats {
+  display: flex;
+  gap: 16px;
+  flex: 1;
+}
+
+.np-footer-cat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
   text-align: center;
+  flex: 1;
 }
 
-.footer-text {
-  margin: 0;
-  font-size: 11px;
-  color: #64748b;
+.np-footer-cat svg { color: #27c8d8; }
+
+.np-footer-cat span {
+  font-size: 7.5px;
   font-weight: 600;
-  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
-  letter-spacing: 0.2px;
+  color: #475569;
+  line-height: 1.3;
 }
 
-.footer-date {
-  margin: 5px 0 0;
-  font-size: 9px;
-  color: #94a3b8;
+.np-footer-tagline {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-style: italic;
+  font-size: 11px;
+  color: #0f1a2e;
+  text-align: right;
+  line-height: 1.3;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.np-footer-partners {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 10px 24px 18px;
+  flex-wrap: wrap;
+}
+
+.np-footer-partners img {
+  max-height: 28px;
+  max-width: 100px;
+  width: auto;
+  object-fit: contain;
 }
 </style>

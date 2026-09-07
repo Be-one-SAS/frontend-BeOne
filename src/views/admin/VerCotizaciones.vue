@@ -1394,18 +1394,17 @@ const formatDateTime = (iso) =>
   padding: 6px 12px;
   border-radius: 999px;
   border: 1.5px solid transparent;
-  background: #F8FAFC;
-  color: #94A3B8;
+  background: var(--chip-bg);
+  color: var(--chip-text);
+  opacity: 0.55;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: opacity 0.15s, border-color 0.15s;
 }
 .vc-status-chip:hover {
-  background: var(--chip-bg);
-  color: var(--chip-text);
+  opacity: 0.85;
 }
 .vc-status-chip--active {
-  background: var(--chip-bg);
-  color: var(--chip-text);
+  opacity: 1;
   border-color: var(--chip-text);
 }
 
