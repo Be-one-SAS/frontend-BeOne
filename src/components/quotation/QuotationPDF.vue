@@ -203,6 +203,12 @@
       <p class="note-text"><strong>Política de cancelación:</strong> Cancelaciones con menos de 48 horas de anticipación al evento tendrán un cargo del 50% del valor total. No-shows (no presentación) tendrán un cargo del 100%.</p>
     </div>
 
+    <!-- CONSIDERACIONES DE LA COTIZACIÓN -->
+    <div v-if="quotation.consideraciones" class="note-box">
+      <div class="note-box-title">Consideraciones de la Cotización</div>
+      <p class="note-text note-text-pre">{{ quotation.consideraciones }}</p>
+    </div>
+
     <!-- GALERÍA DE PRODUCTOS (página aparte) -->
     <div v-if="galleryItems.length" class="gallery-page">
       <div class="gallery-panel">
@@ -493,11 +499,12 @@ const total = computed(() => subtotalAjustado.value + iva.value)
   position: relative;
   flex: 1;
   min-width: 0;
+  min-height: 64px;
   align-self: stretch;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .header-wave {
@@ -510,18 +517,18 @@ const total = computed(() => subtotalAjustado.value + iva.value)
 .header-partners {
   position: relative;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   gap: 14px;
   z-index: 1;
   width: 100%;
-  height: 100%;
+  height: auto;
 }
 
 .partner-logo {
   display: block;
-  max-height: 100%;
-  max-width: 90px;
+  max-height: 60px;
+  max-width: 220px;
   width: auto;
   height: auto;
   object-fit: contain;
@@ -661,6 +668,11 @@ const total = computed(() => subtotalAjustado.value + iva.value)
   color: #475569;
   margin: 6px 0;
   line-height: 1.6;
+}
+
+.note-text-pre {
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* ── SERVICES SECTION ─────────────────────────── */
