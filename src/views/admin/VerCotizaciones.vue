@@ -8,6 +8,7 @@ import BaseTable from "../../components/ui/BaseTable.vue";
 import SelectLabel from "../../components/input/SelectLabel.vue";
 import CollaboratorsManager from "./components/CollaboratorsManager.vue";
 import QuotationPDF from "../../components/quotation/QuotationPDF.vue";
+import ReactivateExpiredModal from "../../components/quotation/ReactivateExpiredModal.vue";
 import { ChevronDown, Eye, CheckCircle, XCircle, FileText, Inbox, Users, Download, X, Printer, StickyNote, Plus, Trash2, Clock, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, AlertTriangle, Hourglass, LayoutGrid } from 'lucide-vue-next';
 import ThumbHoverPreview from '@/components/shared/ThumbHoverPreview.vue';
 import { useThumbHoverPreview } from '@/composables/useThumbHoverPreview';
@@ -54,6 +55,25 @@ const selectedQuotationForCollab = ref(null);
 const openCollaboratorsModal = (quotation) => {
   selectedQuotationForCollab.value = quotation;
   isCollabModalOpen.value = true;
+};
+
+//  NUEVO → modal reactivar cotización expirada
+const isReactivateModalOpen = ref(false);
+const quotationToReactivate = ref(null);
+
+const openReactivateModal = (quotation) => {
+  quotationToReactivate.value = quotation;
+  isReactivateModalOpen.value = true;
+};
+
+const closeReactivateModal = () => {
+  isReactivateModalOpen.value = false;
+  quotationToReactivate.value = null;
+};
+
+const onQuotationReactivated = async () => {
+  closeReactivateModal();
+  await loadQuotations();
 };
 
 const closeCollabModal = () => {
@@ -753,6 +773,15 @@ const formatDateTime = (iso) =>
                       <XCircle :size="12" /> Cancelar
                     </button>
 
+                    <!-- Reactivar — solo para cotizaciones Expirada -->
+                    <button
+                      v-if="q.quotationStatus?.name === 'Expirada' && canDo('ReservationConfirm', ['ADMINISTRADOR', 'LIDER', 'SUPERVISOR'])"
+                      @click.stop="openReactivateModal(q)"
+                      class="act-btn act-reactivate"
+                    >
+                      <Hourglass :size="12" /> Reactivar
+                    </button>
+
                     <!-- Ver -->
                     <button
                       @click.stop="openClientPreview(q)"
@@ -1152,6 +1181,16 @@ const formatDateTime = (iso) =>
         </div>
       </div>
     </div>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- MODAL REACTIVAR EXPIRADA                   -->
+    <!-- ══════════════════════════════════════════ -->
+    <ReactivateExpiredModal
+      :show="isReactivateModalOpen"
+      :quotation="quotationToReactivate"
+      @close="closeReactivateModal"
+      @reactivated="onQuotationReactivated"
+    />
 
     <!-- ══════════════════════════════════════════ -->
     <!-- MODAL VISTA PREVIA PDF                     -->
@@ -1645,6 +1684,9 @@ const formatDateTime = (iso) =>
 
 .act-collab          { background: #E0E7FF; color: #4338CA; }
 .act-collab:hover    { background: #C7D2FE; }
+
+.act-reactivate       { background: #EDE9FE; color: #5B21B6; }
+.act-reactivate:hover { background: #DDD6FE; }
 
 .act-disabled {
   background: #F1F5F9;
