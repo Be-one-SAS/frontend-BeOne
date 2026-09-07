@@ -47,8 +47,11 @@ const colorClass = computed(() => {
     case 'PRODUCTO NO PROPIO':
       return 'bg-[#F1F5F9] text-[#475569]'
 
-    case 'VENCIDO':
+    case 'VENCIDA':
       return 'bg-[#FEF3C7] text-[#B45309]'
+
+    case 'EXPIRADA':
+      return 'bg-[#EDE9FE] text-[#5B21B6]'
 
     default:
       return 'bg-[#F1F5F9] text-[#475569]'
@@ -82,8 +85,11 @@ const label = computed(() => {
     case 'CANCELADO':
       return 'Rechazada'
 
-    case 'VENCIDO':
+    case 'VENCIDA':
       return 'Vencida'
+
+    case 'EXPIRADA':
+      return 'Expirada'
 
     default:
       return props.estado

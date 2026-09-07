@@ -8,7 +8,7 @@ import BaseTable from "../../components/ui/BaseTable.vue";
 import SelectLabel from "../../components/input/SelectLabel.vue";
 import CollaboratorsManager from "./components/CollaboratorsManager.vue";
 import QuotationPDF from "../../components/quotation/QuotationPDF.vue";
-import { ChevronDown, Eye, CheckCircle, XCircle, FileText, Inbox, Users, Download, X, Printer, StickyNote, Plus, Trash2, Clock, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-vue-next';
+import { ChevronDown, Eye, CheckCircle, XCircle, FileText, Inbox, Users, Download, X, Printer, StickyNote, Plus, Trash2, Clock, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, AlertTriangle, Hourglass, LayoutGrid } from 'lucide-vue-next';
 import ThumbHoverPreview from '@/components/shared/ThumbHoverPreview.vue';
 import { useThumbHoverPreview } from '@/composables/useThumbHoverPreview';
 import { useAuth } from "../../composables/useAuth";
@@ -80,7 +80,22 @@ const estados = [
   { label: "Aprobada", value: "Aprobada" },
   { label: "Rechazada", value: "Rechazada" },
   { label: "Vencida",   value: "Vencida"   },
+  { label: "Expirada",  value: "Expirada"  },
 ];
+
+// Chips de filtro rápido por estado (junto al título) — icono y color por estado.
+const estadoTabs = [
+  { value: '',          label: 'Todos',     icon: LayoutGrid,    bg: '#F1F5F9', text: '#475569' },
+  { value: 'Pendiente', label: 'Pendiente', icon: Clock,         bg: '#CCEFF2', text: '#27C8D8' },
+  { value: 'Aprobada',  label: 'Aprobada',  icon: CheckCircle,   bg: '#DCFCE7', text: '#16A34A' },
+  { value: 'Rechazada', label: 'Rechazada', icon: XCircle,       bg: '#FEE2E2', text: '#B91C1C' },
+  { value: 'Vencida',   label: 'Vencida',   icon: AlertTriangle, bg: '#FEF3C7', text: '#B45309' },
+  { value: 'Expirada',  label: 'Expirada',  icon: Hourglass,     bg: '#EDE9FE', text: '#5B21B6' },
+];
+
+// Las cotizaciones que ya perdieron vigencia/reserva (Expirada, Vencida) se
+// muestran siempre primero, sin importar el filtro u orden activo.
+const PRIORIDAD_ESTADO = { Expirada: 0, Vencida: 1 };
 
 // ----------------------
 // TABS
@@ -207,7 +222,7 @@ const lockColor = (hoursLeft) => {
 
 // FILTROS COMPUTADOS
 const filteredQuotations = computed(() => {
-  return quotations.value.filter((q) => {
+  const filtradas = quotations.value.filter((q) => {
     const texto = search.value.toLowerCase();
 
     // q.numero es INTEGER en la BD — se convierte a string antes de comparar
@@ -229,6 +244,13 @@ const filteredQuotations = computed(() => {
       !fechaFinFiltro.value || fechaCot <= new Date(fechaFinFiltro.value);
 
     return coincideTexto && coincideEstado && dentroInicio && dentroFin;
+  });
+
+  // Expirada/Vencida siempre primero, sin importar el filtro de estado activo.
+  return [...filtradas].sort((a, b) => {
+    const pa = PRIORIDAD_ESTADO[a.quotationStatus?.name] ?? 2;
+    const pb = PRIORIDAD_ESTADO[b.quotationStatus?.name] ?? 2;
+    return pa - pb;
   });
 });
 
@@ -528,10 +550,26 @@ const formatDateTime = (iso) =>
     <!-- ══════════════════════════════════════════ -->
     <!-- HEADER                                     -->
     <!-- ══════════════════════════════════════════ -->
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
       <div>
         <h2 class="vc-title">Cotizaciones</h2>
         <p class="vc-subtitle">{{ filteredQuotations.length }} cotizaciones encontradas</p>
+      </div>
+
+      <!-- Chips de filtro rápido por estado -->
+      <div class="vc-status-filters">
+        <button
+          v-for="t in estadoTabs"
+          :key="t.value"
+          type="button"
+          class="vc-status-chip"
+          :class="{ 'vc-status-chip--active': estadoFiltro === t.value }"
+          :style="{ '--chip-bg': t.bg, '--chip-text': t.text }"
+          @click="estadoFiltro = t.value"
+        >
+          <component :is="t.icon" :size="13" />
+          {{ t.label }}
+        </button>
       </div>
     </div>
 
@@ -562,7 +600,7 @@ const formatDateTime = (iso) =>
     <!-- ══════════════════════════════════════════ -->
     <!-- FILTROS                                    -->
     <!-- ══════════════════════════════════════════ -->
-    <div class="bg-white rounded-[14px] p-4 mb-5 shadow-[0_1px_4px_rgba(39,200,216,.06)] grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="bg-white rounded-[14px] p-4 mb-5 shadow-[0_1px_4px_rgba(39,200,216,.06)] grid grid-cols-1 md:grid-cols-3 gap-4">
 
       <input
         v-model="search"
@@ -570,13 +608,6 @@ const formatDateTime = (iso) =>
         placeholder="Número, empresa o cliente…"
         class="vc-input"
       />
-
-      <select v-model="estadoFiltro" class="vc-input">
-        <option value="">Todos los estados</option>
-        <option v-for="e in estados" :key="e.value" :value="e.value">
-          {{ e.label }}
-        </option>
-      </select>
 
       <input v-model="fechaInicioFiltro" type="date" class="vc-input" />
       <input v-model="fechaFinFiltro"    type="date" class="vc-input" />
@@ -1305,6 +1336,38 @@ const formatDateTime = (iso) =>
   color: var(--text-3, #94A3B8);
   font-family: 'Inter', sans-serif;
   margin: 0;
+}
+
+/* ─── Chips de filtro rápido por estado ──────────────── */
+.vc-status-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.vc-status-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1.5px solid transparent;
+  background: #F8FAFC;
+  color: #94A3B8;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.vc-status-chip:hover {
+  background: var(--chip-bg);
+  color: var(--chip-text);
+}
+.vc-status-chip--active {
+  background: var(--chip-bg);
+  color: var(--chip-text);
+  border-color: var(--chip-text);
 }
 
 /* ─── Inputs / selects compartidos ──────────────────── */
