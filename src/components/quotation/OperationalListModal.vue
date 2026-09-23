@@ -741,14 +741,24 @@ const consolidadoPorCategoria = computed(() => {
 })
 
 // ── Product info for header ───────────────────────────────────
-// Cada tarjeta muestra la ficha técnica × la cantidad solicitada de ESA línea
-// (una misma línea con cantidadProducto > 1 necesita esos recursos multiplicadas veces).
+// Multiplicador de recursos operativos por línea — debe coincidir con el que
+// usa el backend para materiales (getQuotationItemMultiplier /
+// getThirdPartyItemMultiplier en materiales.service.ts): jornadas × unidades
+// solicitadas. Es DISTINTO de getProductQty (que solo cuenta unidades físicas
+// para el badge "x{n}" del producto) — un evento de 3 jornadas necesita esos
+// motores/operarios/extintores las 3 jornadas, no solo 1.
+const getOperationalMultiplier = (item) =>
+  item.isThird
+    ? (item.cantidadJornada ?? 1) * (item.cantidad ?? 1)
+    : (item.cantidadJornada ?? 1) * (item.cantidadProducto ?? item.quantity ?? 1)
+
+// Cada tarjeta muestra la ficha técnica × el multiplicador operativo de ESA línea.
 const productInfoItems = computed(() =>
   allItems.value
     .map(item => {
       const info = item.isThird ? item.catalogProduct : item.product
       if (!info) return null
-      const qty = getProductQty(item)
+      const qty = getOperationalMultiplier(item)
       return {
         nombre: info.nombre || info.dispositivo || 'Producto',
         amperios: info.amperios ? info.amperios * qty : info.amperios,
