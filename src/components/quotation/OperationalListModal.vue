@@ -117,6 +117,16 @@
 
             <!-- ── 1b. Info operativa por producto ──────────────── -->
             <div v-if="productInfoItems.length > 0" class="prod-info-strip">
+              <div class="prod-info-card prod-info-card--total">
+                <p class="prod-info-name">📦 Total operativo del evento</p>
+                <div class="prod-info-tags">
+                  <span v-if="operationalTotals.amperios" class="prod-tag prod-tag--total">⚡ {{ operationalTotals.amperios }} amp</span>
+                  <span v-if="operationalTotals.qMotores" class="prod-tag prod-tag--total">⚙️ {{ operationalTotals.qMotores }} motor{{ operationalTotals.qMotores !== 1 ? 'es' : '' }}</span>
+                  <span v-if="operationalTotals.qMetrosExtensiones" class="prod-tag prod-tag--total">📏 {{ operationalTotals.qMetrosExtensiones }}m extensiones</span>
+                  <span v-if="operationalTotals.qOperarios" class="prod-tag prod-tag--total">👷 {{ operationalTotals.qOperarios }} operario{{ operationalTotals.qOperarios !== 1 ? 's' : '' }}</span>
+                  <span v-if="operationalTotals.qExtintores" class="prod-tag prod-tag--total">🧯 {{ operationalTotals.qExtintores }} extintor{{ operationalTotals.qExtintores !== 1 ? 'es' : '' }}</span>
+                </div>
+              </div>
               <div
                 v-for="(p, i) in productInfoItems"
                 :key="i"
@@ -731,19 +741,39 @@ const consolidadoPorCategoria = computed(() => {
 })
 
 // ── Product info for header ───────────────────────────────────
+// Cada tarjeta muestra la ficha técnica × la cantidad solicitada de ESA línea
+// (una misma línea con cantidadProducto > 1 necesita esos recursos multiplicadas veces).
 const productInfoItems = computed(() =>
-  (props.event?.items || [])
-    .filter(i => i.product)
-    .map(i => ({
-      nombre: i.product.nombre || i.product.dispositivo || 'Producto',
-      amperios: i.product.amperios,
-      qMotores: i.product.qMotores,
-      qMetrosExtensiones: i.product.qMetrosExtensiones,
-      qOperarios: i.product.qOperarios,
-      qExtintores: i.product.qExtintores,
-    }))
-    .filter(p => p.amperios || p.qMotores || p.qMetrosExtensiones || p.qOperarios)
+  allItems.value
+    .map(item => {
+      const info = item.isThird ? item.catalogProduct : item.product
+      if (!info) return null
+      const qty = getProductQty(item)
+      return {
+        nombre: info.nombre || info.dispositivo || 'Producto',
+        amperios: info.amperios ? info.amperios * qty : info.amperios,
+        qMotores: info.qMotores ? info.qMotores * qty : info.qMotores,
+        qMetrosExtensiones: info.qMetrosExtensiones ? info.qMetrosExtensiones * qty : info.qMetrosExtensiones,
+        qOperarios: info.qOperarios ? info.qOperarios * qty : info.qOperarios,
+        qExtintores: info.qExtintores ? info.qExtintores * qty : info.qExtintores,
+      }
+    })
+    .filter(p => p && (p.amperios || p.qMotores || p.qMetrosExtensiones || p.qOperarios))
 )
+
+// Suma de recursos operativos (motores, operarios, extintores, extensiones, amperaje)
+// necesarios para TODO el evento, entre todos los productos y cantidades solicitadas.
+const operationalTotals = computed(() => {
+  const totals = { amperios: 0, qMotores: 0, qMetrosExtensiones: 0, qOperarios: 0, qExtintores: 0 }
+  for (const p of productInfoItems.value) {
+    totals.amperios += p.amperios || 0
+    totals.qMotores += p.qMotores || 0
+    totals.qMetrosExtensiones += p.qMetrosExtensiones || 0
+    totals.qOperarios += p.qOperarios || 0
+    totals.qExtintores += p.qExtintores || 0
+  }
+  return totals
+})
 
 // ── Catalog picker ────────────────────────────────────────────
 const filteredCatalog = computed(() => {
@@ -1211,6 +1241,15 @@ async function submitOC() {
   font-size: 11px; font-weight: 600; color: #27C8D8;
   background: #CCEFF2; border-radius: 6px; padding: 3px 8px;
   white-space: nowrap;
+}
+
+.prod-info-card--total {
+  background: linear-gradient(135deg, #0F1A2E 0%, #1E293B 100%);
+  border-color: #0F1A2E;
+}
+.prod-info-card--total .prod-info-name { color: #FFFFFF; }
+.prod-tag--total {
+  color: #0F1A2E; background: #FFFFFF;
 }
 
 /* ── Empty state ────────────────────────────────────── */
